@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#151a1a"><title>За гранью · игровая проба</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header><div class="brand"><span class="brand-mark">✧</span><div>ЗА ГРАНЬЮ<small>ХРОНИКИ ПРИКЛЮЧЕНИЙ</small></div></div><button id="menu" class="icon" aria-label="Меню игры">☰</button></header>
+  <main>
+    <div class="chapter"><span>ПРОЛОГ · 01</span><span id="save-status">Сохранение…</span></div>
+    <div class="title-line"><h1>Часовня без колокола</h1><span class="level" id="level">УР. 1</span></div>
+    <p id="quest" class="quest">Найдите реликвию в заброшенной часовне.</p>
+    <div class="party" id="party"></div>
+    <section class="board-shell" aria-label="Тактическая карта">
+      <div class="board-top"><span id="phase">◈ Исследование</span><span id="movement">Выберите клетку</span></div>
+      <div class="canvas-wrap"><canvas id="map" tabindex="0" aria-label="Карта часовни. Нажмите на клетку или используйте стрелки и Enter."></canvas><div class="map-caption">СЕВЕР ↑</div><div id="dice" class="dice" aria-live="polite" hidden><span id="dice-value">20</span><small>d20</small></div></div>
+      <div class="map-legend"><span><i class="dot hero"></i>Вы</span><span><i class="dot ally"></i>Спутники</span><span><i class="dot foe"></i>Противники</span><span>▧ Укрытие</span></div>
+    </section>
+    <section class="action-panel"><div id="selection" aria-live="polite">Нажмите на свободную клетку, чтобы проложить путь.</div><div id="actions" class="actions"></div></section>
+    <section class="story"><div class="story-head"><span>✧ ВЕДУЩИЙ</span><span class="demo-tag">ТЕСТОВЫЙ СЦЕНАРИЙ</span></div><p id="narrative" aria-live="polite"></p><div class="story-footer"><button id="journal">Хроника <span id="journal-count">1</span></button><button id="custom">Своё действие ↗</button></div></section>
+    <nav class="bottom-nav" aria-label="Игровые разделы"><button class="active" id="nav-map"><span>◇</span>Карта</button><button id="nav-character"><span>♙</span>Герой</button><button id="nav-inventory"><span>▣</span>Рюкзак</button><button id="nav-help"><span>?</span>Помощь</button></nav>
+    <p class="build-note">Игровая проба 0.1 · ИИ ещё не подключён</p>
+  </main>
+</div>
+<dialog id="modal"><div class="modal-head"><h2 id="modal-title"></h2><button id="close-modal" class="icon" aria-label="Закрыть">✕</button></div><div id="modal-content"></div></dialog>
+<script src="game.js"></script>
+</body></html>
