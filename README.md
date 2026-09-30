@@ -2,7 +2,7 @@
 
 Mobile-first solo tactical RPG prototype, Russian UI. Static HTML/CSS/Canvas/JS, no dependencies or external requests.
 
-Run: `python3 -m http.server 8000 --directory public`
+Run: `python3 -m http.server 8000 --directory dist`
 
 ## Agreed direction
 - Replaces the earlier train-game project; do not modify that project's files.
@@ -19,4 +19,4 @@ Handcrafted chapel encounter, pathfinding, movement confirmation, locked door d2
 No AI, server, Telegram integration, multiplayer, accounts, cloud persistence or anti-cheat yet. NPC companion turns are rules-based. Browser dice are not server-authoritative and state is editable on the device. Scenario text is scripted. Free-text action is saved as a draft only and never presented as an AI response. The map topology is fixed; a random seed changes tile texture only. Character name is seeded for the user's test. Follow-up must connect a real narrative model behind a server, canonical event store and rule validation, then procedural content and multiplayer. Do not claim these are already implemented.
 
 ## Design
-Five movement cells per combat turn; one action for attack or potion. Four-neighbor movement, blocked/occupied cells excluded; walls block line of sight. Bow range five Manhattan cells. Adjacent wall gives target +2 ranged AC (deliberately simplified, not strict D&D). Companions act then enemies. Reload preserves resolved state; no network requests or credentials in client.
+Five movement cells per combat turn; one action for attack or potion. Four-neighbor movement, blocked cells excluded; friendly units can be traversed but cannot share destinations; walls block line of sight. Bow range five Manhattan cells. Adjacent wall gives target +2 ranged AC (deliberately simplified, not strict D&D). Companions act then enemies. Reload preserves resolved state; no network requests or credentials in client.
