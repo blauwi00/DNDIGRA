@@ -20,3 +20,8 @@ No AI, server, Telegram integration, multiplayer, accounts, cloud persistence or
 
 ## Design
 Five movement cells per combat turn; one action for attack or potion. Four-neighbor movement, blocked cells excluded; friendly units can be traversed but cannot share destinations; walls block line of sight. Bow range five Manhattan cells. Adjacent wall gives target +2 ranged AC (deliberately simplified, not strict D&D). Companions act then enemies. Reload preserves resolved state; no network requests or credentials in client.
+
+## Visual update 0.2
+Detailed tabletop art with generated transparent miniature atlas and limestone texture, exact code-owned walls and collision grid, layered shadows, moonlight, torch flicker and dust, route-based hero animation, miniature portraits, a faceted d20 and warm metal framing. Animation stops offscreen, pauses in hidden tabs and respects reduced-motion preference. Original localStorage key and save schema are retained. Asset provenance and prompts: ASSETS.md.
+
+Validation: Playwright at 390px and 320px widths, no horizontal overflow or runtime errors; existing full gameplay test covers movement, reload, door, combat, loot, relic, exit, level 2 and save restoration. Browser tests use controlled random values only inside the test page; production uses crypto.getRandomValues unchanged.

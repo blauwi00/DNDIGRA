@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#151a1a"><title>За гранью · игровая проба</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <div class="app">
-  <header><div class="brand"><span class="brand-mark">✧</span><div>ЗА ГРАНЬЮ<small>ХРОНИКИ ПРИКЛЮЧЕНИЙ</small></div></div><button id="menu" class="icon" aria-label="Меню игры">☰</button></header>
+  <header><div class="brand"><span class="brand-mark"><svg viewBox="0 0 40 44" aria-hidden="true"><path d="M20 2 37 12v20L20 42 3 32V12ZM20 2 10 26l10 16 10-16ZM3 12l27 14 7 6M37 12 10 26 3 32M3 12h34"/></svg></span><div>ЗА ГРАНЬЮ<small>ХРОНИКИ ПРИКЛЮЧЕНИЙ</small></div></div><button id="menu" class="icon" aria-label="Меню игры">☰</button></header>
   <main>
     <div class="chapter"><span>ПРОЛОГ · 01</span><span id="save-status">Сохранение…</span></div>
     <div class="title-line"><h1>Часовня без колокола</h1><span class="level" id="level">УР. 1</span></div>
@@ -15,15 +15,16 @@
     <div class="party" id="party"></div>
     <section class="board-shell" aria-label="Тактическая карта">
       <div class="board-top"><span id="phase">◈ Исследование</span><span id="movement">Выберите клетку</span></div>
-      <div class="canvas-wrap"><canvas id="map" tabindex="0" aria-label="Карта часовни. Нажмите на клетку или используйте стрелки и Enter."></canvas><div class="map-caption">СЕВЕР ↑</div><div id="dice" class="dice" aria-live="polite" hidden><span id="dice-value">20</span><small>d20</small></div></div>
+      <div class="canvas-wrap"><canvas id="map" tabindex="0" aria-label="Карта часовни. Нажмите на клетку или используйте стрелки и Enter."></canvas><div class="map-caption">СЕВЕР ↑</div><div id="dice" class="dice" aria-live="polite" hidden><svg class="dice-facets" viewBox="0 0 100 100" aria-hidden="true"><path fill="#f7e5b2" d="M50 0 20 65 5 25Z"/><path fill="#b08b45" d="m95 25-15 40-30 35 45-25Z"/><path fill="#d9b76f" d="M20 65h60L50 100Z"/><path fill="none" stroke="#705626" stroke-opacity=".6" stroke-width=".9" d="M50 0 20 65h60ZM5 25l45-5 45 5M5 75l15-10 30 35 30-35 15 10M50 20 20 65m30-45 30 45"/></svg><span id="dice-value">20</span><small>d20</small></div></div>
       <div class="map-legend"><span><i class="dot hero"></i>Вы</span><span><i class="dot ally"></i>Спутники</span><span><i class="dot foe"></i>Противники</span><span>▧ Укрытие</span></div>
     </section>
     <section class="action-panel"><div id="selection" aria-live="polite">Нажмите на свободную клетку, чтобы проложить путь.</div><div id="actions" class="actions"></div></section>
     <section class="story"><div class="story-head"><span>✧ ВЕДУЩИЙ</span><span class="demo-tag">ТЕСТОВЫЙ СЦЕНАРИЙ</span></div><p id="narrative" aria-live="polite"></p><div class="story-footer"><button id="journal">Хроника <span id="journal-count">1</span></button><button id="custom">Своё действие ↗</button></div></section>
     <nav class="bottom-nav" aria-label="Игровые разделы"><button class="active" id="nav-map"><span>◇</span>Карта</button><button id="nav-character"><span>♙</span>Герой</button><button id="nav-inventory"><span>▣</span>Рюкзак</button><button id="nav-help"><span>?</span>Помощь</button></nav>
-    <p class="build-note">Игровая проба 0.1 · ИИ ещё не подключён</p>
+    <p class="build-note">Игровая проба 0.2 · ИИ ещё не подключён</p>
   </main>
 </div>
 <dialog id="modal"><div class="modal-head"><h2 id="modal-title"></h2><button id="close-modal" class="icon" aria-label="Закрыть">✕</button></div><div id="modal-content"></div></dialog>
-<script src="game.js"></script>
+<script src="art.js?v=2"></script>
+<script src="game.js?v=2"></script>
 </body></html>
