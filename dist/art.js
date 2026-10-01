@@ -1,14 +1,14 @@
 /* Detailed tabletop rendering. Gameplay geometry remains owned by game.js. */
 window.createChapelArt = function(canvas) {
   'use strict';
-  const ctx=canvas.getContext('2d'),atlas=new Image(),figures=new Image(),floor=new Image();
+  const ctx=canvas.getContext('2d'),atlas=new Image(),figures=new Image(),board=new Image(),floor=new Image();
   const sprites={ranger:[75,0,535,450],mage:[695,0,470,451],guard:[75,450,550,420],enemy:[662,450,495,419],chest:[140,870,477,373],altar:[698,870,478,373]};
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let view=null,back=null,backKey='',px=42,scale=84,lastTime=0,raf=0,onscreen=true;
   const journeys=new Map(),dust=Array.from({length:18},(_,i)=>({x:(i*53%89)/10,y:(i*37%105)/10,phase:i*1.9}));
   function ready(){backKey='';portraits();paint(performance.now());schedule()}
-  atlas.onload=ready;figures.onload=ready;floor.onload=ready;atlas.onerror=ready;figures.onerror=ready;floor.onerror=ready;
-  atlas.src='assets/miniatures-v2.png';figures.src='assets/figures-v3.png';floor.src='assets/limestone-v2.png';
+  atlas.onload=ready;figures.onload=ready;board.onload=ready;floor.onload=ready;atlas.onerror=ready;figures.onerror=ready;board.onerror=ready;floor.onerror=ready;
+  atlas.src='assets/miniatures-v2.png';figures.src='assets/figures-v3.png';board.src='assets/chapel-v3.png';floor.src='assets/limestone-v2.png';
   function noise(x,y,k=0){let n=Math.sin(x*127.1+y*311.7+k*19.3)*43758.5453;return n-Math.floor(n)}
   function sprite(c,kind,x,y,w,h,facing='down'){if(['ranger','mage','guard','enemy'].includes(kind)){if(!figures.complete||!figures.naturalWidth)return false;const row={ranger:0,mage:1,guard:2,enemy:3}[kind],col={down:0,right:1,up:2,left:3}[facing]??0,sw=figures.naturalWidth/4,sh=figures.naturalHeight/4;c.drawImage(figures,col*sw,row*sh,sw,sh,x,y,w,h);return true}if(!atlas.complete||!atlas.naturalWidth)return false;const r=sprites[kind];c.drawImage(atlas,...r,x,y,w,h);return true}
   function ellipse(c,x,y,rx,ry,color){c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill()}
@@ -37,9 +37,9 @@ window.createChapelArt = function(canvas) {
   }
   function carpet(c){c.save();c.beginPath();c.rect(3.78,5.94,1.44,3.64);c.clip();c.fillStyle='#6d4038';c.fillRect(3.78,5.94,1.44,3.64);c.strokeStyle='#b39561';c.lineWidth=.025;c.strokeRect(3.88,6.03,1.24,3.4);c.strokeRect(3.96,6.07,1.08,3.32);for(let y=6.25;y<9.4;y+=.46){c.strokeStyle='#bba26a55';c.beginPath();c.moveTo(4.5,y);c.lineTo(4.78,y+.19);c.lineTo(4.5,y+.38);c.lineTo(4.22,y+.19);c.closePath();c.stroke()}for(let i=0;i<130;i++){c.fillStyle=`rgba(36,32,25,${noise(i,8)*.2})`;c.fillRect(3.78+noise(i,5)*1.44,5.94+noise(i,7)*3.64,.07,.025)}c.restore();c.strokeStyle='#b49966';c.lineWidth=.012;for(let i=0;i<22;i++){c.beginPath();c.moveTo(3.8+i*.065,9.58);c.lineTo(3.8+i*.065,9.66+noise(i,9)*.06);c.stroke()}}
   function scenery(){
-    const s=view.state,key=[canvas.width,canvas.height,s.seed,s.door,s.chest,s.relic,atlas.naturalWidth,figures.naturalWidth,floor.naturalWidth].join(':');if(back&&backKey===key)return;backKey=key;
+    const s=view.state,key=[canvas.width,canvas.height,s.seed,s.door,s.chest,s.relic,atlas.naturalWidth,figures.naturalWidth,board.naturalWidth,floor.naturalWidth].join(':');if(back&&backKey===key)return;backKey=key;
     back=document.createElement('canvas');back.width=canvas.width;back.height=canvas.height;const c=back.getContext('2d');c.setTransform(scale,0,0,scale,0,0);
-    c.fillStyle='#222e2a';c.fillRect(0,0,9,11);if(floor.complete&&floor.naturalWidth)c.drawImage(floor,0,0,9,11);c.fillStyle='#263e364a';c.fillRect(0,0,9,11);
+    if(board.complete&&board.naturalWidth){c.drawImage(board,0,0,9,11);if(s.chest){c.fillStyle='#524431aa';c.fillRect(2.08,2.39,.84,.28)}if(s.relic){c.fillStyle='#6f7168cc';c.fillRect(6.1,1.3,.8,.5)}}else{c.fillStyle='#222e2a';c.fillRect(0,0,9,11);if(floor.complete&&floor.naturalWidth)c.drawImage(floor,0,0,9,11);c.fillStyle='#263e364a';c.fillRect(0,0,9,11);
     // Edge occlusion makes walls feel like raised tabletop scenery.
     for(let y=1;y<10;y++)for(let x=1;x<8;x++){if(view.wall(x,y))continue;for(const [dx,dy]of[[-1,0],[0,-1],[1,0],[0,1]]){if(view.wall(x+dx,y+dy)){const g=c.createLinearGradient(x+.5,y+.5,x+.5+dx*.5,y+.5+dy*.5);g.addColorStop(0,'#15232100');g.addColorStop(1,'#13211da0');c.fillStyle=g;c.fillRect(x,y,1,1)}}}
     carpet(c);for(const y of[6.7,8.22])for(const x of[1.12,6.64])bench(c,x,y);
@@ -56,7 +56,7 @@ window.createChapelArt = function(canvas) {
     if(!s.chest){if(!sprite(c,'chest',1.98,2.07,1.06,.86)){c.fillStyle='#9b7549';c.fillRect(2.1,2.28,.8,.6)}}else{c.fillStyle='#52443155';c.fillRect(2.15,2.4,.7,.36)}
     if(!s.relic)sprite(c,'altar',5.98,1.06,1.08,.88);else{c.fillStyle='#9b9e8c';c.fillRect(6.1,1.28,.8,.55)}
     // Decorative brass corners along the table rim.
-    c.strokeStyle='#ccae7066';c.lineWidth=.025;for(const [x,y,sx,sy]of[[.17,.17,1,1],[8.83,.17,-1,1],[.17,10.83,1,-1],[8.83,10.83,-1,-1]]){c.beginPath();c.moveTo(x,y+sy*.48);c.lineTo(x,y);c.lineTo(x+sx*.48,y);c.stroke()}
+    c.strokeStyle='#ccae7066';c.lineWidth=.025;for(const [x,y,sx,sy]of[[.17,.17,1,1],[8.83,.17,-1,1],[.17,10.83,1,-1],[8.83,10.83,-1,-1]]){c.beginPath();c.moveTo(x,y+sy*.48);c.lineTo(x,y);c.lineTo(x+sx*.48,y);c.stroke()}}
   }
   function figurine(e,now){let x=e.x,y=e.y;const j=journeys.get(e.id);if(j){const t=Math.min(1,(now-j.start)/j.duration),v=t*(j.path.length-1),i=Math.min(j.path.length-2,Math.floor(v)),u=v-i;x=j.path[i].x+(j.path[i+1].x-j.path[i].x)*u;y=j.path[i].y+(j.path[i+1].y-j.path[i].y)*u;if(t>=1)journeys.delete(e.id)}
     const enemy=e.kind==='enemy',gold=e.id==='hero';ctx.save();ctx.translate(x+.5,y+.35);
