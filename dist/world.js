@@ -24,6 +24,7 @@ hub.props.push(
 function tile(scene,x,y){return scene.tiles[y]?.[x]||'void'}
 function faces(scene,x,y){return directions.reduce((m,[dx,dy],i)=>m|(tile(scene,x+dx,y+dy)==='floor'?1<<i:0),0)}
 
+hub.props.push({id:'trial-cache',x:16,y:3,type:'crate',kind:24,name:'Тёмная ниша · тайник',description:'За досками видна узкая щель. Проверьте её с переносным светом.'});
 hub.lights.push(
 {id:'entry-lantern',x:2.5,y:12.5,radius:2.6,power:.6,phase:2.3,intensity:6,distance:6,brightRadius:3},
 {id:'reading-lantern',x:11.5,y:4.5,radius:2.5,power:.6,phase:4.7,intensity:6,distance:6,brightRadius:3},
