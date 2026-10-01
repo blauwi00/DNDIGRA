@@ -30,7 +30,7 @@ window.createChapelArt = function(canvas) {
   }
   function bench(c,x,y){c.save();c.shadowColor='#0b1714';c.shadowBlur=scale*.05;c.shadowOffsetY=scale*.12;c.fillStyle='#3a2c1f';c.fillRect(x,y,1.22,.26);c.restore();const g=c.createLinearGradient(0,y,0,y+.25);g.addColorStop(0,'#ad8351');g.addColorStop(.3,'#826440');g.addColorStop(1,'#4b3827');c.fillStyle=g;c.fillRect(x,y,1.22,.23);c.fillStyle='#b39664';c.fillRect(x,y,.07,.23);c.fillRect(x+1.15,y,.07,.23);c.strokeStyle='#382c2088';c.lineWidth=.018;for(let i=1;i<4;i++){c.beginPath();c.moveTo(x+.09,y+i*.048);c.bezierCurveTo(x+.35,y+i*.05,x+.6,y+i*.045,x+1.11,y+i*.05);c.stroke()}for(const xx of[x+.11,x+1.05]){ellipse(c,xx,y+.09,.025,.025,'#ceb880')}}
   function door(c,opened){
-    c.save();c.translate(4.04,5.05);if(opened){c.translate(.02,.08);c.rotate(Math.PI*.46)}
+    c.save();c.translate(4.04,5.095);if(opened){c.translate(.02,.08);c.rotate(Math.PI*.46)}
     c.shadowColor='#070b08';c.shadowBlur=scale*.06;c.shadowOffsetY=scale*.13;c.fillStyle='#30271b';c.fillRect(0,0,.91,.81);c.shadowBlur=0;c.shadowOffsetY=0;
     for(let i=0;i<5;i++){const g=c.createLinearGradient(i*.18,0,i*.18+.17,0);g.addColorStop(0,'#6b4d30');g.addColorStop(.35,'#aa8150');g.addColorStop(1,'#61452b');c.fillStyle=g;c.fillRect(.01+i*.18,.015,.16,.78);c.strokeStyle='#d6b87b55';c.lineWidth=.009;c.beginPath();c.moveTo(.04+i*.18,.1);c.lineTo(.06+i*.18,.72);c.stroke()}
     for(const y of[.16,.6]){c.fillStyle='#373f37';c.fillRect(.015,y,.87,.072);c.fillStyle='#b4aa80';for(const x of[.06,.26,.48,.68,.83]){ellipse(c,x,y+.035,.015,.015,'#b4aa80')}}c.strokeStyle='#d3b46e';c.lineWidth=.034;c.beginPath();c.arc(.7,.39,.067,0,7);c.stroke();c.restore();
@@ -53,13 +53,13 @@ window.createChapelArt = function(canvas) {
     // Moonlight through narrow stained windows.
     for(const y of[6.2,8.65]){c.fillStyle='#15232a';c.fillRect(.24,y,.39,.77);const g=c.createLinearGradient(.32,y,4,y+1.6);g.addColorStop(0,'#a0cdd854');g.addColorStop(1,'#a0cdd800');c.fillStyle=g;c.beginPath();c.moveTo(.68,y+.07);c.lineTo(4.2,y+1.14);c.lineTo(4.2,y+1.77);c.lineTo(.68,y+.6);c.closePath();c.fill();c.fillStyle='#a9bfbe';c.fillRect(.28,y+.05,.26,.64);c.strokeStyle='#475756';c.lineWidth=.035;c.strokeRect(.28,y+.05,.26,.64);c.beginPath();c.moveTo(.41,y+.06);c.lineTo(.41,y+.68);c.moveTo(.28,y+.31);c.lineTo(.54,y+.31);c.stroke()}
     door(c,s.door);
-    if(!s.chest){if(!sprite(c,'chest',1.98,1.99,1.06,.86)){c.fillStyle='#9b7549';c.fillRect(2.1,2.2,.8,.6)}}else{c.fillStyle='#52443155';c.fillRect(2.15,2.32,.7,.36)}
-    if(!s.relic)sprite(c,'altar',5.98,.94,1.08,.88);else{c.fillStyle='#9b9e8c';c.fillRect(6.1,1.16,.8,.55)}
+    if(!s.chest){if(!sprite(c,'chest',1.98,2.07,1.06,.86)){c.fillStyle='#9b7549';c.fillRect(2.1,2.28,.8,.6)}}else{c.fillStyle='#52443155';c.fillRect(2.15,2.4,.7,.36)}
+    if(!s.relic)sprite(c,'altar',5.98,1.06,1.08,.88);else{c.fillStyle='#9b9e8c';c.fillRect(6.1,1.28,.8,.55)}
     // Decorative brass corners along the table rim.
     c.strokeStyle='#ccae7066';c.lineWidth=.025;for(const [x,y,sx,sy]of[[.17,.17,1,1],[8.83,.17,-1,1],[.17,10.83,1,-1],[8.83,10.83,-1,-1]]){c.beginPath();c.moveTo(x,y+sy*.48);c.lineTo(x,y);c.lineTo(x+sx*.48,y);c.stroke()}
   }
   function figurine(e,now){let x=e.x,y=e.y;const j=journeys.get(e.id);if(j){const t=Math.min(1,(now-j.start)/j.duration),v=t*(j.path.length-1),i=Math.min(j.path.length-2,Math.floor(v)),u=v-i;x=j.path[i].x+(j.path[i+1].x-j.path[i].x)*u;y=j.path[i].y+(j.path[i+1].y-j.path[i].y)*u;if(t>=1)journeys.delete(e.id)}
-    const enemy=e.kind==='enemy',gold=e.id==='hero';ctx.save();ctx.translate(x+.5,y+.49);
+    const enemy=e.kind==='enemy',gold=e.id==='hero';ctx.save();ctx.translate(x+.5,y+.35);
     const shadow=ctx.createRadialGradient(.055,.14,.06,.055,.14,.53);shadow.addColorStop(0,'#07110fd9');shadow.addColorStop(1,'#07110f00');ctx.fillStyle=shadow;ctx.fillRect(-.5,-.35,1.1,1);
     ctx.strokeStyle=gold?'#ffe1a0':enemy?'#ce7c65':'#a8c6d4';ctx.lineWidth=gold?.047:.025;ctx.beginPath();ctx.ellipse(0,.15,.38,.26,0,0,7);ctx.stroke();
     const turn={up:Math.PI,left:-Math.PI/2,right:Math.PI/2,down:0}[e.facing||'down'];ctx.save();ctx.rotate(turn);if(!sprite(ctx,e.kind,-.54,-.57,1.08,.94)){ellipse(ctx,0,0,.26,.26,enemy?'#9d6152':'#859370')}ctx.restore();
