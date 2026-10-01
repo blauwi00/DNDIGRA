@@ -19,3 +19,6 @@ Validation uses DOM gameplay integration and actual Three.js geometry with a stu
 
 ## Smooth preset B
 Stationary sources no longer render cubemap shadows. Warm falloff and flicker retained, low neutral ambient increased for readable rooms. Soft radial contact shadows ground figures and furniture. Only carried sources cast dynamic shadows, at 128 resolution, refreshed on state changes and moving geometry. Fixed drawing ratio 1 instead of 1.5 reduces pixel count by 56% on high-DPI phones; UI remains native resolution. Rendering ceiling changed from the 40ms gate to 30ms for a consistent ~30fps on 60Hz devices. GPU performance still requires phone verification.
+
+## Soft source correction
+Reduced stationary wall radiance from .8 to .45 multiplier; chandelier .3 and altar .22 prevent nearby wax/metal becoming overexposed. Room ambient remains unchanged. Portable radiance .65. Chandelier uses matte unlit colored materials, transparent depth writes disabled, smoother ring and no hanging vertical rods. This prevents self-illumination washout and depth-order stripe artifacts while retaining fade near heroes.
