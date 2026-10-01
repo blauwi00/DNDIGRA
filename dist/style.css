@@ -20,3 +20,6 @@
 .learning-tip{font-size:13px;color:#a8bda7;margin:7px 3px;line-height:1.4}.rule-stages{margin-bottom:14px}.hero-stats>div span{font-size:16px}.roll-ledger pre{max-height:115px;overflow:auto}.map-toolbar>span{white-space:nowrap}#modal-body{max-height:60dvh;overflow:auto}
 .viewport .roll-ledger{position:absolute;z-index:14;left:9px;right:9px;bottom:8px;margin:0;background:#102720ec;box-shadow:0 3px 18px #0005;max-height:145px;overflow:auto;touch-action:pan-y}.viewport .roll-ledger pre{max-height:100px}.camera-tip{bottom:auto;top:8px;opacity:.75}.hero-layout .hero-stage{background:radial-gradient(ellipse at 50% 70%,#344b3d,#172d26 65%)}
 @media(max-width:600px){.viewport{height:clamp(300px,calc(100svh - 280px),670px)}.learning-tip{font-size:12px;margin-top:6px}.journal{max-height:45px}.speaker-copy{padding-right:9px}.hero-layout .hero-stage{min-height:260px}.viewport .roll-ledger{padding:6px 9px}.viewport .roll-ledger pre{font-size:13px}}
+
+/* Approved 2D pixel artwork; typography and gameplay layout remain unchanged. */
+.pixel-art-ready .sprite,.pixel-art-ready .item-art{image-rendering:pixelated}.pixel-art-ready .hero-stage{background:radial-gradient(ellipse at 50% 70%,#344840 0%,#142a22 55%,#0a1b16 100%)}
