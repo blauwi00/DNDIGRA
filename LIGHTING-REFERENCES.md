@@ -22,3 +22,8 @@ Stationary sources no longer render cubemap shadows. Warm falloff and flicker re
 
 ## Soft source correction
 Reduced stationary wall radiance from .8 to .45 multiplier; chandelier .3 and altar .22 prevent nearby wax/metal becoming overexposed. Room ambient remains unchanged. Portable radiance .65. Chandelier uses matte unlit colored materials, transparent depth writes disabled, smoother ring and no hanging vertical rods. This prevents self-illumination washout and depth-order stripe artifacts while retaining fade near heroes.
+
+## Exploration update
+Preview routes end on a free neighboring tile for interactions and beyond an open doorway for crossing. Stop finishes the current cardinal step, clears the remaining route, and cancels any pending automatic interaction. Combat deducts only completed steps; enemy movement does not expose the player stop control. Route markers share one instanced draw.
+
+The optional scripted missing-novice episode offers persuasion, survival clues, and Dexterity/Strength lock entry. Failed survival adds ten minutes while still finding a key; failed lock entry allows another route. Attempts are tracked by character, rescue and evidence persist, and the first completion pays 25 gold / 40 XP once. This does not add an AI narrator.
