@@ -16,3 +16,6 @@ The Godot/MonoGame libraries cannot directly plug into this Three.js browser gam
 House rules: held torch imposes attack disadvantage; equipment switching costs an action in combat; torch manipulation costs a bonus action. Shield AC and bow hand requirements remain separate from these simplifications. No advantage or disadvantage stacking.
 
 Validation uses DOM gameplay integration and actual Three.js geometry with a stub renderer. Ownership, pickup, mounting, stowing, hand restrictions, combat resources and shadows flags checked. Mobile GPU appearance/performance remains to be checked on the user's phone.
+
+## Smooth preset B
+Stationary sources no longer render cubemap shadows. Warm falloff and flicker retained, low neutral ambient increased for readable rooms. Soft radial contact shadows ground figures and furniture. Only carried sources cast dynamic shadows, at 128 resolution, refreshed on state changes and moving geometry. Fixed drawing ratio 1 instead of 1.5 reduces pixel count by 56% on high-DPI phones; UI remains native resolution. Rendering ceiling changed from the 40ms gate to 30ms for a consistent ~30fps on 60Hz devices. GPU performance still requires phone verification.
