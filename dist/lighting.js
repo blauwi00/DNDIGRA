@@ -1,39 +1,20 @@
 (() => {
 'use strict';
-const W=10,H=8,canvas=document.getElementById('lighting'),ctx=canvas.getContext('2d'),pool=document.createElement('canvas'),px=pool.getContext('2d');
-const lights=[{id:'west',x:1.24,y:3.36,radius:2.6,power:.68,phase:0},{id:'east',x:8.76,y:4.55,radius:2.6,power:.68,phase:1.8},{id:'altar',x:7.5,y:1.35,radius:2.3,power:.58,phase:4.2}];
-const motions=new Map();let frameCount=0,lastFrame=-Infinity;
-const clock=()=>window.performance?.now?.()??Date.now();
-function position(p,time){const m=motions.get(p.id);if(!m)return p;const t=Math.max(0,Math.min(1,(time-m.start)/m.duration));if(t===1){motions.delete(p.id);return p}return{x:m.from.x+(m.to.x-m.from.x)*t,y:m.from.y+(m.to.y-m.from.y)*t}}
-function rect(id,x,y,w,h){return{id,x:x-w/2,y:y-h/2,w,h}}
-function occluders(time){const game=window.gameDebug;if(!game)return[];const s=game.state,a=[];
- for(const p of game.props){if(p.id==='chest'&&s.chest||p.id==='keeper'&&s.combat)continue;a.push(rect(p.id,p.x+.5,p.y+.5,p.id==='altar'?.78:.6,p.id==='altar'?.55:.5))}
- for(const y of[5,6])for(const x of[2,8])a.push(rect('bench'+x+y,x+.5,y+.5,1.45,.42));
- for(const p of[...s.party,...s.enemies])if(p.hp>0){const q=position(p,time);a.push(rect(p.id,q.x+.5,q.y+.5,.46,.3))}return a;
-}
-function edges(rectangles){const a=[[[0,0],[W,0]],[[W,0],[W,H]],[[W,H],[0,H]],[[0,H],[0,0]]];for(const r of rectangles){const x=r.x,y=r.y,b=x+r.w,d=y+r.h;a.push([[x,y],[b,y]],[[b,y],[b,d]],[[b,d],[x,d]],[[x,d],[x,y]])}return a}
-function ray(light,angle,segments){const dx=Math.cos(angle),dy=Math.sin(angle);let nearest=20;
- for(const [a,b]of segments){const sx=b[0]-a[0],sy=b[1]-a[1],den=dx*sy-dy*sx;if(Math.abs(den)<1e-9)continue;const ax=a[0]-light.x,ay=a[1]-light.y,t=(ax*sy-ay*sx)/den,u=(ax*dy-ay*dx)/den;if(t>=0&&u>=0&&u<=1&&t<nearest)nearest=t}return{x:light.x+dx*nearest,y:light.y+dy*nearest,angle};
-}
-function visibility(light,objects){const blockers=objects.filter(r=>r.id!==light.id&&!(light.x>=r.x&&light.x<=r.x+r.w&&light.y>=r.y&&light.y<=r.y+r.h)),segments=edges(blockers),angles=[];
- for(let i=0;i<64;i++)angles.push(i*Math.PI*2/64-Math.PI);for(const [a,b]of segments)for(const point of[a,b]){const theta=Math.atan2(point[1]-light.y,point[0]-light.x);angles.push(theta-.0001,theta,theta+.0001)}return angles.map(a=>ray(light,a,segments)).sort((a,b)=>a.angle-b.angle);
-}
-function power(light,time){return light.power*(1+.035*Math.sin(time*.003+light.phase)+.018*Math.sin(time*.008+light.phase*2))}
-function render(time=clock()){
- const board=document.getElementById('board'),size=Math.max(1,Math.min(480,Math.round(board.clientWidth)));if(canvas.width!==size||canvas.height!==Math.round(size*.8)){canvas.width=pool.width=size;canvas.height=pool.height=Math.round(size*.8)}const unit=size/W;
- ctx.setTransform(1,0,0,1,0,0);ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.fillStyle='#999c90';ctx.fillRect(0,0,size,canvas.height);
- const objects=occluders(time);
- for(const light of lights){if(light.power<=0)continue;const polygon=visibility(light,objects),strength=power(light,time);px.setTransform(1,0,0,1,0,0);px.clearRect(0,0,pool.width,pool.height);px.save();px.scale(unit,unit);px.beginPath();polygon.forEach((p,i)=>i?px.lineTo(p.x,p.y):px.moveTo(p.x,p.y));px.closePath();px.clip();const g=px.createRadialGradient(light.x,light.y,.04,light.x,light.y,light.radius);g.addColorStop(0,`rgba(106,80,43,${strength*.86})`);g.addColorStop(.25,`rgba(96,70,37,${strength*.65})`);g.addColorStop(.65,`rgba(88,63,32,${strength*.23})`);g.addColorStop(1,'rgba(88,63,32,0)');px.fillStyle=g;px.fillRect(0,0,W,H);px.restore();ctx.globalCompositeOperation='lighter';ctx.filter='blur(2px)';ctx.drawImage(pool,0,0);ctx.filter='none';}
- // Vertical faces have known normals; no directional shadow is baked into the atlas.
- ctx.globalCompositeOperation='source-over';ctx.setTransform(unit,0,0,unit,0,0);
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x===0||x===W-1||y===0||y===H-1){const nx=x===0?1:x===W-1?-1:0,ny=y===0?1:y===H-1?-1:0;let illumination=.62;
-  for(const l of lights){const dx=l.x-x-.5,dy=l.y-y-.5,d=Math.hypot(dx,dy),dot=Math.max(0,(dx*nx+dy*ny)/Math.max(d,.1));illumination+=Math.max(0,1-d/l.radius)*dot*power(l,time)*.3}
-  ctx.fillStyle=`rgba(25,27,24,${1-Math.min(.9,illumination)})`;if(y===0)ctx.fillRect(x,y+.76,1,.24);else if(y===H-1)ctx.fillRect(x,y,1,.24);else if(x===0)ctx.fillRect(x+.76,y,.24,1);else ctx.fillRect(x,y,.24,1);
- }
- frameCount++;
-}
+const canvas=document.getElementById('lighting'),ctx=canvas.getContext('2d'),pool=document.createElement('canvas'),px=pool.getContext('2d'),motions=new Map();let frameCount=0,lastFrame=-Infinity,signature='',polygons=new Map();
+const clock=()=>window.performance?.now?.()??Date.now(),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function position(p,time){const m=motions.get(p.id);if(!m)return p;const t=clamp((time-m.start)/m.duration,0,1),smooth=1-Math.pow(1-t,3);if(t===1){motions.delete(p.id);return p}return{x:m.from.x+(m.to.x-m.from.x)*smooth,y:m.from.y+(m.to.y-m.from.y)*smooth}}
+function wallSegments(S){const lines=new Map();function add(axis,fixed,start){const key=axis+':'+fixed;if(!lines.has(key))lines.set(key,[]);lines.get(key).push(start)}for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++)if(World.tile(S,x,y)==='floor'){if(World.tile(S,x,y-1)!=='floor')add('h',y,x);if(World.tile(S,x,y+1)!=='floor')add('h',y+1,x);if(World.tile(S,x-1,y)!=='floor')add('v',x,y);if(World.tile(S,x+1,y)!=='floor')add('v',x+1,y)}const segments=[];for(const[key,values]of lines){const[axis,fixed]=key.split(':'),n=+fixed,a=[...new Set(values)].sort((a,b)=>a-b);for(let i=0;i<a.length;i++){const start=a[i];let end=start+1;while(a[i+1]===end){i++;end++}segments.push(axis==='h'?[[start,n],[end,n]]:[[n,start],[n,end]])}}for(const p of S.props.filter(p=>p.type==='door'&&!window.gameDebug.isOpen(p))){const x=p.x,y=p.y;segments.push([[x,y],[x+1,y]],[[x+1,y],[x+1,y+1]],[[x+1,y+1],[x,y+1]],[[x,y+1],[x,y]])}return segments}
+function ray(l,a,segments){const dx=Math.cos(a),dy=Math.sin(a);let best=l.radius+2;for(const[p,q]of segments){const sx=q[0]-p[0],sy=q[1]-p[1],den=dx*sy-dy*sx;if(Math.abs(den)<1e-9)continue;const ax=p[0]-l.x,ay=p[1]-l.y,t=(ax*sy-ay*sx)/den,u=(ax*dy-ay*dx)/den;if(t>=0&&u>=0&&u<=1&&t<best)best=t}return{x:l.x+dx*best,y:l.y+dy*best,a}}
+function visibility(l,segments){const angles=[];for(let i=0;i<64;i++)angles.push(i*Math.PI*2/64-Math.PI);for(const[p,q]of segments)for(const v of[p,q]){const a=Math.atan2(v[1]-l.y,v[0]-l.x);angles.push(a-.0001,a,a+.0001)}return angles.map(a=>ray(l,a,segments)).sort((a,b)=>a.a-b.a)}
+function occluders(time){const g=window.gameDebug;if(!g)return[];const a=[];for(const p of g.props){if(p.solid===false||p.type==='door'||p.type==='portal'||p.type==='chest'&&g.state.loot[g.state.scene+':'+p.id])continue;a.push({id:p.id,x:p.x+.5,y:p.y+.5,w:p.type==='altar'?.8:.6,h:.5,tall:p.type==='cover'?1.3:.65})}for(const d of g.scene.decor.filter(d=>d.kind==='bench'))a.push({id:'bench'+d.x+d.y,x:d.x+.5,y:d.y+.5,w:1.25,h:.35,tall:.45});for(const p of g.all()){const q=position(p,time);a.push({id:p.id,x:q.x+.5,y:q.y+.5,w:.48,h:.26,tall:.7})}return a}
+function power(l,t){return l.power*(1+.025*Math.sin(t*.003+l.phase)+.012*Math.sin(t*.007+l.phase*2))*window.gameDebug.state.settings.intensity}
+function render(time=clock()){const g=window.gameDebug;if(!g)return;const S=g.scene,settings=g.state.settings,size=480,height=Math.round(size*S.H/S.W),unit=size/S.W;if(canvas.width!==size||canvas.height!==height){canvas.width=pool.width=size;canvas.height=pool.height=height}ctx.setTransform(1,0,0,1,0,0);ctx.filter='none';ctx.globalCompositeOperation='source-over';const ambient=settings.lights?Math.round(settings.ambient*255):255;ctx.fillStyle=`rgb(${ambient},${ambient},${Math.round(ambient*.95)})`;ctx.fillRect(0,0,size,height);if(!settings.lights){frameCount++;return}
+ const key=S.id+JSON.stringify(g.state.doors);if(signature!==key){signature=key;const segments=wallSegments(S);polygons=new Map(S.lights.map(l=>[l.id,visibility(l,segments)]))}const objects=occluders(time);
+ for(const l of S.lights){px.setTransform(1,0,0,1,0,0);px.filter='none';px.globalCompositeOperation='source-over';px.clearRect(0,0,size,height);px.save();px.scale(unit,unit);px.beginPath();polygons.get(l.id).forEach((p,i)=>i?px.lineTo(p.x,p.y):px.moveTo(p.x,p.y));px.closePath();px.clip();const strength=power(l,time),grad=px.createRadialGradient(l.x,l.y,.04,l.x,l.y,l.radius);grad.addColorStop(0,`rgba(100,73,38,${strength*.82})`);grad.addColorStop(.35,`rgba(92,67,35,${strength*.55})`);grad.addColorStop(1,'rgba(84,60,30,0)');px.fillStyle=grad;px.fillRect(0,0,S.W,S.H);
+ // Finite ground shadows: close objects do not throw infinite wedges across a room.
+ px.globalCompositeOperation='destination-out';for(const o of objects){if(o.id===l.id)continue;const dx=o.x-l.x,dy=o.y-l.y,d=Math.hypot(dx,dy);if(d>.92*l.radius||d<.25)continue;const length=clamp(d*.22*o.tall,.1,.75),sx=o.x+dx/d*length,sy=o.y+dy/d*length;px.save();px.translate(sx,sy);px.rotate(Math.atan2(dy,dx));px.filter='blur(1.4px)';px.fillStyle='rgba(0,0,0,.42)';px.beginPath();px.ellipse(0,0,o.w*.6+length*.35,o.h*.58,0,0,Math.PI*2);px.fill();px.restore()}px.restore();ctx.globalCompositeOperation='lighter';ctx.filter='blur(1.2px)';ctx.drawImage(pool,0,0);ctx.filter='none';}
+ ctx.globalCompositeOperation='source-over';ctx.setTransform(unit,0,0,unit,0,0);for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++)if(World.tile(S,x,y)==='wall'){const faces=World.faces(S,x,y);for(let d=0;d<4;d++)if(faces&(1<<d)){const[nx,ny]=World.directions[d];let brightness=ambient*.76;for(const l of S.lights){const dx=l.x-x-.5,dy=l.y-y-.5,dist=Math.hypot(dx,dy),dot=Math.max(0,(dx*nx+dy*ny)/Math.max(dist,.1));brightness+=Math.max(0,1-dist/(l.radius+.5))*dot*power(l,time)*62}const v=clamp(Math.round(brightness),50,235);ctx.fillStyle=`rgb(${v},${Math.round(v*.96)},${Math.round(v*.86)})`;ctx.fillRect(x+(d===1?.78:0),y+(d===2?.78:0),d%2?.22:1,d%2?1:.22)}}frameCount++}
 window.lightingMove=(id,from,to,duration)=>{if(duration<=0)motions.delete(id);else motions.set(id,{from,to,duration,start:clock()});render()};window.updateLighting=()=>render();
-function tick(time){if(!document.hidden&&!document.getElementById('map-view').hidden&&time-lastFrame>=65){render(time);lastFrame=time}window.requestAnimationFrame(tick)}
-if(window.requestAnimationFrame&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)window.requestAnimationFrame(tick);
-window.lightingDebug={render,visibility,occluders,lights,get frames(){return frameCount},power};
+function tick(t){const g=window.gameDebug;if(g&&!document.hidden&&!document.getElementById('map-view').hidden&&t-lastFrame>=80){render(g.animate()?t:0);lastFrame=t}window.requestAnimationFrame(tick)}if(window.requestAnimationFrame)window.requestAnimationFrame(tick);
+window.lightingDebug={render,wallSegments,visibility,occluders,power,get frames(){return frameCount}};
 })();

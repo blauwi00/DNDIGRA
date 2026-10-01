@@ -22,3 +22,9 @@
 
 ## Distinct materials
 - `dist/assets/terrain-materials.png`: built-in image tool edit of neutral albedo atlas. Prompt: exact 4 × 3 layout; upper eight tiles cool slate with mineral veins and sparse moss; lower four wall blocks warm-grey porous limestone; no baked directional shadows; very subtle fine pixel-art edges, preserving painterly transitions.
+
+## Visual lab assets
+- `terrain-lab.png`: built-in generator, 4 × 3 opaque atlas. Eight cool slate variants, four neutral limestone blocks, low noise, sparse wear, matched material brightness, no cast light/shadows.
+- `interior-lab.png`: built-in generator, 3 × 2 transparent atlas. Bookshelf, window, closed/open door, desk and training dummy; cute tabletop illustrated style, restrained detail. Alpha cropped per item, dummy base anchor measured independently.
+- `items-lab.png`: built-in generator, 3 × 2 transparent atlas. Bow, sword, staff, potion, coins and letter. Used across inventory and hero screens.
+All three were inspected; transparency was checked numerically for the two cutout sheets. Runtime lighting is a separate layer.
