@@ -10,7 +10,7 @@ const hub=build('hub','Ателье хранительницы',18,14,[[1,5,8,8]
 });
 const crypt=build('crypt','Крипта свечей',13,12,[[1,6,7,5],[4,2,7,6],[8,7,4,4]],{spawns:[[5,9],[4,10],[6,10]],props:[{id:'portal',x:2,y:10,kind:26,name:'Вернуться в ателье',type:'portal',destination:'hub'},{id:'chest',x:9,y:3,kind:17,name:'Старинный сундук',type:'chest'},{id:'altar',x:5,y:3,kind:18,name:'Свечной алтарь',type:'altar'},{id:'pillar1',x:7,y:5,kind:19,name:'Каменный пилон',type:'cover'},{id:'books',x:10,y:8,kind:21,name:'Архив',type:'books'}],decor:[{kind:'rug',x:5,y:7,w:2,h:3}],dummies:[{id:'dummy1',name:'Костяной манекен',kind:4,sprite:25,x:8,y:3,hp:99,max:99,facing:0,dummy:true,ac:12,stats:{dex:10},conditions:[],death:{success:0,failure:0,stable:false}}],lights:[{id:'west',x:1.4,y:7.4,radius:2.6,power:.7,phase:0},{id:'altar',x:5.5,y:3.15,radius:2.4,power:.6,phase:2},{id:'east',x:10.7,y:7.6,radius:2.8,power:.65,phase:4}],trainingSpawn:[[6,7],[5,8],[6,8]],enemySpawn:[[8,6],[9,7]]});
 hub.props.push(
-{id:'water-barrel',x:1,y:6,type:'barrel',kind:24,name:'Бочка с водой',description:'Прохладная вода для путников. На ободе вырезано клеймо местного бондаря.'},
+{id:'water-barrel',x:1,y:5,type:'barrel',kind:24,name:'Бочка с водой',description:'Прохладная вода для путников. На ободе вырезано клеймо местного бондаря.'},
 {id:'supply-crate',x:1,y:11,type:'crate',kind:24,name:'Ящик припасов',description:'Полотняные мешочки, верёвка и запас свечей. Эллен поддерживает здесь порядок.'},
 {id:'keeper-chair',x:5,y:1,type:'chair',kind:24,name:'Стул хранительницы',description:'Деревянный стул с потёртой красной подушкой.'},
 {id:'lilies',x:8,y:3,type:'planter',kind:24,name:'Белые лилии',description:'Свежие лилии в глиняном горшке. Их аромат едва пробивается сквозь запах старых книг.'},
@@ -23,5 +23,18 @@ hub.props.push(
 );
 function tile(scene,x,y){return scene.tiles[y]?.[x]||'void'}
 function faces(scene,x,y){return directions.reduce((m,[dx,dy],i)=>m|(tile(scene,x+dx,y+dy)==='floor'?1<<i:0),0)}
-window.World={scenes:{hub,crypt},tile,faces,directions};
+
+// Explicit one-cell footprints. Rugs are walkable surfaces; mounted decorations
+// do not occupy floor cells. An altar owns its candles rather than overlapping them.
+function compileCollisions(scene){const occupied=new Map(),mounted=new Map(),entries=[];
+ const place=(owner,x,y,blocksMovement,layer='floor')=>{const entry={owner,x,y,blocksMovement,layer,width:1,height:1};entries.push(entry);if(layer==='floor'){const key=x+','+y;if(occupied.has(key))throw new Error('Overlapping objects in '+scene.id+': '+occupied.get(key).owner.id+' / '+owner.id);if(tile(scene,x,y)!=='floor')throw new Error('Furniture outside floor: '+owner.id);occupied.set(key,entry);}if(layer==='wall'){const key=x+','+y;if(mounted.has(key))throw new Error('Overlapping wall objects: '+owner.id);mounted.set(key,entry);}owner.collision=entry;};
+ for(const p of scene.props)place(p,p.x,p.y,p.solid!==false,p.solid===false?'wall':'floor');
+ for(const d of scene.decor){if(d.kind==='rug'){d.collision={layer:'surface',blocksMovement:false,width:d.w,height:d.h};continue;}place(d,d.x,d.y,true);}
+ for(const light of scene.lights){if(light.id==='altar'){light.attachedTo=scene.props.find(p=>p.type==='altar')?.id;light.collision={layer:'attachment',blocksMovement:false};continue;}place(light,Math.floor(light.x),Math.floor(light.y),true);}
+ for(const a of [...scene.spawns,...scene.trainingSpawn,...scene.enemySpawn,...scene.dummies.map(p=>[p.x,p.y])]){const key=a.join(',');if(occupied.has(key))throw new Error('Actor spawn overlaps '+occupied.get(key).owner.id);}
+ scene.collisions=entries;scene.occupied=occupied;return entries;
+}
+function collisionAt(scene,x,y){return scene.occupied.get(x+','+y)||null;}
+for(const scene of [hub,crypt])compileCollisions(scene);
+window.World={scenes:{hub,crypt},tile,faces,directions,collisionAt,compileCollisions};
 })();
