@@ -33,6 +33,7 @@ crypt.lights.push(
 {id:'north-lantern',x:4.5,y:2.5,radius:2.5,power:.6,phase:2.7,intensity:6,distance:6,brightRadius:3},
 {id:'archive-lantern',x:11.5,y:9.5,radius:2.5,power:.6,phase:5.3,intensity:6,distance:6,brightRadius:3}
 );
+for(const l of hub.lights){if(l.id!=='altar'){l.intensity=12;l.distance=10;l.brightRadius=5;l.radius=4;}}
 // Explicit one-cell footprints. Rugs are walkable surfaces; mounted decorations
 // do not occupy floor cells. An altar owns its candles rather than overlapping them.
 function compileCollisions(scene){const occupied=new Map(),mounted=new Map(),entries=[];
