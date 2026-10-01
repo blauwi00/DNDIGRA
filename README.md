@@ -31,3 +31,7 @@ d20 использует crypto.getRandomValues с rejection sampling. Ника�
 
 ### Soft lighting revision
 Replaced the terrain atlas, removed random floor rotations, aligned wall depth toward the room, and softened UI glow and selection. Verified the actual terrain and sprite drawing code by rendering a 1000 × 800 canvas composite with native Canvas; this does not constitute browser/CSS QA. Movement, centered bases, cardinal attacks, dialogue and progression checks pass.
+
+### Runtime light map
+`lighting.js` shades the whole board (terrain and figures) through a separate multiply canvas. Three warm lights use runtime visibility polygons against chest, pillars, altar, benches and living figures. Softened light-map edges, deterministic flicker and interpolated moving occluders are calculated at ~15 fps; the loop pauses on hidden tabs/pages and respects reduced motion. The map is capped at 480 CSS pixels; game state and terrain are not repainted by this loop. Wall-side normals determine additional runtime shading. This is a 2D lighting approximation: painted volume inside the existing character/prop sprites is still static, without per-pixel normal maps.
+Verified native Canvas composites, flicker changes, occlusion, moving shadows, lower ambient brightness, pause/resume and existing game checks. Browser/iPhone QA remains unverified.

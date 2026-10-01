@@ -20,3 +20,5 @@ aside,.hero-sheet,.speaker-card,.bag-layout{background:linear-gradient(140deg,#1
 .hero-art{filter:none}.dialogue-options button{background:linear-gradient(145deg,#213b2b,#193224)}.dialogue-options button:first-child{background:linear-gradient(145deg,#41462a,#303c25);border-color:#c3af73}
 .tabs .active,footer .gold,.level-up{background:linear-gradient(145deg,#5a4d2c,#453c25);border-color:#c9b176;box-shadow:inset 0 1px #e8d99b16}
 @media(max-width:760px){.cell.selected:after{box-shadow:0 0 4px #d9be7840}}
+
+#lighting{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;mix-blend-mode:multiply}

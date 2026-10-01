@@ -15,3 +15,7 @@
 ## Soft chapel revision
 - `dist/assets/terrain-soft.png`: replacement 4 × 3 terrain atlas generated with the built-in image tool using the combat reference as a style reference. Prompt: flat diffuse grey-beige floor, matched brightness, sparse cracks and moss, no raised floor rims or cast shadows; four softly shaded wall blocks.
 - Floor variants retain one orientation. Wall faces point into the room, with their side face limited to 24% of the cell. Wide candle gradients are applied to the room rather than random per-tile lighting.
+
+## Unlit terrain for dynamic lights
+- `dist/assets/terrain-albedo.png` generated with the built-in image tool by editing the soft atlas. Prompt: preserve exact 4 × 3 layout, upper eight flat stone tiles, lower four brick shapes; remove directional highlights, cast shadows and the dark side band; match top and side material brightness so runtime lights can shade them.
+- `terrain-soft.png` remains as a previous asset and is no longer loaded.
