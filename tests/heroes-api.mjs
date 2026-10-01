@@ -1,6 +1,6 @@
-import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync} from 'node:fs';import worker from '../dist/server/index.js';
+import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync,readdirSync} from 'node:fs';import worker from '../dist/server/index.js';
 // Exercise the Worker against actual SQLite, including the generated migration.
-const db=new DatabaseSync(':memory:');db.exec(readFileSync(new URL('../drizzle/0000_cuddly_riptide.sql',import.meta.url),'utf8'));
+const db=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())db.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
 const DB={prepare(sql){const statement=db.prepare(sql);return{bind(...params){return{all:async()=>({results:statement.all(...params)}),run:async()=>statement.run(...params)}}}}};
 const R=await import('../src/hero-rules.js');
 const draft={name:'Тестовый герой',classId:'fighter',stats:R.preset('fighter'),appearance:Object.fromEntries(Object.entries(R.COLORS).map(([k,v])=>[k,v[0]])),kit:0,background:R.background('fighter',()=>0)};draft.appearance.hairStyle='short';draft.appearance.face='soft';
