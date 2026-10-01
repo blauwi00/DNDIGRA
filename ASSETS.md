@@ -28,3 +28,6 @@
 - `interior-lab.png`: built-in generator, 3 × 2 transparent atlas. Bookshelf, window, closed/open door, desk and training dummy; cute tabletop illustrated style, restrained detail. Alpha cropped per item, dummy base anchor measured independently.
 - `items-lab.png`: built-in generator, 3 × 2 transparent atlas. Bow, sword, staff, potion, coins and letter. Used across inventory and hero screens.
 All three were inspected; transparency was checked numerically for the two cutout sheets. Runtime lighting is a separate layer.
+
+## Voxel revision
+`src/voxel.js`: original procedural 3D environment, miniatures, furniture, doors, flames and inventory models. No generated raster masquerades as voxel geometry. Boxes are instanced by material; bases retain a modest polygon count and the original tabletop silhouette. UI model previews use a cached secondary Three renderer. Existing generated PNGs are fallback imagery. Three.js is the only imported rendering library; its MIT notice is included.
