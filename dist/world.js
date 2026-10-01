@@ -24,6 +24,15 @@ hub.props.push(
 function tile(scene,x,y){return scene.tiles[y]?.[x]||'void'}
 function faces(scene,x,y){return directions.reduce((m,[dx,dy],i)=>m|(tile(scene,x+dx,y+dy)==='floor'?1<<i:0),0)}
 
+hub.lights.push(
+{id:'entry-lantern',x:2.5,y:12.5,radius:2.6,power:.6,phase:2.3,intensity:6,distance:6,brightRadius:3},
+{id:'reading-lantern',x:11.5,y:4.5,radius:2.5,power:.6,phase:4.7,intensity:6,distance:6,brightRadius:3},
+{id:'practice-lantern',x:16.5,y:3.5,radius:2.5,power:.6,phase:1.2,intensity:6,distance:6,brightRadius:3}
+);
+crypt.lights.push(
+{id:'north-lantern',x:4.5,y:2.5,radius:2.5,power:.6,phase:2.7,intensity:6,distance:6,brightRadius:3},
+{id:'archive-lantern',x:11.5,y:9.5,radius:2.5,power:.6,phase:5.3,intensity:6,distance:6,brightRadius:3}
+);
 // Explicit one-cell footprints. Rugs are walkable surfaces; mounted decorations
 // do not occupy floor cells. An altar owns its candles rather than overlapping them.
 function compileCollisions(scene){const occupied=new Map(),mounted=new Map(),entries=[];
