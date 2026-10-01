@@ -174,3 +174,19 @@ body.illustrated-ui{--font-ui:TrailUI,Arial,sans-serif;--font-dialogue:TrailRead
 @media(min-width:800px){.illustrated-ui #dialogue .dialogue-options{grid-template-columns:repeat(2,minmax(0,1fr))}.illustrated-ui #dialogue{max-height:38dvh}.illustrated-ui #dialogue #dialogue-text{max-height:19dvh}.illustrated-ui .scene-name{max-width:40vw}}
 @media(max-height:570px){.illustrated-ui #dialogue{max-height:48dvh}.illustrated-ui #dialogue #dialogue-text{font-size:13px;max-height:20dvh}.illustrated-ui #dialogue .speaker-card{grid-template-rows:65px auto}.illustrated-ui #dialogue .speaker-art{height:65px;width:65px}.illustrated-ui #dialogue .dialogue-options{max-height:22dvh}.illustrated-ui .hero-stage{min-height:160px}}
 .illustrated-ui #heroes-panel .hero-step,.illustrated-ui #heroes-panel .creation-card,.illustrated-ui #heroes-panel fieldset,.illustrated-ui #heroes-panel .saved-hero{background:#48362a;border-color:#a07c4e;color:#f6e6ce}.illustrated-ui #heroes-panel legend,.illustrated-ui #heroes-panel label{color:#ecd6b5;font-family:var(--font-ui)}.illustrated-ui #heroes-panel .step-nav button{background:#624630;color:#f3dfbd}.illustrated-ui #level-up{font:12px/1.4 var(--font-ui);padding:10px;white-space:normal}.illustrated-ui #hero-progress .hp-track{background:#655440;border-color:#9f8256}.illustrated-ui .hero-sheet .subtle{color:#64503a}
+
+/* Typography trial: arcade headings, book dialogue, readable controls. */
+@font-face{font-family:ArcadePixel;src:url('assets/fonts/arcade-pixel.woff') format('woff');font-display:swap}
+@font-face{font-family:AdventureText;src:url('assets/fonts/dialogue.woff') format('woff');font-display:swap}
+@font-face{font-family:AdventureUI;src:url('assets/fonts/interface.woff') format('woff');font-display:swap}
+body.game-ui,body.game-ui button,body.game-ui input,body.game-ui select,body.game-ui small,body.game-ui p{font-family:AdventureUI,Arial,sans-serif!important;letter-spacing:.01em}
+body.game-ui h1,body.game-ui h2,body.game-ui h3,body.game-ui #hero-name,body.game-ui #heroes-title,body.game-ui #modal-title{font-family:ArcadePixel,monospace!important;font-weight:400!important;font-size:1rem;line-height:1.65;letter-spacing:-.035em;overflow-wrap:anywhere}
+body.game-ui #dialogue-text,body.game-ui #hero-history,body.game-ui .clue-note{font-family:AdventureText,Georgia,serif!important;font-size:1.08rem;line-height:1.55}
+body.game-ui #speaker-caption{font-family:ArcadePixel,monospace!important;font-size:.7rem;line-height:1.7}
+body.game-ui #hud-health small,body.game-ui #check-die{font-family:ArcadePixel,monospace!important;font-size:.8rem}
+body.game-ui #combat-tools-toggle{background:#493528!important;border-color:#ac8952!important}
+#roll-result.rolling #die-art{animation:none!important}#roll-result.rolling .die-sprite{animation:die-tumble .48s ease-in-out infinite;transform-origin:center;transform-box:fill-box}#roll-result.rolling #check-die{animation:none!important}.die-sprite{display:block;width:100%;height:100%;filter:drop-shadow(0 2px 2px #0005)}
+body.at-main-menu .tabletop{visibility:hidden}body.at-main-menu #heroes-close{display:none}
+body.game-ui #bag-items{background:repeating-linear-gradient(90deg,#241b1338 0 1px,transparent 1px 58px),url('assets/leather-bag.svg');border:2px solid #6e4f32;box-shadow:inset 0 0 20px #120b08aa;padding:.6rem;border-radius:12px}
+body.game-ui .bag-item{box-shadow:inset 0 0 0 2px #bc916c22,0 3px 5px #0004;border-bottom:3px solid #291b15;background:linear-gradient(135deg,#68482fd9,#39291fd9)}
+body.game-ui #item-detail{background:url('assets/parchment.svg') center/cover;color:#332416;border:3px solid #a7824f}body.game-ui #item-detail p,body.game-ui #item-detail h2{color:#332416!important}body.game-ui .inventory-action{min-height:44px;color:#ffebc5!important;background:#64412d!important}
