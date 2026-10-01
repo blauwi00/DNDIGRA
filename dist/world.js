@@ -34,13 +34,20 @@ crypt.lights.push(
 {id:'archive-lantern',x:11.5,y:9.5,radius:2.5,power:.6,phase:5.3,intensity:6,distance:6,brightRadius:3}
 );
 for(const l of hub.lights){if(l.id!=='altar'){l.intensity=12;l.distance=10;l.brightRadius=5;l.radius=4;}}
+
+// Mount torches on unoccupied wall faces with a free adjacent access cell.
+function mountLights(scene){const occupied=new Set(scene.props.map(p=>p.x+','+p.y)),floorItems=new Set([...scene.props.filter(p=>p.solid!==false),...scene.decor.filter(p=>p.kind==='bench')].map(p=>p.x+','+p.y));
+ for(const l of scene.lights){if(l.id==='altar')continue;const candidates=[];for(let y=0;y<scene.H;y++)for(let x=0;x<scene.W;x++){if(tile(scene,x,y)!=='wall'||occupied.has(x+','+y))continue;for(const [dx,dy]of directions){const ax=x+dx,ay=y+dy;if(tile(scene,ax,ay)!=='floor'||floorItems.has(ax+','+ay))continue;candidates.push({x,y,dx,dy,ax,ay,d:Math.hypot(x+.5+dx*.58-l.x,y+.5+dy*.58-l.y)});}}candidates.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);const q=candidates[0];if(!q)throw new Error('No free wall mount for '+l.id);occupied.add(q.x+','+q.y);Object.assign(l,{kind:'wall',wallX:q.x,wallY:q.y,dx:q.dx,dy:q.dy,x:q.x+.5+q.dx*.58,y:q.y+.5+q.dy*.58,height:1.22});const p={id:'sconce-'+l.id,x:q.x,y:q.y,kind:37,type:'torch',solid:false,name:'Настенный факел',lightId:l.id,access:{x:q.ax,y:q.ay}};l.fixtureId=p.id;scene.props.push(p);}
+}
+mountLights(hub);mountLights(crypt);
+for(const [scene,positions]of [[hub,[[4,9],[7,5],[14,6]]],[crypt,[[6,6]]]])for(let i=0;i<positions.length;i++){const [x,y]=positions[i],id='chandelier-'+i;scene.lights.push({id,kind:'chandelier',x:x+.5,y:y+.5,height:1.9,intensity:26,distance:10,brightRadius:4,phase:1.3+i*2,radius:4});scene.props.push({id,x,y,type:'chandelier',kind:38,solid:false,name:'Свечная люстра'});}
 // Explicit one-cell footprints. Rugs are walkable surfaces; mounted decorations
 // do not occupy floor cells. An altar owns its candles rather than overlapping them.
 function compileCollisions(scene){const occupied=new Map(),mounted=new Map(),entries=[];
  const place=(owner,x,y,blocksMovement,layer='floor')=>{const entry={owner,x,y,blocksMovement,layer,width:1,height:1};entries.push(entry);if(layer==='floor'){const key=x+','+y;if(occupied.has(key))throw new Error('Overlapping objects in '+scene.id+': '+occupied.get(key).owner.id+' / '+owner.id);if(tile(scene,x,y)!=='floor')throw new Error('Furniture outside floor: '+owner.id);occupied.set(key,entry);}if(layer==='wall'){const key=x+','+y;if(mounted.has(key))throw new Error('Overlapping wall objects: '+owner.id);mounted.set(key,entry);}owner.collision=entry;};
- for(const p of scene.props)place(p,p.x,p.y,p.solid!==false,p.solid===false?'wall':'floor');
+ for(const p of scene.props)place(p,p.x,p.y,p.solid!==false,p.type==='chandelier'?'ceiling':p.solid===false?'wall':'floor');
  for(const d of scene.decor){if(d.kind==='rug'){d.collision={layer:'surface',blocksMovement:false,width:d.w,height:d.h};continue;}place(d,d.x,d.y,true);}
- for(const light of scene.lights){if(light.id==='altar'){light.attachedTo=scene.props.find(p=>p.type==='altar')?.id;light.collision={layer:'attachment',blocksMovement:false};continue;}place(light,Math.floor(light.x),Math.floor(light.y),true);}
+ for(const light of scene.lights){if(light.id==='altar'||light.kind==='wall'||light.kind==='chandelier'){light.attachedTo=light.fixtureId||(light.kind==='chandelier'?light.id:null)||scene.props.find(p=>p.type===(light.kind==='chandelier'?'chandelier':'altar'))?.id;light.collision={layer:'attachment',blocksMovement:false};continue;}place(light,Math.floor(light.x),Math.floor(light.y),true);}
  for(const a of [...scene.spawns,...scene.trainingSpawn,...scene.enemySpawn,...scene.dummies.map(p=>[p.x,p.y])]){const key=a.join(',');if(occupied.has(key))throw new Error('Actor spawn overlaps '+occupied.get(key).owner.id);}
  scene.collisions=entries;scene.occupied=occupied;return entries;
 }
