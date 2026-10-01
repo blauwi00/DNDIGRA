@@ -24,6 +24,7 @@ hub.props.push(
 function tile(scene,x,y){return scene.tiles[y]?.[x]||'void'}
 function faces(scene,x,y){return directions.reduce((m,[dx,dy],i)=>m|(tile(scene,x+dx,y+dy)==='floor'?1<<i:0),0)}
 
+hub.props.push({id:'novice',x:7,y:4,type:'npc',kind:20,name:'Лин · послушник'});
 hub.props.push({id:'episode-tracks',x:7,y:3,type:'clue',kind:24,solid:false,name:'Следы у лестницы'});crypt.props.push({id:'novice',x:10,y:5,type:'npc',kind:20,name:'Лин · послушник'});
 hub.props.push({id:'trial-cache',x:16,y:3,type:'crate',kind:24,name:'Тёмная ниша · тайник',description:'За досками видна узкая щель. Проверьте её с переносным светом.'});
 hub.lights.push(
