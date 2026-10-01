@@ -28,3 +28,6 @@ d20 использует crypto.getRandomValues с rejection sampling. Ника�
 Пол использует восемь вариантов, стены — четыре. Случайный выбор вариантов стабилен для seed текущей игры. Выбранная клетка получает заметный полный контур и центральную отметку; диапазон перемещения по-прежнему отмечается слабыми угловыми гранями.
 
 Проверены переключение вкладок, оружие, диалоги, сохранение сюжетных зацепок, запрет повторных наград за убеждение и ручное повышение уровня. Проверка в браузере недоступна в этой среде.
+
+### Soft lighting revision
+Replaced the terrain atlas, removed random floor rotations, aligned wall depth toward the room, and softened UI glow and selection. Verified the actual terrain and sprite drawing code by rendering a 1000 × 800 canvas composite with native Canvas; this does not constitute browser/CSS QA. Movement, centered bases, cardinal attacks, dialogue and progression checks pass.

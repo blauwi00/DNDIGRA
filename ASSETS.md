@@ -11,3 +11,7 @@
 `dist/assets/keeper.png`: портрет Эллен и её миниатюра, 2 × 1, прозрачный фон. Стилистика и одежда следуют приложенному референсу.
 
 `dist/assets/hero-chapel.png`: отдельный пустой интерьер часовни для фона вкладки героя. Фигурка, стрелки, показатели и кнопки накладываются кодом, не входят в картинку.
+
+## Soft chapel revision
+- `dist/assets/terrain-soft.png`: replacement 4 × 3 terrain atlas generated with the built-in image tool using the combat reference as a style reference. Prompt: flat diffuse grey-beige floor, matched brightness, sparse cracks and moss, no raised floor rims or cast shadows; four softly shaded wall blocks.
+- Floor variants retain one orientation. Wall faces point into the room, with their side face limited to 24% of the cell. Wide candle gradients are applied to the room rather than random per-tile lighting.
