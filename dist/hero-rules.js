@@ -24,11 +24,33 @@ var HeroRules = (() => {
     CLASSES: () => CLASSES,
     COLORS: () => COLORS,
     LABELS: () => LABELS,
+    POINT_BUDGET: () => POINT_BUDGET,
+    POINT_COSTS: () => POINT_COSTS,
+    adjustStat: () => adjustStat,
     background: () => background,
+    emptyStats: () => emptyStats,
+    pointsUsed: () => pointsUsed,
     preset: () => preset,
     sheet: () => sheet,
     validate: () => validate
   });
+  var POINT_BUDGET = 27;
+  var POINT_COSTS = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
+  function pointsUsed(stats) {
+    return Object.values(stats || {}).reduce((sum, n) => sum + (Number.isInteger(n) && Object.hasOwn(POINT_COSTS, n) ? POINT_COSTS[n] : Infinity), 0);
+  }
+  function emptyStats() {
+    return Object.fromEntries(Object.keys(LABELS).map((k) => [k, 8]));
+  }
+  function adjustStat(stats, key, delta) {
+    if (!Object.hasOwn(LABELS, key) || ![-1, 1].includes(delta)) return false;
+    const next = stats[key] + delta;
+    if (!Object.hasOwn(POINT_COSTS, next)) return false;
+    const updated = { ...stats, [key]: next };
+    if (pointsUsed(updated) > POINT_BUDGET) return false;
+    stats[key] = next;
+    return true;
+  }
   var ARRAY = [15, 14, 13, 12, 10, 8];
   var LABELS = { str: "\u0421\u0438\u043B\u0430", dex: "\u041B\u043E\u0432\u043A\u043E\u0441\u0442\u044C", con: "\u0422\u0435\u043B\u043E\u0441\u043B\u043E\u0436\u0435\u043D\u0438\u0435", int: "\u0418\u043D\u0442\u0435\u043B\u043B\u0435\u043A\u0442", wis: "\u041C\u0443\u0434\u0440\u043E\u0441\u0442\u044C", cha: "\u0425\u0430\u0440\u0438\u0437\u043C\u0430" };
   var COLORS = { skin: ["#e3bb8a", "#c58d64", "#8b5b42", "#f2d4b4"], hair: ["#493024", "#b7803c", "#26282e", "#c7c4bf", "#a64f35"], cloth: ["#487844", "#62377e", "#315e84", "#843f37", "#566d70"], trim: ["#c3a04c", "#b6bdc5", "#78552e", "#c5b895"] };
@@ -41,7 +63,7 @@ var HeroRules = (() => {
   function validate(d) {
     if (!d || !CLASSES[d.classId]) throw Error("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u043B\u0430\u0441\u0441.");
     if (typeof d.name !== "string" || !d.name.trim() || d.name.trim().length > 24) throw Error("\u0418\u043C\u044F: \u043E\u0442 1 \u0434\u043E 24 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432.");
-    if (Object.keys(d.stats || {}).sort().join() != Object.keys(LABELS).sort().join() || Object.values(d.stats).sort((a, b) => b - a).join() != ARRAY.join()) throw Error("\u0420\u0430\u0441\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F 15, 14, 13, 12, 10, 8 \u0431\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u043E\u0432.");
+    if (Object.keys(d.stats || {}).sort().join() != Object.keys(LABELS).sort().join() || pointsUsed(d.stats) > POINT_BUDGET) throw Error("\u0425\u0430\u0440\u0430\u043A\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043A\u0438 \u0434\u043E\u043B\u0436\u043D\u044B \u0431\u044B\u0442\u044C \u0446\u0435\u043B\u044B\u043C\u0438 \u0447\u0438\u0441\u043B\u0430\u043C\u0438 \u043E\u0442 8 \u0434\u043E 15. \u0411\u044E\u0434\u0436\u0435\u0442 \u2014 27 \u043E\u0447\u043A\u043E\u0432.");
     for (const k of Object.keys(COLORS)) if (!COLORS[k].includes(d.appearance?.[k])) throw Error("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u043D\u0435\u0448\u043D\u0438\u0439 \u0432\u0438\u0434.");
     if (!["short", "long", "bald"].includes(d.appearance.hairStyle) || !["soft", "stern", "beard"].includes(d.appearance.face)) throw Error("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043B\u0438\u0446\u043E \u0438 \u043F\u0440\u0438\u0447\u0451\u0441\u043A\u0443.");
     if (!Number.isInteger(d.kit) || !CLASSES[d.classId].kits[d.kit]) throw Error("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u043E\u043C\u043F\u043B\u0435\u043A\u0442.");

@@ -12,5 +12,11 @@ assert.equal((await (await worker.fetch(req('GET',null,'player-b'),{DB})).json()
 assert.equal((await worker.fetch(req('POST',{...draft,stats:{str:15,dex:15,con:15,int:15,wis:15,cha:15}}),{DB})).status,400);
 assert.equal((await worker.fetch(req('POST',draft,'player-a','https://evil.test'),{DB})).status,403);
 assert.equal((await worker.fetch(req('PATCH',draft),{DB})).status,405);
+const allocated=R.emptyStats();for(const key of ['str','dex','con'])for(let i=0;i<7;i++)assert(R.adjustStat(allocated,key,1));assert.equal(R.pointsUsed(allocated),27);assert.deepEqual(Object.values(allocated),[15,15,15,8,8,8]);assert.equal(R.adjustStat(allocated,'int',1),false);assert.equal(R.adjustStat(allocated,'str',1),false);assert(R.adjustStat(allocated,'str',-1));assert.equal(R.pointsUsed(allocated),25);assert(R.adjustStat(allocated,'int',1));assert(R.adjustStat(allocated,'int',1));assert.equal(R.pointsUsed(allocated),27);
+assert.equal((await worker.fetch(req('POST',{...draft,stats:R.emptyStats()}),{DB})).status,400);
+assert.equal((await worker.fetch(req('POST',{...draft,stats:{str:15,dex:15,con:15,int:15,wis:8,cha:8}}),{DB})).status,400);
+assert.equal((await worker.fetch(req('POST',{...draft,stats:{str:'15',dex:14,con:13,int:12,wis:10,cha:8}}),{DB})).status,400);
+assert.equal((await worker.fetch(req('POST',{...draft,stats:{str:15.1,dex:14,con:13,int:12,wis:10,cha:8}}),{DB})).status,400);
+console.log('PASS: 27-point budget, three 15 scores exhaust budget, incremental costs, refunds, out-of-range/forged/unspent scores rejected.');
 let path;await worker.fetch(new Request('https://game.test/'),{ASSETS:{fetch:async r=>{path=new URL(r.url).pathname;return new Response('ok')}}});assert.equal(path,'/');
 console.log('PASS: real SQLite migration, four classes, immutable records, per-owner isolation, forged power rejected, origin validation and static serving.');
