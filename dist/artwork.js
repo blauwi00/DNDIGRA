@@ -1,0 +1,7 @@
+(() => {'use strict';const atlas='assets/approved-cartoon-ui.png';
+const regions={ranger:[30,70,227,226],wizard:[277,70,226,226],keeper:[526,70,227,226],novice:[771,70,224,226],map:[48,1339,91,91],hero:[191,1341,77,88],bag:[328,1341,84,88],sword:[470,1341,79,88],shield:[608,1341,80,88],chat:[748,1341,80,88],dice:[886,1340,84,90],ration:[30,1110,188,164],ink:[281,1089,139,184],rope:[422,1116,190,149],letter:[644,1110,159,166],pack:[812,1100,190,174]};
+function image(key,cls=''){const r=regions[key]||regions.ranger,s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox',r.join(' '));s.setAttribute('class','painted-asset '+cls);s.setAttribute('aria-hidden','true');const i=document.createElementNS('http://www.w3.org/2000/svg','image');i.setAttribute('href',atlas);i.setAttribute('width','1024');i.setAttribute('height','1536');s.append(i);return s;}
+function hero(p){const key=p.classId==='wizard'||p.kind===1?'wizard':p.classId==='cleric'?'keeper':p.classId==='fighter'||p.kind===2?'novice':'ranger';const s=image(key,'head-portrait');const crops={ranger:[67,123,171,145],wizard:[316,115,173,150],keeper:[570,117,168,151],novice:[811,116,176,150]};s.setAttribute('viewBox',crops[key].join(' '));return s;}
+function npc(name){return image(name.startsWith('Лин')?'novice':'keeper','npc-portrait');}
+const old=window.UIIcons.svg;window.UIIcons.svg=name=>regions[name]?image(name,'ui-icon').outerHTML:old(name);
+window.Artwork={image,hero,npc,atlas};})();

@@ -127,3 +127,21 @@ body.illustrated-ui{--ui-gold:#c9a15c;--ui-ink:#091c19;--font-ui:'Trebuchet MS',
 .illustrated-ui #roll-result.leaving{animation:panel-exit .17s ease-in forwards}@keyframes panel-exit{to{opacity:0;transform:translateY(6px)}}
 
 .illustrated-ui #check-formula{max-height:2.6em;overflow:hidden}
+/* Approved illustrated asset set */
+.painted-asset{display:block;width:100%;height:100%;overflow:hidden}
+.illustrated-ui #hud-health{width:148px;grid-template-columns:43px 1fr;border:2px solid #bc9250;box-shadow:inset 0 0 0 2px #e9cc7950,0 2px 5px #0006;padding:4px}
+.illustrated-ui #hud-health .portrait{width:42px;height:43px;border:1px solid #b79351;border-radius:6px;clip-path:none;overflow:hidden}
+.illustrated-ui #hud-health .hp-track{position:relative;height:19px;margin-top:5px;border:1px solid #d5aa63;border-radius:5px;box-shadow:inset 0 1px 3px #0008}
+.illustrated-ui #hud-health .hp-track small{position:absolute;inset:0;display:grid;place-items:center;font:600 12px/1 var(--font-ui);color:#fff3d1;text-shadow:0 1px 2px #3b1010}
+.illustrated-ui #hud-health .hp-track i{box-sizing:border-box;background:linear-gradient(#f4a59a,#d54643 43%,#a22a2c 80%,#d56650);border-radius:4px}
+.illustrated-ui .actions button,.illustrated-ui .tabs button,.illustrated-ui dialog button,.illustrated-ui .dialogue-options button{border:2px solid #957444;background:linear-gradient(145deg,#314d3c,#142d23);box-shadow:inset 0 2px #dac78d30,inset 0 -3px #06191055,0 2px 2px #0003;border-radius:7px;clip-path:none;color:#f3e8c7}
+.illustrated-ui .actions #action,.illustrated-ui .tabs button.active,.illustrated-ui .dialogue-options button:first-child{background:linear-gradient(145deg,#e0bb6b,#b88b3e);border-color:#efd697;color:#302b1c;text-shadow:0 1px #f9e2a155;box-shadow:inset 0 2px #fff0b866,inset 0 -3px #7e592a77}
+.illustrated-ui .tabs{gap:5px;padding:5px;min-height:57px}.illustrated-ui .tabs button{font:14px var(--font-ui);border-right:2px solid #957444;min-height:47px}
+.illustrated-ui .tabs button:last-of-type{border-right:2px solid #957444}.illustrated-ui .tabs .ui-icon{width:29px;height:29px}
+.illustrated-ui .actions .ui-icon{width:30px;height:30px}.illustrated-ui #play-dock{background:linear-gradient(120deg,#294333,#142b22);padding:7px;border-top:2px solid #a7864b}
+.illustrated-ui .bag-item{border:2px solid #7d7652;color:#f0e5c4;box-shadow:inset 0 2px #c7c69318}.illustrated-ui .bag-item .painted-asset{width:76px;height:77px;margin:0 auto 5px}.illustrated-ui .item-icon .painted-asset{max-width:100px;max-height:105px;margin:auto}
+.illustrated-ui .bag-item.selected{border-color:#e1bb6d;background:linear-gradient(145deg,#4a5035,#253927)}
+.illustrated-ui .npc-transfer{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0}.npc-transfer .painted-asset{width:50px;height:50px;flex:none;border-radius:5px}
+.item-lock-note{font:13px/1.4 var(--font-ui);color:#d4cfb5}.illustrated-ui .inventory-action{display:flex;align-items:center;gap:8px}.illustrated-ui button.danger{border-color:#b46c57;color:#ffcfb7;background:linear-gradient(145deg,#583a30,#30291e)}
+.illustrated-ui #dialogue .speaker-art{height:83px;border:2px solid #b38d4f;box-shadow:inset 0 0 0 2px #e5cb7c30;border-radius:8px}.illustrated-ui #dialogue .speaker-art .painted-asset{height:100%;width:100%}
+.illustrated-ui #dialogue .speaker-copy p{color:#2b3224;background:linear-gradient(140deg,#f0e1b8,#decc9e);border:2px solid #b89b62;border-radius:6px}.illustrated-ui #dialogue .dialogue-options button{padding:7px 10px}

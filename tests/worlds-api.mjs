@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync,readdirSync} from 'node:fs';import worker from '../dist/server/index.js';import * as R from '../src/hero-rules.js';
 const db=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())db.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
-const DB={prepare(sql){const q=db.prepare(sql);return{bind(...args){return{all:async()=>({results:q.all(...args)}),run:async()=>({meta:{changes:q.run(...args).changes}})}}}}};
+const DB={async batch(statements){db.exec('BEGIN');try{const r=[];for(const q of statements)r.push(await q.run());db.exec('COMMIT');return r;}catch(e){db.exec('ROLLBACK');throw e;}},prepare(sql){const q=db.prepare(sql);return{bind(...args){return{all:async()=>({results:q.all(...args)}),run:async()=>({meta:{changes:q.run(...args).changes}})}}}}};
 const draft={name:'Мировой герой',classId:'wizard',stats:R.preset('wizard'),appearance:Object.fromEntries(Object.entries(R.COLORS).map(([k,v])=>[k,v[0]])),kit:0,background:R.background('wizard',()=>0)};draft.appearance.hairStyle='short';draft.appearance.face='soft';
 async function call(path,method='GET',body,owner='owner-a'){const r=await worker.fetch(new Request('https://game.test/api/'+path,{method,headers:{Origin:'https://game.test',...(owner?{'oai-authenticated-user-id':owner}:{})},body:body?JSON.stringify(body):undefined}),{DB});return{status:r.status,...await r.json()};}
 const {hero}=await call('heroes','POST',draft);let r=await call('worlds','POST',{heroId:hero.id});assert.equal(r.status,201);let w=r.world;const id=w.id;
@@ -17,3 +17,17 @@ r=await call('worlds','POST',{heroId:hero.id,leaveGold:true});assert.equal(r.sta
 assert.equal((await call('worlds/'+id)).world.snapshot.gold,40);assert.equal((await call('worlds?hero_id='+hero.id)).worlds.length,2);const list=await call('heroes');assert.equal(list.heroes[0].activeWorldId,next.id);
 assert.throws(()=>db.prepare('INSERT INTO worlds (id, hero_id, owner, status, snapshot, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('duplicate',hero.id,'owner-a','active','{}',1,1,1),/UNIQUE/);
 console.log('PASS: actual SQLite world migrations, one active world per hero, owner isolation, save/load positions and resources, revision conflict, no loot/quest reset, finish once, immutable archive, explicit gold deferral, equipment-only transfer, current hero status.');
+
+assert.equal((await call('worlds/'+next.id,'DELETE',{revision:next.revision},'other')).status,404);
+assert.equal((await call('worlds/'+next.id,'DELETE',{revision:0})).status,409);
+let modified=structuredClone(next.snapshot);modified.xp=125;modified.party[0].inventory.push('Проверочная верёвка');
+const saved=await call('worlds/'+next.id,'PUT',{revision:next.revision,snapshot:modified});assert.equal(saved.status,200);
+assert.equal((await call('worlds/'+next.id,'DELETE',{revision:saved.world.revision})).status,200);
+let preserved=(await call('heroes')).heroes[0];assert.equal(preserved.xp,125);assert(preserved.inventory.includes('Проверочная верёвка'));
+assert.equal((await call('worlds/'+id,'DELETE',{revision:w.revision})).status,200);
+preserved=(await call('heroes')).heroes[0];assert.equal(preserved.xp,125);
+const recreated=await call('worlds','POST',{heroId:hero.id});assert.equal(recreated.status,201);assert.equal(recreated.world.snapshot.xp,125);
+assert.equal((await call('heroes/'+hero.id,'DELETE',null,'other')).status,404);
+assert.equal((await call('heroes/'+hero.id,'DELETE')).status,200);
+assert.equal((await call('heroes')).heroes.length,0);assert.equal((await call('worlds?hero_id='+hero.id)).worlds.length,0);
+console.log('PASS: confirmed deletion API, owner isolation, stale revision rejection, hero progress survives latest and older world deletion, restart, hero/world cascade.');
