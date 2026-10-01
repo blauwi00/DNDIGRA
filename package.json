@@ -1,1 +1,16 @@
-{"name":"beyond-voxel-table","private":true,"version":"1.0.0","scripts":{"build":"esbuild src/voxel.js --bundle --minify --format=iife --outfile=dist/voxel.js"},"dependencies":{"three":"0.186.1"},"devDependencies":{"esbuild":"0.25.12"}}
+{
+  "name": "beyond-voxel-table",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.5",
+    "esbuild": "0.25.12"
+  }
+}
