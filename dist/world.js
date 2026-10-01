@@ -9,6 +9,18 @@ const hub=build('hub','Ателье хранительницы',18,14,[[1,5,8,8]
  lights:[{id:'west',x:1.35,y:6.6,radius:2.7,power:.7,phase:0},{id:'south',x:7.6,y:11.6,radius:2.6,power:.65,phase:1.8},{id:'library',x:4.5,y:1.8,radius:2.6,power:.65,phase:3},{id:'altar',x:9.5,y:2.15,radius:2.3,power:.55,phase:4},{id:'training',x:16.3,y:6.6,radius:2.7,power:.7,phase:5}],trainingSpawn:[[13,8],[14,9],[13,9]],enemySpawn:[[15,4],[14,7]]
 });
 const crypt=build('crypt','Крипта свечей',13,12,[[1,6,7,5],[4,2,7,6],[8,7,4,4]],{spawns:[[5,9],[4,10],[6,10]],props:[{id:'portal',x:2,y:10,kind:26,name:'Вернуться в ателье',type:'portal',destination:'hub'},{id:'chest',x:9,y:3,kind:17,name:'Старинный сундук',type:'chest'},{id:'altar',x:5,y:3,kind:18,name:'Свечной алтарь',type:'altar'},{id:'pillar1',x:7,y:5,kind:19,name:'Каменный пилон',type:'cover'},{id:'books',x:10,y:8,kind:21,name:'Архив',type:'books'}],decor:[{kind:'rug',x:5,y:7,w:2,h:3}],dummies:[{id:'dummy1',name:'Костяной манекен',kind:4,sprite:25,x:8,y:3,hp:99,max:99,facing:0,dummy:true,ac:12,stats:{dex:10},conditions:[],death:{success:0,failure:0,stable:false}}],lights:[{id:'west',x:1.4,y:7.4,radius:2.6,power:.7,phase:0},{id:'altar',x:5.5,y:3.15,radius:2.4,power:.6,phase:2},{id:'east',x:10.7,y:7.6,radius:2.8,power:.65,phase:4}],trainingSpawn:[[6,7],[5,8],[6,8]],enemySpawn:[[8,6],[9,7]]});
+hub.props.push(
+{id:'water-barrel',x:1,y:6,type:'barrel',kind:24,name:'Бочка с водой',description:'Прохладная вода для путников. На ободе вырезано клеймо местного бондаря.'},
+{id:'supply-crate',x:1,y:11,type:'crate',kind:24,name:'Ящик припасов',description:'Полотняные мешочки, верёвка и запас свечей. Эллен поддерживает здесь порядок.'},
+{id:'keeper-chair',x:5,y:1,type:'chair',kind:24,name:'Стул хранительницы',description:'Деревянный стул с потёртой красной подушкой.'},
+{id:'lilies',x:8,y:3,type:'planter',kind:24,name:'Белые лилии',description:'Свежие лилии в глиняном горшке. Их аромат едва пробивается сквозь запах старых книг.'},
+{id:'reading-books',x:4,y:6,type:'books',kind:21,name:'Шкаф летописей'},
+{id:'scroll-case',x:10,y:5,type:'scrolls',kind:24,name:'Свитки и карты',description:'Планы старой часовни и записи о северных проходах. Рядом лежат чистые листы для заметок.'},
+{id:'training-rack',x:16,y:9,type:'rack',kind:24,name:'Стойка с оружием',description:'Учебные мечи, щит и посох. Здесь проверяют стойку и точность удара.'},
+{id:'south-crate',x:8,y:12,type:'crate',kind:24,name:'Дорожные припасы',description:'Запас ткани, масла и сухих трав для будущих путешествий.'},
+{id:'west-pot',x:1,y:9,type:'planter',kind:24,name:'Папоротник',description:'Небольшой папоротник тянется к свету. Хранительница заботится даже об этом уголке.'},
+{id:'chapel-banner',x:4,y:0,type:'banner',kind:24,name:'Знамя часовни',solid:false}
+);
 function tile(scene,x,y){return scene.tiles[y]?.[x]||'void'}
 function faces(scene,x,y){return directions.reduce((m,[dx,dy],i)=>m|(tile(scene,x+dx,y+dy)==='floor'?1<<i:0),0)}
 window.World={scenes:{hub,crypt},tile,faces,directions};
