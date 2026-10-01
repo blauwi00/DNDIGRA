@@ -31,6 +31,3 @@ All three were inspected; transparency was checked numerically for the two cutou
 
 ## Voxel revision
 `src/voxel.js`: original procedural 3D environment, miniatures, furniture, doors, flames and inventory models. No generated raster masquerades as voxel geometry. Boxes are instanced by material; bases retain a modest polygon count and the original tabletop silhouette. UI model previews use a cached secondary Three renderer. Existing generated PNGs are fallback imagery. Three.js is the only imported rendering library; its MIT notice is included.
-
-## Approved pixel art v1
-`dist/assets/pixel-approved-v1.png` is the selected preview, preserved unchanged. `pixel-directions-v1.png` is a production atlas derived from that approved reference with four directions for heroes, guards and chapel keeper plus chest, torch, door and bookshelf. Generated with the built-in image tool; prompt: preserve approved rounded pixel silhouettes, palette and detail, transparent background, four directions, no bases or cast shadows. Runtime crops preserve alpha and use nearest filtering. Logical object roots and feet stay at cell centers. Three.js retains live lighting and shadow occluders beneath billboard sprites.
