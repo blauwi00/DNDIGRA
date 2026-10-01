@@ -22,3 +22,6 @@ aside,.hero-sheet,.speaker-card,.bag-layout{background:linear-gradient(140deg,#1
 @media(max-width:760px){.cell.selected:after{box-shadow:0 0 4px #d9be7840}}
 
 #lighting{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;mix-blend-mode:multiply}
+
+/* Subtle pixel sampling applies only to game art, not smooth light or UI text. */
+#terrain,.piece .sprite,.prop .sprite{image-rendering:pixelated}

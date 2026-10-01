@@ -19,3 +19,6 @@
 ## Unlit terrain for dynamic lights
 - `dist/assets/terrain-albedo.png` generated with the built-in image tool by editing the soft atlas. Prompt: preserve exact 4 × 3 layout, upper eight flat stone tiles, lower four brick shapes; remove directional highlights, cast shadows and the dark side band; match top and side material brightness so runtime lights can shade them.
 - `terrain-soft.png` remains as a previous asset and is no longer loaded.
+
+## Distinct materials
+- `dist/assets/terrain-materials.png`: built-in image tool edit of neutral albedo atlas. Prompt: exact 4 × 3 layout; upper eight tiles cool slate with mineral veins and sparse moss; lower four wall blocks warm-grey porous limestone; no baked directional shadows; very subtle fine pixel-art edges, preserving painterly transitions.

@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const W=10,H=8,canvas=document.getElementById('lighting'),ctx=canvas.getContext('2d'),pool=document.createElement('canvas'),px=pool.getContext('2d');
-const lights=[{id:'west',x:1.24,y:3.36,radius:3.8,power:1,phase:0},{id:'east',x:8.76,y:4.55,radius:3.8,power:1,phase:1.8},{id:'altar',x:7.5,y:1.35,radius:3.4,power:.85,phase:4.2}];
+const lights=[{id:'west',x:1.24,y:3.36,radius:2.6,power:.68,phase:0},{id:'east',x:8.76,y:4.55,radius:2.6,power:.68,phase:1.8},{id:'altar',x:7.5,y:1.35,radius:2.3,power:.58,phase:4.2}];
 const motions=new Map();let frameCount=0,lastFrame=-Infinity;
 const clock=()=>window.performance?.now?.()??Date.now();
 function position(p,time){const m=motions.get(p.id);if(!m)return p;const t=Math.max(0,Math.min(1,(time-m.start)/m.duration));if(t===1){motions.delete(p.id);return p}return{x:m.from.x+(m.to.x-m.from.x)*t,y:m.from.y+(m.to.y-m.from.y)*t}}
