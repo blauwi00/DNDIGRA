@@ -1,16 +1,16 @@
 /* Detailed tabletop rendering. Gameplay geometry remains owned by game.js. */
 window.createChapelArt = function(canvas) {
   'use strict';
-  const ctx=canvas.getContext('2d'),atlas=new Image(),floor=new Image();
+  const ctx=canvas.getContext('2d'),atlas=new Image(),figures=new Image(),floor=new Image();
   const sprites={ranger:[75,0,535,450],mage:[695,0,470,451],guard:[75,450,550,420],enemy:[662,450,495,419],chest:[140,870,477,373],altar:[698,870,478,373]};
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let view=null,back=null,backKey='',px=42,scale=84,lastTime=0,raf=0,onscreen=true;
   const journeys=new Map(),dust=Array.from({length:18},(_,i)=>({x:(i*53%89)/10,y:(i*37%105)/10,phase:i*1.9}));
   function ready(){backKey='';portraits();paint(performance.now());schedule()}
-  atlas.onload=ready;floor.onload=ready;atlas.onerror=ready;floor.onerror=ready;
-  atlas.src='assets/miniatures-v2.png';floor.src='assets/limestone-v2.png';
+  atlas.onload=ready;figures.onload=ready;floor.onload=ready;atlas.onerror=ready;figures.onerror=ready;floor.onerror=ready;
+  atlas.src='assets/miniatures-v2.png';figures.src='assets/figures-v3.png';floor.src='assets/limestone-v2.png';
   function noise(x,y,k=0){let n=Math.sin(x*127.1+y*311.7+k*19.3)*43758.5453;return n-Math.floor(n)}
-  function sprite(c,kind,x,y,w,h){if(!atlas.complete||!atlas.naturalWidth)return false;const r=sprites[kind];c.drawImage(atlas,...r,x,y,w,h);return true}
+  function sprite(c,kind,x,y,w,h,facing='down'){if(['ranger','mage','guard','enemy'].includes(kind)){if(!figures.complete||!figures.naturalWidth)return false;const row={ranger:0,mage:1,guard:2,enemy:3}[kind],col={down:0,right:1,up:2,left:3}[facing]??0,sw=figures.naturalWidth/4,sh=figures.naturalHeight/4;c.drawImage(figures,col*sw,row*sh,sw,sh,x,y,w,h);return true}if(!atlas.complete||!atlas.naturalWidth)return false;const r=sprites[kind];c.drawImage(atlas,...r,x,y,w,h);return true}
   function ellipse(c,x,y,rx,ry,color){c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill()}
   function text(c,str,x,y,size,color,spacing=false){c.save();c.translate(x,y);c.scale(.01,.01);c.font=`${size*100}px Georgia, serif`;c.textAlign='center';c.fillStyle=color;c.fillText(str,0,0);c.restore()}
   function floorTile(c,x,y){if(floor.complete&&floor.naturalWidth){const sx=Math.floor(noise(x,y)*850),sy=Math.floor(noise(y,x,2)*850);c.drawImage(floor,sx,sy,300,300,x,y,1,1)}else{c.fillStyle='#8c8771';c.fillRect(x,y,1,1)}}
@@ -37,7 +37,7 @@ window.createChapelArt = function(canvas) {
   }
   function carpet(c){c.save();c.beginPath();c.rect(3.78,5.94,1.44,3.64);c.clip();c.fillStyle='#6d4038';c.fillRect(3.78,5.94,1.44,3.64);c.strokeStyle='#b39561';c.lineWidth=.025;c.strokeRect(3.88,6.03,1.24,3.4);c.strokeRect(3.96,6.07,1.08,3.32);for(let y=6.25;y<9.4;y+=.46){c.strokeStyle='#bba26a55';c.beginPath();c.moveTo(4.5,y);c.lineTo(4.78,y+.19);c.lineTo(4.5,y+.38);c.lineTo(4.22,y+.19);c.closePath();c.stroke()}for(let i=0;i<130;i++){c.fillStyle=`rgba(36,32,25,${noise(i,8)*.2})`;c.fillRect(3.78+noise(i,5)*1.44,5.94+noise(i,7)*3.64,.07,.025)}c.restore();c.strokeStyle='#b49966';c.lineWidth=.012;for(let i=0;i<22;i++){c.beginPath();c.moveTo(3.8+i*.065,9.58);c.lineTo(3.8+i*.065,9.66+noise(i,9)*.06);c.stroke()}}
   function scenery(){
-    const s=view.state,key=[canvas.width,canvas.height,s.seed,s.door,s.chest,s.relic,atlas.naturalWidth,floor.naturalWidth].join(':');if(back&&backKey===key)return;backKey=key;
+    const s=view.state,key=[canvas.width,canvas.height,s.seed,s.door,s.chest,s.relic,atlas.naturalWidth,figures.naturalWidth,floor.naturalWidth].join(':');if(back&&backKey===key)return;backKey=key;
     back=document.createElement('canvas');back.width=canvas.width;back.height=canvas.height;const c=back.getContext('2d');c.setTransform(scale,0,0,scale,0,0);
     c.fillStyle='#222e2a';c.fillRect(0,0,9,11);if(floor.complete&&floor.naturalWidth)c.drawImage(floor,0,0,9,11);c.fillStyle='#263e364a';c.fillRect(0,0,9,11);
     // Edge occlusion makes walls feel like raised tabletop scenery.
@@ -62,7 +62,7 @@ window.createChapelArt = function(canvas) {
     const enemy=e.kind==='enemy',gold=e.id==='hero';ctx.save();ctx.translate(x+.5,y+.35);
     const shadow=ctx.createRadialGradient(.055,.14,.06,.055,.14,.53);shadow.addColorStop(0,'#07110fd9');shadow.addColorStop(1,'#07110f00');ctx.fillStyle=shadow;ctx.fillRect(-.5,-.35,1.1,1);
     ctx.strokeStyle=gold?'#ffe1a0':enemy?'#ce7c65':'#a8c6d4';ctx.lineWidth=gold?.047:.025;ctx.beginPath();ctx.ellipse(0,.15,.38,.26,0,0,7);ctx.stroke();
-    const turn={up:Math.PI,left:-Math.PI/2,right:Math.PI/2,down:0}[e.facing||'down'];ctx.save();ctx.rotate(turn);if(!sprite(ctx,e.kind,-.54,-.57,1.08,.94)){ellipse(ctx,0,0,.26,.26,enemy?'#9d6152':'#859370')}ctx.restore();
+    const turn={up:Math.PI,left:-Math.PI/2,right:Math.PI/2,down:0}[e.facing||'down'];ctx.save();ctx.rotate(turn);if(!sprite(ctx,e.kind,-.54,-.57,1.08,.94,e.facing||'down')){ellipse(ctx,0,0,.26,.26,enemy?'#9d6152':'#859370')}ctx.restore();
     ctx.fillStyle='#111e19';ctx.fillRect(-.31,.44,.62,.065);ctx.fillStyle=enemy?'#dd8d77':gold?'#ddc890':'#a7c8b0';ctx.fillRect(-.3,.455,.6*e.hp/e.max,.035);ctx.restore();
   }
   function light(x,y,t){const power=reduced?1:.95+Math.sin(t/240+x)*.04+Math.sin(t/101+y)*.02;const g=ctx.createRadialGradient(x,y,.03,x,y,1.85);g.addColorStop(0,`rgba(255,189,86,${.24*power})`);g.addColorStop(.3,`rgba(252,166,55,${.12*power})`);g.addColorStop(1,'#fca63700');ctx.save();ctx.globalCompositeOperation='screen';ctx.fillStyle=g;ctx.fillRect(x-1.85,y-1.85,3.7,3.7);ctx.restore();ellipse(ctx,x,y+.07,.1,.06,'#342e21');ctx.fillStyle='#8e7752';ctx.fillRect(x-.05,y-.02,.1,.13);ellipse(ctx,x,y-.04,.043,.1*power,'#ed9c39');ellipse(ctx,x,y-.035,.025,.064*power,'#fff0b8')}
@@ -80,7 +80,7 @@ window.createChapelArt = function(canvas) {
   }
   function frame(t){raf=0;if(!onscreen||document.hidden)return;if(t-lastTime>40){paint(t);lastTime=t}schedule()}
   function schedule(){if(!raf&&!reduced&&onscreen&&!document.hidden)raf=requestAnimationFrame(frame)}
-  function portraits(){if(!atlas.complete||!atlas.naturalWidth)return;document.querySelectorAll('canvas[data-portrait]').forEach(c=>{const kind=c.dataset.portrait,r=sprites[kind],cx=c.getContext('2d');c.width=180;c.height=180;cx.clearRect(0,0,180,180);const w=r[2],h=r[3];cx.drawImage(atlas,r[0]+w*.18,r[1],w*.64,h*.72,0,0,180,180)})}
+  function portraits(){if(!figures.complete||!figures.naturalWidth)return;document.querySelectorAll('canvas[data-portrait]').forEach(c=>{const kind=c.dataset.portrait,row={ranger:0,mage:1,guard:2,enemy:3}[kind]??0,cx=c.getContext('2d');c.width=180;c.height=180;cx.clearRect(0,0,180,180);const sw=figures.naturalWidth/4,sh=figures.naturalHeight/4;cx.drawImage(figures,0,row*sh,sw,sh,0,0,180,180)})}
   new IntersectionObserver(([entry])=>{onscreen=entry.isIntersecting;if(onscreen){paint(performance.now());schedule()}}).observe(canvas);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){paint(performance.now());schedule()}});
   return {
