@@ -1,6 +1,6 @@
 (() => {'use strict';
 const paths={
-sword:'<path d="m8 38 5 5 22-24 5-13-13 5Z" fill="url(#steel)"/><path d="m27 15 5 4M10 34l11 10M8 42l-4 5 4 3 6-6"/>',
+up:'<path d="M10 29 25 13 40 29H32V46H18V29Z" fill="url(#gold)"/>',left:'<path d="M32 8 14 26 32 44 39 37 28 26 39 15Z" fill="url(#gold)"/>',right:'<path d="M18 8 36 26 18 44 11 37 22 26 11 15Z" fill="url(#gold)"/>',rotate:'<path d="M9 29a17 17 0 1 1 9 13M7 18v13h13" stroke="#f0ce82" stroke-width="5"/>',armor:'<path d="m10 8 10-3 5 8 5-8 10 3 6 15-9 5v19H13V28l-9-5Z" fill="url(#steel)"/>',drop:'<path d="M8 32h34v13H8ZM17 6h16v14h8L25 32 9 20h8Z" fill="url(#gold)"/>',transfer:'<path d="M5 15h30V8l12 14-12 13v-8H5Z" fill="url(#gold)"/>',sword:'<path d="m8 38 5 5 22-24 5-13-13 5Z" fill="url(#steel)"/><path d="m27 15 5 4M10 34l11 10M8 42l-4 5 4 3 6-6"/>',
 shield:'<path d="M25 5 7 12v16c0 12 18 20 18 20s18-8 18-20V12Z" fill="url(#steel)"/><path d="M25 11 13 16v11c0 8 12 15 12 15Z" fill="#75818a"/><path d="M25 11v31"/>',
 map:'<path d="m4 11 14-5 15 6 13-5v35l-13 5-15-6-14 5Z" fill="url(#gold)"/><path d="M18 6v35m15-29v35M8 22l6-4m8 9 7 3m8-10 5-2"/>',
 hero:'<path d="M10 28V18C10 2 40 2 40 18v10l-8 7-3 13h-8l-3-13Z" fill="url(#gold)"/><path d="m15 21 8 4-2 7-6-4Zm20 0-8 4 2 7 6-4Z" fill="#15211f"/><path d="M25 7v30"/>',
@@ -20,6 +20,6 @@ center:'<circle cx="25" cy="25" r="14"/><circle cx="25" cy="25" r="5" fill="url(
 fit:'<path d="M6 19V6h13m12 0h13v13M6 31v13h13m12 0h13V31"/>',
 plus:'<path d="M25 10v30M10 25h30"/>',minus:'<path d="M10 25h30"/>',close:'<path d="m13 13 24 24m0-24L13 37"/>',menu:'<path d="M8 13h34M8 25h34M8 37h34"/>'};
 function svg(name){return '<svg class="ui-icon" viewBox="0 0 50 52" aria-hidden="true" focusable="false"><defs><linearGradient id="gold" x2=".8" y2="1"><stop stop-color="#ffe6a1"/><stop offset=".5" stop-color="#cda04e"/><stop offset="1" stop-color="#84602d"/></linearGradient><linearGradient id="steel" x2=".7" y2="1"><stop stop-color="#e7e9dd"/><stop offset=".5" stop-color="#9ba6ab"/><stop offset="1" stop-color="#546473"/></linearGradient></defs><g stroke="#5f482c" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" fill="none">'+(paths[name]||paths.more)+'</g></svg>';}
-function node(name){const span=document.createElement('span');span.className='icon-holder';span.innerHTML=svg(name);return span;}
-function apply(el,name){if(!el)return;let holder=el.querySelector(':scope > .icon-holder');if(!holder){holder=node(name);el.prepend(holder);}else holder.innerHTML=svg(name);}
+function node(name){const span=document.createElement('span');span.className='icon-holder';span.innerHTML=window.UIIcons.svg(name);return span;}
+function apply(el,name){if(!el)return;let holder=el.querySelector(':scope > .icon-holder');if(!holder){holder=node(name);el.prepend(holder);}else holder.innerHTML=window.UIIcons.svg(name);}
 window.UIIcons={svg,node,apply};})();
