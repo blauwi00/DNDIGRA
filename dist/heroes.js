@@ -1,6 +1,6 @@
 (() => {'use strict';const R=HeroRules,$=id=>document.getElementById(id),g=()=>window.gameDebug;let heroes=[],draft=null,step=0,angle=0,saving=false,loaded=false;
 const pick=n=>DND.die(n)-1,esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function button(text,fn,cls=''){const b=document.createElement('button');b.type='button';b.textContent=text;b.className=cls;b.onclick=fn;return b;}
+function button(text,fn,cls=''){const b=document.createElement('button');b.type='button';b.textContent=text;if(window.UIIcons&&['‹','›','+','−','×'].includes(text)){b.replaceChildren(UIIcons.node(({'‹':'left','›':'right','+':'plus','−':'minus','×':'close'})[text]));}b.className=cls;b.onclick=fn;return b;}
 function makeDraft(id='fighter'){return {name:['Арден','Рин','Мира','Бор'][pick(4)],classId:id,stats:R.preset(id),appearance:{skin:R.COLORS.skin[0],hair:R.COLORS.hair[0],cloth:R.COLORS.cloth[id==='wizard'?1:id==='fighter'?2:0],trim:R.COLORS.trim[0],hairStyle:'short',face:'soft'},kit:pick(2),background:R.background(id,pick)};}
 async function api(method='GET',body,path=''){const r=await fetch('/api/heroes'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});let data;try{data=await r.json()}catch{throw Error('Сохранения недоступны. Попробуйте ещё раз.')}if(!r.ok)throw Error(data.error||'Ошибка сохранения.');return data;}
 function show(){const d=$('heroes-panel');if(!d.open)d.showModal();}
