@@ -23,15 +23,25 @@ var InventoryRules = (() => {
     CAPACITY: () => CAPACITY,
     armorName: () => armorName,
     canAdd: () => canAdd,
+    focusName: () => focusName,
     gearEntries: () => gearEntries,
     handType: () => handType,
     slotsUsed: () => slotsUsed,
     stackable: () => stackable
   });
+  var word = (forms) => new RegExp("(?:^|[^\\p{L}\\p{N}])(?:" + forms.join("|") + ")(?![\\p{L}\\p{N}])", "iu");
+  var ARMOR = word(["\u0431\u0440\u043E\u043D(?:\u044F|\u0438|\u044E|\u0435\u0439|\u0435)", "\u0434\u043E\u0441\u043F\u0435\u0445(?:\u0438|\u043E\u0432|\u0430|\u0430\u043C)?", "\u043A\u043E\u043B\u044C\u0447\u0443\u0433(?:\u0430|\u0438|\u0443|\u043E\u0439|\u0435)", "\u043A\u043E\u043B\u044C\u0447\u0443\u0436\u043D(?:\u0430\u044F|\u0443\u044E|\u043E\u0439) \u0440\u0443\u0431\u0430\u0445(?:\u0430|\u0438|\u0443|\u043E\u0439)"]);
+  var SHIELD = word(["\u0449\u0438\u0442(?:\u0430|\u0443|\u043E\u043C|\u0435|\u044B|\u043E\u0432)?"]);
+  var STAFF = word(["\u043F\u043E\u0441\u043E\u0445(?:\u0430|\u0443|\u043E\u043C|\u0435|\u0438|\u043E\u0432)?", "\u0431\u0443\u043B\u0430\u0432(?:\u0430|\u0443|\u043E\u0439|\u0435|\u044B)"]);
+  var SWORD = word(["\u043C\u0435\u0447(?:\u0430|\u0443|\u043E\u043C|\u0435|\u0438|\u0435\u0439)?"]);
+  var BOW = word(["\u043B\u0443\u043A(?:\u0430|\u0443|\u043E\u043C|\u0435|\u0438|\u043E\u0432)?"]);
+  var STACK = word(["\u0435\u0434\u0430", "\u0435\u0434\u044B", "\u0435\u0434\u043E\u0439", "\u0440\u0430\u0446\u0438\u043E\u043D(?:\u044B|\u043E\u0432|\u0430)?", "\u0431\u0438\u043D\u0442(?:\u044B|\u043E\u0432|\u0430)?", "\u043C\u0435\u043B(?:\u0430|\u0443|\u043E\u043C)?", "\u0441\u0432\u0435\u0447(?:\u0430|\u0438|\u0435\u0439|\u0443|\u043E\u0439)?"]);
+  var FOCUS = word(["\u0444\u043E\u043A\u0443\u0441(?:\u0430|\u0443|\u043E\u043C|\u044B)?", "\u0441\u0438\u043C\u0432\u043E\u043B(?:\u0430|\u0443|\u043E\u043C|\u044B)?"]);
   var CAPACITY = 20;
-  var armorName = (name) => /броня|кольч|доспех|кожан/i.test(name);
-  var handType = (name) => /щит/i.test(name) ? "shield" : /посох|булава/i.test(name) ? "staff" : /меч/i.test(name) ? "sword" : /лук/i.test(name) ? "bow" : null;
-  var stackable = (name) => /еда|рацион|бинты|мел|свеч/i.test(name);
+  var armorName = (name) => ARMOR.test(name);
+  var handType = (name) => SHIELD.test(name) ? "shield" : STAFF.test(name) ? "staff" : SWORD.test(name) ? "sword" : BOW.test(name) ? "bow" : null;
+  var stackable = (name) => STACK.test(name);
+  var focusName = (name) => FOCUS.test(name);
   function gearEntries(a) {
     const hands = new Set(a.hands || []);
     let armorTaken = false;

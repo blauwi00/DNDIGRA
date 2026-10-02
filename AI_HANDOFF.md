@@ -25,7 +25,7 @@ node tests/worlds-client.mjs
 - dist/inventory.js, dist/torches.js: предметы, экипировка, факелы.
 - src/voxel.js: исходник Three.js рендера, свет, модели, выбор объектов. dist/voxel.js генерируется, его вручную не менять.
 - src/hero-rules.js, src/inventory-rules.js: общие правила, браузерные bundles генерируются.
-- src/world-api.js, src/worker.js и другие src/*api*: серверные обработчики; drizzle/: миграции.
+- src/world-api.js, src/server.js и другие src/*api*: серверные обработчики; drizzle/: миграции.
 - build.mjs: сборка браузерных модулей и Worker в dist/server, публикационный клиент dist/client.
 - dist/assets/: изображения, шрифты. Не удалять как якобы неиспользуемые без проверки.
 
@@ -51,3 +51,6 @@ node tests/worlds-client.mjs
 
 ## Честная проверка
 Автотесты логики проходят. Реальная мобильная CSS/WebGL QA последнего изменения не прошла: headless Chrome падал при запуске. Проверить в настоящем браузере прежде чем заявлять визуальную готовность.
+
+## Объединение исправлений Клода
+Исправлены SVG className в dist/views.js, границы слов типов предметов и carry() в world-api. CSS Клода целиком не переносился: наша ветка уже содержит очищенную вёрстку и sticky кнопки. Сгенерированный inventory-rules пересобирается закреплённым esbuild через npm run build.

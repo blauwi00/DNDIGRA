@@ -1146,5 +1146,15 @@
   {
     "selector": ".illustrated-ui .dialogue-open #play-dock",
     "properties": "display:none"
+  },
+  {
+    "selector": ".item-art",
+    "properties": "height:76px!important;width:90px!important;object-fit:contain",
+    "reason": "Legacy important sizes prevented compact SVG inventory icons"
+  },
+  {
+    "selector": ".item-art",
+    "properties": "width:75px!important;height:66px!important",
+    "reason": "Legacy important sizes prevented compact SVG inventory icons"
   }
 ]
