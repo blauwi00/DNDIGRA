@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync,readdirSync} from 'node:fs';import worker from '../dist/server/index.js';import * as R from '../src/hero-rules.js';
+const db=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())db.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
+const DB={async batch(statements){db.exec('BEGIN');try{const r=[];for(const q of statements)r.push(await q.run());db.exec('COMMIT');return r;}catch(e){db.exec('ROLLBACK');throw e;}},prepare(sql){const q=db.prepare(sql);return{bind(...args){return{all:async()=>({results:q.all(...args)}),run:async()=>({meta:{changes:q.run(...args).changes}})}}}}};
+const draft={name:'Мировой герой',classId:'wizard',stats:R.preset('wizard'),appearance:Object.fromEntries(Object.entries(R.COLORS).map(([k,v])=>[k,v[0]])),kit:0,background:R.background('wizard',()=>0)};draft.appearance.hairStyle='short';draft.appearance.face='soft';
+async function call(path,method='GET',body,owner='owner-a'){const r=await worker.fetch(new Request('https://game.test/api/'+path,{method,headers:{Origin:'https://game.test',...(owner?{'oai-authenticated-user-id':owner}:{})},body:body?JSON.stringify(body):undefined}),{DB});return{status:r.status,...await r.json()};}
+const {hero}=await call('heroes','POST',draft);let r=await call('worlds','POST',{heroId:hero.id});assert.equal(r.status,201);let w=r.world;const id=w.id;
+assert.equal((await call('worlds','POST',{heroId:hero.id})).status,409);assert.equal((await call('worlds/'+id,'GET',null,'other')).status,404);assert.equal((await call('worlds','POST',{heroId:hero.id},'other')).status,404);
+assert.equal((await call('worlds/'+id+'/finish','POST',{revision:w.revision})).status,400);
+let snap=structuredClone(w.snapshot);snap.scene='crypt';snap.party[0].x=5;snap.party[0].y=9;snap.party[0].hp=2;snap.party[0].slots=1;snap.party[0].torches=1;snap.party[0].hands=['staff','torch'];snap.party[0].torch=true;snap.doors['hub:door']=true;snap.loot['hub:chest']=true;snap.altarClaims['crypt:altar']=true;snap.gold=15;snap.potions=1;snap.xp=25;snap.episode.unlocked=true;snap.episode.attempts['probe']=true;snap.logs.push('Сундук получен.');
+r=await call('worlds/'+id,'PUT',{revision:w.revision,snapshot:snap});assert.equal(r.status,200);w=r.world;assert(w.snapshot.world.discovered.includes('crypt'));assert.equal(w.snapshot.party[0].hp,2);assert.equal(w.snapshot.party[0].slots,1);
+assert.equal((await call('worlds/'+id,'PUT',{revision:1,snapshot:snap})).status,409);
+const bad=structuredClone(w.snapshot);bad.loot={};assert.equal((await call('worlds/'+id,'PUT',{revision:w.revision,snapshot:bad})).status,400);bad.loot=w.snapshot.loot;bad.party[0].name='Другой';assert.equal((await call('worlds/'+id,'PUT',{revision:w.revision,snapshot:bad})).status,400);
+snap=structuredClone(w.snapshot);snap.scene='hub';snap.party[0].x=5;snap.party[0].y=9;snap.episode.stage='done';snap.episodeRewarded=true;snap.xp=65;snap.gold=40;snap.logs.push('Лин спасён.');r=await call('worlds/'+id,'PUT',{revision:w.revision,snapshot:snap});assert.equal(r.status,200);w=r.world;
+r=await call('worlds/'+id+'/finish','POST',{revision:w.revision});assert.equal(r.status,200);w=r.world;assert.equal(w.status,'completed');assert.equal((await call('worlds/'+id,'PUT',{revision:w.revision,snapshot:snap})).status,409);assert.equal((await call('worlds/'+id+'/finish','POST',{revision:w.revision})).status,409);
+assert.equal((await call('worlds','POST',{heroId:hero.id})).transferPending,true);
+r=await call('worlds','POST',{heroId:hero.id,leaveGold:true});assert.equal(r.status,201);const next=r.world;assert.notEqual(next.id,id);assert.equal(next.snapshot.world.chapter,2);assert.equal(next.snapshot.gold,0);assert.equal(next.snapshot.potions,0);assert.equal(next.snapshot.party[0].torches,0);assert(!next.snapshot.party[0].hands.includes('torch'));assert(!next.snapshot.party[0].inventory.includes('Рюкзак'));assert.equal(next.snapshot.xp,65);
+assert.equal((await call('worlds/'+id)).world.snapshot.gold,40);assert.equal((await call('worlds?hero_id='+hero.id)).worlds.length,2);const list=await call('heroes');assert.equal(list.heroes[0].activeWorldId,next.id);
+assert.throws(()=>db.prepare('INSERT INTO worlds (id, hero_id, owner, status, snapshot, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('duplicate',hero.id,'owner-a','active','{}',1,1,1),/UNIQUE/);
+console.log('PASS: actual SQLite world migrations, one active world per hero, owner isolation, save/load positions and resources, revision conflict, no loot/quest reset, finish once, immutable archive, explicit gold deferral, equipment-only transfer, current hero status.');
+
+assert.equal((await call('worlds/'+next.id,'DELETE',{revision:next.revision},'other')).status,404);
+assert.equal((await call('worlds/'+next.id,'DELETE',{revision:0})).status,409);
+let modified=structuredClone(next.snapshot);modified.xp=125;modified.party[0].inventory.push('Проверочная верёвка');
+const saved=await call('worlds/'+next.id,'PUT',{revision:next.revision,snapshot:modified});assert.equal(saved.status,200);
+assert.equal((await call('worlds/'+next.id,'DELETE',{revision:saved.world.revision})).status,200);
+let preserved=(await call('heroes')).heroes[0];assert.equal(preserved.xp,125);assert(preserved.inventory.includes('Проверочная верёвка'));
+assert.equal((await call('worlds/'+id,'DELETE',{revision:w.revision})).status,200);
+preserved=(await call('heroes')).heroes[0];assert.equal(preserved.xp,125);
+const recreated=await call('worlds','POST',{heroId:hero.id});assert.equal(recreated.status,201);assert.equal(recreated.world.snapshot.xp,125);
+assert.equal((await call('heroes/'+hero.id,'DELETE',null,'other')).status,404);
+assert.equal((await call('heroes/'+hero.id,'DELETE')).status,200);
+assert.equal((await call('heroes')).heroes.length,0);assert.equal((await call('worlds?hero_id='+hero.id)).worlds.length,0);
+console.log('PASS: confirmed deletion API, owner isolation, stale revision rejection, hero progress survives latest and older world deletion, restart, hero/world cascade.');

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `idx_worlds_active_hero` ON `worlds` (`hero_id`) WHERE "worlds"."status" = 'active';

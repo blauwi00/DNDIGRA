@@ -1,0 +1,6 @@
+(() => {let explored={};const g=()=>window.gameDebug;
+function clearRay(a,b){const S=g().scene,n=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)*8);for(let i=1;i<n;i++){const x=Math.floor(a.x+(b.x-a.x)*i/n),y=Math.floor(a.y+(b.y-a.y)*i/n);if(World.tile(S,x,y)==='wall'||S.props.some(p=>p.type==='door'&&p.x===x&&p.y===y&&!g().isOpen(p)))return false}return true;}
+function level(p){const s=g().state;if(!s.settings.lights)return'bright';const q={x:p.x+.5,y:p.y+.5};let result='dark';const lights=[...(window.Torches?.lightSources()||g().scene.lights).map(l=>({x:l.x,y:l.y,radius:l.brightRadius??(l.id==='altar'?1:4)})),...s.party.filter(a=>a.torch&&a.hp>0).map(a=>({x:a.x+.5,y:a.y+.5,radius:4}))];for(const l of lights){if(!clearRay(l,q))continue;const d=Math.hypot(q.x-l.x,q.y-l.y);if(d<=l.radius)return'bright';if(d<=l.radius*2)result='dim';}return result;}
+function canSee(a,p){if(!clearRay({x:a.x+.5,y:a.y+.5},{x:p.x+.5,y:p.y+.5}))return false;return level(p)!=='dark'||Math.hypot(a.x-p.x,a.y-p.y)<=a.darkvision;}
+function describe(a){const l=level(a);return l==='bright'?'Яркий свет':l==='dim'?'Тусклый свет · помеха зрительному восприятию':a.darkvision?'Темнота · тёмное зрение':'Темнота · цели не видны';}
+window.visibility={level,canSee,clearRay,describe};})();
