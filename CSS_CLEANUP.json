@@ -1,0 +1,1160 @@
+[
+  {
+    "selector": ".speaker-card",
+    "properties": "display:grid;grid-template-columns:160px 1fr;align-items:center;min-height:220px;border:1px solid #a59263;border-radius:11px;padding:13px;background:linear-gradient(140deg,#213b2d,#142b20)"
+  },
+  {
+    "selector": ".speaker-art",
+    "properties": "height:220px;align-self:end"
+  },
+  {
+    "selector": ".speaker-copy",
+    "properties": "padding:5px 10px"
+  },
+  {
+    "selector": ".speaker-copy>span",
+    "properties": "display:block;color:#dec68c;font:22px Georgia,serif;padding-bottom:10px;border-bottom:1px solid #74805b55"
+  },
+  {
+    "selector": ".speaker-copy p",
+    "properties": "font:22px/1.45 Georgia,serif;margin:14px 0 0;color:#eee5cd"
+  },
+  {
+    "selector": ".dialogue-options",
+    "properties": "display:flex;flex-direction:column;gap:8px;padding:9px;border:1px solid #44614b;border-radius:10px;background:#142c21"
+  },
+  {
+    "selector": ".dialogue-options button",
+    "properties": "flex:1;min-height:47px;border:1px solid #4b6950;border-radius:7px;padding:10px 14px;background:#1d3929;text-align:left;font-size:16px"
+  },
+  {
+    "selector": ".dialogue-options button:hover",
+    "properties": "background:#2e4731;border-color:#b3a66d"
+  },
+  {
+    "selector": ".dialogue-options button:first-child",
+    "properties": "border-color:#b2a170;background:#37412a"
+  },
+  {
+    "selector": ".dialogue-close",
+    "properties": "position:absolute;right:8px;top:-32px;width:29px;height:29px;border:1px solid #8f9467;border-radius:6px;background:#183225;font-size:22px"
+  },
+  {
+    "selector": ".gear:hover,.bag-item:hover",
+    "properties": "transform:translateY(-2px)"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "box-shadow:inset 0 0 50px #091b2330"
+  },
+  {
+    "selector": ".hero-art",
+    "properties": "filter:none!important"
+  },
+  {
+    "selector": ".hero-layout",
+    "properties": "display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:19px"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "position:relative;min-height:580px;border:1px solid #8b8657;border-radius:10px;overflow:hidden;background:linear-gradient(#15271a11,#14241c55),url('assets/hero-chapel.png') center/cover"
+  },
+  {
+    "selector": ".hero-stage:after",
+    "properties": "content:\"\";position:absolute;inset:0;background:linear-gradient(transparent 70%,#091b1555);pointer-events:none"
+  },
+  {
+    "selector": ".hero-art",
+    "properties": "position:absolute;left:18%;right:18%;top:18%;bottom:7%;filter:drop-shadow(0 12px 10px #0006)"
+  },
+  {
+    "selector": ".hero-arrow",
+    "properties": "position:absolute;z-index:2;left:16px;top:45%;width:58px;height:72px;border:1px solid #c8ad70;border-radius:9px;background:#0e2a1cdd;color:#e9cc8a;font:50px Georgia,serif"
+  },
+  {
+    "selector": ".hero-arrow:last-child",
+    "properties": "left:auto;right:16px"
+  },
+  {
+    "selector": ".bag-layout",
+    "properties": "display:grid;grid-template-columns:1.25fr 1fr;gap:20px;min-height:570px;border:1px solid #496649;border-radius:10px;padding:24px;background:linear-gradient(145deg,#193525,#0e2218)"
+  },
+  {
+    "selector": ".pane-heading",
+    "properties": "display:flex;align-items:center;justify-content:space-between;gap:15px"
+  },
+  {
+    "selector": ".pane-heading h2,.item-detail h2",
+    "properties": "font:600 35px Georgia,serif;color:#ead49a;margin:0 0 24px"
+  },
+  {
+    "selector": ".pane-heading>span",
+    "properties": "color:var(--gold);white-space:nowrap"
+  },
+  {
+    "selector": ".bag-items",
+    "properties": "display:grid;grid-template-columns:repeat(3,1fr);gap:12px"
+  },
+  {
+    "selector": ".bag-item",
+    "properties": "min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:13px;background:#0e261c;border:1px solid #49644e;border-radius:9px;text-align:center"
+  },
+  {
+    "selector": ".bag-item>span",
+    "properties": "font-size:54px;color:#e4c47e"
+  },
+  {
+    "selector": ".bag-item>b",
+    "properties": "font-size:16px;font-weight:500"
+  },
+  {
+    "selector": ".bag-item>small",
+    "properties": "font-size:16px;color:#b9c8b1"
+  },
+  {
+    "selector": ".bag-item.selected",
+    "properties": "border-color:#e6c882;background:#403b223d;box-shadow:0 0 12px #d0b46b22"
+  },
+  {
+    "selector": ".item-detail",
+    "properties": "padding:15px 25px;border-left:1px solid #51674d"
+  },
+  {
+    "selector": ".item-detail p",
+    "properties": "color:#c4cfb8;font-size:18px;line-height:1.6"
+  },
+  {
+    "selector": ".hero-layout",
+    "properties": "gap:12px"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "min-height:450px"
+  },
+  {
+    "selector": ".hero-layout,.bag-layout",
+    "properties": "grid-template-columns:1fr;gap:11px"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "min-height:350px"
+  },
+  {
+    "selector": ".hero-art",
+    "properties": "left:24%;right:24%;top:14%;bottom:5%"
+  },
+  {
+    "selector": ".hero-arrow",
+    "properties": "width:42px;height:58px;font-size:39px"
+  },
+  {
+    "selector": ".bag-layout",
+    "properties": "padding:16px;min-height:0"
+  },
+  {
+    "selector": ".bag-items",
+    "properties": "grid-template-columns:repeat(2,1fr);gap:9px"
+  },
+  {
+    "selector": ".bag-item",
+    "properties": "min-height:145px;padding:11px;gap:6px"
+  },
+  {
+    "selector": ".bag-item>b",
+    "properties": "font-size:14px"
+  },
+  {
+    "selector": ".bag-item>small",
+    "properties": "font-size:13px"
+  },
+  {
+    "selector": ".item-detail",
+    "properties": "padding:17px 0 0;border:0;border-top:1px solid #51674d"
+  },
+  {
+    "selector": ".item-detail p",
+    "properties": "font-size:16px"
+  },
+  {
+    "selector": ".pane-heading h2,.item-detail h2",
+    "properties": "font-size:28px;margin-bottom:16px"
+  },
+  {
+    "selector": ".speaker-card",
+    "properties": "grid-template-columns:90px 1fr;min-height:175px;padding:9px;gap:5px"
+  },
+  {
+    "selector": ".speaker-art",
+    "properties": "height:155px"
+  },
+  {
+    "selector": ".speaker-copy",
+    "properties": "padding:3px"
+  },
+  {
+    "selector": ".speaker-copy>span",
+    "properties": "font-size:17px;padding-bottom:8px"
+  },
+  {
+    "selector": ".speaker-copy p",
+    "properties": "font-size:17px;line-height:1.4;margin-top:10px"
+  },
+  {
+    "selector": ".dialogue-options",
+    "properties": "gap:7px;padding:7px"
+  },
+  {
+    "selector": ".dialogue-options button",
+    "properties": "font-size:14px;min-height:45px;padding:10px 12px"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "min-height:360px"
+  },
+  {
+    "selector": ".hero-stage .hero-art",
+    "properties": "left:24%;right:24%;top:9%;bottom:5%"
+  },
+  {
+    "selector": ".speaker-card",
+    "properties": "border:0;padding:0;grid-template-columns:70px 1fr;min-height:110px;background:transparent"
+  },
+  {
+    "selector": ".speaker-art",
+    "properties": "height:110px"
+  },
+  {
+    "selector": ".speaker-copy>span",
+    "properties": "font-size:16px"
+  },
+  {
+    "selector": ".speaker-copy p",
+    "properties": "font:18px/1.45 Georgia,serif;margin-top:9px"
+  },
+  {
+    "selector": ".dialogue-options",
+    "properties": "border:0;padding:8px 0 0;background:transparent"
+  },
+  {
+    "selector": ".dialogue-options button",
+    "properties": "min-height:43px;font-size:15px"
+  },
+  {
+    "selector": ".dialogue-close",
+    "properties": "position:sticky;float:right;top:0;right:0;margin-top:-4px;width:34px;height:34px"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "min-height:250px"
+  },
+  {
+    "selector": ".bag-item",
+    "properties": "min-height:125px"
+  },
+  {
+    "selector": ".bag-layout",
+    "properties": "padding:13px"
+  },
+  {
+    "selector": ".dialogue .speaker-art",
+    "properties": "height:95px"
+  },
+  {
+    "selector": ".dialogue .speaker-card",
+    "properties": "grid-template-columns:60px 1fr;min-height:96px"
+  },
+  {
+    "selector": ".dialogue-close",
+    "properties": "top:0"
+  },
+  {
+    "selector": ".dialogue .speaker-copy p",
+    "properties": "font-size:17px"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "min-height:310px"
+  },
+  {
+    "selector": ".hero-layout .hero-stage",
+    "properties": "background:radial-gradient(ellipse at 50% 70%,#344b3d,#172d26 65%)"
+  },
+  {
+    "selector": ".speaker-copy",
+    "properties": "padding-right:9px"
+  },
+  {
+    "selector": ".hero-layout .hero-stage",
+    "properties": "min-height:260px"
+  },
+  {
+    "selector": ".dialogue .speaker-card",
+    "properties": "display:grid;grid-template-columns:180px minmax(0,1fr);grid-template-rows:auto auto;gap:0;padding:12px 12px 0;border:1px solid #b59a61;border-radius:10px;background:linear-gradient(120deg,#1b3025,#12271e);min-height:0;align-items:end"
+  },
+  {
+    "selector": ".dialogue .speaker-art",
+    "properties": "grid-column:1;grid-row:1;height:220px;overflow:hidden;align-self:end;margin:-8px -8px 0"
+  },
+  {
+    "selector": ".dialogue .speaker-art canvas",
+    "properties": "width:100%;height:100%;object-fit:contain;object-position:center bottom"
+  },
+  {
+    "selector": ".dialogue .speaker-copy",
+    "properties": "display:contents"
+  },
+  {
+    "selector": ".dialogue .speaker-copy>span",
+    "properties": "grid-column:2;grid-row:1;align-self:center;border-bottom:1px solid #6e714c;color:#e0c891;font:22px/1.35 Georgia,serif;padding:0 22px 14px 10px;margin-left:9px"
+  },
+  {
+    "selector": ".dialogue .speaker-copy p",
+    "properties": "grid-column:1/-1;grid-row:2;align-self:start;border:1px solid #84794f;border-radius:9px;padding:15px 17px;margin:0 -5px 8px;background:linear-gradient(120deg,#233a2b,#132920);font:20px/1.4 Georgia,serif;color:#f0e8cf;box-shadow:inset 0 1px 0 #c9b47a1a"
+  },
+  {
+    "selector": ".dialogue .dialogue-options",
+    "properties": "display:flex;flex-direction:column;justify-content:center;gap:9px;border:1px solid #4f6450;border-radius:10px;padding:9px;background:#0c2118"
+  },
+  {
+    "selector": ".dialogue-options button",
+    "properties": "display:flex;align-items:center;gap:12px;text-align:left;min-height:60px;padding:12px 15px;border:1px solid #496451;border-radius:8px;background:linear-gradient(120deg,#223c2c,#162d22);font-size:17px;line-height:1.35;box-shadow:inset 0 1px 0 #f8edc70a"
+  },
+  {
+    "selector": ".dialogue-options button:before",
+    "properties": "content:'▣';color:#e4cb87;font-size:23px;flex:none"
+  },
+  {
+    "selector": ".dialogue-options button:first-child",
+    "properties": "background:linear-gradient(120deg,#405039,#2b3d29);border-color:#ceb36e"
+  },
+  {
+    "selector": ".dialogue-options button:active",
+    "properties": "background:#50603e;transform:translateY(1px)"
+  },
+  {
+    "selector": ".dialogue .dialogue-close",
+    "properties": "position:absolute;float:none;right:17px;top:17px;z-index:2;margin:0;width:30px;height:30px;border:1px solid #7d8057;border-radius:6px;background:#14281ff0;font-size:23px;line-height:1"
+  },
+  {
+    "selector": ".dialogue .speaker-card",
+    "properties": "grid-template-columns:126px minmax(0,1fr);padding:8px 8px 0"
+  },
+  {
+    "selector": ".dialogue .speaker-art",
+    "properties": "height:145px;margin:-4px 0 0 -4px"
+  },
+  {
+    "selector": ".dialogue .speaker-copy>span",
+    "properties": "font-size:20px;padding:0 25px 12px 5px;margin-left:6px"
+  },
+  {
+    "selector": ".dialogue .speaker-copy p",
+    "properties": "font-size:18px;line-height:1.4;padding:12px;margin:0 -3px 6px"
+  },
+  {
+    "selector": ".dialogue .dialogue-options",
+    "properties": "gap:7px;padding:7px"
+  },
+  {
+    "selector": ".dialogue-options button",
+    "properties": "min-height:46px;padding:9px 12px;font-size:16px;gap:10px"
+  },
+  {
+    "selector": ".dialogue .dialogue-close",
+    "properties": "right:15px;top:14px"
+  },
+  {
+    "selector": ".dialogue .speaker-card",
+    "properties": "grid-template-columns:120px 1fr"
+  },
+  {
+    "selector": ".dialogue .speaker-art",
+    "properties": "height:145px"
+  },
+  {
+    "selector": ".dialogue .speaker-copy p",
+    "properties": "font-size:17px"
+  },
+  {
+    "selector": ".dialogue-options button",
+    "properties": "min-height:45px;font-size:15px;padding:9px 11px"
+  },
+  {
+    "selector": ".saved-hero-art canvas",
+    "properties": "width:88px;height:110px;object-fit:contain"
+  },
+  {
+    "selector": ".game-ui .dialogue .speaker-card",
+    "properties": "display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:auto auto;gap:2px 8px;min-height:0;padding:0 22px 0 0;background:none;border:0;border-radius:0;align-items:center"
+  },
+  {
+    "selector": ".game-ui .dialogue .speaker-art",
+    "properties": "grid-column:1;grid-row:1/3;height:90px;width:76px;margin:0;align-self:center;border-radius:40px;overflow:hidden;background:#173126"
+  },
+  {
+    "selector": ".game-ui .dialogue .speaker-copy>span",
+    "properties": "grid-column:2;grid-row:1;border:0;color:#173425;font:bold 21px/1.15 Georgia,serif;padding:0;margin:0"
+  },
+  {
+    "selector": ".game-ui .dialogue .speaker-copy p",
+    "properties": "grid-column:2;grid-row:2;margin:0;padding:0;border:0;background:none;color:#193324;font:18px/1.35 Georgia,serif;box-shadow:none"
+  },
+  {
+    "selector": ".game-ui .dialogue .dialogue-options",
+    "properties": "display:flex;gap:6px;padding:0;border:0;background:none"
+  },
+  {
+    "selector": ".game-ui .dialogue-options button",
+    "properties": "min-height:44px;padding:8px 10px;font-size:16px;color:#eee6ca;border-radius:9px;gap:8px"
+  },
+  {
+    "selector": ".game-ui .dialogue-options button:before",
+    "properties": "font-size:18px"
+  },
+  {
+    "selector": ".game-ui .dialogue .dialogue-close",
+    "properties": "right:7px;top:9px;background:#c2b68f;color:#183226;border:1px solid #867f60;width:28px;height:28px"
+  },
+  {
+    "selector": ".game-ui #hud-health",
+    "properties": "position:absolute;left:7px;top:7px;right:auto;bottom:auto;z-index:32;display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px;width:157px;min-height:66px;padding:6px;border:1px solid #a7b583;border-radius:10px;background:#153024f5;text-align:left;transform:none;touch-action:manipulation"
+  },
+  {
+    "selector": ".game-ui #hud-health .portrait",
+    "properties": "width:42px;height:48px;grid-row:auto;align-self:center"
+  },
+  {
+    "selector": ".game-ui #hud-health>span",
+    "properties": "display:flex;flex-direction:column;gap:3px;min-width:0"
+  },
+  {
+    "selector": ".game-ui #hud-health b",
+    "properties": "font-size:16px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+  },
+  {
+    "selector": ".game-ui #hud-health small",
+    "properties": "font-size:14px;line-height:1.2;color:#e2e8cd"
+  },
+  {
+    "selector": ".game-ui #hud-health .hp-track",
+    "properties": "display:block;width:100%;height:5px;margin-top:2px"
+  },
+  {
+    "selector": ".game-ui #dialogue",
+    "properties": "inset:auto 5px 4px;transform:none;width:auto;min-width:0;max-width:none;height:auto;box-sizing:border-box;max-height:55%;z-index:35;touch-action:pan-y;overscroll-behavior:contain"
+  },
+  {
+    "selector": ".game-ui #dialogue .speaker-copy p",
+    "properties": "overflow-wrap:anywhere"
+  },
+  {
+    "selector": ".game-ui #dialogue",
+    "properties": "left:18%;right:18%"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health",
+    "properties": "left:6px;top:6px;width:139px;min-height:53px;grid-template-columns:39px minmax(0,1fr);gap:5px;padding:4px 6px 4px 3px;border:1px solid #bd9450;border-radius:2px;background:linear-gradient(135deg,#263d31,#0d231b);box-shadow:inset 0 0 0 2px #18271b,inset 0 0 0 3px #a9824640,0 2px 5px #0005;clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .portrait",
+    "properties": "width:38px;height:45px;border:1px solid #b18b49;background:#071c16;clip-path:polygon(7px 0,100% 0,100% 100%,0 100%,0 7px)"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health b",
+    "properties": "font-size:12px;color:#d8c79d"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health small",
+    "properties": "font:16px/1.1 var(--font-menu);color:#f5e7b9;text-align:center"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .hp-track",
+    "properties": "height:7px;border:1px solid #6d4c35;border-radius:2px;margin-top:2px;background:#301b18;box-shadow:0 0 0 1px #c3a56555;overflow:hidden"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .hp-track i",
+    "properties": "display:block;height:100%;background:linear-gradient(#e6665b,#be302e 55%,#7d2324);border-top:1px solid #fba496;transition:width .35s ease"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue",
+    "properties": "position:relative;inset:auto;transform:none;width:100%;min-width:0;max-height:37dvh;flex:0 1 auto;box-sizing:border-box;z-index:3;display:flex;padding:7px 8px;gap:5px;border:0;border-top:1px solid #ae8b50;border-radius:0;background:linear-gradient(130deg,#193328,#092219);box-shadow:inset 0 0 0 3px #c4a56914;color:#ebdfbd;overflow:auto;animation:panel-enter .23s ease-out"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue:before",
+    "properties": "content:none"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-card",
+    "properties": "grid-template-columns:72px minmax(0,1fr);gap:3px 9px;padding:0 20px 0 0;align-items:start"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art",
+    "properties": "width:72px;height:100px;grid-column:1;grid-row:1/3;margin:0;border-radius:4px;background:radial-gradient(#8a77433d,#112820);border:1px solid #9c7b44;align-self:stretch;overflow:hidden"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art canvas,.illustrated-ui .npc-bust,.illustrated-ui .npc-bust svg",
+    "properties": "width:100%;height:100%;object-fit:contain;object-position:center bottom"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-copy>span",
+    "properties": "font:16px/1.2 var(--font-dialogue);color:#dfc27e;padding:0 0 3px;border-bottom:1px solid #85724655;grid-column:2;grid-row:1"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-copy p",
+    "properties": "font:16px/1.35 var(--font-dialogue);color:#253320;background:linear-gradient(135deg,#e9dcb5,#d3c295);padding:7px 9px;border:1px solid #a58c5f;border-radius:3px;grid-column:2;grid-row:2;align-self:start"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options",
+    "properties": "display:grid;grid-template-columns:1fr;gap:4px;padding:0"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options button",
+    "properties": "font:14px/1.25 var(--font-ui);min-height:34px;padding:6px 9px;border-radius:3px;background:linear-gradient(145deg,#304835,#192e24);color:#ede1bf"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options button:before",
+    "properties": "content:none"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue-close",
+    "properties": "position:absolute;inset:5px 5px auto auto;width:24px;height:24px;padding:2px;min-height:24px;background:#152e24;color:#d6bb7e;border:0"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue-close .ui-icon",
+    "properties": "width:18px;height:19px"
+  },
+  {
+    "selector": ".illustrated-ui #hero-view,.illustrated-ui #bag-view",
+    "properties": "background:linear-gradient(140deg,#1d352a,#10271e);border:1px solid #756744;border-radius:7px;padding:9px"
+  },
+  {
+    "selector": ".illustrated-ui .hero-sheet,.illustrated-ui .hero-card,.illustrated-ui .bag-item,.illustrated-ui .gear,.illustrated-ui .hand-panel",
+    "properties": "background:linear-gradient(140deg,#243c30,#112a20);border-color:#847247;border-radius:5px"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item.selected",
+    "properties": "border-color:#d4ad62;background:linear-gradient(145deg,#3b4930,#1b3022);box-shadow:inset 0 0 0 2px #b7985325"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options",
+    "properties": "grid-template-columns:repeat(2,minmax(0,1fr))"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue",
+    "properties": "max-height:32dvh"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue",
+    "properties": "max-height:42dvh"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art",
+    "properties": "height:75px"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-copy p",
+    "properties": "font-size:14px"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health",
+    "properties": "min-height:45px"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health",
+    "properties": "width:148px;grid-template-columns:43px 1fr;border:2px solid #bc9250;box-shadow:inset 0 0 0 2px #e9cc7950,0 2px 5px #0006;padding:4px"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .portrait",
+    "properties": "width:42px;height:43px;border:1px solid #b79351;border-radius:6px;clip-path:none;overflow:hidden"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .hp-track",
+    "properties": "position:relative;height:19px;margin-top:5px;border:1px solid #d5aa63;border-radius:5px;box-shadow:inset 0 1px 3px #0008"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .hp-track small",
+    "properties": "position:absolute;inset:0;display:grid;place-items:center;font:600 12px/1 var(--font-ui);color:#fff3d1;text-shadow:0 1px 2px #3b1010"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .hp-track i",
+    "properties": "box-sizing:border-box;background:linear-gradient(#f4a59a,#d54643 43%,#a22a2c 80%,#d56650);border-radius:4px"
+  },
+  {
+    "selector": ".illustrated-ui .actions button,.illustrated-ui .tabs button,.illustrated-ui dialog button,.illustrated-ui .dialogue-options button",
+    "properties": "border:2px solid #957444;background:linear-gradient(145deg,#314d3c,#142d23);box-shadow:inset 0 2px #dac78d30,inset 0 -3px #06191055,0 2px 2px #0003;border-radius:7px;clip-path:none;color:#f3e8c7"
+  },
+  {
+    "selector": ".illustrated-ui .actions #action,.illustrated-ui .tabs button.active,.illustrated-ui .dialogue-options button:first-child",
+    "properties": "background:linear-gradient(145deg,#e0bb6b,#b88b3e);border-color:#efd697;color:#302b1c;text-shadow:0 1px #f9e2a155;box-shadow:inset 0 2px #fff0b866,inset 0 -3px #7e592a77"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item",
+    "properties": "border:2px solid #7d7652;color:#f0e5c4;box-shadow:inset 0 2px #c7c69318"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item .painted-asset",
+    "properties": "width:76px;height:77px;margin:0 auto 5px"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item.selected",
+    "properties": "border-color:#e1bb6d;background:linear-gradient(145deg,#4a5035,#253927)"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art",
+    "properties": "height:83px;border:2px solid #b38d4f;box-shadow:inset 0 0 0 2px #e5cb7c30;border-radius:8px"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art .painted-asset",
+    "properties": "height:100%;width:100%"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-copy p",
+    "properties": "color:#2b3224;background:linear-gradient(140deg,#f0e1b8,#decc9e);border:2px solid #b89b62;border-radius:6px"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options button",
+    "properties": "padding:7px 10px"
+  },
+  {
+    "selector": ".illustrated-ui button,.illustrated-ui .actions button,.illustrated-ui .tabs button,.illustrated-ui dialog button,.illustrated-ui .dialogue-options button",
+    "properties": "background:linear-gradient(#725137,#4c3527);color:#fff0d5;border:1px solid #b68b55;box-shadow:inset 0 2px #edcc8e24,inset 0 -3px #291b1544,0 2px 3px #0003;font-family:var(--font-ui);text-shadow:none"
+  },
+  {
+    "selector": ".illustrated-ui button.gold,.illustrated-ui .actions #action,.illustrated-ui .tabs button.active,.illustrated-ui .dialogue-options button:first-child,.illustrated-ui dialog button.gold",
+    "properties": "color:#2b2118;background:linear-gradient(#e8cb8b,#c09a56);border-color:#f4db9f;text-shadow:none"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health",
+    "properties": "background:linear-gradient(#59412e,#322820);color:#ffe7bd;border-color:#d8b36c"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health b",
+    "properties": "color:#ffedcd;font:600 12px/1.2 var(--font-ui)"
+  },
+  {
+    "selector": ".illustrated-ui #hud-health .portrait",
+    "properties": "background:#322920;border-color:#d8b36c"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue",
+    "properties": "display:flex;flex-direction:column;flex:0 1 auto;max-height:43dvh;min-height:0;padding:9px;overflow:hidden;background:url('assets/wood-panel.svg');border-top:2px solid #cba567;border-radius:0;gap:8px;touch-action:pan-y"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-card",
+    "properties": "display:grid;grid-template-columns:82px minmax(0,1fr);grid-template-rows:82px auto;gap:5px 10px;min-height:0;padding:0 22px 0 0;align-items:start;flex:1 1 auto;overflow:hidden;border:0;background:none"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art",
+    "properties": "grid-column:1;grid-row:1;width:82px;height:82px;min-height:0;margin:0;border:2px solid #c49a5b;border-radius:8px;background:#382c24;align-self:start"
+  },
+  {
+    "selector": ".illustrated-ui #speaker-caption",
+    "properties": "grid-column:1;grid-row:2;color:#fff0cf;font:600 11px/1.35 var(--font-ui);text-align:center;overflow-wrap:anywhere;padding:0 2px"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-copy",
+    "properties": "grid-column:2;grid-row:1/3;display:flex;min-height:0;height:100%;padding:0;overflow:hidden"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue #dialogue-text",
+    "properties": "display:block;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;min-height:0;height:100%;max-height:17dvh;margin:0;padding:9px 10px;color:#30251d;background:#eddbb5 url('assets/parchment.svg') center/100% 100%;border:1px solid #a57e4b;border-radius:5px;font:15px/1.5 var(--font-dialogue);scrollbar-color:#9d7e50 #decca8;scrollbar-width:thin;user-select:text;-webkit-user-select:text"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options",
+    "properties": "flex:none;display:grid;grid-template-columns:1fr;gap:5px;padding:0;background:none;border:0;max-height:20dvh;overflow:auto;touch-action:pan-y"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options button",
+    "properties": "font:12px/1.35 var(--font-ui);min-height:36px;padding:7px 10px;border-radius:5px;white-space:normal;flex:none"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue-close",
+    "properties": "right:5px;top:6px;background:#453327;color:#fff0d0;border:1px solid #a48654;height:25px;width:25px;min-height:25px"
+  },
+  {
+    "selector": ".illustrated-ui .hero-stage",
+    "properties": "background:radial-gradient(ellipse at bottom,#b6986033,transparent 65%),url('assets/wood-panel.svg');border:2px solid #9e794a;border-radius:8px;box-shadow:inset 0 -8px 20px #16110b55;min-height:225px;max-height:36dvh"
+  },
+  {
+    "selector": ".illustrated-ui .hero-arrow",
+    "properties": "background:#654832;color:#fff2d6;min-width:32px"
+  },
+  {
+    "selector": ".illustrated-ui #bag-view",
+    "properties": "background:#614430 url('assets/leather-bag.svg') top center/100% auto;border:3px solid #b18a59;box-shadow:inset 0 0 0 3px #34261d;position:relative;padding:15px 13px;gap:10px"
+  },
+  {
+    "selector": ".illustrated-ui #bag-view>div:first-child",
+    "properties": "padding-top:28px"
+  },
+  {
+    "selector": ".illustrated-ui #bag-view h2",
+    "properties": "font:600 24px var(--font-menu);color:#ffebc6;text-shadow:0 2px #342115"
+  },
+  {
+    "selector": ".illustrated-ui #bag-gold",
+    "properties": "color:#f5d391;font:13px var(--font-ui)"
+  },
+  {
+    "selector": ".illustrated-ui #bag-items",
+    "properties": "gap:9px"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item",
+    "properties": "position:relative;background:linear-gradient(#3b2a20d9,#533c2cdf);border:2px solid #ab855c;border-radius:9px;box-shadow:inset 0 0 0 3px #271c1566,0 3px 5px #21180f55;padding:9px 5px;color:#ffecca;min-height:128px"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item:after",
+    "properties": "content:'';position:absolute;inset:5px;border:1px dashed #cba77c44;border-radius:5px;pointer-events:none"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item b",
+    "properties": "font:12px/1.35 var(--font-ui);color:#ffebce"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item small",
+    "properties": "color:#e5c99f;font:11px var(--font-ui)"
+  },
+  {
+    "selector": ".illustrated-ui .bag-item.selected",
+    "properties": "background:linear-gradient(#91663e,#674629);border-color:#edc77c;box-shadow:inset 0 0 0 3px #a7814340,0 3px 5px #24180e55"
+  },
+  {
+    "selector": ".illustrated-ui .item-detail",
+    "properties": "background:#eddab3 url('assets/parchment.svg') center/100% 100%;color:#463323;border:2px solid #ab8050;border-radius:6px;padding:14px"
+  },
+  {
+    "selector": ".illustrated-ui .item-detail h2",
+    "properties": "color:#49341f!important;font:600 20px var(--font-menu)!important;text-shadow:none!important"
+  },
+  {
+    "selector": ".illustrated-ui .item-detail p",
+    "properties": "color:#513c28;font:14px/1.6 var(--font-dialogue)"
+  },
+  {
+    "selector": ".illustrated-ui .item-detail .item-lock-note",
+    "properties": "color:#77513a;font:12px/1.5 var(--font-ui)"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options",
+    "properties": "grid-template-columns:repeat(2,minmax(0,1fr))"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue",
+    "properties": "max-height:38dvh"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue #dialogue-text",
+    "properties": "max-height:19dvh"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue",
+    "properties": "max-height:48dvh"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue #dialogue-text",
+    "properties": "font-size:13px;max-height:20dvh"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-card",
+    "properties": "grid-template-rows:65px auto"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .speaker-art",
+    "properties": "height:65px;width:65px"
+  },
+  {
+    "selector": ".illustrated-ui #dialogue .dialogue-options",
+    "properties": "max-height:22dvh"
+  },
+  {
+    "selector": ".illustrated-ui .hero-stage",
+    "properties": "min-height:160px"
+  },
+  {
+    "selector": "body.game-ui #dialogue-text,body.game-ui #hero-history,body.game-ui .clue-note",
+    "properties": "font-family:AdventureText,Georgia,serif!important;font-size:1.08rem;line-height:1.55"
+  },
+  {
+    "selector": "body.game-ui #speaker-caption",
+    "properties": "font-family:ArcadePixel,monospace!important;font-size:.7rem;line-height:1.7"
+  },
+  {
+    "selector": "body.game-ui #hud-health small,body.game-ui #check-die",
+    "properties": "font-family:ArcadePixel,monospace!important;font-size:.8rem"
+  },
+  {
+    "selector": "body.game-ui #bag-items",
+    "properties": "background:repeating-linear-gradient(90deg,#241b1338 0 1px,transparent 1px 58px),url('assets/leather-bag.svg');border:2px solid #6e4f32;box-shadow:inset 0 0 20px #120b08aa;padding:.6rem;border-radius:12px"
+  },
+  {
+    "selector": "body.game-ui .bag-item",
+    "properties": "box-shadow:inset 0 0 0 2px #bc916c22,0 3px 5px #0004;border-bottom:3px solid #291b15;background:linear-gradient(135deg,#68482fd9,#39291fd9)"
+  },
+  {
+    "selector": "body.game-ui #item-detail",
+    "properties": "background:url('assets/parchment.svg') center/cover;color:#332416;border:3px solid #a7824f"
+  },
+  {
+    "selector": "body.game-ui #item-detail p,body.game-ui #item-detail h2",
+    "properties": "color:#332416!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue-text,body.game-ui #hero-history,body.game-ui .clue-note",
+    "properties": "font-family:var(--font-dialogue)!important;font-size:16px!important;line-height:1.5!important"
+  },
+  {
+    "selector": "body.game-ui #hud-health",
+    "properties": "display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;width:174px!important;max-width:calc(100% - 120px)!important;min-height:65px;padding:6px 8px!important;clip-path:none!important;border-radius:7px;border:2px solid #e0b66d!important;box-shadow:inset 0 0 0 3px #634527,inset 0 0 0 4px #bf9657,0 3px 7px #0006;gap:7px!important;overflow:visible!important;background:linear-gradient(#523c2c,#34271f)!important"
+  },
+  {
+    "selector": "body.game-ui #hud-health .portrait",
+    "properties": "width:44px!important;height:48px!important;overflow:hidden;border-radius:5px!important;border:1px solid #c69d5b!important;background:radial-gradient(ellipse at top,#776047,#241c16)!important"
+  },
+  {
+    "selector": "body.game-ui #hud-health .portrait svg",
+    "properties": "width:100%!important;height:100%!important;object-fit:contain;transform:scale(1.08);transform-origin:center"
+  },
+  {
+    "selector": "body.game-ui #hud-health .health-copy",
+    "properties": "min-width:0!important;width:100%!important;display:flex!important;flex-direction:column!important;gap:5px!important;overflow:visible!important"
+  },
+  {
+    "selector": "body.game-ui #hud-health b",
+    "properties": "display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font:600 14px/1.2 var(--font-ui)!important;color:#fff0cd!important"
+  },
+  {
+    "selector": "body.game-ui #hud-health .hp-track",
+    "properties": "width:100%!important;height:23px!important;min-height:23px!important;position:relative!important;box-sizing:border-box;border:1px solid #e1b977!important;background:#271c1c!important;overflow:hidden!important"
+  },
+  {
+    "selector": "body.game-ui #hud-health .hp-track small",
+    "properties": "display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important;font:600 13px/1 var(--font-ui)!important;inset:0!important;color:#fff8ea!important;text-shadow:0 1px 2px #41191a"
+  },
+  {
+    "selector": "body.game-ui .actions #action,body.game-ui .tabs button.active,body.game-ui dialog button.gold,body.game-ui button.gold,body.game-ui .dialogue-options button:first-child",
+    "properties": "background:linear-gradient(140deg,#f2d69b,#c49951)!important;color:#2b1c10!important;border-color:#f3d188!important"
+  },
+  {
+    "selector": "body.game-ui #hero-art",
+    "properties": "touch-action:none!important;cursor:grab;min-width:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center"
+  },
+  {
+    "selector": "body.game-ui #hero-art canvas",
+    "properties": "pointer-events:none;width:auto!important;height:100%!important;max-width:100%;object-fit:contain"
+  },
+  {
+    "selector": ".hero-stage",
+    "properties": "position:relative!important"
+  },
+  {
+    "selector": "body.game-ui .hero-arrow",
+    "properties": "width:34px;min-width:34px;padding:4px!important"
+  },
+  {
+    "selector": "body.game-ui .hero-arrow .icon-holder",
+    "properties": "width:24px;height:24px"
+  },
+  {
+    "selector": "body.game-ui .hero-arrow:not(:has(.icon-holder))",
+    "properties": "font-size:0!important"
+  },
+  {
+    "selector": "body.game-ui #bag-view",
+    "properties": "display:flex;flex-direction:column;height:100%;max-height:calc(100dvh - 142px);overflow:hidden!important;padding:8px!important;gap:8px!important"
+  },
+  {
+    "selector": "body.game-ui #bag-view[hidden]",
+    "properties": "display:none!important"
+  },
+  {
+    "selector": "body.game-ui #bag-view>div:first-child",
+    "properties": "display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;padding:0!important"
+  },
+  {
+    "selector": "body.game-ui #bag-view .pane-heading",
+    "properties": "position:relative;flex:none;min-height:40px;display:flex;gap:10px;align-items:center;background:#433020;border-bottom:2px solid #b58b4e;padding:6px 8px;margin:0 0 6px"
+  },
+  {
+    "selector": "body.game-ui #bag-view .pane-heading h2",
+    "properties": "margin:0!important;font-size:14px!important;text-shadow:none!important;color:#ffebc2!important"
+  },
+  {
+    "selector": "body.game-ui #bag-capacity",
+    "properties": "margin-left:auto;color:#ead0a0;font-size:14px"
+  },
+  {
+    "selector": "body.game-ui #bag-gold",
+    "properties": "white-space:nowrap;color:#f9d995;font-size:14px"
+  },
+  {
+    "selector": "body.game-ui #bag-items",
+    "properties": "flex:1 1 auto;min-height:0;overflow:auto;align-content:start;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px!important;padding:6px!important;border-radius:5px;background:url('assets/leather-bag.svg')!important;scrollbar-color:#b99055 #392619;touch-action:pan-y"
+  },
+  {
+    "selector": "body.game-ui .bag-item,body.game-ui .bag-empty",
+    "properties": "min-height:76px!important;height:76px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px!important;background:linear-gradient(140deg,#62432e,#38261c);border:1px solid #a48158;border-radius:5px!important;position:relative;overflow:hidden"
+  },
+  {
+    "selector": "body.game-ui .bag-item .item-art",
+    "properties": "width:38px!important;height:39px!important;max-width:38px;object-fit:contain"
+  },
+  {
+    "selector": "body.game-ui .bag-item b",
+    "properties": "display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px!important;line-height:1.2!important;color:#ffeacc!important"
+  },
+  {
+    "selector": "body.game-ui .bag-item small",
+    "properties": "position:absolute;right:4px;top:3px;color:#fff0ca!important;font-size:12px!important"
+  },
+  {
+    "selector": ".bag-empty",
+    "properties": "opacity:.4;box-shadow:inset 0 0 9px #130c07"
+  },
+  {
+    "selector": ".bag-empty:after",
+    "properties": "content:'';width:18px;height:18px;border:1px solid #bf996942;border-radius:3px"
+  },
+  {
+    "selector": "body.game-ui #bag-equipped",
+    "properties": "flex:none;display:flex;gap:6px;overflow:auto;align-items:center;padding:5px;border-top:1px solid #967249"
+  },
+  {
+    "selector": "body.game-ui #bag-equipped>span",
+    "properties": "font-size:13px;color:#f2d6aa;min-width:50px"
+  },
+  {
+    "selector": "body.game-ui #bag-equipped .bag-item",
+    "properties": "flex:0 0 65px;min-height:65px!important;height:65px"
+  },
+  {
+    "selector": "body.game-ui #item-detail",
+    "properties": "flex:0 0 auto;max-height:30dvh;overflow:auto!important;display:grid;grid-template-columns:42px minmax(0,1fr);gap:5px 8px;padding:9px!important;color:#372614!important"
+  },
+  {
+    "selector": "body.game-ui #item-detail .item-category",
+    "properties": "grid-column:1/-1;font-size:12px!important;color:#725337!important"
+  },
+  {
+    "selector": "body.game-ui #item-detail #item-icon",
+    "properties": "width:40px!important;height:44px!important;grid-row:2/4;margin:0"
+  },
+  {
+    "selector": "body.game-ui #item-detail #item-icon>*",
+    "properties": "width:100%;height:100%;object-fit:contain"
+  },
+  {
+    "selector": "body.game-ui #item-detail h2",
+    "properties": "color:#382514!important;font-size:14px!important;margin:0!important;line-height:1.4!important;text-shadow:none!important"
+  },
+  {
+    "selector": "body.game-ui #item-detail p",
+    "properties": "font:14px/1.4 var(--font-dialogue)!important;margin:0;color:#4b3420!important"
+  },
+  {
+    "selector": "body.game-ui #item-actions",
+    "properties": "grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"
+  },
+  {
+    "selector": "body.game-ui #item-actions button",
+    "properties": "min-height:38px;font-size:14px!important;color:#fff0d6!important;background:#65432c!important"
+  },
+  {
+    "selector": "body.game-ui #item-actions button .icon-holder",
+    "properties": "width:20px;height:20px;display:inline-block;vertical-align:middle;margin-right:6px"
+  },
+  {
+    "selector": "body.game-ui #dialogue",
+    "properties": "max-height:43dvh!important;padding:9px!important;gap:8px;background:#493424 url('assets/wood-panel.svg')!important;border:3px solid #bd9155!important;box-shadow:inset 0 0 0 2px #edc9843b,0 -3px 12px #0005!important;overflow:hidden!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue .speaker-card",
+    "properties": "display:grid!important;grid-template-columns:84px minmax(0,1fr)!important;grid-template-rows:1fr!important;gap:9px!important;padding:0 21px 0 0!important;min-height:115px!important;overflow:hidden!important;align-items:start!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue .speaker-identity",
+    "properties": "display:flex;flex-direction:column;gap:4px;grid-column:1;grid-row:1;min-width:0;align-items:center"
+  },
+  {
+    "selector": "body.game-ui #dialogue .speaker-art",
+    "properties": "width:78px!important;height:84px!important;min-height:84px!important;display:block!important;border:2px solid #d0a45e!important;border-radius:7px!important;overflow:hidden;background:#2c2119!important"
+  },
+  {
+    "selector": ".speaker-art svg",
+    "properties": "width:100%;height:100%"
+  },
+  {
+    "selector": "body.game-ui #speaker-caption",
+    "properties": "position:static!important;display:flex!important;flex-direction:column;gap:2px;grid-row:auto!important;width:100%;font-family:var(--font-ui)!important;color:#fff0d0!important;overflow-wrap:normal!important;word-break:normal!important;padding:0!important;text-align:center;line-height:1.2!important"
+  },
+  {
+    "selector": "body.game-ui #speaker-caption b",
+    "properties": "font-weight:600;font-size:14px!important;color:#ffe8bb!important"
+  },
+  {
+    "selector": "body.game-ui #speaker-caption small",
+    "properties": "font-size:12px!important;color:#e2c79e!important;line-height:1.25!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue .speaker-copy",
+    "properties": "grid-column:2!important;grid-row:1!important;min-width:0;min-height:0;height:auto!important;max-height:23dvh;overflow:hidden!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue-text",
+    "properties": "max-height:23dvh!important;min-height:70px!important;width:100%;overflow:auto!important;padding:9px!important;margin:0!important;background:#efdab0 url('assets/parchment.svg')!important;color:#372716!important;box-sizing:border-box;touch-action:pan-y!important;scrollbar-color:#94734a #e4cea3"
+  },
+  {
+    "selector": "body.game-ui #dialogue .dialogue-options",
+    "properties": "display:flex!important;flex-direction:column;gap:5px!important;max-height:15dvh!important;overflow:auto!important;flex:none!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue-options button",
+    "properties": "color:#fff0d0!important;background:#674830!important;font:14px/1.3 var(--font-ui)!important;min-height:37px!important;padding:7px 9px!important;border:1px solid #c19b60!important;box-shadow:inset 0 0 0 2px #e4bf7622;white-space:normal"
+  },
+  {
+    "selector": "body.game-ui #dialogue-options button:first-child",
+    "properties": "color:#2c1e12!important;background:linear-gradient(#edd398,#c99f57)!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue.object-dialogue .speaker-card",
+    "properties": "display:flex!important;flex-direction:column!important;min-height:0!important;gap:6px!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue.object-dialogue .speaker-identity",
+    "properties": "flex-direction:row;align-items:center;gap:8px;width:100%"
+  },
+  {
+    "selector": "body.game-ui #dialogue.object-dialogue .speaker-art",
+    "properties": "width:32px!important;height:34px!important;min-height:34px!important;border:0!important;background:none!important;flex:none"
+  },
+  {
+    "selector": "body.game-ui #dialogue.object-dialogue #speaker-caption",
+    "properties": "text-align:left!important;align-items:flex-start"
+  },
+  {
+    "selector": "body.game-ui #dialogue.object-dialogue .speaker-copy",
+    "properties": "width:100%;max-height:20dvh!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue.object-dialogue #dialogue-text",
+    "properties": "max-height:20dvh!important;min-height:0!important"
+  },
+  {
+    "selector": "body.game-ui #dialogue-close,body.game-ui #close,body.game-ui #heroes-close",
+    "properties": "display:flex;align-items:center;justify-content:center;padding:4px!important;width:28px;height:28px;min-height:28px!important;font-size:0!important;background:#5b3e2b!important;color:#ffedc6!important;z-index:3"
+  },
+  {
+    "selector": "body.game-ui #dialogue-close .icon-holder,body.game-ui #close .icon-holder,body.game-ui #heroes-close .icon-holder",
+    "properties": "width:18px;height:18px"
+  },
+  {
+    "selector": "body.game-ui #bag-view",
+    "properties": "display:grid;grid-template-columns:minmax(0,1fr) 280px"
+  },
+  {
+    "selector": "body.game-ui #item-detail",
+    "properties": "max-height:100%;align-content:start"
+  },
+  {
+    "selector": "body.game-ui #bag-items",
+    "properties": "grid-template-columns:repeat(5,minmax(0,1fr))"
+  },
+  {
+    "selector": "body.game-ui #dialogue",
+    "properties": "max-height:38dvh!important"
+  },
+  {
+    "selector": "body.game-ui h1,body.game-ui h2,body.game-ui h3,body.game-ui #hero-name,body.game-ui #heroes-title,body.game-ui #modal-title",
+    "properties": "font-family:ArcadePixel,monospace!important;font-weight:400!important;font-size:1rem;line-height:1.65;letter-spacing:-.035em;overflow-wrap:anywhere"
+  },
+  {
+    "selector": "body.game-ui :is(button,input,select,textarea,label,small,span,b,strong,summary,output,div,p,li,a)",
+    "properties": "font-family:var(--font-ui)!important;letter-spacing:0;font-weight:400"
+  },
+  {
+    "selector": "body.game-ui :is(h1,h2,h3),body.game-ui #modal-title,body.game-ui #heroes-title",
+    "properties": "font-family:var(--font-menu)!important;font-size:14px!important;line-height:1.6!important;letter-spacing:-.02em!important;overflow-wrap:normal!important;word-break:normal"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "position:relative;display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:15px"
+  },
+  {
+    "selector": ".dialogue-open .journal,.dialogue-open .target-panel",
+    "properties": "display:none"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "grid-template-columns:1fr"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "gap:9px;margin-top:14px"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "position:fixed;z-index:45;bottom:calc(72px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(620px,calc(100% - 16px));max-height:66dvh;overflow:auto;display:block;border:1px solid #a89567;border-radius:16px 16px 8px 8px;background:#183227;box-shadow:0 -12px 70px #020c0a90;margin:0;padding:12px"
+  },
+  {
+    "selector": ".dialogue-open .target-panel,.dialogue-open .journal",
+    "properties": "display:flex"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "bottom:15px;width:min(750px,90%);max-height:85dvh"
+  },
+  {
+    "selector": "/* Illustrated dialogue panels, adapted from the chapel reference. */\n.dialogue",
+    "properties": "display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr);gap:12px;width:min(1000px,calc(100% - 24px));max-height:74dvh;padding:12px;border:1px solid #85764f;border-radius:12px;background:linear-gradient(145deg,#1b352a,#0d211a);box-shadow:0 -12px 45px #05110db3;overflow:auto"
+  },
+  {
+    "selector": ".dialogue[hidden]",
+    "properties": "display:none"
+  },
+  {
+    "selector": ".dialogue .narrator-mark",
+    "properties": "font-size:76px;color:#bca46f;display:flex;align-items:center;justify-content:center;height:100%"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "grid-template-columns:1fr;gap:8px;width:calc(100% - 16px);max-height:72dvh;padding:8px;bottom:calc(64px + env(safe-area-inset-bottom))"
+  },
+  {
+    "selector": ".dialogue",
+    "properties": "bottom:12px;max-height:90dvh;grid-template-columns:minmax(0,1.4fr) minmax(250px,1fr);width:min(900px,calc(100% - 24px))"
+  },
+  {
+    "selector": ".game-ui .dialogue",
+    "properties": "position:absolute;left:5px;right:5px;bottom:4px;z-index:20;display:flex;flex-direction:column;gap:7px;max-height:52%;padding:14px 10px 10px;margin:0;border-radius:18px 18px 10px 10px;border:1px solid #a39467;background:linear-gradient(140deg,#e4d7b5,#cbbd99);color:#183226;box-shadow:0 -8px 28px #03140c55;overflow:auto"
+  },
+  {
+    "selector": ".game-ui .dialogue:before",
+    "properties": "content:'';position:absolute;top:5px;left:calc(50% - 22px);width:44px;height:4px;border-radius:8px;background:#817558"
+  },
+  {
+    "selector": ".game-ui .dialogue-open .play-dock,.game-ui .dialogue-open .last-roll",
+    "properties": "display:none"
+  },
+  {
+    "selector": ".game-ui .dialogue",
+    "properties": "left:18%;right:18%"
+  },
+  {
+    "selector": ".game-ui .dialogue-open #target-panel",
+    "properties": "display:none!important"
+  },
+  {
+    "selector": ".illustrated-ui .dialogue-open #play-dock",
+    "properties": "display:none"
+  },
+  {
+    "selector": ".item-art",
+    "properties": "height:76px!important;width:90px!important;object-fit:contain",
+    "reason": "Legacy important sizes prevented compact SVG inventory icons"
+  },
+  {
+    "selector": ".item-art",
+    "properties": "width:75px!important;height:66px!important",
+    "reason": "Legacy important sizes prevented compact SVG inventory icons"
+  }
+]
