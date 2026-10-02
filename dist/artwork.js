@@ -13,6 +13,6 @@ const goldLayer=layer(clothing,[0,188,240,156]),goldFilter=node('filter',{id:id+
 if(p.face==='beard'){const beard=layer('beard',female&&p.hairStyle!=='bald'?[12,113,145,98]:[37,108,166,109],p.hair,'#352b32','M 58 505 H 278 V 649 H 58 Z M 139 574 H 187 Q 194 574 194 581 V 593 Q 194 600 187 600 H 139 Q 132 600 132 593 V 581 Q 132 574 139 574 Z');const c=node('clipPath',{id:id+'-jaw'},defs);node('path',{d:female?'M 20 100 H 180 V 150 Q 164 191 95 196 Q 32 191 20 150 Z':'M 40 102 H 200 V 168 L 161 212 H 79 L 40 168 Z'},c);const group=node('g',{'clip-path':'url(#'+c.id+')'});group.append(beard);}
 if(p.hairStyle!=='bald')layer(hair,hair==='short'?[8,-5,224,183]:[4,hair==='pony'||hair==='bob'?-31:-6,232,250],p.hair,hairBase);if(p.hood)layer('hood',[-1,-7,242,252]);return s;}
 
-function npc(name){return hero({name,kind:5,npcId:name.startsWith('Лин')?'lin':'ellen'});}
+function npc(name){const actor=CharacterStyle.npcActor(name);return actor?hero(actor):null;}
 const old=window.UIIcons.svg;window.UIIcons.svg=name=>regions[name]?image(name,'ui-icon').outerHTML:old(name);
 window.Artwork={image,hero,npc,atlas};})();

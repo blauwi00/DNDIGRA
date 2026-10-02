@@ -1,7 +1,21 @@
 import assert from 'node:assert/strict';
-import {STYLE,STYLE_VERSION,characterProfile,characterParts} from '../src/character-style.js';
+import {STYLE,STYLE_VERSION,NPCS,npcActor,characterProfile,characterParts} from '../src/character-style.js';
 for(const classId of ['fighter','wizard','rogue','cleric'])for(const gender of ['male','female'])for(const hairStyle of ['short','long','bald'])for(const face of ['soft','stern','beard']){const actor={classId,appearance:{gender,hairStyle,face},hands:['empty','empty']},result=characterParts(actor);assert.equal(result.profile.style,STYLE_VERSION);assert.ok(result.parts.length<STYLE.maxParts);assert.ok(new Set(result.parts.map(p=>p.color)).size<=STYLE.maxPalette);for(const p of result.parts){assert.ok([p.x,p.y,p.z,p.w,p.h,p.d,p.rz].every(Number.isFinite));assert.ok(p.w>0&&p.h>0&&p.d>0);assert.ok(p.y+p.h/2<=1.57);}assert.deepEqual(result,characterParts(actor),'Deterministic geometry');if(hairStyle==='bald')assert.ok(!result.parts.some(p=>p.y>1.34&&p.color===result.profile.hair),'No hair shell on bald head');}
 assert.equal(characterProfile({npcId:'ellen'},5).gender,'female');assert.equal(characterProfile({npcId:'ellen'},5).hood,true);assert.equal(characterProfile({npcId:'lin'},5).hood,false);
 assert.notDeepEqual(characterParts({classId:'fighter',appearance:{gender:'male'}}).parts,characterParts({classId:'fighter',appearance:{gender:'female'}}).parts);
 const bare=characterParts({classId:'fighter',hands:['empty','empty']}).parts,armed=characterParts({classId:'fighter',hands:['sword','shield']}).parts;assert.ok(armed.length>bare.length);
 console.log('PASS 72 appearance variants, shared NPC style, bounded deterministic geometry, palette budget and actual held equipment');
+
+// Claude's registry checks adapted to the approved renderer, including aliases and negative cases.
+const {readFileSync}=await import('node:fs');
+const world=readFileSync(new URL('../dist/world.js',import.meta.url),'utf8');
+const npcIds=[...world.matchAll(/\{id:'([^']+)'[^{}]*?type:'npc'/g)].map(m=>m[1]);
+assert.ok(npcIds.length>=2);
+for(const id of npcIds){assert.ok(Object.hasOwn(NPCS,id),'Unregistered scene NPC: '+id);const n=NPCS[id];assert.ok(n.name&&n.role&&n.classId);assert.equal(npcActor(n.name+' · '+n.role).npcId,id);assert.deepEqual(characterProfile({npcId:id},5),characterProfile({type:'npc',id},5));}
+assert.equal(npcActor('Незнакомец'),null,'Unknown NPC must not borrow Ellen portrait');
+assert.throws(()=>characterProfile({npcId:'unknown'},5),/registered/);
+assert.throws(()=>characterProfile({npcId:'toString'},5),/registered/);
+assert.equal(characterProfile({},1).gender,'female','Mira has a female default');
+assert.equal(characterProfile({appearance:{}},1).gender,'male','Legacy custom hero default stays male');
+assert.notDeepEqual(characterProfile({npcId:'keeper'},5),characterProfile({npcId:'novice'},5));
+console.log('PASS scene NPC registry, portrait identities, unknown NPC rejection and legacy defaults');

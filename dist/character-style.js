@@ -20,19 +20,38 @@ var CharacterStyle = (() => {
   // src/character-style.js
   var character_style_exports = {};
   __export(character_style_exports, {
+    NPCS: () => NPCS,
     ROLES: () => ROLES,
     STYLE: () => STYLE,
     STYLE_VERSION: () => STYLE_VERSION,
     characterParts: () => characterParts,
     characterProfile: () => characterProfile,
+    npcActor: () => npcActor,
+    npcDefinition: () => npcDefinition,
     tint: () => tint
   });
   var STYLE_VERSION = "approved-voxel-v1";
   var STYLE = { voxel: 0.07, height: 1.52, headWidth: 0.43, headHeight: 0.4, eyeHeight: 0.085, maxParts: 420, maxPalette: 32 };
   var ROLES = { fighter: { cloth: "#315e84", trim: "#c6a04f", hair: "#75462e", skin: "#efbc88" }, wizard: { cloth: "#62377e", trim: "#c6a04f", hair: "#c9c6d7", skin: "#efbc88" }, rogue: { cloth: "#487844", trim: "#c6a04f", hair: "#352b32", skin: "#efbc88" }, cleric: { cloth: "#8b3d46", trim: "#c6a04f", hair: "#734c32", skin: "#efbc88" }, skeleton: { cloth: "#813a36", trim: "#c6a04f", hair: "#352b32", skin: "#d9c9a5" }, dummy: { cloth: "#936c40", trim: "#c6a04f", hair: "#936c40", skin: "#936c40" } };
+  var NPCS = Object.freeze({
+    keeper: Object.freeze({ name: "\u042D\u043B\u043B\u0435\u043D", role: "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u0438\u0446\u0430", classId: "cleric", appearance: Object.freeze({ gender: "female", hair: "#c9c6d7", hairStyle: "long", face: "soft" }), hood: true, hands: Object.freeze(["empty", "empty"]) }),
+    novice: Object.freeze({ name: "\u041B\u0438\u043D", role: "\u043F\u043E\u0441\u043B\u0443\u0448\u043D\u0438\u043A", classId: "cleric", appearance: Object.freeze({ gender: "male", hair: "#75462e", hairStyle: "short", face: "soft" }), hood: false, hands: Object.freeze(["empty", "empty"]) })
+  });
+  var NPC_ALIASES = { ellen: "keeper", lin: "novice" };
+  function npcDefinition(id) {
+    const key = Object.hasOwn(NPC_ALIASES, id) ? NPC_ALIASES[id] : id;
+    if (!Object.hasOwn(NPCS, key)) throw new Error("NPC must be registered in NPCS: " + id);
+    return NPCS[key];
+  }
+  function npcActor(name) {
+    const short = String(name || "").split(" \xB7 ")[0].trim(), id = Object.keys(NPCS).find((id2) => NPCS[id2].name === short);
+    return id ? { name, kind: 5, npcId: id } : null;
+  }
   function characterProfile(actor = {}, kind = actor.kind || 0) {
-    const role = actor.classId && Object.hasOwn(ROLES, actor.classId) ? actor.classId : ["rogue", "wizard", "fighter", "skeleton", "dummy", "cleric"][kind] || "cleric", npc = actor.npcId, lin = npc === "lin", ellen = npc === "ellen", gender = ["male", "female"].includes(actor.appearance?.gender) ? actor.appearance.gender : ellen ? "female" : "male", a = actor.appearance || {}, base = ROLES[role], hex = (v, f) => /^#[a-f0-9]{6}$/i.test(v || "") ? v : f;
-    return { style: STYLE_VERSION, role, gender, skin: hex(a.skin, base.skin), hair: hex(a.hair, ellen ? "#c9c6d7" : lin ? "#75462e" : gender === "female" && role === "cleric" ? "#c9c6d7" : gender === "female" && role === "fighter" ? "#d7a652" : base.hair), cloth: hex(a.cloth, base.cloth), trim: hex(a.trim, base.trim), hairStyle: ["short", "long", "bald"].includes(a.hairStyle) ? a.hairStyle : role === "cleric" && !ellen && !lin && gender === "male" ? "bald" : gender === "female" && role !== "rogue" ? "long" : "short", face: ["soft", "stern", "beard"].includes(a.face) ? a.face : role === "cleric" && !ellen && !lin && gender === "male" ? "beard" : "soft", hood: ellen || !lin && role === "cleric" && gender === "female", hands: actor.hands || (ellen || lin ? ["empty", "empty"] : role === "fighter" || role === "skeleton" ? ["sword", "shield"] : role === "wizard" || role === "cleric" ? ["staff", "empty"] : ["sword", "empty"]) };
+    const npcId = actor.npcId || (actor.type === "npc" ? actor.id : null), npc = npcId ? npcDefinition(npcId) : null;
+    const role = npc?.classId || (actor.classId && Object.hasOwn(ROLES, actor.classId) ? actor.classId : ["rogue", "wizard", "fighter", "skeleton", "dummy", "cleric"][kind] || "cleric");
+    const a = npc?.appearance || actor.appearance || {}, base = ROLES[role], gender = ["male", "female"].includes(a.gender) ? a.gender : !actor.appearance && kind === 1 ? "female" : "male", hex = (v, f) => /^#[a-f0-9]{6}$/i.test(v || "") ? v : f;
+    return { style: STYLE_VERSION, role, gender, skin: hex(a.skin, base.skin), hair: hex(a.hair, gender === "female" && role === "cleric" ? "#c9c6d7" : gender === "female" && role === "fighter" ? "#d7a652" : base.hair), cloth: hex(a.cloth, base.cloth), trim: hex(a.trim, base.trim), hairStyle: ["short", "long", "bald"].includes(a.hairStyle) ? a.hairStyle : role === "cleric" && !npc && gender === "male" ? "bald" : gender === "female" && role !== "rogue" ? "long" : "short", face: ["soft", "stern", "beard"].includes(a.face) ? a.face : role === "cleric" && !npc && gender === "male" ? "beard" : "soft", hood: npc ? npc.hood : role === "cleric" && gender === "female", hands: npc?.hands || actor.hands || (role === "fighter" || role === "skeleton" ? ["sword", "shield"] : role === "wizard" || role === "cleric" ? ["staff", "empty"] : ["sword", "empty"]) };
   }
   function tint(hex, delta) {
     const n = parseInt(hex.slice(1), 16);
