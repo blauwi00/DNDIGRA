@@ -1,5 +1,6 @@
 (() => {'use strict';
 const paths={
+check:'<path d="m11 25 9 9 19-19" fill="none" stroke="#fff5db" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>',
 up:'<path d="M10 29 25 13 40 29H32V46H18V29Z" fill="url(#gold)"/>',left:'<path d="M32 8 14 26 32 44 39 37 28 26 39 15Z" fill="url(#gold)"/>',right:'<path d="M18 8 36 26 18 44 11 37 22 26 11 15Z" fill="url(#gold)"/>',rotate:'<path d="M9 29a17 17 0 1 1 9 13M7 18v13h13" stroke="#f0ce82" stroke-width="5"/>',armor:'<path d="m10 8 10-3 5 8 5-8 10 3 6 15-9 5v19H13V28l-9-5Z" fill="url(#steel)"/>',drop:'<path d="M8 32h34v13H8ZM17 6h16v14h8L25 32 9 20h8Z" fill="url(#gold)"/>',transfer:'<path d="M5 15h30V8l12 14-12 13v-8H5Z" fill="url(#gold)"/>',sword:'<path d="m8 38 5 5 22-24 5-13-13 5Z" fill="url(#steel)"/><path d="m27 15 5 4M10 34l11 10M8 42l-4 5 4 3 6-6"/>',
 shield:'<path d="M25 5 7 12v16c0 12 18 20 18 20s18-8 18-20V12Z" fill="url(#steel)"/><path d="M25 11 13 16v11c0 8 12 15 12 15Z" fill="#75818a"/><path d="M25 11v31"/>',
 map:'<path d="m4 11 14-5 15 6 13-5v35l-13 5-15-6-14 5Z" fill="url(#gold)"/><path d="M18 6v35m15-29v35M8 22l6-4m8 9 7 3m8-10 5-2"/>',

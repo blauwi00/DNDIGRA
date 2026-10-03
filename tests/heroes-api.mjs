@@ -20,3 +20,12 @@ assert.equal((await worker.fetch(req('POST',{...draft,stats:{str:15.1,dex:14,con
 console.log('PASS: 27-point budget, three 15 scores exhaust budget, incremental costs, refunds, out-of-range/forged/unspent scores rejected.');
 let path;await worker.fetch(new Request('https://game.test/'),{ASSETS:{fetch:async r=>{path=new URL(r.url).pathname;return new Response('ok')}}});assert.equal(path,'/');
 console.log('PASS: real SQLite migration, four classes, immutable records, per-owner isolation, forged power rejected, origin validation and static serving.');
+
+for(const gender of ["male","female"]){const response=await worker.fetch(req("POST",{...draft,appearance:{...draft.appearance,gender}},"gender-"+gender),{DB});assert.equal(response.status,201);const saved=await response.json();assert.equal(saved.hero.appearance.gender,gender);}
+assert.equal((await worker.fetch(req("POST",{...draft,appearance:{...draft.appearance,gender:"invalid"}},"gender-invalid"),{DB})).status,400);
+console.log("PASS male/female persistence and invalid gender rejection");
+
+const colorful={...draft,appearance:{...draft.appearance,gender:'male',...Object.fromEntries(Object.entries(R.COLORS).map(([k,v])=>[k,v.at(-1)]))}};
+const newColorResponse=await worker.fetch(req('POST',colorful,'new-colors'),{DB});assert.equal(newColorResponse.status,201);assert.deepEqual((await newColorResponse.json()).hero.appearance,colorful.appearance);
+assert.deepEqual((await (await worker.fetch(req('GET',null,'new-colors'),{DB})).json()).heroes[0].appearance,colorful.appearance);
+console.log('PASS expanded colors persist through create and reload');

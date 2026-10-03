@@ -1,8 +1,11 @@
 # Instructions for coding agents
-Read AI_HANDOFF.md before editing. It records current user requirements and known regressions.
-Do not change the running game or deploy unless the owner resumes implementation. Current authorization is source export only.
-Use Node.js 24, npm ci, npm run build. Run tests appropriate to the changed behavior.
-Browser modules in dist/*.js are partly authored source; do not delete dist wholesale. Generated files: dist/voxel.js, dist/hero-rules.js, dist/inventory-rules.js, dist/client, dist/server.
-Keep sprites/SVG icons; no emoji or Unicode substitute icons. Prioritize portrait mobile viewport and readable contrast.
-No secrets, player saves, API tokens or credentials in commits. Preserve .openai/hosting.json identity for the existing Site; GitHub export does not deploy it.
-Do not claim visual QA from DOM or geometry-only tests.
+
+Read AI_HANDOFF.md and CHARACTER_STYLE.md before editing. The owner has resumed implementation and authorized changes to the live game. Preserve the existing Site identity and audience.
+
+Use Node.js 24, npm ci and npm run build. Browser files in dist are partly authored source; do not delete dist wholesale. Generate dist/voxel.js, dist/hero-rules.js, dist/inventory-rules.js and dist/character-style.js from src, rather than patching bundles manually.
+
+Characters use src/character-style.js. Register every scene NPC in NPCS with its scene ID. Models and illustrated portraits must share characterProfile. Do not introduce a second character generator or replace the approved illustrated portraits with cube portraits. Add tests for new identities and preserve saved hero appearances.
+
+Run tests/character-style.mjs and the inventory, hero API, world API, world client and silhouette tests. For visual changes, run tests/mobile-browser.cjs in real Chromium and inspect screenshots at 390x844. State when the browser or physical iPhone was not tested.
+
+Prioritize portrait iPhone layout, readable text and image/SVG icons. No emoji or Unicode substitute icons. Keep credentials, player saves and secrets out of source and reports.

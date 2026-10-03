@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { fillSilhouette } from '../src/silhouette.js';
+const w=7,h=7,p=new Uint8Array(w*h*4),outside=new Uint8Array(w*h),queue=new Int32Array(w*h);
+for(let y=1;y<6;y++)for(let x=1;x<6;x++)if(x===1||x===5||y===1||y===5)p[(y*w+x)*4]=255;
+fillSilhouette(p,w,h,outside,queue);
+assert.equal(p[(3*w+3)*4],255,'Interior hole filled');
+assert.equal(p[0],0,'Exterior remains transparent to outline');
+assert.equal(p[(3*w+1)*4],255,'Object silhouette preserved');
+p.fill(0);
+for(let y=1;y<6;y++)for(let x=1;x<6;x++)if((x===1||x===5||y===1||y===5)&&!(x===3&&y===1))p[(y*w+x)*4]=255;
+fillSilhouette(p,w,h,outside,queue);
+assert.equal(p[(3*w+3)*4],0,'Open concavity is not replaced by a bounding box');
+console.log('PASS exterior silhouette, enclosed holes and open concavities');

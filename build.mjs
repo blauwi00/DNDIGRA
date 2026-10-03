@@ -1,5 +1,7 @@
 import {build} from 'esbuild';import {mkdir,cp,readdir,rm} from 'node:fs/promises';
 await build({entryPoints:['src/voxel.js'],bundle:true,minify:true,format:'iife',outfile:'dist/voxel.js'});
+await build({entryPoints:['src/character-style.js'],bundle:true,format:'iife',globalName:'CharacterStyle',outfile:'dist/character-style.js'});
+await build({entryPoints:['src/portrait-renderer.js'],bundle:true,format:'iife',globalName:'PortraitRenderer',outfile:'dist/portrait-renderer.js'});
 await build({entryPoints:['src/inventory-rules.js'],bundle:true,format:'iife',globalName:'InventoryRules',outfile:'dist/inventory-rules.js'});
 await build({entryPoints:['src/hero-rules.js'],bundle:true,format:'iife',globalName:'HeroRules',outfile:'dist/hero-rules.js'});
 await rm('dist/client',{recursive:true,force:true});await mkdir('dist/client',{recursive:true});
