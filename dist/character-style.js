@@ -31,7 +31,7 @@ var CharacterStyle = (() => {
     npcDefinition: () => npcDefinition,
     tint: () => tint
   });
-  var STYLE_VERSION = "approved-voxel-v2";
+  var STYLE_VERSION = "approved-voxel-v3";
   var PORTRAIT_REGIONS = {
     fighter: { male: [30, 130, 239, 272], female: [552, 129, 212, 273] },
     wizard: { male: [30, 498, 239, 264], female: [552, 498, 212, 264] },
@@ -205,6 +205,10 @@ var CharacterStyle = (() => {
     section = "hair";
     if (p.hairStyle !== "bald" && p.role !== "skeleton") {
       if (!p.hood) B(0, 1.34, -5e-3, 0.47, 0.06, 0.405, tint(p.hair, -8));
+      else {
+        B(0, 1.352, 0.208, 0.395, 0.1, 0.072, tint(p.hair, -8));
+        for (const side of [-1, 1]) B(side * 0.19, 1.29, 0.208, 0.055, 0.115, 0.06, p.hair);
+      }
       const locks = [[1, 2, 3, 2, 1], [2, 3, 2, 4, 2], [2, 2, 4, 3, 2], [1, 3, 2, 2, 1]];
       if (!p.hood) for (let z = 0; z < 4; z++) for (let x = 0; x < 5; x++) {
         const level = locks[z][x], offset = z % 2 ? 0.014 : -0.012;

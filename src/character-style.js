@@ -1,5 +1,5 @@
 // Approved character sheet 2026-10-02. This is the sole source of character geometry.
-export const STYLE_VERSION='approved-voxel-v2';
+export const STYLE_VERSION='approved-voxel-v3';
 // Rectangles inside the original 1024x1536 reference, matching the approved local portraits.
 export const PORTRAIT_REGIONS={
  fighter:{male:[30,130,239,272],female:[552,129,212,273]},
@@ -60,6 +60,12 @@ section='hair';
 if(p.hairStyle!=='bald'&&p.role!=='skeleton'){
 // A solid scalp shell prevents bald gaps; larger irregular locks create a stepped silhouette.
 if(!p.hood)B(0,1.34,-.005,.47,.06,.405,tint(p.hair,-8));
+else {
+ // Fill the visible opening behind the fringe up to the hood band.
+ // This is inside the hood, never a shell protruding through its roof.
+ B(0,1.352,.208,.395,.10,.072,tint(p.hair,-8));
+ for(const side of[-1,1])B(side*.19,1.29,.208,.055,.115,.06,p.hair);
+}
 const locks=[[1,2,3,2,1],[2,3,2,4,2],[2,2,4,3,2],[1,3,2,2,1]];
 if(!p.hood)for(let z=0;z<4;z++)for(let x=0;x<5;x++){const level=locks[z][x],offset=(z%2?.014:-.012);B((x-2)*.095+offset,1.325+(level-1)*.025,(z-1.5)*.104,.101,.06+(level-1)*.05,.111,tint(p.hair,[4,15,-9,8][(x+z)%4]));}
 const fringe=[{x:-.20,y:1.295,h:.11},{x:-.11,y:1.255,h:.20},{x:0,y:1.30,h:.11},{x:.10,y:1.265,h:.18},{x:.20,y:1.285,h:.13}];
