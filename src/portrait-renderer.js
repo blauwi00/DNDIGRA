@@ -71,14 +71,9 @@ function hair(p){
  return result;
 }
 function beard(ctx,p){
- // A single jaw-shaped beard with shaded facets and a restrained mouth.
- ctx.fillStyle=tone(p.hair,.72);ctx.strokeStyle='#211b20';ctx.lineWidth=3;ctx.lineJoin='round';
- ctx.beginPath();ctx.moveTo(84,174);ctx.lineTo(98,181);ctx.lineTo(111,191);ctx.lineTo(130,181);
- ctx.lineTo(174,181);ctx.lineTo(194,189);ctx.lineTo(215,173);ctx.lineTo(214,205);
- ctx.lineTo(193,228);ctx.lineTo(167,239);ctx.lineTo(122,236);ctx.lineTo(98,221);ctx.lineTo(83,203);ctx.closePath();ctx.fill();ctx.stroke();
- ctx.fillStyle=tone(p.hair,.9);ctx.beginPath();ctx.moveTo(99,185);ctx.lineTo(113,199);ctx.lineTo(119,226);ctx.lineTo(101,217);ctx.closePath();ctx.fill();
- ctx.fillStyle=tone(p.hair,.56);ctx.beginPath();ctx.moveTo(174,191);ctx.lineTo(194,198);ctx.lineTo(194,222);ctx.lineTo(166,236);ctx.lineTo(157,211);ctx.closePath();ctx.fill();
- ctx.fillStyle=p.skin;ctx.fillRect(140,187,18,5);ctx.strokeStyle=tone(p.hair,.3);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(139,193);ctx.lineTo(159,193);ctx.stroke();
+ // Use the illustrated beard asset, attached to the same jaw anchor as the head.
+ ctx.save();ctx.beginPath();ctx.moveTo(83,173);ctx.lineTo(99,181);ctx.lineTo(118,188);ctx.lineTo(149,181);ctx.lineTo(179,187);ctx.lineTo(215,172);ctx.lineTo(215,206);ctx.lineTo(193,233);ctx.lineTo(163,244);ctx.lineTo(120,240);ctx.lineTo(96,223);ctx.lineTo(83,204);ctx.closePath();ctx.clip();
+ ctx.drawImage(tile(0,2,0,'hair',p.hair),64,48,174,178);ctx.restore();
 }
 // All prepared layers share one resolution and anchor. Hood clipping is applied
 // to every head layer before composition, never to the base face alone.
@@ -87,7 +82,7 @@ export function layers(p){
  const female=p.gender==='female',row=p.role==='rogue'||p.role==='cleric'?1:0;
  const col=p.role==='fighter'?(female?1:0):p.role==='wizard'?(female?3:2):p.role==='rogue'?(female?1:0):p.hood?3:2;
  const layer=name=>{const c=canvas(320,360),ctx=c.getContext('2d');ctx.translate(32,25);
-  if(p.hood){ctx.beginPath();ctx.moveTo(80,61);ctx.quadraticCurveTo(128,38,172,61);ctx.lineTo(198,131);ctx.lineTo(168,171);ctx.lineTo(92,171);ctx.lineTo(65,134);ctx.closePath();ctx.clip();ctx.translate(39,10);ctx.scale(.65,.65);}
+  if(p.hood){ctx.beginPath();ctx.moveTo(80,61);ctx.quadraticCurveTo(128,38,172,61);ctx.lineTo(198,131);ctx.lineTo(168,171);ctx.lineTo(92,171);ctx.lineTo(65,134);ctx.closePath();ctx.clip();ctx.translate(20,-10);ctx.scale(.78,.78);}
   return {name,canvas:c,ctx};};
  const back=layer('back-hair'),base=layer('head'),features=layer('face'),front=layer('front-hair'),jaw=layer('beard');
  const h=hair(p);if(h){back.ctx.drawImage(h,0,0);const safe=canvas(320,320),f=safe.getContext('2d');f.drawImage(h,0,0);f.globalCompositeOperation='destination-out';faceWindow(f);f.fill();front.ctx.drawImage(safe,0,0);}

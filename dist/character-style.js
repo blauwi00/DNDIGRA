@@ -31,7 +31,7 @@ var CharacterStyle = (() => {
     npcDefinition: () => npcDefinition,
     tint: () => tint
   });
-  var STYLE_VERSION = "approved-voxel-v3";
+  var STYLE_VERSION = "approved-voxel-v4";
   var PORTRAIT_REGIONS = {
     fighter: { male: [30, 130, 239, 272], female: [552, 129, 212, 273] },
     wizard: { male: [30, 498, 239, 264], female: [552, 498, 212, 264] },
@@ -191,7 +191,8 @@ var CharacterStyle = (() => {
     } else {
       for (const x of [-0.1, 0.1]) {
         B(x, 1.135, 0.218, 0.05, 0.085, 0.015, "#251e1c");
-        if (!female || p.face === "stern") B(x, 1.206, 0.216, 0.073, 0.018, 0.018, p.hair, x < 0 ? -0.1 : 0.1);
+        if (p.face === "stern") B(x, 1.206, 0.216, 0.073, 0.025, 0.018, p.hair, x < 0 ? -0.22 : 0.22);
+        else if (!female) B(x, 1.202, 0.216, 0.065, 0.014, 0.018, p.hair);
         else B(x - 0.01, 1.181, 0.217, 0.035, 0.012, 0.017, "#251e1c");
       }
       B(0, 1.025, 0.213, 0.056, 9e-3, 0.012, tint(skin, -55));
@@ -224,20 +225,21 @@ var CharacterStyle = (() => {
         B(x, 1.205, 0.135, 0.073, 0.13, 0.08, p.hair);
       }
       if (!p.hood) B(0, 1.225, -0.17, 0.45, 0.25, 0.068, tint(p.hair, -9));
-      if (female && p.role === "rogue" && p.hairStyle === "short") {
+      if (female && !p.hood && p.hairStyle === "short") {
         for (const x of [-0.239, 0.239]) {
           B(x, 1.11, 5e-3, 0.073, 0.23, 0.31, p.hair);
           B(x, 1.007, 0.015, 0.08, 0.07, 0.25, tint(p.hair, 10));
         }
         B(0, 1.08, -0.175, 0.46, 0.29, 0.075, p.hair);
       }
+      if (p.hairStyle === "long" && p.hood) for (const x of [-0.218, 0.218]) B(x, 1.085, 0.225, 0.054, 0.15, 0.065, p.hair);
       if (p.hairStyle === "long" && !p.hood) {
         if (p.role === "fighter" && female) {
           B(0.105, 1.31, -0.25, 0.16, 0.15, 0.15, p.hair);
           B(0.11, 1.08, -0.25, 0.18, 0.36, 0.145, p.hair);
           B(0.11, 0.865, -0.24, 0.13, 0.09, 0.14, tint(p.hair, 14));
           B(0.105, 1.245, -0.273, 0.17, 0.035, 0.15, "#352b32");
-        } else if (!female && p.role === "rogue") {
+        } else if (!female) {
           B(0, 1.43, -0.19, 0.19, 0.16, 0.18, p.hair);
           B(0.025, 1.26, -0.235, 0.2, 0.15, 0.16, p.hair);
           B(0.025, 1.335, -0.248, 0.2, 0.03, 0.16, "#251e1c");

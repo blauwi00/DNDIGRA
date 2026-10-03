@@ -1,5 +1,5 @@
 // Approved character sheet 2026-10-02. This is the sole source of character geometry.
-export const STYLE_VERSION='approved-voxel-v3';
+export const STYLE_VERSION='approved-voxel-v4';
 // Rectangles inside the original 1024x1536 reference, matching the approved local portraits.
 export const PORTRAIT_REGIONS={
  fighter:{male:[30,130,239,272],female:[552,129,212,273]},
@@ -53,7 +53,7 @@ if(p.role==='rogue'){for(const x of[-.10,.10])B(x,.75,-.21,.10,.33,.02,tint(clot
 section='head';
 B(0,1.145,.03,.43,.40,.35,skin);B(0,.955,.03,.13,.06,.14,skin);for(const x of[-.239,.239])B(x,1.125,.045,.055,.11,.095,tint(skin,-9));B(.205,1.13,.06,.016,.33,.29,tint(skin,-15));B(-.105,1.319,.029,.20,.017,.32,tint(skin,15));
 if(p.role==='skeleton'){B(0,1.145,.03,.43,.4,.35,p.skin);for(const x of[-.105,.105])B(x,1.15,.218,.094,.095,.028,'#292620');B(0,1.075,.219,.049,.058,.022,'#292620');for(const x of[-.12,-.06,0,.06,.12])B(x,1.01,.222,.035,.062,.026,tint(p.skin,10));for(const x of[-.15,.15])B(x,1.045,.20,.05,.09,.05,p.skin);B(0,.715,.169,.06,.13,.02,gold);
-}else{for(const x of[-.10,.10]){B(x,1.135,.218,.050,.085,.015,'#251e1c');if(!female||p.face==='stern')B(x,1.206,.216,.073,.018,.018,p.hair,x<0?-.1:.1);else B(x-.01,1.181,.217,.035,.012,.017,'#251e1c');}B(0,1.025,.213,.056,.009,.012,tint(skin,-55));}
+}else{for(const x of[-.10,.10]){B(x,1.135,.218,.050,.085,.015,'#251e1c');if(p.face==='stern')B(x,1.206,.216,.073,.025,.018,p.hair,x<0?-.22:.22);else if(!female)B(x,1.202,.216,.065,.014,.018,p.hair);else B(x-.01,1.181,.217,.035,.012,.017,'#251e1c');}B(0,1.025,.213,.056,.009,.012,tint(skin,-55));}
 section='beard';
 if(p.face==='beard'&&p.role!=='skeleton'){for(const x of[-.165,-.11,.11,.165])B(x,1.036,.218,.06,.13,.035,p.hair);B(0,.994,.218,.27,.09,.04,p.hair);B(0,1.022,.243,.105,.03,.025,tint(p.hair,14));}
 section='hair';
@@ -72,10 +72,11 @@ const fringe=[{x:-.20,y:1.295,h:.11},{x:-.11,y:1.255,h:.20},{x:0,y:1.30,h:.11},{
 for(let i=0;i<fringe.length;i++){const f=fringe[i];B(f.x,f.y,.224,.104,f.h,.096,tint(p.hair,i%2?0:13));}
 for(const x of[-.223,.223]){B(x,1.24,-.035,.067,.16,.32,tint(p.hair,-9));B(x,1.205,.135,.073,.13,.08,p.hair);}
 if(!p.hood)B(0,1.225,-.17,.45,.25,.068,tint(p.hair,-9));
-if(female&&p.role==='rogue'&&p.hairStyle==='short'){for(const x of[-.239,.239]){B(x,1.11,.005,.073,.23,.31,p.hair);B(x,1.007,.015,.08,.07,.25,tint(p.hair,10));}B(0,1.08,-.175,.46,.29,.075,p.hair);}
+if(female&&!p.hood&&p.hairStyle==='short'){for(const x of[-.239,.239]){B(x,1.11,.005,.073,.23,.31,p.hair);B(x,1.007,.015,.08,.07,.25,tint(p.hair,10));}B(0,1.08,-.175,.46,.29,.075,p.hair);}
+if(p.hairStyle==='long'&&p.hood)for(const x of[-.218,.218])B(x,1.085,.225,.054,.15,.065,p.hair);
 if(p.hairStyle==='long'&&!p.hood){
  if(p.role==='fighter'&&female){B(.105,1.31,-.25,.16,.15,.15,p.hair);B(.11,1.08,-.25,.18,.36,.145,p.hair);B(.11,.865,-.24,.13,.09,.14,tint(p.hair,14));B(.105,1.245,-.273,.17,.035,.15,'#352b32');}
- else if(!female&&p.role==='rogue'){B(0,1.43,-.19,.19,.16,.18,p.hair);B(.025,1.26,-.235,.20,.15,.16,p.hair);B(.025,1.335,-.248,.20,.03,.16,'#251e1c');}
+ else if(!female){B(0,1.43,-.19,.19,.16,.18,p.hair);B(.025,1.26,-.235,.20,.15,.16,p.hair);B(.025,1.335,-.248,.20,.03,.16,'#251e1c');}
  else {for(let i=0;i<5;i++)B((i-2)*.094,1.035,-.18,.098,.40,.088,tint(p.hair,i%2?0:12));for(const x of[-.247,.247]){B(x,1.06,.015,.075,.34,.27,p.hair);B(x,.873,.035,.08,.085,.24,tint(p.hair,14));}}
 }
 }

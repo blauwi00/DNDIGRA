@@ -24,3 +24,6 @@ for(const role of ['fighter','wizard','rogue','cleric'])for(const gender of ['ma
 console.log('PASS reference proportions, readable eyes and hood hair containment');
 for(const hairStyle of ['short','long']){const {parts}=characterParts({classId:'cleric',appearance:{gender:'female',hairStyle}});for(const x of [-.15,0,.15])for(const y of [1.21,1.23,1.245])assert.ok(parts.some(p=>p.section==='hair'&&Math.abs(p.x-x)<=p.w/2&&Math.abs(p.y-y)<=p.h/2&&p.z+p.d/2>.27),'Hair fills opening under hood band');}
 console.log('PASS continuous hair coverage under hood');
+
+for(const classId of ['fighter','wizard','rogue','cleric'])for(const gender of ['male','female']){const geometry=(hairStyle,face)=>characterParts({classId,appearance:{gender,hairStyle,face}}).parts;assert.notDeepEqual(geometry('short','soft'),geometry('short','stern'),'Stern face changes actual geometry');assert.notDeepEqual(geometry('short','soft'),geometry('long','soft'),'Long hair changes actual geometry');}
+console.log('PASS face and hairstyle changes affect model geometry across all classes/genders');
