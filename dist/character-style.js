@@ -21,6 +21,7 @@ var CharacterStyle = (() => {
   var character_style_exports = {};
   __export(character_style_exports, {
     NPCS: () => NPCS,
+    PORTRAIT_REGIONS: () => PORTRAIT_REGIONS,
     ROLES: () => ROLES,
     STYLE: () => STYLE,
     STYLE_VERSION: () => STYLE_VERSION,
@@ -31,6 +32,12 @@ var CharacterStyle = (() => {
     tint: () => tint
   });
   var STYLE_VERSION = "approved-voxel-v2";
+  var PORTRAIT_REGIONS = {
+    fighter: { male: [30, 130, 239, 272], female: [552, 129, 212, 273] },
+    wizard: { male: [30, 498, 239, 264], female: [552, 498, 212, 264] },
+    rogue: { male: [30, 870, 239, 262], female: [552, 870, 212, 262] },
+    cleric: { male: [30, 1230, 239, 267], female: [552, 1230, 212, 267] }
+  };
   var STYLE = { voxel: 0.105, height: 1.4, headWidth: 0.5332, headHeight: 0.44, eyeHeight: 0.0935, maxParts: 420, maxPalette: 32 };
   var ROLES = { fighter: { cloth: "#315e84", trim: "#c6a04f", hair: "#75462e", skin: "#efbc88" }, wizard: { cloth: "#62377e", trim: "#c6a04f", hair: "#c9c6d7", skin: "#efbc88" }, rogue: { cloth: "#487844", trim: "#c6a04f", hair: "#352b32", skin: "#efbc88" }, cleric: { cloth: "#8b3d46", trim: "#c6a04f", hair: "#734c32", skin: "#efbc88" }, skeleton: { cloth: "#813a36", trim: "#c6a04f", hair: "#352b32", skin: "#d9c9a5" }, dummy: { cloth: "#936c40", trim: "#c6a04f", hair: "#936c40", skin: "#936c40" } };
   var NPCS = Object.freeze({
