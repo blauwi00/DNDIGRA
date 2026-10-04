@@ -1,0 +1,247 @@
+{
+  "checks": {
+    "partySheets": 3,
+    "colorInstances": 446,
+    "portraitTexelColors": 144,
+    "enemies": [
+      {
+        "kind": 3,
+        "decals": 44
+      },
+      {
+        "kind": 4,
+        "decals": 14
+      }
+    ],
+    "objects": [
+      {
+        "type": "crate",
+        "sheets": 1,
+        "decals": 9
+      },
+      {
+        "type": "chair",
+        "sheets": 1,
+        "decals": 7
+      },
+      {
+        "type": "rack",
+        "sheets": 1,
+        "decals": 7
+      },
+      {
+        "type": "banner",
+        "sheets": 1,
+        "decals": 8
+      },
+      {
+        "type": "chest",
+        "sheets": 1,
+        "decals": 14
+      },
+      {
+        "type": "cover",
+        "sheets": 1,
+        "decals": 16
+      },
+      {
+        "type": "altar",
+        "sheets": 1,
+        "decals": 21
+      },
+      {
+        "type": "books",
+        "sheets": 1,
+        "decals": 9
+      },
+      {
+        "type": "desk",
+        "sheets": 1,
+        "decals": 5
+      },
+      {
+        "type": "door",
+        "sheets": 2,
+        "decals": 27
+      },
+      {
+        "type": "portal",
+        "sheets": 2,
+        "decals": 27
+      },
+      {
+        "type": "decor",
+        "sheets": 1,
+        "decals": 17
+      },
+      {
+        "type": "ground-item",
+        "sheets": 1,
+        "decals": 9
+      }
+    ],
+    "items": [
+      {
+        "id": 31,
+        "sheets": 0,
+        "decals": 0
+      },
+      {
+        "id": 32,
+        "sheets": 0,
+        "decals": 0
+      },
+      {
+        "id": 33,
+        "sheets": 0,
+        "decals": 0
+      },
+      {
+        "id": 34,
+        "sheets": 1,
+        "decals": 23
+      },
+      {
+        "id": 35,
+        "sheets": 0,
+        "decals": 0
+      },
+      {
+        "id": 36,
+        "sheets": 1,
+        "decals": 7
+      },
+      {
+        "id": 37,
+        "sheets": 0,
+        "decals": 0
+      },
+      {
+        "id": 38,
+        "sheets": 1,
+        "decals": 3
+      },
+      {
+        "id": 39,
+        "sheets": 1,
+        "decals": 3
+      },
+      {
+        "id": 40,
+        "sheets": 1,
+        "decals": 19
+      },
+      {
+        "id": 41,
+        "sheets": 1,
+        "decals": 4
+      },
+      {
+        "id": 42,
+        "sheets": 1,
+        "decals": 20
+      },
+      {
+        "id": 43,
+        "sheets": 1,
+        "decals": 10
+      },
+      {
+        "id": 44,
+        "sheets": 1,
+        "decals": 15
+      },
+      {
+        "id": 45,
+        "sheets": 1,
+        "decals": 19
+      },
+      {
+        "id": 46,
+        "sheets": 1,
+        "decals": 24
+      },
+      {
+        "id": 47,
+        "sheets": 0,
+        "decals": 0
+      },
+      {
+        "id": 48,
+        "sheets": 1,
+        "decals": 8
+      },
+      {
+        "id": 49,
+        "sheets": 1,
+        "decals": 13
+      },
+      {
+        "id": 50,
+        "sheets": 1,
+        "decals": 10
+      },
+      {
+        "id": 51,
+        "sheets": 1,
+        "decals": 9
+      },
+      {
+        "id": 52,
+        "sheets": 1,
+        "decals": 5
+      },
+      {
+        "id": 53,
+        "sheets": 1,
+        "decals": 9
+      }
+    ],
+    "rotatedSlats": 11,
+    "terrainBatches": 12,
+    "renderedColorPair": {
+      "left": [
+        211,
+        190,
+        159,
+        255
+      ],
+      "right": [
+        211,
+        190,
+        159,
+        255
+      ]
+    },
+    "renderedSrgb": [
+      235,
+      197,
+      154,
+      255
+    ]
+  },
+  "fps": [
+    {
+      "mode": "baseline",
+      "seconds": 5.001599999999628,
+      "renderFps": 24.79206653870946,
+      "meanRenderMs": 1.5120967741935485,
+      "p95RenderMs": 2.1000000000931323,
+      "calls": 166,
+      "triangles": 15050,
+      "webgl": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+    },
+    {
+      "mode": "current",
+      "seconds": 5.000099999999628,
+      "renderFps": 21.79956400872145,
+      "meanRenderMs": 1.9908256880819388,
+      "p95RenderMs": 2.5,
+      "calls": 178,
+      "triangles": 18722,
+      "webgl": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+    }
+  ],
+  "environment": "Chromium SwiftShader software GPU; 390×844; not a physical iPhone",
+  "physicalIPhoneTested": false
+}
