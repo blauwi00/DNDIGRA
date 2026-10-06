@@ -62,7 +62,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     const afterGold=await page.evaluate(()=>gameDebug.state.gold);assert(afterGold>=beforeGold);
     await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);await gameDebug.approachInteract(p);},chest.pid);assert.match(await page.locator('#dialogue-text').innerText(),/пусто/);await page.getByRole('button',{name:'Закрыть',exact:true}).click();assert.equal(await page.evaluate(()=>gameDebug.state.gold),afterGold);
     await page.evaluate(async()=>{
-      gameDebug.enterScene('dng:1');const t=gameDebug.scene.traps[0],a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:t.x+dx,y:t.y+dy})).find(c=>!gameDebug.blocked(c));a.hp=a.max;a.x=c.x;a.y=c.y;gameDebug.render();gameDebug.select({x:t.x,y:t.y});document.getElementById('action').click();while(gameDebug.moving||gameDebug.busy)await new Promise(r=>setTimeout(r,20));
+      gameDebug.enterScene('dng:1');const t=gameDebug.scene.traps[0],a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:t.x+dx,y:t.y+dy})).find(c=>!gameDebug.blocked(c));a.hp=a.max;a.x=c.x;a.y=c.y;gameDebug.render();gameDebug.mapTap({x:t.x,y:t.y});while(gameDebug.moving||gameDebug.busy)await new Promise(r=>setTimeout(r,20));
       if(!gameDebug.state.gen.fired['dng:1:'+t.id])throw Error('Floor trap did not fire');
       gameDebug.save();Worlds.capture();if(!await Worlds.flush())throw Error('Save failed');
     });

@@ -1,3 +1,6 @@
+# Current task: map actions · 2026-10-07
+Owner requested tap-to-walk navigation and contextual actions next to map cells, replacing the bottom interaction button. Inspect must approach first; adjacent NPC/doors/containers offer use. Keep camera stationary during movement. Models deferred pending direction. This follow-up authorizes updating the existing test Site; do not change main Site. src/voxel.js is source, rebuild dist/voxel.js. Run tests/map-controls.cjs plus mobile, location and WorldGen browser regressions. QA screenshots are local evidence and must not be uploaded to GitHub.
+
 # Current branch: WorldGen integration · 2026-10-06
 Owner requested source changes in a separate GitHub branch only. Do not publish any Site for this task.
 Read WORLDGEN.md. New server worlds use world.gen {v,seed,size}, lazy World.scenes and WorldGen.Runtime. Preserve legacy hub/crypt and procedural worlds. Keep src/worldgen-look-v1.js frozen: changing generator output requires a version migration, not silently changing existing seeds. Build worldgen/props/voxel bundles from src. Run tests/worldgen.mjs, tests/worldgen-api.mjs and tests/worldgen-browser.cjs (real Worker + SQLite + Chromium 390x844), plus repository checks below. Procedural NPCs use Characters.spec with actor.gen; only static NPC IDs must be registered.

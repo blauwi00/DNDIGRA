@@ -216,7 +216,7 @@
       b.dataset.y = y;
       b.setAttribute("role", "gridcell");
       b.onclick = () => {
-        if (window.camera?.allowClick() !== false) select({ x, y });
+        if (window.camera?.allowClick() !== false) mapTap({ x, y });
       };
       $("cells").append(b);
       cells.push(b);
@@ -238,6 +238,17 @@
       else if (!blocked(p)) path = pathTo(active(), p) || [];
     }
     render();
+  }
+  function mapTap(p) {
+    if (busy || window.HUD?.pending || window.Worlds?.locked) return;
+    if (!p) { selected = null; path = []; render(); return; }
+    select(p);
+    if (!prop(p) && !entity(p) && path.length) {
+      if (state.combat && path.length > active().move) {
+        tell("Не хватает движения: доступно " + active().move + " кл.");
+        render();
+      } else move();
+    }
   }
   function renderPieces() {
     for (const e of all()) {
@@ -297,7 +308,18 @@
       handPanel.append(b);
     });
     const action = object && selected ? objectAction(p) : null;
-    window.objectPrompt = { p: action ? p : null, text: action ? !action.enabled && state.combat && dist(a, p) > 1 ? "В бою подойдите вручную" : !action.enabled && !busy ? state.combat ? "Недоступно в бою" : "Нет прохода" : action.label : "", enabled: !!action?.enabled, run: action?.fn };
+    const actions = [];
+    if (moving) actions.push({ id: "stop", label: "Остановиться", enabled: true, run: () => { stopRequested = true; } });
+    else if (object && selected && p.type !== "chandelier") {
+      const route = approachPath(a, p), reachable = route !== null && (!state.combat || route.length <= a.move);
+      const enabled = !busy && a.hp > 0 && reachable && !window.Worlds?.locked;
+      if (dist(a, p) !== 1) actions.push({ id: "approach", label: "Подойти", enabled, run: () => approachInteract(p, "approach") });
+      actions.push({ id: "inspect", label: "Осмотреть", enabled, run: () => approachInteract(p, "inspect") });
+      if (dist(a, p) === 1 && action && !["Осмотреть", "Читать"].includes(action.label)) actions.push({ id: "use", label: p.type === "npc" ? "Поговорить" : action.label, enabled: action.enabled && !window.Worlds?.locked, run: action.fn });
+    } else if (selected && !object && (p.kind === 3 || p.dummy)) {
+      actions.push({ id: "attack", label: p.dummy ? "Пробный удар" : "Атаковать", enabled: !busy && canAttack(a, p) && !window.Worlds?.locked, run: () => attack(p) });
+    }
+    window.objectPrompt = { p: actions.length ? moving ? a : p : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
   }
   const interactionLabels = { "ground-item": "Подобрать", npc: "Говорить", door: "Открыть дверь", portal: "Перейти", chest: "Открыть сундук", altar: "Осмотреть", books: "Читать", desk: "Осмотреть", barrel: "Осмотреть", crate: "Осмотреть", chair: "Осмотреть", planter: "Осмотреть", scrolls: "Читать", rack: "Осмотреть", clue: "Изучить следы", counter: "Осмотреть", table: "Осмотреть", lantern: "Осмотреть", waymark: "Осмотреть" };
   function approachPath(a, p) {
@@ -309,15 +331,16 @@
     if (p.type === "door" && isOpen(p)) return pathTo(a, p.axis === "horizontal" ? { x: p.x + (a.x < p.x ? 1 : a.x > p.x ? -1 : a.facing === 3 ? -1 : 1), y: p.y } : { x: p.x, y: p.y + (a.y <= p.y ? 1 : -1) });
     return approachPath(a, p);
   }
-  async function approachInteract(p) {
+  async function approachInteract(p, mode = "use") {
     const a = active(), id = state.scene;
-    if (busy || a.hp <= 0 || state.combat || !props().some((o) => o.id === p.id)) return;
-    const through = p.type === "door" && isOpen(p), route = interactionRoute(a, p);
+    if (busy || a.hp <= 0 || window.Worlds?.locked || state.combat && mode === "use" || !props().some((o) => o.id === p.id)) return;
+    const through = mode === "use" && p.type === "door" && isOpen(p), route = mode === "use" ? interactionRoute(a, p) : approachPath(a, p);
     if (route === null) {
       tell("К этому предмету нет свободного прохода.");
       render();
       return;
     }
+    if (state.combat && route.length > a.move) return;
     window.closeDialogue?.();
     busy = true;
     stopRequested = false;
@@ -330,6 +353,11 @@
       if (completed === route.length && !stopRequested && state.scene === id && dist(a, p) === 1) {
         if (through) {
           selected = null;
+        } else if (mode === "approach") {
+          face(a, p);
+        } else if (mode === "inspect") {
+          face(a, p);
+          window.openObjectDialogue?.({ ...p, description: p.description || ({ npc: "Перед вами " + p.name + ". Можно поговорить, находясь рядом.", door: isOpen(p) ? "Дверь открыта." : "Дверь закрыта.", chest: "Сундук. Чтобы проверить содержимое, откройте его.", portal: "Переход в другую локацию." }[p.type] || "Вы внимательно осматриваете предмет: " + p.name + ".") });
         } else {
           face(a, p);
           await interact(p);
@@ -344,7 +372,7 @@
   }
   function objectAction(p) {
     if (p.type === "chandelier") return null;
-    const a = active(), label = p.id === "trial-cache" ? state.trial?.step === 3 ? "Взять письмо" : "Осмотреть нишу" : p.type === "torch" ? Torches.fixture(p.id).present ? "Факел · взять / погасить" : "Оставить факел" : p.type === "door" && isOpen(p) ? "Пройти через дверь" : interactionLabels[p.type] || (p.description ? 'Осмотреть' : null);
+    const a = active(), label = p.id === "trial-cache" ? state.trial?.step === 3 ? "Взять письмо" : "Осмотреть нишу" : p.type === "torch" ? Torches.fixture(p.id).present ? "Факел · взять / погасить" : "Оставить факел" : p.type === "door" && isOpen(p) ? "Пройти через дверь" : p.container ? "Открыть" : p.type === "altar" ? "Исследовать алтарь" : interactionLabels[p.type] || (p.description ? 'Осмотреть' : null);
     if (!label) return null;
     return { label, enabled: !busy && a.hp > 0 && (state.combat ? p.type === "torch" && dist(a, p) === 1 && !a.bonusUsed : approachPath(a, p) !== null), fn: () => state.combat ? interact(p) : approachInteract(p) };
   }
@@ -419,10 +447,11 @@
     $("action").disabled = !moving && (busy || !action.enabled);
     $("action").onclick = action.fn || (() => {
     });
+    $("action").hidden = true;
     $("potion").disabled = busy || state.potions <= 0 || a.hp >= a.max || a.hp <= 0 || state.combat && a.bonusUsed;
     $("end").disabled = busy || !state.combat;
     $("narrative").textContent = state.logs.at(-1);
-    $("hint").textContent = path.length ? "Маршрут " + path.length + " кл. · нажмите «Идти»" : state.combat ? `${a.name}: ${a.move} кл. · ${a.acted ? "действие потрачено" : "1 действие"}` : "Выберите предмет или клетку. Карту можно двигать и приближать.";
+    $("hint").textContent = state.combat ? `${a.name}: ${a.move} кл. · ${a.acted ? "действие потрачено" : "1 действие"}` : "Нажмите клетку, чтобы идти; предмет — чтобы выбрать действие.";
     $("resources").textContent = "Ур. " + state.level + " · " + state.gold + " монет";
     terrain();
     window.renderViews?.();
@@ -483,7 +512,6 @@
         window.fx?.step(e, duration);
         await wait(duration);
         completed++;
-        if (e.id === state.active) window.camera?.follow(e);
         if (controlled) path = steps.slice(completed);
       }
       return completed;
@@ -1020,7 +1048,7 @@
     if (p.type === "door") {
       state.doors[doorKey(p)] = true;
       setTimeout(() => window.fx?.door(p), 0);
-      tell("Дверь открыта. Выберите её клетку и нажмите «Пройти».");
+      tell("Дверь открыта. Нажмите её на карте и выберите «Пройти через дверь».");
     } else if (p.type === "chest") {
       if (state.loot[doorKey(p)]) {
         window.openObjectDialogue?.({ ...p, description: "Сундук пуст. Вы уже забрали его содержимое." });
@@ -1063,7 +1091,7 @@
     modal("Хроника", state.logs.slice(-20).join("\n\n"));
   }
   function help() {
-    modal("Как проверять полигон", "Нажмите клетку, затем «Идти». Движение и атаки — по четырём сторонам (домашнее правило). Инициатива задаёт очередь, действие и бонус расходуются отдельно. Факел сначала нужно снять с настенного крепления с соседней клетки. В «Герое» или «Действиях» выберите, что держать в двух руках; в «Рюкзаке» можно зажечь, погасить и убрать найденный факел. На пустое крепление его можно вернуть. Щит даёт +2 КД, лук занимает две руки. Домашние правила: факел в руке даёт помеху атакам; в бою смена снаряжения расходует действие, операции с факелом — бонусное действие. Преимущество и помеха взаимно отменяются. Откройте «Действия» для навыков и отдыха. Фигурки поворачиваются к шагу и цели. Приближайте карту двумя пальцами и двигайте одним. Предметы и NPC доступны с соседней клетки. Вкладка «Тест» восстанавливает предметы, запускает бой и позволяет менять свет. Диалоги сейчас сценарные; ИИ-ведущий ещё не подключён.");
+    modal("Как проверять полигон", "Нажмите свободную клетку — герой пойдёт туда. Нажмите предмет — действия появятся возле его клетки. Осмотр требует подхода. Движение и атаки — по четырём сторонам (домашнее правило). Инициатива задаёт очередь, действие и бонус расходуются отдельно. Факел сначала нужно снять с настенного крепления с соседней клетки. В «Герое» или «Действиях» выберите, что держать в двух руках; в «Рюкзаке» можно зажечь, погасить и убрать найденный факел. На пустое крепление его можно вернуть. Щит даёт +2 КД, лук занимает две руки. Домашние правила: факел в руке даёт помеху атакам; в бою смена снаряжения расходует действие, операции с факелом — бонусное действие. Преимущество и помеха взаимно отменяются. Откройте «Действия» для навыков и отдыха. Фигурки поворачиваются к шагу и цели. Приближайте карту двумя пальцами и двигайте одним. Предметы и NPC доступны с соседней клетки. Вкладка «Тест» восстанавливает предметы, запускает бой и позволяет менять свет. Диалоги сейчас сценарные; ИИ-ведущий ещё не подключён.");
   }
   function test(action, value) {
     if (state.world) {
@@ -1302,7 +1330,7 @@
     return moving;
   }, stop: () => {
     stopRequested = true;
-  }, special, freeRoll, report, heal, all, isOpen, blocked, select, attack, pathTo, line, canAttack, approachInteract, approachPath, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
+  }, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, attack, pathTo, line, canAttack, approachInteract, approachPath, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
   window.Torches?.ensure();
   atlas.onload = cutAtlas;
   atlas.src = "assets/cartoon-atlas.png";

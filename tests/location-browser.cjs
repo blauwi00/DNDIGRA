@@ -39,8 +39,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
         closeDialogue();
         gameDebug.select(gameDebug.props.find((p) => p.id === id2));
       }, id);
-      assert.ok(await page.locator("#action").isEnabled(), id);
-      await page.locator("#action").click();
+      // Each action is anchored to its target; keep that target in view for this route test.
+      await page.evaluate(id=>camera.center(gameDebug.props.find(p=>p.id===id),true),id);
+      if (await page.locator('.object-prompt [data-action=approach]').isVisible()) {
+        await page.locator('.object-prompt [data-action=approach]').click();
+        await page.waitForFunction(()=>!gameDebug.busy);
+      }
+      assert.ok(await page.locator('.object-prompt [data-action=use]').isEnabled(), id);
+      await page.locator('.object-prompt [data-action=use]').click();
       await page.waitForFunction(() => !gameDebug.busy);
     }
     async function shot(name) {

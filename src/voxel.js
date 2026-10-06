@@ -9,14 +9,18 @@ const viewport = document.getElementById("viewport"), canvas = document.createEl
 canvas.id = "voxel-canvas";
 canvas.setAttribute("aria-label", "Объёмная карта: двигайте одним пальцем, приближайте двумя");
 viewport.prepend(canvas);
-const objectPrompt = document.createElement("button");
-objectPrompt.type = "button";
+const objectPrompt = document.createElement("div");
+objectPrompt.setAttribute("role", "group");
+objectPrompt.tabIndex = -1;
 objectPrompt.onclick = (e) => {
   e.stopPropagation();
   const prompt = window.objectPrompt;
-  if (prompt?.enabled && !window.gameDebug.busy) prompt.run?.();
+  const button = e.target.closest("button[data-action]");
+  const action = button && prompt?.actions?.find(a => a.id === button.dataset.action);
+  if (action?.enabled) action.run?.();
 };
 objectPrompt.addEventListener("pointerdown", (e) => e.stopPropagation());
+objectPrompt.addEventListener("keydown", e => { if (e.key === "Escape") g.mapTap(null); });
 objectPrompt.className = "object-prompt";
 objectPrompt.hidden = true;
 viewport.append(objectPrompt);
@@ -1114,15 +1118,15 @@ canvas.addEventListener("pointerup", (e) => {
       let obj = hits[0].object;
       while (obj && !obj.userData.p) obj = obj.parent;
       if (obj) {
-        const target = obj.userData.p, again = g.selected?.x === target.x && g.selected?.y === target.y;
-        g.select(target);
-        if ((again || ["door", "portal"].includes(target.type)) && window.objectPrompt?.enabled && window.objectPrompt?.p?.id === target.id) window.objectPrompt.run?.();
+        const target = obj.userData.p;
+        g.mapTap(target);
         pointers.delete(e.pointerId);
         start = null;
         return;
       }
     }
-    if (p && World.tile(g.scene, Math.floor(p.x), Math.floor(p.z)) !== "void") g.select({ x: Math.floor(p.x), y: Math.floor(p.z) });
+    if (p && World.tile(g.scene, Math.floor(p.x), Math.floor(p.z)) !== "void") g.mapTap({ x: Math.floor(p.x), y: Math.floor(p.z) });
+    else g.mapTap(null);
   }
   pointers.delete(e.pointerId);
   start = null;
@@ -1342,16 +1346,27 @@ function tick(time) {
     }
   }
   const prompt = window.objectPrompt;
-  objectPrompt.hidden = !prompt?.p;
+  objectPrompt.hidden = !prompt?.p || !document.getElementById("dialogue").hidden || !!window.CinematicMenu?.active;
   if (prompt?.p) {
-    const p = prompt.p, point = new T.Vector3(p.x + 0.5, 0.9, p.y + 0.5).project(camera);
+    const p = prompt.p, point = new T.Vector3(p.x + 0.5, 0.45, p.y + 0.5).project(camera);
     const x = (point.x + 1) * viewport.clientWidth / 2, y = (-point.y + 1) * viewport.clientHeight / 2;
-    objectPrompt.hidden = x < 0 || x > viewport.clientWidth || y < 0 || y > viewport.clientHeight;
-    objectPrompt.style.left = Math.max(70, Math.min(viewport.clientWidth - 70, x)) + "px";
-    objectPrompt.style.top = y + "px";
-    objectPrompt.textContent = prompt.text;
-    objectPrompt.disabled = !prompt.enabled;
-    objectPrompt.setAttribute("aria-label", prompt.text + " · " + p.name);
+    const actions = prompt.actions || [], signature = JSON.stringify([p.name, actions.map(a=>[a.id,a.label,a.enabled])]);
+    if (objectPrompt.dataset.signature !== signature) {
+      objectPrompt.dataset.signature = signature;
+      const title = document.createElement("strong"); title.textContent = p.name;
+      const buttons = actions.map(a=>{ const b=document.createElement("button");b.type="button";b.dataset.action=a.id;b.textContent=a.label;b.disabled=!a.enabled;return b; });
+      objectPrompt.replaceChildren(title,...buttons);
+      objectPrompt.setAttribute("aria-label", "Действия · " + p.name);
+    }
+    const width = objectPrompt.offsetWidth || 190, height = objectPrompt.offsetHeight || 125;
+    const vr = viewport.getBoundingClientRect(), dock = document.getElementById("play-dock")?.getBoundingClientRect();
+    const bottom = Math.min(viewport.clientHeight - 6, dock && dock.height ? dock.top - vr.top - 6 : viewport.clientHeight - 6);
+    let top = y - height - 24;
+    if (top < 76) top = y + 24;
+    top = Math.max(6, Math.min(bottom - height, top));
+    objectPrompt.hidden ||= x < 0 || x > viewport.clientWidth || y < 0 || y > bottom || bottom < height;
+    objectPrompt.style.left = Math.max(width / 2 + 6, Math.min(viewport.clientWidth - width / 2 - 6, x)) + "px";
+    objectPrompt.style.top = top + "px";
   }
   draw();
 }
