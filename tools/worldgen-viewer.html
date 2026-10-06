@@ -1,0 +1,18 @@
+<!doctype html><!-- Отладочный просмотр миров сверху. Открывать с локального сервера: tools/worldgen-viewer.html?seed=любое<!doctype html>size=small|medium|large<!doctype html>ids=town,b1,out,dng:1 --><meta charset=utf-8><body style="margin:0;background:#12181a;font:12px sans-serif;color:#ddd"><script src="../dist/worldgen.js"></script><div id=r style="padding:6px"></div><script>
+const q=new URLSearchParams(location.search),seed=q.get('seed')||'demo',size=q.get('size')||'medium',ids=(q.get('ids')||'town').split(',');
+const plan=WorldGen.createWorld(seed,size),R=document.getElementById('r'),T=+q.get('t')||10;
+const h=document.createElement('div');h.textContent=`Мир «${plan.name}» · ${plan.size} · зданий ${plan.buildings.length} · сцен ${WorldGen.sceneIds(plan).length}`;h.style.cssText='color:#f4d17b;font-size:14px;margin-bottom:4px';R.append(h);
+const COL={floor:'#6b6a5a',wall:'#2b2f33',void:'#0b0f10'};
+function draw(id){const sc=WorldGen.generateScene(plan,id),cv=document.createElement('canvas');cv.width=sc.W*T;cv.height=sc.H*T;const c=cv.getContext('2d');c.font=(T-1)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';
+ for(let y=0;y<sc.H;y++)for(let x=0;x<sc.W;x++){const t=sc.tiles[y][x];c.fillStyle=COL[t];c.fillRect(x*T,y*T,T,T);if(t==='floor'){c.strokeStyle='#0003';c.strokeRect(x*T,y*T,T,T)}}
+ for(const d of sc.decor){c.fillStyle='#7a3b3b88';c.fillRect(d.x*T,d.y*T,(d.w||1)*T,(d.h||1)*T)}
+ for(const p of sc.props){const X=p.x*T+T/2,Y=p.y*T+T/2;let col='#9aa0a6',ch='';
+  if(p.type==='portal'){col='#4aa8f0';ch='⇄'}else if(p.type==='door'){col=p.lock?'#e0475a':'#c9884a';ch='▮'}else if(p.type==='npc'){col='#6fdc7a';ch='☺'}
+  else if(p.type==='torch'){col='#f0b040';ch='·'}else if(p.type==='chandelier'){col='#f0d040';ch='✦'}else if(p.container){col=p.lock?'#e0475a':p.trap?'#e08a2a':'#e6c84a';ch='▣'}
+  else if(p.type==='decor'){col='#7fd0f0';ch='▫'}else if(p.type==='banner'){col='#c05a9a';ch='⚑'}else if(p.cat==='tree'||p.cat==='bush'){col='#3f8a45';ch='♣'}else if(['table','counter','desk'].includes(p.cat)){col='#a98a5a';ch='▬'}else if(p.cat==='bed'||p.cat==='cot'){col='#8a7ac0';ch='▭'}else ch='▪';
+  c.fillStyle=col;c.fillText(ch,X,Y)}
+ for(const t of sc.traps||[]){c.fillStyle='#ff3030';c.fillText('✕',t.x*T+T/2,t.y*T+T/2)}
+ for(const l of sc.lights){c.fillStyle='#ffb84a66';c.beginPath();c.arc(l.x*T,l.y*T,T*.7,0,7);c.fill()}
+ const w=document.createElement('div');w.style.cssText='display:inline-block;margin:0 10px 10px 0;vertical-align:top';const cap=document.createElement('div');cap.textContent=`${id} · ${sc.name} · ${sc.W}×${sc.H} · предметов ${sc.props.length}`;w.append(cap,cv);R.append(w)}
+for(const id of ids)draw(id);
+</script>

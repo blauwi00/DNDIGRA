@@ -29,3 +29,10 @@ const colorful={...draft,appearance:{...draft.appearance,gender:'male',...Object
 const newColorResponse=await worker.fetch(req('POST',colorful,'new-colors'),{DB});assert.equal(newColorResponse.status,201);assert.deepEqual((await newColorResponse.json()).hero.appearance,colorful.appearance);
 assert.deepEqual((await (await worker.fetch(req('GET',null,'new-colors'),{DB})).json()).heroes[0].appearance,colorful.appearance);
 console.log('PASS expanded colors persist through create and reload');
+
+const {defaultLook}=await import('../src/look-options.js');
+const extended={...draft,classId:'wizard',stats:R.preset('wizard'),appearance:{...defaultLook('wizard','male'),headgear:'wizhat',hairStyle:'braid',beard:'long',marks:['scar','freckles'],accessories:['glasses','amulet'],cape:'long',hair2:'#e07aa8',outfit:'scholar'},kit:0};
+const extendedPost=await worker.fetch(req('POST',extended,'full-editor'),{DB});assert.equal(extendedPost.status,201);assert.deepEqual((await extendedPost.json()).hero.appearance,extended.appearance);
+assert.deepEqual((await (await worker.fetch(req('GET',null,'full-editor'),{DB})).json()).heroes[0].appearance,extended.appearance);
+for(const patch of [{headgear:'invalid'},{hairStyle:'invalid'},{accessories:['glasses','glasses']},{outfit:'plate'},{power:99}])assert.equal((await worker.fetch(req('POST',{...extended,appearance:{...extended.appearance,...patch}},'forged-full'),{DB})).status,400);
+console.log('PASS full appearance persists and forged accessories/outfits/styles rejected');
