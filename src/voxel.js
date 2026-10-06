@@ -17,7 +17,7 @@ objectPrompt.onclick = (e) => {
   const prompt = window.objectPrompt;
   const button = e.target.closest("button[data-action]");
   const action = button && prompt?.actions?.find(a => a.id === button.dataset.action);
-  if (action?.enabled) action.run?.();
+  if (action?.enabled) { g.dismissMapActions(); action.run?.(); }
 };
 objectPrompt.addEventListener("pointerdown", (e) => e.stopPropagation());
 objectPrompt.addEventListener("keydown", e => { if (e.key === "Escape") g.mapTap(null); });
@@ -1110,7 +1110,7 @@ canvas.addEventListener("pointermove", (e) => {
   draw();
 });
 canvas.addEventListener("pointerup", (e) => {
-  if (!drag && pointers.size === 1 && !g.busy) {
+  if (!drag && pointers.size === 1) {
     const p = ground(e.clientX, e.clientY);
     const fixtures = [...models.values()].filter((m) => m.visible && m.userData.p && m.userData.p.type !== "chandelier");
     const hits = raycaster.intersectObjects(fixtures, true);

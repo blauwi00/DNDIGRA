@@ -240,16 +240,12 @@
     render();
   }
   function mapTap(p) {
+    if (moving) { stopRequested = true; return; }
     if (busy || window.HUD?.pending || window.Worlds?.locked) return;
     if (!p) { selected = null; path = []; render(); return; }
     select(p);
-    if (!prop(p) && !entity(p) && path.length) {
-      if (state.combat && path.length > active().move) {
-        tell("Не хватает движения: доступно " + active().move + " кл.");
-        render();
-      } else move();
-    }
   }
+  function dismissMapActions() { selected = null; render(); }
   function renderPieces() {
     for (const e of all()) {
       let el = pieces.get(e.id);
@@ -309,17 +305,19 @@
     });
     const action = object && selected ? objectAction(p) : null;
     const actions = [];
-    if (moving) actions.push({ id: "stop", label: "Остановиться", enabled: true, run: () => { stopRequested = true; } });
-    else if (object && selected && p.type !== "chandelier") {
+    if (!busy && object && selected && p.type !== "chandelier") {
       const route = approachPath(a, p), reachable = route !== null && (!state.combat || route.length <= a.move);
       const enabled = !busy && a.hp > 0 && reachable && !window.Worlds?.locked;
       if (dist(a, p) !== 1) actions.push({ id: "approach", label: "Подойти", enabled, run: () => approachInteract(p, "approach") });
       actions.push({ id: "inspect", label: "Осмотреть", enabled, run: () => approachInteract(p, "inspect") });
       if (dist(a, p) === 1 && action && !["Осмотреть", "Читать"].includes(action.label)) actions.push({ id: "use", label: p.type === "npc" ? "Поговорить" : action.label, enabled: action.enabled && !window.Worlds?.locked, run: action.fn });
-    } else if (selected && !object && (p.kind === 3 || p.dummy)) {
+    } else if (!busy && selected && !object && (p.kind === 3 || p.dummy)) {
       actions.push({ id: "attack", label: p.dummy ? "Пробный удар" : "Атаковать", enabled: !busy && canAttack(a, p) && !window.Worlds?.locked, run: () => attack(p) });
+    } else if (!busy && selected && !entity(selected) && !prop(selected) && path.length) {
+      actions.push({ id: "move", label: "Идти" + (state.combat ? " · " + path.length + " кл." : ""), enabled: a.hp > 0 && !window.Worlds?.locked && (!state.combat || path.length <= a.move), run: move });
     }
-    window.objectPrompt = { p: actions.length ? moving ? a : p : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
+    const anchor = actions[0]?.id === "move" ? { ...selected, name: "Клетка " + (selected.x + 1) + ", " + (selected.y + 1) } : p;
+    window.objectPrompt = { p: actions.length ? anchor : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
   }
   const interactionLabels = { "ground-item": "Подобрать", npc: "Говорить", door: "Открыть дверь", portal: "Перейти", chest: "Открыть сундук", altar: "Осмотреть", books: "Читать", desk: "Осмотреть", barrel: "Осмотреть", crate: "Осмотреть", chair: "Осмотреть", planter: "Осмотреть", scrolls: "Читать", rack: "Осмотреть", clue: "Изучить следы", counter: "Осмотреть", table: "Осмотреть", lantern: "Осмотреть", waymark: "Осмотреть" };
   function approachPath(a, p) {
@@ -451,7 +449,7 @@
     $("potion").disabled = busy || state.potions <= 0 || a.hp >= a.max || a.hp <= 0 || state.combat && a.bonusUsed;
     $("end").disabled = busy || !state.combat;
     $("narrative").textContent = state.logs.at(-1);
-    $("hint").textContent = state.combat ? `${a.name}: ${a.move} кл. · ${a.acted ? "действие потрачено" : "1 действие"}` : "Нажмите клетку, чтобы идти; предмет — чтобы выбрать действие.";
+    $("hint").textContent = state.combat ? `${a.name}: ${a.move} кл. · ${a.acted ? "действие потрачено" : "1 действие"}` : "Выберите клетку или предмет, затем действие рядом с клеткой.";
     $("resources").textContent = "Ур. " + state.level + " · " + state.gold + " монет";
     terrain();
     window.renderViews?.();
@@ -1091,7 +1089,7 @@
     modal("Хроника", state.logs.slice(-20).join("\n\n"));
   }
   function help() {
-    modal("Как проверять полигон", "Нажмите свободную клетку — герой пойдёт туда. Нажмите предмет — действия появятся возле его клетки. Осмотр требует подхода. Движение и атаки — по четырём сторонам (домашнее правило). Инициатива задаёт очередь, действие и бонус расходуются отдельно. Факел сначала нужно снять с настенного крепления с соседней клетки. В «Герое» или «Действиях» выберите, что держать в двух руках; в «Рюкзаке» можно зажечь, погасить и убрать найденный факел. На пустое крепление его можно вернуть. Щит даёт +2 КД, лук занимает две руки. Домашние правила: факел в руке даёт помеху атакам; в бою смена снаряжения расходует действие, операции с факелом — бонусное действие. Преимущество и помеха взаимно отменяются. Откройте «Действия» для навыков и отдыха. Фигурки поворачиваются к шагу и цели. Приближайте карту двумя пальцами и двигайте одним. Предметы и NPC доступны с соседней клетки. Вкладка «Тест» восстанавливает предметы, запускает бой и позволяет менять свет. Диалоги сейчас сценарные; ИИ-ведущий ещё не подключён.");
+    modal("Как проверять полигон", "Нажмите свободную клетку, затем выберите «Идти» возле неё. Нажмите предмет — действия появятся возле его клетки. Осмотр требует подхода. Во время движения тап по карте останавливает героя. Движение и атаки — по четырём сторонам (домашнее правило). Инициатива задаёт очередь, действие и бонус расходуются отдельно. Факел сначала нужно снять с настенного крепления с соседней клетки. В «Герое» или «Действиях» выберите, что держать в двух руках; в «Рюкзаке» можно зажечь, погасить и убрать найденный факел. На пустое крепление его можно вернуть. Щит даёт +2 КД, лук занимает две руки. Домашние правила: факел в руке даёт помеху атакам; в бою смена снаряжения расходует действие, операции с факелом — бонусное действие. Преимущество и помеха взаимно отменяются. Откройте «Действия» для навыков и отдыха. Фигурки поворачиваются к шагу и цели. Приближайте карту двумя пальцами и двигайте одним. Предметы и NPC доступны с соседней клетки. Вкладка «Тест» восстанавливает предметы, запускает бой и позволяет менять свет. Диалоги сейчас сценарные; ИИ-ведущий ещё не подключён.");
   }
   function test(action, value) {
     if (state.world) {
@@ -1330,7 +1328,7 @@
     return moving;
   }, stop: () => {
     stopRequested = true;
-  }, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, attack, pathTo, line, canAttack, approachInteract, approachPath, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
+  }, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, dismissMapActions, attack, pathTo, line, canAttack, approachInteract, approachPath, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
   window.Torches?.ensure();
   atlas.onload = cutAtlas;
   atlas.src = "assets/cartoon-atlas.png";

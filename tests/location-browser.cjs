@@ -44,6 +44,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       if (await page.locator('.object-prompt [data-action=approach]').isVisible()) {
         await page.locator('.object-prompt [data-action=approach]').click();
         await page.waitForFunction(()=>!gameDebug.busy);
+        await page.evaluate(id=>gameDebug.mapTap(gameDebug.props.find(p=>p.id===id)),id);
       }
       assert.ok(await page.locator('.object-prompt [data-action=use]').isEnabled(), id);
       await page.locator('.object-prompt [data-action=use]').click();
@@ -75,7 +76,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       assert.equal(await page.evaluate(() => gameDebug.state.scene), "proc-tavern");
       await interact("innkeeper");
       assert.match(await page.locator("#dialogue-text").innerText(), /Медный фонарь/);
-      assert.match(await page.locator("#target-art svg").getAttribute("aria-label"), /Брам/);
+      assert.match(await page.locator("#speaker-caption").innerText(), /Брам/);
+      assert.equal(await page.locator("#speaker-art svg").count(), 1);
       assert.ok(await page.evaluate(() => gameDebug.state.doors["proc-tavern:hall-door"]));
       if (seed === "tavern-1") await shot("locations-tavern-390.png");
       await interact("to-cellar");
