@@ -151,7 +151,6 @@ function face(B, s) {
     B(sx * .15, .815, .226, .06, .035, .012, mix(s.skin, 0xe58a8a, .35));
   }
   if (patch) { B(-.1, .89, .232, .13, .11, .014, INK); B(0, .985, .226, .47, .022, .014, INK); }
-  B(0, .845, .226, .04, .05, .012, shade(s.skin, .9)); // нос
   const br = (x, y, w, h) => B(x, y, .226, w, h, .012, s.brow);
   for (const sx of [-1, 1]) {
     switch (s.brows) {
@@ -165,7 +164,7 @@ function face(B, s) {
       default:
     }
   }
-  const m = (x, y, w, h, c = lip, z = .236) => B(x, y, z, w, h, .012, c);
+  const m = (x, y, w, h, c = lip, z = .236) => B(x, y + .015, z, w, h, .012, c);
   switch (s.mouth) {
     case 'neutral': m(0, .785, .08, .02); break;
     case 'grin': m(0, .78, .14, .04, MOUTH); m(0, .796, .12, .016, TEETH, .238); m(-.075, .8, .022, .022); m(.075, .8, .022, .022); break;

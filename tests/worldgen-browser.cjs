@@ -31,6 +31,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     await page.evaluate(()=>{gameDebug.state.settings.animations=false;gameDebug.save();});
     const meta=await page.evaluate(()=>gameDebug.state.world.gen);assert.deepEqual(meta,{v:1,seed:'integration-large',size:'large'});
     await page.evaluate(async()=>{for(const id of WorldGen.sceneIds(GeneratedWorlds.plan))await GeneratedWorlds.ensure(id);});
+    const idle=await page.evaluate(()=>{voxel.sync();return gameDebug.props.filter(p=>p.type==='npc').map(p=>({id:p.id,facing:voxel.models.get('prop:'+p.id).userData.idleFacing,angle:voxel.models.get('prop:'+p.id).rotation.y}));});
+    assert.ok(new Set(idle.map(p=>p.angle)).size>1,'Map NPCs face different directions');
     const places=await page.evaluate(()=>{
       const p=GeneratedWorlds.plan;const types=[...new Set(p.buildings.map(b=>b.type))];return ['town',...types.map(type=>p.buildings.find(b=>b.type===type).id),p.buildings.find(b=>b.cellar).cellar,p.buildings.find(b=>b.up).up,'out','dng:1','fort:yard','fort:keep','fort:up','fort:dng'];
     });
@@ -50,8 +52,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
       }throw Error('Missing '+kind);
     },kind);}
     const npc=await prepare('npc');await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);gameDebug.select(p);await gameDebug.approachInteract(p);},npc.pid);
-    assert.equal(await page.locator('#speaker-art canvas').count(),1);await page.screenshot({path:'qa/worldgen-dialogue-390.png'});
+    assert.equal(await page.locator('#speaker-art canvas').count(),1);
+    assert.equal(await page.evaluate(pid=>{const p=gameDebug.props.find(p=>p.id===pid),a=gameDebug.active(),dx=a.x-p.x,dy=a.y-p.y,f=Math.abs(dx)>Math.abs(dy)?dx>0?1:3:dy<0?2:0;return voxel.models.get('prop:'+pid).rotation.y===[0,Math.PI/2,Math.PI,-Math.PI/2][f];},npc.pid),true,'Talking NPC faces the hero');await page.screenshot({path:'qa/worldgen-dialogue-390.png'});
     await page.getByRole('button',{name:'Дальше',exact:true}).click();await page.getByRole('button',{name:'Попрощаться',exact:true}).click();
+    assert.equal(await page.evaluate(pid=>{const m=voxel.models.get('prop:'+pid);return m.rotation.y===[0,Math.PI/2,Math.PI,-Math.PI/2][m.userData.idleFacing];},npc.pid),true,'Closing conversation restores idle pose');
     const door=await prepare('door');await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);gameDebug.active().inventory.push(p.lock.key||'Отмычки');gameDebug.select(p);await gameDebug.approachInteract(p);},door.pid);
     await page.screenshot({path:'qa/worldgen-lock-390.png'});
     if(await page.getByRole('button',{name:'Открыть ключом',exact:true}).count())await page.getByRole('button',{name:'Открыть ключом',exact:true}).click();else{await page.evaluate(()=>{const h=GeneratedWorlds.host();h.roll=()=>20;const p=gameDebug.props.find(p=>p.id===gameDebug.selected.id)||gameDebug.props.find(p=>p.type==='door'&&p.lock);WorldGen.Runtime.choose(h,gameDebug.state.scene,p,'force');closeDialogue();gameDebug.render();});}
@@ -72,7 +76,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(id=>Worlds.current?.id===id,worldId);
     assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),before);await page.evaluate(async()=>{await GeneratedWorlds.ensure('town');await GeneratedWorlds.ensure('out');});assert.equal(await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),layout);
     // Real portal back to outdoors and reciprocal entrance.
-    await page.evaluate(()=>gameDebug.enterScene('out'));const dest=await page.evaluate(()=>gameDebug.props.find(p=>p.destination==='town').destination);
+    // The trap can kill the hero; portal coverage requires a living actor.
+    await page.evaluate(()=>{gameDebug.active().hp=gameDebug.active().max;gameDebug.enterScene('out');});const dest=await page.evaluate(()=>gameDebug.props.find(p=>p.destination==='town').destination);
     await page.evaluate(async()=>{const p=gameDebug.props.find(p=>p.destination==='town');const a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c));a.x=c.x;a.y=c.y;gameDebug.render();await gameDebug.approachInteract(p);});await page.waitForFunction(()=>gameDebug.state.scene==='town');
     assert.equal(dest,'town');await page.evaluate(async()=>{gameDebug.save();Worlds.capture();if(!await Worlds.flush())throw Error('Final save failed');});
     assert.deepEqual(errors,[]);console.log('PASS worldgen browser: creation fields, all generated building types and outdoor/underground/fortress places, NPC portrait/dialogue, lock, trapped chest once, floor trap, reciprocal portal, real SQLite save/reload.');

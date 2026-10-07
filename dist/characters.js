@@ -567,7 +567,6 @@ var Characters = (() => {
       B(-0.1, 0.89, 0.232, 0.13, 0.11, 0.014, INK);
       B(0, 0.985, 0.226, 0.47, 0.022, 0.014, INK);
     }
-    B(0, 0.845, 0.226, 0.04, 0.05, 0.012, shade(s.skin, 0.9));
     const br = (x, y, w, h) => B(x, y, 0.226, w, h, 0.012, s.brow);
     for (const sx of [-1, 1]) {
       switch (s.brows) {
@@ -597,7 +596,7 @@ var Characters = (() => {
         default:
       }
     }
-    const m = (x, y, w, h, c = lip, z = 0.236) => B(x, y, z, w, h, 0.012, c);
+    const m = (x, y, w, h, c = lip, z = 0.236) => B(x, y + 0.015, z, w, h, 0.012, c);
     switch (s.mouth) {
       case "neutral":
         m(0, 0.785, 0.08, 0.02);

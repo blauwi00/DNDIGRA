@@ -1,4 +1,5 @@
 import * as T from "three";
+import {npcFacing,faceCell} from "./npc-facing.js";
 import { createMenuStage } from './menu-stage.js';
 import { texelPass, TEXEL } from "./texel.js";
 import { fitPreviewCamera } from "./preview-frame.js";
@@ -809,6 +810,7 @@ function addStatic() {
     if (["torch", "chandelier"].includes(p.type)) continue;
     const m = propModel(p);
     m.position.set(p.x + 0.5, 0, p.y + 0.5);
+    if(p.type==='npc')m.userData.idleFacing=npcFacing(S,p,g.state.world?.gen?.seed||g.state.procedural?.seed||g.state.world?.id||'');
     if (p.solid !== false && !["door", "portal", "decor", "banner"].includes(p.type)) contact(m, 0.88, 0.78);
     m.userData.p = p;
     world.add(m);
@@ -960,6 +962,7 @@ function sync() {
     const m = models.get("prop:" + p.id);
     if (!m) continue;
     m.visible = !(p.type === "chest" && g.state.loot[g.state.scene + ":" + p.id]);
+    if(p.type==='npc'){const speaker=window.viewsDebug?.speaker;const talking=speaker&&(speaker.id?speaker.id===p.id:speaker.name===p.name);m.rotation.y=[0,Math.PI/2,Math.PI,-Math.PI/2][talking?faceCell(p,g.active()):m.userData.idleFacing??0];}
     if (m.userData.hinge) {
       const goal = p.type === "door" && g.isOpen(p) || g.departingNpc?.doorId === p.id ? -Math.PI * 0.48 : 0;
       m.userData.hinge.userData.goal = goal;
