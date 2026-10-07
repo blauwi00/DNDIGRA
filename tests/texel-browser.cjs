@@ -21,7 +21,7 @@ const {build} = require('esbuild');
  page.on('pageerror',e=>errors.push(e.message));
  const url='http://127.0.0.1:'+server.address().port;
  await page.goto(url+'/current/');await page.waitForFunction(()=>voxel.ready);await page.addScriptTag({url:url+'/fixture.js'});
- await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());Worlds.detach();gameDebug.test('reset');closeDialogue();gameDebug.state.combat=false;viewsDebug.switchTab('map');gameDebug.render();voxel.sync();});
+ await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());CinematicMenu.play();Worlds.detach();gameDebug.test('reset');closeDialogue();gameDebug.state.combat=false;viewsDebug.switchTab('map');gameDebug.render();voxel.sync();});
  const checks=await page.evaluate(()=>{
   const {T}=TexelQA;
   const sheets=m=>{const out=[];m.traverse(n=>{if(n.userData.decal){if(!n.isInstancedMesh||n.castShadow)throw Error('Unbatched or shadow-casting decal');out.push(n)}});return out;};
@@ -81,7 +81,7 @@ const {build} = require('esbuild');
  const fps=[];
  for(const mode of roots.baseline?['baseline','current']:['current']){
   await page.goto(url+'/'+mode+'/');await page.waitForFunction(()=>voxel.ready);
-  await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());Worlds.detach();gameDebug.test('reset');closeDialogue();viewsDebug.switchTab('map');gameDebug.render();voxel.sync();});
+  await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());CinematicMenu.play();Worlds.detach();gameDebug.test('reset');closeDialogue();viewsDebug.switchTab('map');gameDebug.render();voxel.sync();});
   await page.waitForTimeout(300);
   const result=await page.evaluate(()=>new Promise(resolve=>{
    const renderer=voxel.renderer,render=renderer.render;let draws=0;const costs=[];const start=performance.now();

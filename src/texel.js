@@ -49,7 +49,12 @@ export function texelPass(boxes, role = () => 'other', size = TEXEL.size, { minD
     const zf = z + d / 2 + D / 2, key = z + d / 2 + 1e-4;
     const R = rng(Math.round(x * 997) * 31 + Math.round(y * 991) * 17 + Math.round(z * 983) * 13 + (c & 0xffff) + i * 7);
     // col,row — клетка сверху слева; cs,rs — сколько клеток занимает наклейка
-    const px = (col, row, color, cs = 1, rs = 1) => { if (color !== c) out.push([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, 'f', key]); };
+    const cells = Array.from({ length: m }, () => Array(n).fill(null));
+    const px = (col, row, color, cs = 1, rs = 1) => {
+      if (color === c) return;
+      for (let r = row; r < Math.min(m, row + rs); r++)
+        for (let q = col; q < Math.min(n, col + cs); q++) cells[r][q] = color;
+    };
     // Свет сверху слева: светлая верхняя кромка, тёмная нижняя, у широких боксов — боковые.
     if (m >= 3) { px(0, 0, tone(c, cfg.hi), n); px(0, m - 1, tone(c, cfg.lo), n); }
     if (n >= 4 && m >= 4 && w >= .2) { px(0, 1, tone(c, 1 + (cfg.hi - 1) * .5), 1, m - 2); px(n - 1, 1, tone(c, 1 - (1 - cfg.lo) * .6), 1, m - 2); }
@@ -66,14 +71,26 @@ export function texelPass(boxes, role = () => 'other', size = TEXEL.size, { minD
     }
     if (cfg.pleats && h >= .2 && w >= .2 && m >= 4) for (const col of [Math.round(n / 3), Math.round(n * 2 / 3)]) if (col > 0 && col < n) px(col, 1, tone(c, .9), 1, m - 2); // складки
     if (cfg.glint && n >= 2 && m >= 2) px(Math.min(1, n - 1), Math.min(1, m - 1), tone(c, 1.36)); // блик металла
+    // Resolve layers before emitting geometry: each cell has exactly one color.
+    // Merge equal rectangles so folds/noise never share a coplanar surface.
+    for (let row = 0; row < m; row++) for (let col = 0; col < n; col++) {
+      const color = cells[row][col];
+      if (color === null) continue;
+      let cs = 1, rs = 1;
+      while (col + cs < n && cells[row][col + cs] === color) cs++;
+      while (row + rs < m && cells[row + rs].slice(col, col + cs).every(v => v === color)) rs++;
+      for (let r = row; r < row + rs; r++) cells[r].fill(null, col, col + cs);
+      out.push([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, 'f', key]);
+    }
     // Верхняя грань (видна в 3D с камеры сверху): пара пикселей.
     if (w >= .18 && d >= .15) {
-      const nd = Math.max(1, Math.round(d / size)), cd = d / nd;
+      const nd = Math.max(1, Math.round(d / size)), cd = d / nd, top = new Map();
       for (let k = 0; k < 2; k++) {
         let f = (R() < .5 ? -1 : 1) * cfg.amp * (.6 + R() * .5); if (Math.abs(f) < .04) f = f < 0 ? -.04 : .04;
         const col = Math.floor(R() * n), r = Math.floor(R() * nd);
-        out.push([x - w / 2 + (col + .5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + .5) * cd, cw, D, cd, tone(c, 1 + f), false, 't', key]);
+        top.set(r * n + col, [x - w / 2 + (col + .5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + .5) * cd, cw, D, cd, tone(c, 1 + f), false, 't', key]);
       }
+      out.push(...top.values());
     }
   });
   return out;

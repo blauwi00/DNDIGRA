@@ -1,3 +1,6 @@
+## Texture overlap and complete object actions · 2026-10-07
+texelPass now resolves front face layers into one color per grid cell, merges disjoint equal-color rectangles, and deduplicates top pixels. No coplanar overlap within a parent face; RNG draws and frozen WorldGen look remain unchanged. tests/texel-overlap.mjs covers 500 material/seed textures. Object selection exposes use from afar (including Open and Read); use keeps the existing approach-then-interact path. Generic Inspect remains distinct from looting. Tap-select-act, target-cell anchoring and stationary camera remain. Cache token texelfix1. Rebuild all generated bundles with npm run build.
+
 ## Map controls correction · 2026-10-07
 User clarified: cell tap selects, then a separate "Идти" action starts travel. No automatic walking. Context actions anchor to the selected cell/object, never the active hero. Choosing an action dismisses the menu; approach requires another target tap to show nearby use. No floating stop menu: tapping the map during controlled travel stops it. Camera stays fixed. Cache token mapactions2.
 

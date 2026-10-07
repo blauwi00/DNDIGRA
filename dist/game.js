@@ -310,7 +310,7 @@
       const enabled = !busy && a.hp > 0 && reachable && !window.Worlds?.locked;
       if (dist(a, p) !== 1) actions.push({ id: "approach", label: "Подойти", enabled, run: () => approachInteract(p, "approach") });
       actions.push({ id: "inspect", label: "Осмотреть", enabled, run: () => approachInteract(p, "inspect") });
-      if (dist(a, p) === 1 && action && !["Осмотреть", "Читать"].includes(action.label)) actions.push({ id: "use", label: p.type === "npc" ? "Поговорить" : action.label, enabled: action.enabled && !window.Worlds?.locked, run: action.fn });
+      if (action && action.label !== "Осмотреть") actions.push({ id: "use", label: p.type === "npc" ? "Поговорить" : action.label, enabled: action.enabled && !window.Worlds?.locked, run: action.fn });
     } else if (!busy && selected && !object && (p.kind === 3 || p.dummy)) {
       actions.push({ id: "attack", label: p.dummy ? "Пробный удар" : "Атаковать", enabled: !busy && canAttack(a, p) && !window.Worlds?.locked, run: () => attack(p) });
     } else if (!busy && selected && !entity(selected) && !prop(selected) && path.length) {

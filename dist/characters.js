@@ -278,8 +278,11 @@ var Characters = (() => {
       const n = Math.max(1, Math.round(w / size)), m = Math.max(1, Math.round(h / size)), cw = w / n, ch = h / m;
       const zf = z + d / 2 + D / 2, key = z + d / 2 + 1e-4;
       const R = rng(Math.round(x * 997) * 31 + Math.round(y * 991) * 17 + Math.round(z * 983) * 13 + (c & 65535) + i * 7);
+      const cells = Array.from({ length: m }, () => Array(n).fill(null));
       const px = (col, row, color, cs = 1, rs = 1) => {
-        if (color !== c) out.push([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key]);
+        if (color === c) return;
+        for (let r = row; r < Math.min(m, row + rs); r++)
+          for (let q = col; q < Math.min(n, col + cs); q++) cells[r][q] = color;
       };
       if (m >= 3) {
         px(0, 0, tone(c, cfg.hi), n);
@@ -307,14 +310,24 @@ var Characters = (() => {
         for (const col of [Math.round(n / 3), Math.round(n * 2 / 3)]) if (col > 0 && col < n) px(col, 1, tone(c, 0.9), 1, m - 2);
       }
       if (cfg.glint && n >= 2 && m >= 2) px(Math.min(1, n - 1), Math.min(1, m - 1), tone(c, 1.36));
+      for (let row = 0; row < m; row++) for (let col = 0; col < n; col++) {
+        const color = cells[row][col];
+        if (color === null) continue;
+        let cs = 1, rs = 1;
+        while (col + cs < n && cells[row][col + cs] === color) cs++;
+        while (row + rs < m && cells[row + rs].slice(col, col + cs).every((v) => v === color)) rs++;
+        for (let r = row; r < row + rs; r++) cells[r].fill(null, col, col + cs);
+        out.push([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key]);
+      }
       if (w >= 0.18 && d >= 0.15) {
-        const nd = Math.max(1, Math.round(d / size)), cd = d / nd;
+        const nd = Math.max(1, Math.round(d / size)), cd = d / nd, top = /* @__PURE__ */ new Map();
         for (let k = 0; k < 2; k++) {
           let f = (R() < 0.5 ? -1 : 1) * cfg.amp * (0.6 + R() * 0.5);
           if (Math.abs(f) < 0.04) f = f < 0 ? -0.04 : 0.04;
           const col = Math.floor(R() * n), r = Math.floor(R() * nd);
-          out.push([x - w / 2 + (col + 0.5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + 0.5) * cd, cw, D, cd, tone(c, 1 + f), false, "t", key]);
+          top.set(r * n + col, [x - w / 2 + (col + 0.5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + 0.5) * cd, cw, D, cd, tone(c, 1 + f), false, "t", key]);
         }
+        out.push(...top.values());
       }
     });
     return out;
