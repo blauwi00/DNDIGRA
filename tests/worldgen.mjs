@@ -125,7 +125,10 @@ const chest={id:'c1',type:'chest',container:true,gen:true,name:'Сундук',de
   const trap={kind:'dart',name:'Дротики',save:'dex',dc:13,detectDc:15,disarmDc:12,dice:1,sides:4,poison:false,alarm:false,text:'Дротики.',hint:'Щели.'},p={...chest,id:'c2',trap};
   const h=mkHost([5,3]),o=Runtime.begin(h,'b1',p);assert.deepEqual(o.options.map(x=>x.id),['open','leave'],'ловушка должна быть скрыта при низкой внимательности');
   const r=Runtime.choose(h,'b1',p,'open');assert.ok(r.trap.hit&&h.hp.v===17);
-  const h2=mkHost([18]),r2=Runtime.choose(h2,'b1',{...p,id:'c3'},'open');assert.ok(!r2.trap.hit&&h2.hp.v===20);}
+  assert.deepEqual(r.trap.check,{natural:5,values:[5],total:5,bonus:0,dc:13,success:false,sides:20});
+  const h2=mkHost([18]),r2=Runtime.choose(h2,'b1',{...p,id:'c3'},'open');assert.ok(!r2.trap.hit&&h2.hp.v===20);assert.equal(r2.trap.check.success,true);
+  const lethal=mkHost([1,4]);lethal.hurt=()=>0;const stopped=Runtime.choose(lethal,'b1',p,'open');
+  assert.equal(stopped.trap.hp,0);assert.equal(stopped.looted,undefined);assert.deepEqual(lethal.given,[]);assert.equal(Runtime.isOpened(lethal,'b1',p),false);}
 { // замеченная ловушка: обезвредить
   const trap={kind:'fire',name:'Огонь',save:'dex',dc:14,detectDc:10,disarmDc:12,dice:2,sides:6,poison:false,alarm:false,text:'Пламя.',hint:'Гарь.'},p={...chest,id:'c4',trap};
   const h=mkHost([15],{wis:3}),o=Runtime.begin(h,'b1',p);assert.ok(o.options.some(x=>x.id==='disarm'),'ловушка не замечена');

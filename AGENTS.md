@@ -1,4 +1,7 @@
-# Current task: updated WorldGen archive · 2026-10-07
+# Current task: death screen · 2026-10-07
+Owner requested a death screen and missing saving throws after an altar approach. Show trap saves through HUD, apply DND.damage, stop movement and interaction at zero HP. Zero HP is unconsciousness until DND rules confirm death. Preserve saves and heroes; never automatically finish/delete the world. Run death-browser, WorldGen and existing mobile/movement/API regressions. Owner subsequently authorized publishing; update TEST Site only, not main. Keep separate feat/worldgen-runtime GitHub branch. QA screenshots never go to GitHub.
+
+# Previous task: updated WorldGen archive · 2026-10-07
 Integrate WORLDGEN.md Updates and TEXTURE_PLAN.md section6. Apply per-model decal materials / polygonOffset / no frustum culling in src/voxel.js. Source changes in separate GitHub branch only; do not publish Sites for this task. Old generator is frozen in src/worldgen-v1, new worlds use v2 through src/worldgen/world.js version dispatch. Preserve flat faces and map actions. Rebuild bundles, run worldgen, worldgen-versions, static-batches, API and 390x844 browser checks. If character transparency remains, report the scene and screenshot. QA screenshots never go to GitHub.
 
 # Previous task: map actions · 2026-10-07

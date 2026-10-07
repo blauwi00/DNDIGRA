@@ -39,15 +39,18 @@
     try{return await task;}finally{if(plan===activePlan)loading.delete(id);}
   }
   function prefetch(id){if(!plan||!Object.hasOwn(plan.scenes,id))return;const activePlan=plan;for(const next of WorldGen.exits(get(id)))idle(()=>{if(plan===activePlan)ensure(next).catch(()=>{});});}
-  function host(){const g=game(),s=g.state,a=g.active();return{state:s,roll:n=>g.roll(n,false),mod:key=>DND.mod(a.stats[key]),has:name=>s.party.some(p=>p.inventory.includes(name)),give:(name,n=1)=>{for(let i=0;i<n;i++)a.inventory.push(name);},gold:n=>s.gold+=n,potions:n=>s.potions+=n,torches:n=>a.torches+=n,hurt:(n,why)=>{a.hp=Math.max(0,a.hp-n);g.tell(why+': '+n+' урона.');return a.hp;},poison:()=>{if(!a.conditions.includes('poisoned'))a.conditions.push('poisoned');},log:t=>g.tell(t)};}
+  function host(){const g=game(),s=g.state,a=g.active();return{state:s,roll:n=>g.roll(n,false),mod:key=>DND.mod(a.stats[key]),has:name=>s.party.some(p=>p.inventory.includes(name)),give:(name,n=1)=>{for(let i=0;i<n;i++)a.inventory.push(name);},gold:n=>s.gold+=n,potions:n=>s.potions+=n,torches:n=>a.torches+=n,hurt:(n,why)=>{DND.damage(a,n);g.tell(why+': '+n+' урона.');return a.hp;},poison:()=>{if(!a.conditions.includes('poisoned'))a.conditions.push('poisoned');},log:t=>g.tell(t)};}
   // Award only when the complete loot fits. No partial rewards or lost keys.
   function fits(p){if(!p.container||!p.loot||opened(p))return true;const g=game(),a=structuredClone(g.active()),s={...g.state,potions:g.state.potions+(p.loot.potions||0)};a.inventory.push(...p.loot.gear);a.torches+=(p.loot.torches||0);return a.inventory.length<=100&&InventoryRules.slotsUsed(a,s)<=InventoryRules.CAPACITY;}
-  function show(p,act){window.openGeneratedDialogue(p,act.text,(act.options||[]).map(o=>({label:o.label,fn:()=>{
+  function show(p,act){window.openGeneratedDialogue(p,act.text,(act.options||[]).map(o=>({label:o.label,fn:async()=>{
+    if(game().active().hp<=0||window.HUD?.pending)return;
     if(o.id==='open'&&!fits(p)){show(p,{text:'Рюкзак заполнен. Добыча остаётся здесь; освободите место.',options:[{id:'leave',label:'Отойти'}]});return;}
     const g=game(),result=runtime().choose(host(),g.state.scene,p,o.id);
     if(result.opened)g.state.doors[g.state.scene+':'+p.id]=true;
     if(result.text)g.tell(result.text);
-    g.save();g.render();window.voxel?.sync();
+    const presented=presentTrap(result.trap);g.save();g.render();window.voxel?.sync();
+    await presented;
+    if(g.active().hp<=0){window.closeDialogue();g.render();return;}
     if(result.done){if(result.text)show(p,{text:result.text,options:[{id:'leave',label:'Закрыть'}]});else window.closeDialogue();}else show(p,result);
   }})));}
   function interact(p){const g=game();if(!g.state.world?.gen)return false;
@@ -56,6 +59,7 @@
     const act=runtime().begin(host(),g.state.scene,p);if(!act)return false;g.save();show(p,act);return true;
   }
   function opened(p){return runtime().isOpened(host(),game().state.scene,p);}
-  function step(scene,x,y){for(const event of runtime().step(host(),scene,x,y))game().tell(event.text||event.result.text);}
+  async function presentTrap(result){if(result?.check)await window.HUD?.check({...result.check,outcome:result.check.success?'Успех · вы избежали ловушки':result.dmg?'Неудача · '+result.dmg+' урона':'Неудача · поднята тревога'},'Спасбросок от ловушки');}
+  async function step(scene,x,y){for(const event of runtime().step(host(),scene,x,y)){game().tell(event.text||event.result.text);game().save();await presentTrap(event.result);}}
   window.GeneratedWorlds={prime,ensure,restore,prefetch,interact,opened,step,host,get plan(){return plan;}};
 })();

@@ -348,7 +348,7 @@
       const completed = await travel(a, route);
       path = [];
       busy = false;
-      if (completed === route.length && !stopRequested && state.scene === id && dist(a, p) === 1) {
+      if (a.hp>0 && !a.dead && completed === route.length && !stopRequested && state.scene === id && dist(a, p) === 1) {
         if (through) {
           selected = null;
         } else if (mode === "approach") {
@@ -360,7 +360,7 @@
           face(a, p);
           await interact(p);
         }
-      } else tell(stopRequested ? "Движение остановлено." : "Подойти к предмету не удалось.");
+      } else if(a.hp>0)tell(stopRequested ? "Движение остановлено." : "Подойти к предмету не удалось.");
     } finally {
       busy = false;
       path = [];
@@ -460,6 +460,7 @@
     window.Episode?.render();
     window.Worlds?.render();
     window.HUD?.render();
+    window.DeathScreen?.render();
     window.ProceduralLocations?.render();
     if (window.Worlds?.locked) {
       $("action").disabled = true;
@@ -481,6 +482,7 @@
     if (controlled) render();
     try {
       for (const p of steps) {
+        if(e.hp<=0||e.dead)return completed;
         if (controlled && stopRequested) break;
         const duration = animate() ? 220 : 0;
         if (state.combat && !e.disengaged) {
@@ -501,7 +503,7 @@
         face(e, p);
         e.x = p.x;
         e.y = p.y;
-        if(e.id===state.active && state.world?.gen) window.GeneratedWorlds.step(scene(),e.x,e.y);
+        if(e.id===state.active && state.world?.gen) await window.GeneratedWorlds.step(scene(),e.x,e.y);
         if (state.combat && controlled) e.move--;
         save();
         window.voxel?.move(e.id, from, p, duration);
@@ -510,6 +512,7 @@
         window.fx?.step(e, duration);
         await wait(duration);
         completed++;
+        if(e.hp<=0||e.dead)return completed;
         if (controlled) path = steps.slice(completed);
       }
       return completed;
@@ -1008,7 +1011,7 @@
   }
   function interact(p) {
     if (window.Worlds?.locked) return;
-    if (busy || dist(active(), p) !== 1) return;
+    if (busy || active().hp<=0 || active().dead || dist(active(), p) !== 1) return;
     if(state.world?.gen && !state.combat && window.GeneratedWorlds.interact(p)) return;
     if (p.type === "ground-item") {
       window.Inventory.pickup(p);

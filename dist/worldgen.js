@@ -4187,18 +4187,19 @@ var WorldGen = (() => {
     return 10 + host.mod("wis");
   }
   function fireTrap(host, trap) {
-    const { r, total } = d20(host, host.mod(trap.save)), ok = total >= trap.dc;
+    const bonus = host.mod(trap.save), { r, total } = d20(host, bonus), ok = total >= trap.dc;
+    const check = { natural: r, values: [r], total, bonus, dc: trap.dc, success: ok, sides: 20 };
     let text = trap.text + ` \u0421\u043F\u0430\u0441\u0431\u0440\u043E\u0441\u043E\u043A (${ABILITY[trap.save]}): ${r}${host.mod(trap.save) >= 0 ? "+" : ""}${host.mod(trap.save)} \u043F\u0440\u043E\u0442\u0438\u0432 \u0441\u043B. ${trap.dc}, `;
-    if (ok) return { hit: false, text: text + "\u0443\u0441\u043F\u0435\u0445, \u0432\u044B \u0443\u0432\u0435\u0440\u043D\u0443\u043B\u0438\u0441\u044C." };
+    if (ok) return { hit: false, check, text: text + "\u0443\u0441\u043F\u0435\u0445, \u0432\u044B \u0443\u0432\u0435\u0440\u043D\u0443\u043B\u0438\u0441\u044C." };
     let dmg = 0;
     for (let i = 0; i < trap.dice; i++) dmg += host.roll(trap.sides);
     if (trap.alarm) {
       host.state.gen && (gstate(host).alarm = true);
-      return { hit: true, alarm: true, text: text + "\u043F\u0440\u043E\u0432\u0430\u043B. \u0428\u0443\u043C \u0440\u0430\u0437\u043D\u0451\u0441\u0441\u044F \u043F\u043E \u043E\u043A\u0440\u0443\u0433\u0435." };
+      return { hit: true, check, alarm: true, text: text + "\u043F\u0440\u043E\u0432\u0430\u043B. \u0428\u0443\u043C \u0440\u0430\u0437\u043D\u0451\u0441\u0441\u044F \u043F\u043E \u043E\u043A\u0440\u0443\u0433\u0435." };
     }
-    host.hurt(dmg, trap.name);
+    const hp = host.hurt(dmg, trap.name);
     if (trap.poison) host.poison?.();
-    return { hit: true, dmg, text: text + `\u043F\u0440\u043E\u0432\u0430\u043B, \u0443\u0440\u043E\u043D ${dmg}.` };
+    return { hit: true, check, dmg, hp, text: text + `\u043F\u0440\u043E\u0432\u0430\u043B, \u0443\u0440\u043E\u043D ${dmg}.` };
   }
   function lockOptions(host, p, g, k) {
     const o = [];
@@ -4292,6 +4293,7 @@ var WorldGen = (() => {
         trap = fireTrap(host, p.trap);
         pre = trap.text + " ";
       }
+      if (trap?.hp === 0) return { done: true, text: pre.trim(), trap };
       return { done: true, text: pre + takeLoot(host, p, g, k), trap, looted: true };
     }
     return { done: true, text: "" };

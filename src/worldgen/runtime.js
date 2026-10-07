@@ -21,13 +21,14 @@ export function passivePerception(host) { return 10 + host.mod('wis'); }
 
 // Ловушка срабатывает: спасбросок против сложности, при провале урон.
 export function fireTrap(host, trap) {
-  const { r, total } = d20(host, host.mod(trap.save)), ok = total >= trap.dc;
+  const bonus=host.mod(trap.save),{ r, total } = d20(host, bonus), ok = total >= trap.dc;
+  const check={natural:r,values:[r],total,bonus,dc:trap.dc,success:ok,sides:20};
   let text = trap.text + ` Спасбросок (${ABILITY[trap.save]}): ${r}${host.mod(trap.save) >= 0 ? '+' : ''}${host.mod(trap.save)} против сл. ${trap.dc}, `;
-  if (ok) return { hit: false, text: text + 'успех, вы увернулись.' };
+  if (ok) return { hit: false, check, text: text + 'успех, вы увернулись.' };
   let dmg = 0; for (let i = 0; i < trap.dice; i++) dmg += host.roll(trap.sides);
-  if (trap.alarm) { host.state.gen && (gstate(host).alarm = true); return { hit: true, alarm: true, text: text + 'провал. Шум разнёсся по округе.' }; }
-  host.hurt(dmg, trap.name); if (trap.poison) host.poison?.();
-  return { hit: true, dmg, text: text + `провал, урон ${dmg}.` };
+  if (trap.alarm) { host.state.gen && (gstate(host).alarm = true); return { hit: true, check, alarm: true, text: text + 'провал. Шум разнёсся по округе.' }; }
+  const hp=host.hurt(dmg, trap.name); if (trap.poison) host.poison?.();
+  return { hit: true, check, dmg, hp, text: text + `провал, урон ${dmg}.` };
 }
 
 function lockOptions(host, p, g, k) {
@@ -92,6 +93,7 @@ export function choose(host, sceneId, p, optionId) {
   if (p.container && optionId === 'open') {
     let pre = '', trap = null;
     if (p.trap && !g.disarmed[k] && !g.fired[k]) { g.fired[k] = true; trap = fireTrap(host, p.trap); pre = trap.text + ' '; }
+    if(trap?.hp===0)return {done:true,text:pre.trim(),trap};
     return { done: true, text: pre + takeLoot(host, p, g, k), trap, looted: true };
   }
   return { done: true, text: '' };
