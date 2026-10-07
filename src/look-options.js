@@ -10,6 +10,7 @@ export const PALETTES = {
   cloth: P([['#24456b', 'Ночной синий'], ['#315e84', 'Синий'], ['#4a7fb0', 'Небесный'], ['#2f7a7a', 'Морская волна'], ['#566d70', 'Сланец'], ['#2d4f2c', 'Хвоя'], ['#3f6b3b', 'Зелёный'], ['#487844', 'Трава'], ['#7a9a4a', 'Олива'], ['#452361', 'Индиго'], ['#5d2f7e', 'Фиолетовый'], ['#62377e', 'Аметист'], ['#8a4a9a', 'Орхидея'], ['#c8688a', 'Роза'], ['#6a2330', 'Бургунд'], ['#8a2f3c', 'Бордовый'], ['#843f37', 'Кирпич'], ['#b0452f', 'Терракота'], ['#c7792f', 'Янтарь'], ['#8a6a46', 'Лен'], ['#2a2a30', 'Уголь'], ['#6c6c76', 'Серый'], ['#e6dcc4', 'Кремовый'], ['#f0ece0', 'Белый'],['#8b3d46', 'Оттенок 1'],['#172b48', 'Оттенок 2'],['#386f9a', 'Оттенок 3'],['#528b91', 'Оттенок 4'],['#244b3b', 'Оттенок 5'],['#74914b', 'Оттенок 6'],['#b28439', 'Оттенок 7'],['#bf6d36', 'Оттенок 8'],['#714c38', 'Оттенок 9'],['#302d38', 'Оттенок 10'],['#aaa69b', 'Оттенок 11'],['#cfbda0', 'Оттенок 12'],['#775b96', 'Оттенок 13'],['#a9617b', 'Оттенок 14'],['#484c74', 'Оттенок 15']]),
   trim: P([['#d0a94a', 'Золото'], ['#c3a04c', 'Старое золото'], ['#e8c870', 'Светлое золото'], ['#b6bdc5', 'Серебро'], ['#8fa0b0', 'Сталь'], ['#c5b895', 'Слоновая кость'], ['#78552e', 'Бронза'], ['#b87333', 'Медь'], ['#b02f3d', 'Алый'], ['#3d8be8', 'Лазурный'], ['#4fb58a', 'Изумруд'], ['#f0ece0', 'Белый'], ['#2a2a30', 'Чёрный'],['#c6a04f', 'Оттенок 1'],['#e4c778', 'Оттенок 2'],['#dbb787', 'Оттенок 3'],['#ad7748', 'Оттенок 4'],['#926749', 'Оттенок 5'],['#d8dce1', 'Оттенок 6'],['#82919d', 'Оттенок 7'],['#526374', 'Оттенок 8'],['#e9dfc7', 'Оттенок 9'],['#b18bbf', 'Оттенок 10'],['#699ca0', 'Оттенок 11'],['#4c5b4c', 'Оттенок 12']]),
   leather: P([['#4b3626', 'Тёмная кожа'], ['#5a3d28', 'Кожа'], ['#6a4a30', 'Светлая кожа'], ['#8a6a46', 'Дублёная'], ['#2a2a30', 'Чёрная'], ['#3a3a44', 'Графитовая'], ['#6a2330', 'Красная'], ['#2d4f2c', 'Зелёная'], ['#24456b', 'Синяя']]),
+  paint: P([['#b02f3d', 'Алый'], ['#f0ece0', 'Белый'], ['#3d8be8', 'Лазурный'], ['#1a1a1f', 'Чёрный'], ['#3f9a5a', 'Зелёный'], ['#d0a94a', 'Золотой'], ['#7a3fa8', 'Фиолетовый'], ['#e07a2f', 'Оранжевый']]),
   gem: P([['#4aa8f0', 'Сапфир'], ['#e0475a', 'Рубин'], ['#4fd08a', 'Изумруд'], ['#a86bf0', 'Аметист'], ['#f0c040', 'Топаз'], ['#40e0d0', 'Бирюза'], ['#f0f0ff', 'Алмаз'], ['#f07ac0', 'Розовый кварц']]),
 };
 export const hexes = key => PALETTES[key].map(c => c.hex);
@@ -23,7 +24,7 @@ export const OPTIONS = {
   eyes: L([['dot', 'Точки'], ['wide', 'Широкие'], ['narrow', 'Узкие'], ['happy', 'Радостные'], ['sleepy', 'Сонные'], ['sparkle', 'Блестящие'], ['big', 'Большие']]),
   mouth: L([['smile', 'Улыбка'], ['neutral', 'Спокойный'], ['grin', 'Ухмылка с зубами'], ['smirk', 'Усмешка'], ['open', 'Открытый'], ['cat', 'Кошачий'], ['frown', 'Хмурый']]),
   beard: L([['none', 'Без бороды'], ['stubble', 'Щетина'], ['mustache', 'Усы'], ['goatee', 'Эспаньолка'], ['short', 'Короткая'], ['full', 'Густая'], ['long', 'Длинная'], ['sideburns', 'Бакенбарды']]),
-  marks: L([['freckles', 'Веснушки'], ['blush', 'Румянец'], ['scar', 'Шрам'], ['mole', 'Родинка'], ['warpaint', 'Боевая раскраска'], ['plaster', 'Пластырь']]),
+  marks: L([['freckles', 'Веснушки'], ['blush', 'Румянец'], ['scar', 'Шрам'], ['browscar', 'Шрам на брови'], ['mole', 'Родинка'], ['warpaint', 'Боевая раскраска'], ['plaster', 'Пластырь']]),
   headgear: L([['none', 'Без убора'], ['hood', 'Капюшон'], ['wizhat', 'Шляпа мага'], ['helm', 'Шлем'], ['circlet', 'Диадема'], ['headband', 'Повязка'], ['cap', 'Берет с пером'], ['crown', 'Корона']]),
   cape: L([['none', 'Без плаща'], ['short', 'Короткий плащ'], ['long', 'Длинный плащ'], ['mantle', 'Накидка']]),
   accessories: L([['earring', 'Серьга'], ['eyepatch', 'Повязка на глаз'], ['glasses', 'Очки'], ['scarf', 'Шарф'], ['amulet', 'Амулет'], ['bracers', 'Наручи']]),
@@ -35,8 +36,8 @@ export const OUTFITS = {
   cleric: L([['vestments', 'Облачение'], ['surplice', 'Стихарь'], ['mail', 'Кольчуга'], ['monk', 'Ряса с верёвкой']]),
 };
 export const DEFAULT_OUTFIT = { fighter: 'plate', wizard: 'robe', rogue: 'leathers', cleric: 'vestments' };
-export const COLOR_FIELDS = { skin: 'skin', hair: 'hair', hair2: 'hair', brow: 'hair', eye: 'eye', beardColor: 'hair', cloth: 'cloth', cloth2: 'cloth', trim: 'trim', leather: 'leather', accent: 'cloth', hat: 'cloth', capeColor: 'cloth', gem: 'gem' };
-export const NULLABLE = ['hair2', 'brow', 'beardColor', 'cloth2', 'accent', 'hat', 'capeColor'];
+export const COLOR_FIELDS = { skin: 'skin', hair: 'hair', hair2: 'hair', brow: 'hair', eye: 'eye', beardColor: 'hair', cloth: 'cloth', cloth2: 'cloth', trim: 'trim', leather: 'leather', accent: 'cloth', markColor: 'paint', hat: 'cloth', capeColor: 'cloth', gem: 'gem' };
+export const NULLABLE = ['hair2', 'brow', 'beardColor', 'cloth2', 'accent', 'markColor', 'hat', 'capeColor'];
 export const ALLOWED_KEYS = new Set(['gender', 'ears', 'hairStyle', 'brows', 'eyes', 'mouth', 'beard', 'marks', 'headgear', 'cape', 'accessories', 'outfit', 'face', 'hood', ...Object.keys(COLOR_FIELDS)]);
 
 // Облик по умолчанию для класса и пола (из эталонного листа).

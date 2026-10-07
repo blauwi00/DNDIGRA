@@ -16,6 +16,7 @@
   let tab = 'looks', angle = 0;
 
   function create(draft, hooks = {}) {
+    if(window.CinematicMenu?.active&&tab==='looks')tab='hair';
     const Ch = C(), ClassInfo = () => R().CLASSES[draft.classId];
     const fresh = Ch.normalize(draft.appearance, draft.classId); delete fresh.face; delete fresh.hood; draft.appearance = fresh;
     const ap = () => draft.appearance, hands = () => ClassInfo().kits[draft.kit]?.hands;
@@ -27,7 +28,7 @@
     const modelBox = el('div', 'look-model'), portraitBox = el('div', 'look-portrait'), tools = el('div', 'look-tools');
     const rotL = el('button', 'look-rot rot-l'), rotR = el('button', 'look-rot rot-r');
     rotL.append(icon('left')); rotR.append(icon('right')); rotL.type = rotR.type = 'button'; rotL.setAttribute('aria-label', 'Повернуть влево'); rotR.setAttribute('aria-label', 'Повернуть вправо');
-    rotL.onclick = () => { angle = (angle + 3) % 4; paintStage(); }; rotR.onclick = () => { angle = (angle + 1) % 4; paintStage(); };
+    rotL.onclick = () => { if(window.CinematicMenu?.active){window.voxel?.turnHero(-Math.PI/2);return;} angle = (angle + 3) % 4; paintStage(); }; rotR.onclick = () => { if(window.CinematicMenu?.active){window.voxel?.turnHero(Math.PI/2);return;} angle = (angle + 1) % 4; paintStage(); };
     const modelSlot = el('div', 'look-slot'), modelCap = el('small', '', 'Модель'), portraitSlot = el('div', 'look-slot frame'), portraitCap = el('small', '', '');
     let dragX=null,dragged=false;
     modelSlot.style.touchAction='pan-y';
@@ -41,10 +42,12 @@
     const undoBtn = toolBtn('undo', 'Отмена', undo), resetBtn = toolBtn('reset', 'Сброс', resetClass);
     undoBtn.disabled = true;
     tools.append(diceBtn, undoBtn, resetBtn);
-    stage.append(modelBox, portraitBox, tools);
+    if(window.CinematicMenu?.active){const basics=Heroes.basicControls();modelBox.append(portraitBox);stage.append(basics,modelBox);}else stage.append(modelBox, portraitBox, tools);
     const tabs = el('div', 'look-tabs'); tabs.setAttribute('role', 'tablist');
-    const tabBtns = Ch.TABS.map(t => { const b = el('button', 'look-tab', t.name); b.type = 'button'; b.setAttribute('role', 'tab'); b.onclick = () => { tab = t.id; paintTabs(); paintPanel(); }; tabs.append(b); return [t.id, b]; });
+    const categories=window.CinematicMenu?.active?[...Ch.TABS].sort((a,b)=>['face','hair','outfit','looks','extras'].indexOf(a.id)-['face','hair','outfit','looks','extras'].indexOf(b.id)):Ch.TABS;
+    const tabBtns = categories.map(t => { const b = el('button', 'look-tab', t.name); b.type = 'button'; b.setAttribute('role', 'tab'); b.onclick = () => { tab = t.id; paintTabs(); paintPanel(); }; tabs.append(b); return [t.id, b]; });
     sticky.append(stage, tabs);
+    if(window.CinematicMenu?.active)tabs.append(tools);
     const panel = el('div', 'look-panel');
     const note = el('p', 'look-note', 'Все изменения видны сразу на модели и портрете. После подтверждения героя внешность закрепится.');
     root.append(sticky, panel, note);
@@ -79,7 +82,7 @@
     function tilesGroup(g) {
       const { wrap, val } = group(g.title), opts = g.byClass ? Ch.OUTFITS[draft.classId] : Ch.OPTIONS[g.key], grid = el('div', 'look-tiles');
       const tiles = opts.map(o => { const b = el('button', 'look-tile'); b.type = 'button'; b.onclick = () => commit(a => { a[g.key] = o.id; }); b.setAttribute('aria-label', g.title + ': ' + o.name); grid.append(b); return { b, o }; });
-      wrap.append(grid);
+      wrap.dataset.field=g.key;wrap.append(grid);
       const update = () => { val.textContent = '· ' + (opts.find(o => o.id === ap()[g.key])?.name || ''); for (const t of tiles) { t.b.replaceChildren(thumb({ [g.key]: t.o.id }, g.view, g.back), el('span', 'lab', t.o.name)); const on = ap()[g.key] === t.o.id; t.b.classList.toggle('active', on); t.b.setAttribute('aria-pressed', String(on)); } };
       updaters.push(update); update(); return wrap;
     }
@@ -131,12 +134,13 @@
     function paintPanel() {
       updaters = []; panel.replaceChildren();
       const nodes = tab === 'looks' ? looksTab() : Ch.GROUPS[tab].map(g => g.type === 'tiles' ? tilesGroup(g) : g.type === 'multi' ? multiGroup(g) : swatchGroup(g));
-      panel.append(...nodes); panel.scrollTop = 0;
+      panel.append(...nodes); panel.scrollTop = 0;if(window.CinematicMenu?.active)requestAnimationFrame(()=>{for(const row of panel.querySelectorAll('.look-tiles,.look-swatches')){const chosen=row.querySelector('.active');if(chosen)row.scrollLeft=Math.max(0,chosen.offsetLeft-row.offsetLeft-row.clientWidth/2+chosen.clientWidth/2);}});
     }
     function paintStage() {
       modelSlot.replaceChildren();
-      try { const m = window.voxel?.heroPortrait?.(actor(), angle); if (m) { m.classList.add('look-canvas'); modelSlot.append(m); } } catch { /* 3D недоступно */ }
-      if (!modelSlot.firstChild) { const f = Ch.portrait(ClassInfo().kind, actor(), { view: 'full', width: 120, height: 150, pixel: 2 }); f.className = 'look-canvas'; modelSlot.append(f); }
+      if(window.CinematicMenu?.active){window.CinematicMenu.setHero(actor(),modelSlot);modelSlot.setAttribute('aria-label','Модель героя: вращайте пальцем');}
+      try { const m = !window.CinematicMenu?.active && window.voxel?.heroPortrait?.(actor(), angle); if (m) { m.classList.add('look-canvas'); modelSlot.append(m); } } catch { /* 3D недоступно */ }
+      if (!window.CinematicMenu?.active && !modelSlot.firstChild) { const f = Ch.portrait(ClassInfo().kind, actor(), { view: 'full', width: 120, height: 150, pixel: 2 }); f.className = 'look-canvas'; modelSlot.append(f); }
       const p = Ch.portrait(ClassInfo().kind, actor(), { width: 168, height: 192, pixel: 3 }); p.className = 'look-canvas'; p.setAttribute('aria-label', 'Портрет героя');
       portraitSlot.replaceChildren(p); portraitCap.textContent = (draft.name || 'Герой') + ' · ' + ClassInfo().name;
     }

@@ -1,5 +1,8 @@
 # Instructions for coding agents
 
+## Main promotion · 2026-10-07
+Owner explicitly requested promoting TEST v14 into this MAIN project. This supersedes old test-only/no-main restrictions in imported historical notes. Preserve MAIN project ID appgprj_6abd85e3189481919bbcd8003341cb45, its audience, D1 DB, migrations and local key beyond-voxel-dnd-1. Do not import test player data. All tested WorldGen, UI, model and death-screen changes are promoted; test FPS panel is excluded. Build generated bundles from src, never edit dist/voxel.js manually.
+
 Read AI_HANDOFF.md and CHARACTER_STYLE.md before editing. The owner has resumed implementation and authorized changes to the live game. Preserve the existing Site identity and audience.
 
 Use Node.js 24, npm ci and npm run build. Browser files in dist are partly authored source; do not delete dist wholesale. Generate dist/voxel.js, dist/hero-rules.js, dist/inventory-rules.js and dist/character-style.js from src, rather than patching bundles manually.

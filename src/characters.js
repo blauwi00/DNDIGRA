@@ -2,11 +2,15 @@
 // Правила стиля: CHARACTER_STYLE.md. Тест: tests/characters.mjs. Варианты внешности: src/look-options.js.
 // Модель: [x, y, z, w, h, d, цвет, светится?]. Перед моделью +z, высота ~1.3, подставку рисует рендер.
 import { PALETTES, OPTIONS, OUTFITS, GROUPS, TABS, PRESETS, COLOR_FIELDS, defaultLook, normalize, randomLook, presetLook, validateAppearance } from './look-options.js';
+import { texelPass, shade, TEXEL } from './texel.js';
+export { shade, TEXEL };
 export { PALETTES, OPTIONS, OUTFITS, GROUPS, TABS, PRESETS, COLOR_FIELDS, defaultLook, normalize, randomLook, presetLook, validateAppearance };
 
 export const RULES = {
   headMinRatio: .34, headMaxRatio: .46, // доля головы от высоты фигуры
-  maxBoxes: 200,                        // бюджет боксов на фигуру
+  maxBoxes: 200,                        // бюджет боксов фигуры без текселей
+  maxWithTexels: 520,                   // бюджет вместе с текселями-наклейками (правило «тексели», src/texel.js)
+  texel: true,
   defaultEye: 0x14141a,
   outline: '#1b1620',
   classes: ['fighter', 'rogue', 'wizard', 'cleric'],
@@ -30,22 +34,21 @@ const DEFAULT_HANDS = { fighter: ['sword', 'shield'], rogue: ['sword', 'empty'],
 // Реестр NPC. Новый NPC обязан быть здесь: тест tests/characters.mjs сверяет его с props сцен.
 // look — любые поля внешности из look-options.js поверх облика класса и пола.
 export const NPCS = {
+ innkeeper: {name:'Брам',role:'трактирщик',classId:'fighter',gender:'male',look:{hair:'#6a432c',hairStyle:'short',beard:'none',cloth:'#843f37'},hands:['empty','empty']},
+ 'street-guard': {name:'Рада',role:'стражница',classId:'fighter',gender:'female',look:{hair:'#6a432c',hairStyle:'braid',cloth:'#315e84'},hands:['sword','shield']},
   keeper: { name: 'Эллен', role: 'хранительница', classId: 'cleric', gender: 'female', look: { hair: '#c7c4bf', hairStyle: 'long', brows: 'soft', headgear: 'hood' }, hands: ['empty', 'empty'], book: true },
   novice: { name: 'Лин', role: 'послушник', classId: 'cleric', gender: 'male', look: { hair: '#6a432c', hairStyle: 'short', brows: 'soft', beard: 'none', cloth: '#843f37' }, hands: ['empty', 'empty'] },
 };
 export const NPC_BY_NAME = Object.fromEntries(Object.entries(NPCS).map(([id, n]) => [n.name, id]));
 
 const num = v => typeof v === 'number' ? v : (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : undefined);
-export function shade(c, k) {
-  const r = Math.min(255, Math.round((c >> 16 & 255) * k)), g = Math.min(255, Math.round((c >> 8 & 255) * k)), b = Math.min(255, Math.round((c & 255) * k));
-  return r << 16 | g << 8 | b;
-}
 const mix = (a, b, t) => (shade(a, 1 - t) + shade(b, t)) & 0xffffff;
 
 // Нормализует героя, NPC или стартового члена отряда в спецификацию внешности. null — для врагов и манекенов.
 export function spec(kind, actor) {
-  const rawNpcId=actor?.npc||actor?.npcId;const npcId = ({ellen:'keeper',lin:'novice'})[rawNpcId]||rawNpcId|| (actor && actor.id && NPCS[actor.id] && actor.type === 'npc' ? actor.id : null);
-  if(npcId&&!Object.hasOwn(NPCS,npcId))throw Error('NPC must be registered: '+npcId);const npc = npcId ? NPCS[npcId] : null;
+  const gen=actor?.gen && typeof actor.gen==='object'?actor.gen:null;
+  const rawNpcId=gen?null:actor?.npc||actor?.npcId;const npcId = ({ellen:'keeper',lin:'novice'})[rawNpcId]||rawNpcId|| (actor && actor.id && NPCS[actor.id] && actor.type === 'npc' ? actor.id : null);
+  if(npcId&&!Object.hasOwn(NPCS,npcId))throw Error('NPC must be registered: '+npcId);const npc = gen || (npcId ? NPCS[npcId] : null);
   const classId = npc?.classId || (RULES.classes.includes(actor?.classId) ? actor.classId : KIND_TO_CLASS[kind]);
   if (!classId) return null;
   let ap;
@@ -58,29 +61,31 @@ export function spec(kind, actor) {
     marks: ap.marks, headgear: ap.headgear, cape: ap.cape, accessories: ap.accessories,
     skin: num(ap.skin) ?? 0xe9bf90, hair, hair2: num(ap.hair2) ?? null, brow: num(ap.brow) ?? shade(hair, .85), eye: num(ap.eye) ?? RULES.defaultEye,
     beardC: num(ap.beardColor) ?? hair, cloth, cloth2: num(ap.cloth2) ?? (cloth === p.cloth ? p.dark : shade(cloth, .78)), trim: num(ap.trim) ?? p.trim,
-    leather, boots: shade(leather, .83), gem: num(ap.gem) ?? 0x4aa8f0, accent: num(ap.accent) ?? null, hat: num(ap.hat) ?? null, capeC: num(ap.capeColor) ?? shade(cloth, .86),
+    leather, boots: shade(leather, .83), gem: num(ap.gem) ?? 0x4aa8f0, accent: num(ap.accent) ?? null, markC: num(ap.markColor) ?? null, hat: num(ap.hat) ?? null, capeC: num(ap.capeColor) ?? shade(cloth, .86),
     hands: npc?.hands || actor?.hands || DEFAULT_HANDS[classId], book: !!npc?.book, p,
   };
 }
 
 // Строит список боксов фигуры. Чибимасштаб: большая голова (~40%), короткие конечности, плоское лицо.
-export function build(s) {
+export function build(s, opts = {}) {
   const out = [], B = (x, y, z, w, h, d, c, e = false) => out.push([x, y, z, w, h, d, c, e]);
   const female = s.gender === 'female', robe = s.classId === 'wizard' || s.classId === 'cleric';
-  const bw = female ? .33 : .37, arm = bw / 2 + .07, o = s.outfit, cls = s.classId, trim = s.trim, cloth = s.cloth, c2 = s.cloth2;
+  const bw = female ? .29 : .41, arm = bw / 2 + (female ? .055 : .08), aw = female ? .1 : .14, o = s.outfit, cls = s.classId, trim = s.trim, cloth = s.cloth, c2 = s.cloth2;
   const sleeve = o === 'vest' || o === 'scholar' || o === 'surplice' ? CREAM : o === 'mail' || o === 'tabard' ? MAIL : cloth;
   const torso = o === 'mail' || o === 'tabard' ? MAIL : o === 'leather' || o === 'studded' ? s.leather : o === 'surplice' ? CREAM : cloth;
   // Ноги, подол
   if (robe) {
-    B(0, .31, 0, bw + .1, .3, .3, o === 'surplice' ? CREAM : cloth); B(0, .17, 0, bw + .12, .045, .32, trim);
+    const rw = female ? bw + .22 : bw + .06;
+    B(0, .31, 0, rw, .3, .3, o === 'surplice' ? CREAM : cloth); B(0, .17, 0, rw + .02, .045, .32, trim);
     for (const sx of [-1, 1]) B(sx * .1, .14, .07, .14, .06, .16, s.boots);
   } else {
     for (const sx of [-1, 1]) { B(sx * .1, .2, .03, .15, .13, .2, s.boots); B(sx * .1, .32, .02, .14, .1, .15, c2); }
+    if (female) { B(0, .37, 0, .46, .12, .3, c2); B(0, .305, 0, .48, .028, .32, trim); } // юбка: женский силуэт читается сразу
   }
   // Торс, пояс, руки
   B(0, .56, 0, bw, .26, .25, torso);
   B(0, .43, 0, bw + .02, .05, .27, o === 'monk' ? 0xc8b88a : s.leather); B(0, .43, .14, .08, .065, .03, cls === 'wizard' ? s.gem : trim);
-  for (const sx of [-1, 1]) { B(sx * arm, .55, 0, .12, .24, .17, sleeve); B(sx * arm, .4, .02, .1, .08, .11, s.skin); }
+  for (const sx of [-1, 1]) { B(sx * arm, .55, 0, aw, .24, female ? .15 : .18, sleeve); B(sx * arm, .4, .02, aw - .02, .08, female ? .1 : .12, s.skin); }
   // Голова, уши, лицо
   B(0, .9, .02, .46, .42, .4, s.skin);
   face(B, s);
@@ -94,11 +99,40 @@ export function build(s) {
   headgear(B, s);
   accessories(B, s, bw, arm);
   held(B, s, arm, trim);
+  separateCoplanarFaces(out);
+  if (opts.texel ?? RULES.texel) out.push(...texelPass(out, texelRole(s)));
   return out;
 }
 
+// Outfits and facial features intentionally overlap. Give coincident surfaces a
+// tiny physical relief instead of letting their different colors fight in depth.
+function separateCoplanarFaces(boxes) {
+  const relief = .0005, layers = boxes.map(() => Array(6).fill(0));
+  for (let j = 0; j < boxes.length; j++) for (let i = 0; i < j; i++) {
+    const a = boxes[i], b = boxes[j];
+    for (let axis = 0; axis < 3; axis++) {
+      if (![0,1,2].filter(k => k !== axis).every(k => Math.min(a[k]+a[k+3]/2,b[k]+b[k+3]/2)-Math.max(a[k]-a[k+3]/2,b[k]-b[k+3]/2)>1e-8)) continue;
+      for (const sign of [-1,1]) {
+        const face = axis*2 + (sign===1?1:0);
+        if (Math.abs(a[axis]+sign*a[axis+3]/2-b[axis]-sign*b[axis+3]/2)<1e-8)
+          layers[j][face]=Math.max(layers[j][face],layers[i][face]+1);
+      }
+    }
+  }
+  boxes.forEach((b,i) => {for(let axis=0;axis<3;axis++){
+    const lo=layers[i][axis*2]*relief, hi=layers[i][axis*2+1]*relief;
+    b[axis]+=(hi-lo)/2;b[axis+3]+=hi+lo;
+  }});
+}
+
+// Какой материал у цвета — от этого зависят пряди, складки и блики в src/texel.js.
+function texelRole(s) {
+  const hair = [s.hair, s.hair2, s.beardC, s.brow], metal = [STEEL, MAIL, IRON, s.trim], cloth = [s.cloth, s.cloth2, s.capeC, s.hat, s.accent, CREAM, GREEN];
+  return c => c === s.skin ? 'skin' : hair.includes(c) ? 'hair' : metal.includes(c) ? 'metal' : cloth.includes(c) ? 'cloth' : 'other';
+}
+
 function face(B, s) {
-  const E = s.eye, dark = RULES.defaultEye, colored = E !== dark, patch = s.accessories.includes('eyepatch');
+  const E = s.eye, dark = RULES.defaultEye, colored = E !== dark, patch = s.accessories.includes('eyepatch'), fem = s.gender === 'female', lip = fem ? 0xc85a6a : LIP;
   for (const sx of [-1, 1]) {
     if (patch && sx === -1) continue;
     const x = sx * .1;
@@ -111,6 +145,10 @@ function face(B, s) {
       case 'big': B(x, .885, .226, .09, .11, .012, E); if (colored) B(x, .875, .232, .04, .055, .012, dark); B(x + .018, .915, .234, .03, .03, .012, WHITE); break;
       default: B(x, .89, .226, .06, .085, .012, E);
     }
+  }
+  if (fem) for (const sx of [-1, 1]) { // ресницы, лёгкий румянец
+    if (!(patch && sx === -1)) { B(sx * .155, .935, .227, .035, .03, .012, INK); if (s.eyes !== 'happy') B(sx * .1, .942, .227, .09, .014, .012, INK); }
+    B(sx * .15, .815, .226, .06, .035, .012, mix(s.skin, 0xe58a8a, .35));
   }
   if (patch) { B(-.1, .89, .232, .13, .11, .014, INK); B(0, .985, .226, .47, .022, .014, INK); }
   const br = (x, y, w, h) => B(x, y, .226, w, h, .012, s.brow);
@@ -126,7 +164,7 @@ function face(B, s) {
       default:
     }
   }
-  const m = (x, y, w, h, c = LIP, z = .236) => B(x, y, z, w, h, .012, c);
+  const m = (x, y, w, h, c = lip, z = .236) => B(x, y + .015, z, w, h, .012, c);
   switch (s.mouth) {
     case 'neutral': m(0, .785, .08, .02); break;
     case 'grin': m(0, .78, .14, .04, MOUTH); m(0, .796, .12, .016, TEETH, .238); m(-.075, .8, .022, .022); m(.075, .8, .022, .022); break;
@@ -134,7 +172,7 @@ function face(B, s) {
     case 'open': m(0, .775, .06, .05, MOUTH); m(0, .762, .04, .018, 0xc0505a, .238); break;
     case 'cat': m(-.035, .775, .045, .02); m(.035, .775, .045, .02); m(0, .79, .025, .03); break;
     case 'frown': m(0, .78, .08, .02); m(-.05, .765, .022, .022); m(.05, .765, .022, .022); break;
-    default: m(0, .78, .09, .02); m(-.055, .795, .022, .022); m(.055, .795, .022, .022);
+    default: m(0, .78, fem ? .105 : .09, fem ? .028 : .02); m(-.055, .795, .022, .022); m(.055, .795, .022, .022);
   }
 }
 
@@ -164,13 +202,20 @@ function beard(B, s) {
 }
 
 function marks(B, s) {
-  const has = k => s.marks.includes(k), z = .229;
-  if (has('freckles')) for (const sx of [-1, 1]) for (const [x, y] of [[.08, .835], [.125, .84], [.105, .815], [.15, .82]]) B(sx * x, y, z, .02, .02, .012, 0x9a6a46);
+  const has = k => s.marks.includes(k), z = .229, P = .03; // P — размер «пикселя» знака
+  // Знаки не лезут на глаза: глаза занимают y .83–.94 и x .06–.15 с каждой стороны, поэтому знаки на щеках начинаются ниже .82, а на брови — выше .945.
+  const px = (x, y, c, w = P, h = P) => B(x, y, z, w, h, .012, c);
+  const scarC = s.markC ?? mix(s.skin, 0xb5403f, .55), scarEdge = mix(s.skin, 0xffffff, .38);
+  if (has('freckles')) for (const sx of [-1, 1]) for (const [x, y] of [[.08, .835], [.125, .84], [.105, .815], [.15, .82]]) px(sx * x, y, 0x9a6a46, .02, .02);
   if (has('blush')) for (const sx of [-1, 1]) B(sx * .15, .812, z, .07, .04, .012, 0xe08a7a);
-  if (has('scar')) { B(-.13, .945, .23, .02, .06, .012, 0xc47a6a); B(-.12, .895, .23, .02, .05, .012, 0xc47a6a); B(-.115, .85, .23, .02, .05, .012, 0xc47a6a); }
-  if (has('mole')) B(.075, .775, z, .022, .022, .012, 0x4a2f25);
-  if (has('warpaint')) for (const sx of [-1, 1]) { B(sx * .1, .83, z, .1, .022, .012, s.gem); B(sx * .1, .8, z, .07, .022, .012, s.gem); }
-  if (has('plaster')) { B(.03, .86, z, .12, .04, .012, 0xf0e4cc); B(.03, .86, .23, .04, .1, .012, 0xf0e4cc); }
+  if (has('scar')) for (const [x, y] of [[-.178, .812], [-.158, .784], [-.138, .756], [-.118, .728]]) { px(x + .024, y, scarEdge, .014, P); px(x, y, scarC); } // диагональный шрам на левой щеке
+  if (has('browscar')) { for (const [x, y] of [[-.13, 1.03], [-.122, 1.0], [-.114, .97]]) { px(x + .022, y, scarEdge, .012, P); px(x, y, scarC, .026, P); } px(-.152, .985, scarC, .026, .014); px(-.1, .985, scarC, .026, .014); } // через левую бровь, выше глаза
+  if (has('mole')) px(.075, .775, 0x4a2f25, .022, .022);
+  if (has('warpaint')) { // «когти»: две диагональные полосы на каждой щеке
+    const c = s.markC ?? 0xb02f3d;
+    for (const sx of [-1, 1]) for (const off of [0, .045]) for (let i = 0; i < 3; i++) px(sx * (.175 - off - i * .022), .812 - i * .03, c, .034, P);
+  }
+  if (has('plaster')) { B(0, .835, z, .072, .03, .012, 0xf0e4cc); B(0, .835, .23, .032, .075, .012, 0xf0e4cc); B(0, .835, .232, .018, .018, .012, mix(0xf0e4cc, 0xb59a6a, .5)); }
 }
 
 // Причёски: top — макушка, front — чёлка, low — боковые и задние пряди. Под шлемом и капюшоном часть прячется.
@@ -199,6 +244,7 @@ function hair(B, s) {
     default: cap(); fringe(); sides(); H(low, 0, .93, -.22, .5, .38, .07);
   }
   if (s.hair2 && st !== 'buzz') { front.push([-.14, .985, .223, .06, .2, .04, s.hair2]); low.push([.12, .93, backZ, .1, .3, .02, s.hair2]); }
+  if (s.gender === 'female' && !['buzz', 'mohawk'].includes(st)) for (const sx of [-1, 1]) H(front, sx * .235, .86, .2, .055, .27, .06); // пряди, обрамляющие лицо
   const hide = hg === 'helm' ? ['top', 'front'] : hg === 'wizhat' || hg === 'cap' ? ['top'] : [];
   for (const [name, arr] of [['top', top], ['front', front], ['low', low]]) if (!hide.includes(name)) for (const b of arr) B(b[0], b[1], b[2], b[3], b[4], b[5], b[6]);
 }
@@ -299,17 +345,18 @@ export const VIEWS = { face: { y0: .66, y1: 1.14 }, head: { y0: .6, y1: 1.44 }, 
 export function portrait(kind, actor, opts = {}) {
   const s = spec(kind, actor);
   if (!s) return null;
-  const boxes = build(s), W = opts.width || 168, H = opts.height || 192, px = opts.pixel || 3, back = !!opts.back, m = back ? -1 : 1;
+  const boxes = build(s, { texel: opts.detail ?? RULES.texel }), W = opts.width || 168, H = opts.height || 192, px = opts.pixel || 3, back = !!opts.back, m = back ? -1 : 1;
   let top = 0; for (const b of boxes) top = Math.max(top, b[1] + b[4] / 2);
   const v = VIEWS[opts.view], y0 = v ? v.y0 : .5, y1 = v ? v.y1 : Math.min(1.7, Math.max(1.32, top + .03));
   const lw = Math.round(W / px), lh = Math.round(H / px), yspan = y1 - y0, xspan = yspan * W / H, x0 = -xspan / 2;
   const small = document.createElement('canvas'); small.width = lw; small.height = lh;
   const c = small.getContext('2d'); c.imageSmoothingEnabled = false;
   const sx = lw / xspan, sy = lh / yspan;
-  const rect = b => { const l = Math.round((m * b[0] - b[3] / 2 - x0) * sx), r = Math.round((m * b[0] + b[3] / 2 - x0) * sx), t = Math.round((y1 - b[1] - b[4] / 2) * sy), bt = Math.round((y1 - b[1] + b[4] / 2) * sy); return [l, t, Math.max(1, r - l), Math.max(1, bt - t)]; };
-  const order = boxes.map((b, i) => [(b[2] + b[5] / 2) * m, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(a => boxes[a[1]]);
+  const rect = b => { const l = Math.round((m * b[0] - b[3] / 2 - x0) * sx), r = Math.round((m * b[0] + b[3] / 2 - x0) * sx), t = Math.round((y1 - b[1] - b[4] / 2) * sy), bt = Math.round((y1 - b[1] + b[4] / 2) * sy); return [l, t, Math.max(b.length > 8 ? 0 : 1, r - l), Math.max(b.length > 8 ? 0 : 1, bt - t)]; };
+  const flat = boxes.filter(b => b[8] !== 't'), order0 = flat;
+  const order = order0.map((b, i) => [(b.length > 8 ? b[9] : b[2] + b[5] / 2) * m, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(a => order0[a[1]]);
   c.fillStyle = RULES.outline;
-  for (const b of order) { if (b[4] < .05 && b[3] < .05) continue; const [l, t, w, h] = rect(b); c.fillRect(l - 1, t - 1, w + 2, h + 2); }
+  for (const b of order) { if (b.length > 8 || (b[4] < .05 && b[3] < .05)) continue; const [l, t, w, h] = rect(b); c.fillRect(l - 1, t - 1, w + 2, h + 2); }
   for (const b of order) { const [l, t, w, h] = rect(b); c.fillStyle = css(b[6]); c.fillRect(l, t, w, h); }
   const big = document.createElement('canvas'); big.width = W; big.height = H; big.className = 'sprite character-portrait';
   const g = big.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(small, 0, 0, W, H);

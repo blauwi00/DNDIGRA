@@ -1,4 +1,7 @@
 import {build} from 'esbuild';import {mkdir,cp,readdir,rm} from 'node:fs/promises';
+await build({entryPoints:['src/worldgen/index.js'],bundle:true,format:'iife',globalName:'WorldGen',outfile:'dist/worldgen.js'});
+await build({entryPoints:['src/props-index.js'],bundle:true,format:'iife',globalName:'Props',outfile:'dist/props.js'});
+await build({entryPoints:['src/location-generator.js'],bundle:true,format:'iife',globalName:'LocationGenerator',outfile:'dist/location-generator.js'});
 await build({entryPoints:['src/voxel.js'],bundle:true,minify:true,format:'iife',outfile:'dist/voxel.js'});
 await build({entryPoints:['src/characters.js'],bundle:true,format:'iife',globalName:'Characters',outfile:'dist/characters.js'});
 await build({entryPoints:['src/character-style.js'],bundle:true,format:'iife',globalName:'CharacterStyle',outfile:'dist/character-style.js'});

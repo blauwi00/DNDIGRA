@@ -32,6 +32,7 @@ var Characters = (() => {
     PRESETS: () => PRESETS,
     RULES: () => RULES,
     TABS: () => TABS,
+    TEXEL: () => TEXEL,
     VIEWS: () => VIEWS,
     build: () => build,
     defaultLook: () => defaultLook,
@@ -55,6 +56,7 @@ var Characters = (() => {
     cloth: P([["#24456b", "\u041D\u043E\u0447\u043D\u043E\u0439 \u0441\u0438\u043D\u0438\u0439"], ["#315e84", "\u0421\u0438\u043D\u0438\u0439"], ["#4a7fb0", "\u041D\u0435\u0431\u0435\u0441\u043D\u044B\u0439"], ["#2f7a7a", "\u041C\u043E\u0440\u0441\u043A\u0430\u044F \u0432\u043E\u043B\u043D\u0430"], ["#566d70", "\u0421\u043B\u0430\u043D\u0435\u0446"], ["#2d4f2c", "\u0425\u0432\u043E\u044F"], ["#3f6b3b", "\u0417\u0435\u043B\u0451\u043D\u044B\u0439"], ["#487844", "\u0422\u0440\u0430\u0432\u0430"], ["#7a9a4a", "\u041E\u043B\u0438\u0432\u0430"], ["#452361", "\u0418\u043D\u0434\u0438\u0433\u043E"], ["#5d2f7e", "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439"], ["#62377e", "\u0410\u043C\u0435\u0442\u0438\u0441\u0442"], ["#8a4a9a", "\u041E\u0440\u0445\u0438\u0434\u0435\u044F"], ["#c8688a", "\u0420\u043E\u0437\u0430"], ["#6a2330", "\u0411\u0443\u0440\u0433\u0443\u043D\u0434"], ["#8a2f3c", "\u0411\u043E\u0440\u0434\u043E\u0432\u044B\u0439"], ["#843f37", "\u041A\u0438\u0440\u043F\u0438\u0447"], ["#b0452f", "\u0422\u0435\u0440\u0440\u0430\u043A\u043E\u0442\u0430"], ["#c7792f", "\u042F\u043D\u0442\u0430\u0440\u044C"], ["#8a6a46", "\u041B\u0435\u043D"], ["#2a2a30", "\u0423\u0433\u043E\u043B\u044C"], ["#6c6c76", "\u0421\u0435\u0440\u044B\u0439"], ["#e6dcc4", "\u041A\u0440\u0435\u043C\u043E\u0432\u044B\u0439"], ["#f0ece0", "\u0411\u0435\u043B\u044B\u0439"], ["#8b3d46", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 1"], ["#172b48", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 2"], ["#386f9a", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 3"], ["#528b91", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 4"], ["#244b3b", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 5"], ["#74914b", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 6"], ["#b28439", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 7"], ["#bf6d36", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 8"], ["#714c38", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 9"], ["#302d38", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 10"], ["#aaa69b", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 11"], ["#cfbda0", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 12"], ["#775b96", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 13"], ["#a9617b", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 14"], ["#484c74", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 15"]]),
     trim: P([["#d0a94a", "\u0417\u043E\u043B\u043E\u0442\u043E"], ["#c3a04c", "\u0421\u0442\u0430\u0440\u043E\u0435 \u0437\u043E\u043B\u043E\u0442\u043E"], ["#e8c870", "\u0421\u0432\u0435\u0442\u043B\u043E\u0435 \u0437\u043E\u043B\u043E\u0442\u043E"], ["#b6bdc5", "\u0421\u0435\u0440\u0435\u0431\u0440\u043E"], ["#8fa0b0", "\u0421\u0442\u0430\u043B\u044C"], ["#c5b895", "\u0421\u043B\u043E\u043D\u043E\u0432\u0430\u044F \u043A\u043E\u0441\u0442\u044C"], ["#78552e", "\u0411\u0440\u043E\u043D\u0437\u0430"], ["#b87333", "\u041C\u0435\u0434\u044C"], ["#b02f3d", "\u0410\u043B\u044B\u0439"], ["#3d8be8", "\u041B\u0430\u0437\u0443\u0440\u043D\u044B\u0439"], ["#4fb58a", "\u0418\u0437\u0443\u043C\u0440\u0443\u0434"], ["#f0ece0", "\u0411\u0435\u043B\u044B\u0439"], ["#2a2a30", "\u0427\u0451\u0440\u043D\u044B\u0439"], ["#c6a04f", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 1"], ["#e4c778", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 2"], ["#dbb787", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 3"], ["#ad7748", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 4"], ["#926749", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 5"], ["#d8dce1", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 6"], ["#82919d", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 7"], ["#526374", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 8"], ["#e9dfc7", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 9"], ["#b18bbf", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 10"], ["#699ca0", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 11"], ["#4c5b4c", "\u041E\u0442\u0442\u0435\u043D\u043E\u043A 12"]]),
     leather: P([["#4b3626", "\u0422\u0451\u043C\u043D\u0430\u044F \u043A\u043E\u0436\u0430"], ["#5a3d28", "\u041A\u043E\u0436\u0430"], ["#6a4a30", "\u0421\u0432\u0435\u0442\u043B\u0430\u044F \u043A\u043E\u0436\u0430"], ["#8a6a46", "\u0414\u0443\u0431\u043B\u0451\u043D\u0430\u044F"], ["#2a2a30", "\u0427\u0451\u0440\u043D\u0430\u044F"], ["#3a3a44", "\u0413\u0440\u0430\u0444\u0438\u0442\u043E\u0432\u0430\u044F"], ["#6a2330", "\u041A\u0440\u0430\u0441\u043D\u0430\u044F"], ["#2d4f2c", "\u0417\u0435\u043B\u0451\u043D\u0430\u044F"], ["#24456b", "\u0421\u0438\u043D\u044F\u044F"]]),
+    paint: P([["#b02f3d", "\u0410\u043B\u044B\u0439"], ["#f0ece0", "\u0411\u0435\u043B\u044B\u0439"], ["#3d8be8", "\u041B\u0430\u0437\u0443\u0440\u043D\u044B\u0439"], ["#1a1a1f", "\u0427\u0451\u0440\u043D\u044B\u0439"], ["#3f9a5a", "\u0417\u0435\u043B\u0451\u043D\u044B\u0439"], ["#d0a94a", "\u0417\u043E\u043B\u043E\u0442\u043E\u0439"], ["#7a3fa8", "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439"], ["#e07a2f", "\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439"]]),
     gem: P([["#4aa8f0", "\u0421\u0430\u043F\u0444\u0438\u0440"], ["#e0475a", "\u0420\u0443\u0431\u0438\u043D"], ["#4fd08a", "\u0418\u0437\u0443\u043C\u0440\u0443\u0434"], ["#a86bf0", "\u0410\u043C\u0435\u0442\u0438\u0441\u0442"], ["#f0c040", "\u0422\u043E\u043F\u0430\u0437"], ["#40e0d0", "\u0411\u0438\u0440\u044E\u0437\u0430"], ["#f0f0ff", "\u0410\u043B\u043C\u0430\u0437"], ["#f07ac0", "\u0420\u043E\u0437\u043E\u0432\u044B\u0439 \u043A\u0432\u0430\u0440\u0446"]])
   };
   var hexes = (key) => PALETTES[key].map((c) => c.hex);
@@ -67,7 +69,7 @@ var Characters = (() => {
     eyes: L([["dot", "\u0422\u043E\u0447\u043A\u0438"], ["wide", "\u0428\u0438\u0440\u043E\u043A\u0438\u0435"], ["narrow", "\u0423\u0437\u043A\u0438\u0435"], ["happy", "\u0420\u0430\u0434\u043E\u0441\u0442\u043D\u044B\u0435"], ["sleepy", "\u0421\u043E\u043D\u043D\u044B\u0435"], ["sparkle", "\u0411\u043B\u0435\u0441\u0442\u044F\u0449\u0438\u0435"], ["big", "\u0411\u043E\u043B\u044C\u0448\u0438\u0435"]]),
     mouth: L([["smile", "\u0423\u043B\u044B\u0431\u043A\u0430"], ["neutral", "\u0421\u043F\u043E\u043A\u043E\u0439\u043D\u044B\u0439"], ["grin", "\u0423\u0445\u043C\u044B\u043B\u043A\u0430 \u0441 \u0437\u0443\u0431\u0430\u043C\u0438"], ["smirk", "\u0423\u0441\u043C\u0435\u0448\u043A\u0430"], ["open", "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0439"], ["cat", "\u041A\u043E\u0448\u0430\u0447\u0438\u0439"], ["frown", "\u0425\u043C\u0443\u0440\u044B\u0439"]]),
     beard: L([["none", "\u0411\u0435\u0437 \u0431\u043E\u0440\u043E\u0434\u044B"], ["stubble", "\u0429\u0435\u0442\u0438\u043D\u0430"], ["mustache", "\u0423\u0441\u044B"], ["goatee", "\u042D\u0441\u043F\u0430\u043D\u044C\u043E\u043B\u043A\u0430"], ["short", "\u041A\u043E\u0440\u043E\u0442\u043A\u0430\u044F"], ["full", "\u0413\u0443\u0441\u0442\u0430\u044F"], ["long", "\u0414\u043B\u0438\u043D\u043D\u0430\u044F"], ["sideburns", "\u0411\u0430\u043A\u0435\u043D\u0431\u0430\u0440\u0434\u044B"]]),
-    marks: L([["freckles", "\u0412\u0435\u0441\u043D\u0443\u0448\u043A\u0438"], ["blush", "\u0420\u0443\u043C\u044F\u043D\u0435\u0446"], ["scar", "\u0428\u0440\u0430\u043C"], ["mole", "\u0420\u043E\u0434\u0438\u043D\u043A\u0430"], ["warpaint", "\u0411\u043E\u0435\u0432\u0430\u044F \u0440\u0430\u0441\u043A\u0440\u0430\u0441\u043A\u0430"], ["plaster", "\u041F\u043B\u0430\u0441\u0442\u044B\u0440\u044C"]]),
+    marks: L([["freckles", "\u0412\u0435\u0441\u043D\u0443\u0448\u043A\u0438"], ["blush", "\u0420\u0443\u043C\u044F\u043D\u0435\u0446"], ["scar", "\u0428\u0440\u0430\u043C"], ["browscar", "\u0428\u0440\u0430\u043C \u043D\u0430 \u0431\u0440\u043E\u0432\u0438"], ["mole", "\u0420\u043E\u0434\u0438\u043D\u043A\u0430"], ["warpaint", "\u0411\u043E\u0435\u0432\u0430\u044F \u0440\u0430\u0441\u043A\u0440\u0430\u0441\u043A\u0430"], ["plaster", "\u041F\u043B\u0430\u0441\u0442\u044B\u0440\u044C"]]),
     headgear: L([["none", "\u0411\u0435\u0437 \u0443\u0431\u043E\u0440\u0430"], ["hood", "\u041A\u0430\u043F\u044E\u0448\u043E\u043D"], ["wizhat", "\u0428\u043B\u044F\u043F\u0430 \u043C\u0430\u0433\u0430"], ["helm", "\u0428\u043B\u0435\u043C"], ["circlet", "\u0414\u0438\u0430\u0434\u0435\u043C\u0430"], ["headband", "\u041F\u043E\u0432\u044F\u0437\u043A\u0430"], ["cap", "\u0411\u0435\u0440\u0435\u0442 \u0441 \u043F\u0435\u0440\u043E\u043C"], ["crown", "\u041A\u043E\u0440\u043E\u043D\u0430"]]),
     cape: L([["none", "\u0411\u0435\u0437 \u043F\u043B\u0430\u0449\u0430"], ["short", "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u043F\u043B\u0430\u0449"], ["long", "\u0414\u043B\u0438\u043D\u043D\u044B\u0439 \u043F\u043B\u0430\u0449"], ["mantle", "\u041D\u0430\u043A\u0438\u0434\u043A\u0430"]]),
     accessories: L([["earring", "\u0421\u0435\u0440\u044C\u0433\u0430"], ["eyepatch", "\u041F\u043E\u0432\u044F\u0437\u043A\u0430 \u043D\u0430 \u0433\u043B\u0430\u0437"], ["glasses", "\u041E\u0447\u043A\u0438"], ["scarf", "\u0428\u0430\u0440\u0444"], ["amulet", "\u0410\u043C\u0443\u043B\u0435\u0442"], ["bracers", "\u041D\u0430\u0440\u0443\u0447\u0438"]])
@@ -79,8 +81,8 @@ var Characters = (() => {
     cleric: L([["vestments", "\u041E\u0431\u043B\u0430\u0447\u0435\u043D\u0438\u0435"], ["surplice", "\u0421\u0442\u0438\u0445\u0430\u0440\u044C"], ["mail", "\u041A\u043E\u043B\u044C\u0447\u0443\u0433\u0430"], ["monk", "\u0420\u044F\u0441\u0430 \u0441 \u0432\u0435\u0440\u0451\u0432\u043A\u043E\u0439"]])
   };
   var DEFAULT_OUTFIT = { fighter: "plate", wizard: "robe", rogue: "leathers", cleric: "vestments" };
-  var COLOR_FIELDS = { skin: "skin", hair: "hair", hair2: "hair", brow: "hair", eye: "eye", beardColor: "hair", cloth: "cloth", cloth2: "cloth", trim: "trim", leather: "leather", accent: "cloth", hat: "cloth", capeColor: "cloth", gem: "gem" };
-  var NULLABLE = ["hair2", "brow", "beardColor", "cloth2", "accent", "hat", "capeColor"];
+  var COLOR_FIELDS = { skin: "skin", hair: "hair", hair2: "hair", brow: "hair", eye: "eye", beardColor: "hair", cloth: "cloth", cloth2: "cloth", trim: "trim", leather: "leather", accent: "cloth", markColor: "paint", hat: "cloth", capeColor: "cloth", gem: "gem" };
+  var NULLABLE = ["hair2", "brow", "beardColor", "cloth2", "accent", "markColor", "hat", "capeColor"];
   var ALLOWED_KEYS = /* @__PURE__ */ new Set(["gender", "ears", "hairStyle", "brows", "eyes", "mouth", "beard", "marks", "headgear", "cape", "accessories", "outfit", "face", "hood", ...Object.keys(COLOR_FIELDS)]);
   var BASE = { ears: "round", eyes: "dot", mouth: "smile", beard: "none", marks: [], headgear: "none", accessories: [], skin: "#e9bf90", hair2: null, brow: null, beardColor: null, cloth2: null, accent: null, hat: null, capeColor: null, eye: "#14141a", trim: "#d0a94a", gem: "#4aa8f0" };
   var CLASS_DEFAULT = {
@@ -230,13 +232,142 @@ var Characters = (() => {
     ]
   };
 
+  // src/texel.js
+  var TEXEL = {
+    size: 0.058,
+    // размер текселя ≈ 1/8 головы (как 8×8 пикселей головы скина)
+    decalDepth: 8e-3,
+    // насколько наклейка выступает над гранью
+    minW: 0.09,
+    minH: 0.09,
+    minD: 0.05
+    // меньшие боксы (глаза, брови, тонкие детали) не трогаем
+  };
+  function shade(c, k) {
+    const r = Math.min(255, Math.round((c >> 16 & 255) * k)), g = Math.min(255, Math.round((c >> 8 & 255) * k)), b = Math.min(255, Math.round((c & 255) * k));
+    return r << 16 | g << 8 | b;
+  }
+  function tone(c, k) {
+    if (k <= 1) return shade(c, k);
+    const t = Math.min(1, (k - 1) * 0.9), r = c >> 16 & 255, g = c >> 8 & 255, b = c & 255;
+    return Math.round(r + (255 - r) * t) << 16 | Math.round(g + (255 - g) * t) << 8 | Math.round(b + (255 - b) * t);
+  }
+  function rng(seed) {
+    let a = seed | 0;
+    return () => {
+      a = a + 1831565813 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var ROLES = {
+    skin: { hi: 1.06, lo: 0.9, amp: 0.045, noise: 2 },
+    hair: { hi: 1.18, lo: 0.8, amp: 0.11, strands: true },
+    metal: { hi: 1.22, lo: 0.76, amp: 0.1, glint: true },
+    cloth: { hi: 1.12, lo: 0.82, amp: 0.08, pleats: true },
+    other: { hi: 1.1, lo: 0.84, amp: 0.07 }
+  };
+  function texelPass(boxes, role = () => "other", size = TEXEL.size, { minDepth = TEXEL.minD } = {}) {
+    const out = [], D = TEXEL.decalDepth;
+    function emit(decal, parent) {
+      const axis = decal[8] === "f" ? 2 : 1, axes = axis === 2 ? [0, 1] : [0, 2];
+      const surface = decal[axis] - decal[axis + 3] / 2;
+      let pieces = [decal];
+      boxes.forEach((b, j) => {
+        if (j === parent || b.length > 8) return;
+        const near = b[axis] - b[axis + 3] / 2, far = b[axis] + b[axis + 3] / 2;
+        if (near >= surface + D - 1e-8 || far < surface - 1e-8 || Math.abs(far - surface) < 1e-8 && j < parent) return;
+        const [u, v] = axes, l = b[u] - b[u + 3] / 2, r = b[u] + b[u + 3] / 2, t = b[v] - b[v + 3] / 2, bt = b[v] + b[v + 3] / 2;
+        pieces = pieces.flatMap((d) => {
+          const dl = d[u] - d[u + 3] / 2, dr = d[u] + d[u + 3] / 2, dt = d[v] - d[v + 3] / 2, db = d[v] + d[v + 3] / 2;
+          const il = Math.max(dl, l), ir = Math.min(dr, r), it = Math.max(dt, t), ib = Math.min(db, bt);
+          if (ir - il < 1e-8 || ib - it < 1e-8) return [d];
+          return [[dl, il, dt, db], [ir, dr, dt, db], [il, ir, dt, it], [il, ir, ib, db]].filter(([l2, r2, t2, b2]) => r2 - l2 > 1e-8 && b2 - t2 > 1e-8).map(([l2, r2, t2, b2]) => {
+            const next = [...d];
+            next[u] = (l2 + r2) / 2;
+            next[u + 3] = r2 - l2;
+            next[v] = (t2 + b2) / 2;
+            next[v + 3] = b2 - t2;
+            return next;
+          });
+        });
+      });
+      out.push(...pieces);
+    }
+    boxes.forEach((b, i) => {
+      if (b.length > 8 || b[7]) return;
+      const [x, y, z, w, h, d, c] = b;
+      if (w < TEXEL.minW || h < TEXEL.minH || d < minDepth) return;
+      const cfg = ROLES[role(c)] || ROLES.other;
+      const n = Math.max(1, Math.round(w / size)), m = Math.max(1, Math.round(h / size)), cw = w / n, ch = h / m;
+      const zf = z + d / 2 + D / 2, key = z + d / 2 + 1e-4;
+      const R = rng(Math.round(x * 997) * 31 + Math.round(y * 991) * 17 + Math.round(z * 983) * 13 + (c & 65535) + i * 7);
+      const cells = Array.from({ length: m }, () => Array(n).fill(null));
+      const px = (col, row, color, cs = 1, rs = 1) => {
+        if (color === c) return;
+        for (let r = row; r < Math.min(m, row + rs); r++)
+          for (let q = col; q < Math.min(n, col + cs); q++) cells[r][q] = color;
+      };
+      if (m >= 3) {
+        px(0, 0, tone(c, cfg.hi), n);
+        px(0, m - 1, tone(c, cfg.lo), n);
+      }
+      if (n >= 4 && m >= 4 && w >= 0.2) {
+        px(0, 1, tone(c, 1 + (cfg.hi - 1) * 0.5), 1, m - 2);
+        px(n - 1, 1, tone(c, 1 - (1 - cfg.lo) * 0.6), 1, m - 2);
+      }
+      const cnt = Math.min(cfg.noise ?? 3, Math.floor(n * m / 8)), used = /* @__PURE__ */ new Set();
+      for (let k = 0; k < cnt; k++) {
+        const col = n > 2 ? 1 + Math.floor(R() * (n - 2)) : Math.floor(R() * n), row = m > 2 ? 1 + Math.floor(R() * (m - 2)) : Math.floor(R() * m), id = col * 64 + row;
+        let f = (R() < 0.5 ? -1 : 1) * cfg.amp * (0.55 + R() * 0.6);
+        if (Math.abs(f) < 0.04) f = f < 0 ? -0.04 : 0.04;
+        if (!used.has(id)) {
+          used.add(id);
+          px(col, row, tone(c, 1 + f));
+        }
+      }
+      if (cfg.strands && n >= 3 && m >= 3) {
+        for (let k = 0; k < 2; k++) px(1 + Math.floor(R() * (n - 2 || 1)), 1, tone(c, 0.86), 1, Math.max(1, Math.min(m - 2, 2 + Math.floor(R() * (m - 2)))));
+        px(Math.floor(R() * n), 1, tone(c, cfg.hi));
+      }
+      if (cfg.pleats && h >= 0.2 && w >= 0.2 && m >= 4) {
+        for (const col of [Math.round(n / 3), Math.round(n * 2 / 3)]) if (col > 0 && col < n) px(col, 1, tone(c, 0.9), 1, m - 2);
+      }
+      if (cfg.glint && n >= 2 && m >= 2) px(Math.min(1, n - 1), Math.min(1, m - 1), tone(c, 1.36));
+      for (let row = 0; row < m; row++) for (let col = 0; col < n; col++) {
+        const color = cells[row][col];
+        if (color === null) continue;
+        let cs = 1, rs = 1;
+        while (col + cs < n && cells[row][col + cs] === color) cs++;
+        while (row + rs < m && cells[row + rs].slice(col, col + cs).every((v) => v === color)) rs++;
+        for (let r = row; r < row + rs; r++) cells[r].fill(null, col, col + cs);
+        emit([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key], i);
+      }
+      if (w >= 0.18 && d >= 0.15) {
+        const nd = Math.max(1, Math.round(d / size)), cd = d / nd, top = /* @__PURE__ */ new Map();
+        for (let k = 0; k < 2; k++) {
+          let f = (R() < 0.5 ? -1 : 1) * cfg.amp * (0.6 + R() * 0.5);
+          if (Math.abs(f) < 0.04) f = f < 0 ? -0.04 : 0.04;
+          const col = Math.floor(R() * n), r = Math.floor(R() * nd);
+          top.set(r * n + col, [x - w / 2 + (col + 0.5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + 0.5) * cd, cw, D, cd, tone(c, 1 + f), false, "t", key]);
+        }
+        for (const decal of top.values()) emit(decal, i);
+      }
+    });
+    return out;
+  }
+
   // src/characters.js
   var RULES = {
     headMinRatio: 0.34,
     headMaxRatio: 0.46,
     // доля головы от высоты фигуры
     maxBoxes: 200,
-    // бюджет боксов на фигуру
+    // бюджет боксов фигуры без текселей
+    maxWithTexels: 520,
+    // бюджет вместе с текселями-наклейками (правило «тексели», src/texel.js)
+    texel: true,
     defaultEye: 1315866,
     outline: "#1b1620",
     classes: ["fighter", "rogue", "wizard", "cleric"],
@@ -264,21 +395,20 @@ var Characters = (() => {
   var KIND_GENDER = { 0: "male", 1: "female", 2: "male" };
   var DEFAULT_HANDS = { fighter: ["sword", "shield"], rogue: ["sword", "empty"], wizard: ["staff", "empty"], cleric: ["staff", "empty"] };
   var NPCS = {
+    innkeeper: { name: "\u0411\u0440\u0430\u043C", role: "\u0442\u0440\u0430\u043A\u0442\u0438\u0440\u0449\u0438\u043A", classId: "fighter", gender: "male", look: { hair: "#6a432c", hairStyle: "short", beard: "none", cloth: "#843f37" }, hands: ["empty", "empty"] },
+    "street-guard": { name: "\u0420\u0430\u0434\u0430", role: "\u0441\u0442\u0440\u0430\u0436\u043D\u0438\u0446\u0430", classId: "fighter", gender: "female", look: { hair: "#6a432c", hairStyle: "braid", cloth: "#315e84" }, hands: ["sword", "shield"] },
     keeper: { name: "\u042D\u043B\u043B\u0435\u043D", role: "\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u0438\u0446\u0430", classId: "cleric", gender: "female", look: { hair: "#c7c4bf", hairStyle: "long", brows: "soft", headgear: "hood" }, hands: ["empty", "empty"], book: true },
     novice: { name: "\u041B\u0438\u043D", role: "\u043F\u043E\u0441\u043B\u0443\u0448\u043D\u0438\u043A", classId: "cleric", gender: "male", look: { hair: "#6a432c", hairStyle: "short", brows: "soft", beard: "none", cloth: "#843f37" }, hands: ["empty", "empty"] }
   };
   var NPC_BY_NAME = Object.fromEntries(Object.entries(NPCS).map(([id, n]) => [n.name, id]));
   var num = (v) => typeof v === "number" ? v : typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : void 0;
-  function shade(c, k) {
-    const r = Math.min(255, Math.round((c >> 16 & 255) * k)), g = Math.min(255, Math.round((c >> 8 & 255) * k)), b = Math.min(255, Math.round((c & 255) * k));
-    return r << 16 | g << 8 | b;
-  }
   var mix = (a, b, t) => shade(a, 1 - t) + shade(b, t) & 16777215;
   function spec(kind, actor) {
-    const rawNpcId = actor?.npc || actor?.npcId;
+    const gen = actor?.gen && typeof actor.gen === "object" ? actor.gen : null;
+    const rawNpcId = gen ? null : actor?.npc || actor?.npcId;
     const npcId = { ellen: "keeper", lin: "novice" }[rawNpcId] || rawNpcId || (actor && actor.id && NPCS[actor.id] && actor.type === "npc" ? actor.id : null);
     if (npcId && !Object.hasOwn(NPCS, npcId)) throw Error("NPC must be registered: " + npcId);
-    const npc = npcId ? NPCS[npcId] : null;
+    const npc = gen || (npcId ? NPCS[npcId] : null);
     const classId = npc?.classId || (RULES.classes.includes(actor?.classId) ? actor.classId : KIND_TO_CLASS[kind]);
     if (!classId) return null;
     let ap;
@@ -314,6 +444,7 @@ var Characters = (() => {
       boots: shade(leather, 0.83),
       gem: num(ap.gem) ?? 4892912,
       accent: num(ap.accent) ?? null,
+      markC: num(ap.markColor) ?? null,
       hat: num(ap.hat) ?? null,
       capeC: num(ap.capeColor) ?? shade(cloth, 0.86),
       hands: npc?.hands || actor?.hands || DEFAULT_HANDS[classId],
@@ -321,28 +452,33 @@ var Characters = (() => {
       p
     };
   }
-  function build(s) {
+  function build(s, opts = {}) {
     const out = [], B = (x, y, z, w, h, d, c, e = false) => out.push([x, y, z, w, h, d, c, e]);
     const female = s.gender === "female", robe = s.classId === "wizard" || s.classId === "cleric";
-    const bw = female ? 0.33 : 0.37, arm = bw / 2 + 0.07, o = s.outfit, cls = s.classId, trim = s.trim, cloth = s.cloth, c2 = s.cloth2;
+    const bw = female ? 0.29 : 0.41, arm = bw / 2 + (female ? 0.055 : 0.08), aw = female ? 0.1 : 0.14, o = s.outfit, cls = s.classId, trim = s.trim, cloth = s.cloth, c2 = s.cloth2;
     const sleeve = o === "vest" || o === "scholar" || o === "surplice" ? CREAM : o === "mail" || o === "tabard" ? MAIL : cloth;
     const torso = o === "mail" || o === "tabard" ? MAIL : o === "leather" || o === "studded" ? s.leather : o === "surplice" ? CREAM : cloth;
     if (robe) {
-      B(0, 0.31, 0, bw + 0.1, 0.3, 0.3, o === "surplice" ? CREAM : cloth);
-      B(0, 0.17, 0, bw + 0.12, 0.045, 0.32, trim);
+      const rw = female ? bw + 0.22 : bw + 0.06;
+      B(0, 0.31, 0, rw, 0.3, 0.3, o === "surplice" ? CREAM : cloth);
+      B(0, 0.17, 0, rw + 0.02, 0.045, 0.32, trim);
       for (const sx of [-1, 1]) B(sx * 0.1, 0.14, 0.07, 0.14, 0.06, 0.16, s.boots);
     } else {
       for (const sx of [-1, 1]) {
         B(sx * 0.1, 0.2, 0.03, 0.15, 0.13, 0.2, s.boots);
         B(sx * 0.1, 0.32, 0.02, 0.14, 0.1, 0.15, c2);
       }
+      if (female) {
+        B(0, 0.37, 0, 0.46, 0.12, 0.3, c2);
+        B(0, 0.305, 0, 0.48, 0.028, 0.32, trim);
+      }
     }
     B(0, 0.56, 0, bw, 0.26, 0.25, torso);
     B(0, 0.43, 0, bw + 0.02, 0.05, 0.27, o === "monk" ? 13154442 : s.leather);
     B(0, 0.43, 0.14, 0.08, 0.065, 0.03, cls === "wizard" ? s.gem : trim);
     for (const sx of [-1, 1]) {
-      B(sx * arm, 0.55, 0, 0.12, 0.24, 0.17, sleeve);
-      B(sx * arm, 0.4, 0.02, 0.1, 0.08, 0.11, s.skin);
+      B(sx * arm, 0.55, 0, aw, 0.24, female ? 0.15 : 0.18, sleeve);
+      B(sx * arm, 0.4, 0.02, aw - 0.02, 0.08, female ? 0.1 : 0.12, s.skin);
     }
     B(0, 0.9, 0.02, 0.46, 0.42, 0.4, s.skin);
     face(B, s);
@@ -355,10 +491,37 @@ var Characters = (() => {
     headgear(B, s);
     accessories(B, s, bw, arm);
     held(B, s, arm, trim);
+    separateCoplanarFaces(out);
+    if (opts.texel ?? RULES.texel) out.push(...texelPass(out, texelRole(s)));
     return out;
   }
+  function separateCoplanarFaces(boxes) {
+    const relief = 5e-4, layers = boxes.map(() => Array(6).fill(0));
+    for (let j = 0; j < boxes.length; j++) for (let i = 0; i < j; i++) {
+      const a = boxes[i], b = boxes[j];
+      for (let axis = 0; axis < 3; axis++) {
+        if (![0, 1, 2].filter((k) => k !== axis).every((k) => Math.min(a[k] + a[k + 3] / 2, b[k] + b[k + 3] / 2) - Math.max(a[k] - a[k + 3] / 2, b[k] - b[k + 3] / 2) > 1e-8)) continue;
+        for (const sign of [-1, 1]) {
+          const face2 = axis * 2 + (sign === 1 ? 1 : 0);
+          if (Math.abs(a[axis] + sign * a[axis + 3] / 2 - b[axis] - sign * b[axis + 3] / 2) < 1e-8)
+            layers[j][face2] = Math.max(layers[j][face2], layers[i][face2] + 1);
+        }
+      }
+    }
+    boxes.forEach((b, i) => {
+      for (let axis = 0; axis < 3; axis++) {
+        const lo = layers[i][axis * 2] * relief, hi = layers[i][axis * 2 + 1] * relief;
+        b[axis] += (hi - lo) / 2;
+        b[axis + 3] += hi + lo;
+      }
+    });
+  }
+  function texelRole(s) {
+    const hair2 = [s.hair, s.hair2, s.beardC, s.brow], metal = [STEEL, MAIL, IRON, s.trim], cloth = [s.cloth, s.cloth2, s.capeC, s.hat, s.accent, CREAM, GREEN];
+    return (c) => c === s.skin ? "skin" : hair2.includes(c) ? "hair" : metal.includes(c) ? "metal" : cloth.includes(c) ? "cloth" : "other";
+  }
   function face(B, s) {
-    const E = s.eye, dark = RULES.defaultEye, colored = E !== dark, patch = s.accessories.includes("eyepatch");
+    const E = s.eye, dark = RULES.defaultEye, colored = E !== dark, patch = s.accessories.includes("eyepatch"), fem = s.gender === "female", lip = fem ? 13130346 : LIP;
     for (const sx of [-1, 1]) {
       if (patch && sx === -1) continue;
       const x = sx * 0.1;
@@ -393,6 +556,13 @@ var Characters = (() => {
           B(x, 0.89, 0.226, 0.06, 0.085, 0.012, E);
       }
     }
+    if (fem) for (const sx of [-1, 1]) {
+      if (!(patch && sx === -1)) {
+        B(sx * 0.155, 0.935, 0.227, 0.035, 0.03, 0.012, INK);
+        if (s.eyes !== "happy") B(sx * 0.1, 0.942, 0.227, 0.09, 0.014, 0.012, INK);
+      }
+      B(sx * 0.15, 0.815, 0.226, 0.06, 0.035, 0.012, mix(s.skin, 15043210, 0.35));
+    }
     if (patch) {
       B(-0.1, 0.89, 0.232, 0.13, 0.11, 0.014, INK);
       B(0, 0.985, 0.226, 0.47, 0.022, 0.014, INK);
@@ -426,7 +596,7 @@ var Characters = (() => {
         default:
       }
     }
-    const m = (x, y, w, h, c = LIP, z = 0.236) => B(x, y, z, w, h, 0.012, c);
+    const m = (x, y, w, h, c = lip, z = 0.236) => B(x, y + 0.015, z, w, h, 0.012, c);
     switch (s.mouth) {
       case "neutral":
         m(0, 0.785, 0.08, 0.02);
@@ -457,7 +627,7 @@ var Characters = (() => {
         m(0.05, 0.765, 0.022, 0.022);
         break;
       default:
-        m(0, 0.78, 0.09, 0.02);
+        m(0, 0.78, fem ? 0.105 : 0.09, fem ? 0.028 : 0.02);
         m(-0.055, 0.795, 0.022, 0.022);
         m(0.055, 0.795, 0.022, 0.022);
     }
@@ -521,22 +691,32 @@ var Characters = (() => {
     }
   }
   function marks(B, s) {
-    const has = (k) => s.marks.includes(k), z = 0.229;
-    if (has("freckles")) for (const sx of [-1, 1]) for (const [x, y] of [[0.08, 0.835], [0.125, 0.84], [0.105, 0.815], [0.15, 0.82]]) B(sx * x, y, z, 0.02, 0.02, 0.012, 10119750);
+    const has = (k) => s.marks.includes(k), z = 0.229, P2 = 0.03;
+    const px = (x, y, c, w = P2, h = P2) => B(x, y, z, w, h, 0.012, c);
+    const scarC = s.markC ?? mix(s.skin, 11878463, 0.55), scarEdge = mix(s.skin, 16777215, 0.38);
+    if (has("freckles")) for (const sx of [-1, 1]) for (const [x, y] of [[0.08, 0.835], [0.125, 0.84], [0.105, 0.815], [0.15, 0.82]]) px(sx * x, y, 10119750, 0.02, 0.02);
     if (has("blush")) for (const sx of [-1, 1]) B(sx * 0.15, 0.812, z, 0.07, 0.04, 0.012, 14715514);
-    if (has("scar")) {
-      B(-0.13, 0.945, 0.23, 0.02, 0.06, 0.012, 12876394);
-      B(-0.12, 0.895, 0.23, 0.02, 0.05, 0.012, 12876394);
-      B(-0.115, 0.85, 0.23, 0.02, 0.05, 0.012, 12876394);
+    if (has("scar")) for (const [x, y] of [[-0.178, 0.812], [-0.158, 0.784], [-0.138, 0.756], [-0.118, 0.728]]) {
+      px(x + 0.024, y, scarEdge, 0.014, P2);
+      px(x, y, scarC);
     }
-    if (has("mole")) B(0.075, 0.775, z, 0.022, 0.022, 0.012, 4861733);
-    if (has("warpaint")) for (const sx of [-1, 1]) {
-      B(sx * 0.1, 0.83, z, 0.1, 0.022, 0.012, s.gem);
-      B(sx * 0.1, 0.8, z, 0.07, 0.022, 0.012, s.gem);
+    if (has("browscar")) {
+      for (const [x, y] of [[-0.13, 1.03], [-0.122, 1], [-0.114, 0.97]]) {
+        px(x + 0.022, y, scarEdge, 0.012, P2);
+        px(x, y, scarC, 0.026, P2);
+      }
+      px(-0.152, 0.985, scarC, 0.026, 0.014);
+      px(-0.1, 0.985, scarC, 0.026, 0.014);
+    }
+    if (has("mole")) px(0.075, 0.775, 4861733, 0.022, 0.022);
+    if (has("warpaint")) {
+      const c = s.markC ?? 11546429;
+      for (const sx of [-1, 1]) for (const off of [0, 0.045]) for (let i = 0; i < 3; i++) px(sx * (0.175 - off - i * 0.022), 0.812 - i * 0.03, c, 0.034, P2);
     }
     if (has("plaster")) {
-      B(0.03, 0.86, z, 0.12, 0.04, 0.012, 15787212);
-      B(0.03, 0.86, 0.23, 0.04, 0.1, 0.012, 15787212);
+      B(0, 0.835, z, 0.072, 0.03, 0.012, 15787212);
+      B(0, 0.835, 0.23, 0.032, 0.075, 0.012, 15787212);
+      B(0, 0.835, 0.232, 0.018, 0.018, 0.012, mix(15787212, 11901546, 0.5));
     }
   }
   function hair(B, s) {
@@ -682,6 +862,7 @@ var Characters = (() => {
       front.push([-0.14, 0.985, 0.223, 0.06, 0.2, 0.04, s.hair2]);
       low.push([0.12, 0.93, backZ, 0.1, 0.3, 0.02, s.hair2]);
     }
+    if (s.gender === "female" && !["buzz", "mohawk"].includes(st)) for (const sx of [-1, 1]) H(front, sx * 0.235, 0.86, 0.2, 0.055, 0.27, 0.06);
     const hide = hg === "helm" ? ["top", "front"] : hg === "wizhat" || hg === "cap" ? ["top"] : [];
     for (const [name, arr] of [["top", top], ["front", front], ["low", low]]) if (!hide.includes(name)) for (const b of arr) B(b[0], b[1], b[2], b[3], b[4], b[5], b[6]);
   }
@@ -970,7 +1151,7 @@ var Characters = (() => {
   function portrait(kind, actor, opts = {}) {
     const s = spec(kind, actor);
     if (!s) return null;
-    const boxes = build(s), W = opts.width || 168, H = opts.height || 192, px = opts.pixel || 3, back = !!opts.back, m = back ? -1 : 1;
+    const boxes = build(s, { texel: opts.detail ?? RULES.texel }), W = opts.width || 168, H = opts.height || 192, px = opts.pixel || 3, back = !!opts.back, m = back ? -1 : 1;
     let top = 0;
     for (const b of boxes) top = Math.max(top, b[1] + b[4] / 2);
     const v = VIEWS[opts.view], y0 = v ? v.y0 : 0.5, y1 = v ? v.y1 : Math.min(1.7, Math.max(1.32, top + 0.03));
@@ -983,12 +1164,13 @@ var Characters = (() => {
     const sx = lw / xspan, sy = lh / yspan;
     const rect = (b) => {
       const l = Math.round((m * b[0] - b[3] / 2 - x0) * sx), r = Math.round((m * b[0] + b[3] / 2 - x0) * sx), t = Math.round((y1 - b[1] - b[4] / 2) * sy), bt = Math.round((y1 - b[1] + b[4] / 2) * sy);
-      return [l, t, Math.max(1, r - l), Math.max(1, bt - t)];
+      return [l, t, Math.max(b.length > 8 ? 0 : 1, r - l), Math.max(b.length > 8 ? 0 : 1, bt - t)];
     };
-    const order = boxes.map((b, i) => [(b[2] + b[5] / 2) * m, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((a) => boxes[a[1]]);
+    const flat = boxes.filter((b) => b[8] !== "t"), order0 = flat;
+    const order = order0.map((b, i) => [(b.length > 8 ? b[9] : b[2] + b[5] / 2) * m, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((a) => order0[a[1]]);
     c.fillStyle = RULES.outline;
     for (const b of order) {
-      if (b[4] < 0.05 && b[3] < 0.05) continue;
+      if (b.length > 8 || b[4] < 0.05 && b[3] < 0.05) continue;
       const [l, t, w, h] = rect(b);
       c.fillRect(l - 1, t - 1, w + 2, h + 2);
     }
