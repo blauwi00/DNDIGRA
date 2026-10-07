@@ -99,8 +99,30 @@ export function build(s, opts = {}) {
   headgear(B, s);
   accessories(B, s, bw, arm);
   held(B, s, arm, trim);
+  separateCoplanarFaces(out);
   if (opts.texel ?? RULES.texel) out.push(...texelPass(out, texelRole(s)));
   return out;
+}
+
+// Outfits and facial features intentionally overlap. Give coincident surfaces a
+// tiny physical relief instead of letting their different colors fight in depth.
+function separateCoplanarFaces(boxes) {
+  const relief = .0005, layers = boxes.map(() => Array(6).fill(0));
+  for (let j = 0; j < boxes.length; j++) for (let i = 0; i < j; i++) {
+    const a = boxes[i], b = boxes[j];
+    for (let axis = 0; axis < 3; axis++) {
+      if (![0,1,2].filter(k => k !== axis).every(k => Math.min(a[k]+a[k+3]/2,b[k]+b[k+3]/2)-Math.max(a[k]-a[k+3]/2,b[k]-b[k+3]/2)>1e-8)) continue;
+      for (const sign of [-1,1]) {
+        const face = axis*2 + (sign===1?1:0);
+        if (Math.abs(a[axis]+sign*a[axis+3]/2-b[axis]-sign*b[axis+3]/2)<1e-8)
+          layers[j][face]=Math.max(layers[j][face],layers[i][face]+1);
+      }
+    }
+  }
+  boxes.forEach((b,i) => {for(let axis=0;axis<3;axis++){
+    const lo=layers[i][axis*2]*relief, hi=layers[i][axis*2+1]*relief;
+    b[axis]+=(hi-lo)/2;b[axis+3]+=hi+lo;
+  }});
 }
 
 // Какой материал у цвета — от этого зависят пряди, складки и блики в src/texel.js.
@@ -331,7 +353,7 @@ export function portrait(kind, actor, opts = {}) {
   const small = document.createElement('canvas'); small.width = lw; small.height = lh;
   const c = small.getContext('2d'); c.imageSmoothingEnabled = false;
   const sx = lw / xspan, sy = lh / yspan;
-  const rect = b => { const l = Math.round((m * b[0] - b[3] / 2 - x0) * sx), r = Math.round((m * b[0] + b[3] / 2 - x0) * sx), t = Math.round((y1 - b[1] - b[4] / 2) * sy), bt = Math.round((y1 - b[1] + b[4] / 2) * sy); return [l, t, Math.max(1, r - l), Math.max(1, bt - t)]; };
+  const rect = b => { const l = Math.round((m * b[0] - b[3] / 2 - x0) * sx), r = Math.round((m * b[0] + b[3] / 2 - x0) * sx), t = Math.round((y1 - b[1] - b[4] / 2) * sy), bt = Math.round((y1 - b[1] + b[4] / 2) * sy); return [l, t, Math.max(b.length > 8 ? 0 : 1, r - l), Math.max(b.length > 8 ? 0 : 1, bt - t)]; };
   const flat = boxes.filter(b => b[8] !== 't'), order0 = flat;
   const order = order0.map((b, i) => [(b.length > 8 ? b[9] : b[2] + b[5] / 2) * m, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(a => order0[a[1]]);
   c.fillStyle = RULES.outline;

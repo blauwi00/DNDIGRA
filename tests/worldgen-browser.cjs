@@ -30,6 +30,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     await page.waitForFunction(()=>gameDebug.state.scene==='town'&&!!Worlds.current);
     await page.evaluate(()=>{gameDebug.state.settings.animations=false;gameDebug.save();});
     const meta=await page.evaluate(()=>gameDebug.state.world.gen);assert.deepEqual(meta,{v:1,seed:'integration-large',size:'large'});
+    await page.evaluate(async()=>{for(const id of WorldGen.sceneIds(GeneratedWorlds.plan))await GeneratedWorlds.ensure(id);});
     const places=await page.evaluate(()=>{
       const p=GeneratedWorlds.plan;const types=[...new Set(p.buildings.map(b=>b.type))];return ['town',...types.map(type=>p.buildings.find(b=>b.type===type).id),p.buildings.find(b=>b.cellar).cellar,p.buildings.find(b=>b.up).up,'out','dng:1','fort:yard','fort:keep','fort:up','fort:dng'];
     });
@@ -69,7 +70,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     const before=await page.evaluate(()=>JSON.stringify(gameDebug.state)),layout=await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),worldId=await page.evaluate(()=>Worlds.current.id);
     await page.screenshot({path:'qa/worldgen-trap-390.png'});await page.reload();await page.waitForFunction(()=>window.voxel?.ready);
     await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(id=>Worlds.current?.id===id,worldId);
-    assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),before);assert.equal(await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),layout);
+    assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),before);await page.evaluate(async()=>{await GeneratedWorlds.ensure('town');await GeneratedWorlds.ensure('out');});assert.equal(await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),layout);
     // Real portal back to outdoors and reciprocal entrance.
     await page.evaluate(()=>gameDebug.enterScene('out'));const dest=await page.evaluate(()=>gameDebug.props.find(p=>p.destination==='town').destination);
     await page.evaluate(async()=>{const p=gameDebug.props.find(p=>p.destination==='town');const a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c));a.x=c.x;a.y=c.y;gameDebug.render();await gameDebug.approachInteract(p);});await page.waitForFunction(()=>gameDebug.state.scene==='town');

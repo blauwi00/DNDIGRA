@@ -287,9 +287,9 @@
     const preview = object && p.type === "npc" ? window.Artwork?.npc(p.name) : object && window.voxel?.ready ? window.voxel.portrait(p.kind, p.type, p) : null;
     $("target-art").replaceChildren((!object && p.appearance && window.voxel?.heroPortrait ? voxel.heroPortrait(p) : null) || preview || art(object ? p.kind : p.sprite ?? p.kind * 4 + (p.facing || 0), object ? "prop" : "portrait"));
     $("target-name").textContent = p.name;
-    $("target-hp").textContent = object ? { torch: window.Torches?.fixture(p.id).present ? "Можно взять или погасить" : "Можно повесить факел", chandelier: "Потолочный свет", npc: "Можно поговорить", door: isOpen(p) ? "Открыта" : "Закрыта", portal: "Переход в другую локацию", chest: "Монеты и зелье", altar: "Реликвия", books: "Можно осмотреть", desk: "Можно осмотреть", cover: "Преграда" }[p.type] || (p.description ? "Можно осмотреть" : "Украшение") : p.dummy ? "Бесконечное восстановление" : p.hp + " / " + p.max + " HP";
+    $("target-hp").textContent = object ? { torch: window.Torches?.fixture(p.id).present ? "Можно взять или погасить" : "Можно повесить факел", chandelier: "Потолочный свет", npc: "Житель", door: isOpen(p) ? "Открыта" : "Закрыта", portal: "Переход в другую локацию", chest: "Монеты и зелье", altar: "Реликвия", books: "Книги", desk: "Стол", cover: "Преграда" }[p.type] || "" : p.dummy ? "Бесконечное восстановление" : p.hp + " / " + p.max + " HP";
     $("target-bar").style.width = object ? "0%" : p.hp / p.max * 100 + "%";
-    $("target-extra").textContent = object ? state.combat ? "Взаимодействие с соседней клетки" : "Нажмите действие — герой подойдёт сам" : p.dummy ? "Тест ближнего удара и заклинаний" : `КД ${p.ac} · ${DND.weapon(p, state.level).name} · ${DND.weapon(p, state.level).range} кл. · 4 стороны`;
+    $("target-extra").textContent = object ? "" : p.dummy ? "Тест ближнего удара и заклинаний" : `КД ${p.ac} · ${DND.weapon(p, state.level).name} · ${DND.weapon(p, state.level).range} кл. · 4 стороны`;
     $("target-panel").classList.toggle("object-target", object);
     const handPanel = $("map-hands"), a = active();
     handPanel.replaceChildren();
@@ -355,7 +355,7 @@
           face(a, p);
         } else if (mode === "inspect") {
           face(a, p);
-          window.openObjectDialogue?.({ ...p, description: p.description || ({ npc: "Перед вами " + p.name + ". Можно поговорить, находясь рядом.", door: isOpen(p) ? "Дверь открыта." : "Дверь закрыта.", chest: "Сундук. Чтобы проверить содержимое, откройте его.", portal: "Переход в другую локацию." }[p.type] || "Вы внимательно осматриваете предмет: " + p.name + ".") });
+          window.openObjectDialogue?.({ ...p, description: p.description || ({ npc: "Перед вами " + p.name + ".", door: isOpen(p) ? "Дверь открыта." : "Дверь закрыта.", chest: "Закрытый сундук.", portal: "Переход в другую локацию." }[p.type] || "Вы внимательно осматриваете предмет: " + p.name + ".") });
         } else {
           face(a, p);
           await interact(p);

@@ -270,6 +270,31 @@ var Characters = (() => {
   };
   function texelPass(boxes, role = () => "other", size = TEXEL.size, { minDepth = TEXEL.minD } = {}) {
     const out = [], D = TEXEL.decalDepth;
+    function emit(decal, parent) {
+      const axis = decal[8] === "f" ? 2 : 1, axes = axis === 2 ? [0, 1] : [0, 2];
+      const surface = decal[axis] - decal[axis + 3] / 2;
+      let pieces = [decal];
+      boxes.forEach((b, j) => {
+        if (j === parent || b.length > 8) return;
+        const near = b[axis] - b[axis + 3] / 2, far = b[axis] + b[axis + 3] / 2;
+        if (near >= surface + D - 1e-8 || far < surface - 1e-8 || Math.abs(far - surface) < 1e-8 && j < parent) return;
+        const [u, v] = axes, l = b[u] - b[u + 3] / 2, r = b[u] + b[u + 3] / 2, t = b[v] - b[v + 3] / 2, bt = b[v] + b[v + 3] / 2;
+        pieces = pieces.flatMap((d) => {
+          const dl = d[u] - d[u + 3] / 2, dr = d[u] + d[u + 3] / 2, dt = d[v] - d[v + 3] / 2, db = d[v] + d[v + 3] / 2;
+          const il = Math.max(dl, l), ir = Math.min(dr, r), it = Math.max(dt, t), ib = Math.min(db, bt);
+          if (ir - il < 1e-8 || ib - it < 1e-8) return [d];
+          return [[dl, il, dt, db], [ir, dr, dt, db], [il, ir, dt, it], [il, ir, ib, db]].filter(([l2, r2, t2, b2]) => r2 - l2 > 1e-8 && b2 - t2 > 1e-8).map(([l2, r2, t2, b2]) => {
+            const next = [...d];
+            next[u] = (l2 + r2) / 2;
+            next[u + 3] = r2 - l2;
+            next[v] = (t2 + b2) / 2;
+            next[v + 3] = b2 - t2;
+            return next;
+          });
+        });
+      });
+      out.push(...pieces);
+    }
     boxes.forEach((b, i) => {
       if (b.length > 8 || b[7]) return;
       const [x, y, z, w, h, d, c] = b;
@@ -317,7 +342,7 @@ var Characters = (() => {
         while (col + cs < n && cells[row][col + cs] === color) cs++;
         while (row + rs < m && cells[row + rs].slice(col, col + cs).every((v) => v === color)) rs++;
         for (let r = row; r < row + rs; r++) cells[r].fill(null, col, col + cs);
-        out.push([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key]);
+        emit([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key], i);
       }
       if (w >= 0.18 && d >= 0.15) {
         const nd = Math.max(1, Math.round(d / size)), cd = d / nd, top = /* @__PURE__ */ new Map();
@@ -327,7 +352,7 @@ var Characters = (() => {
           const col = Math.floor(R() * n), r = Math.floor(R() * nd);
           top.set(r * n + col, [x - w / 2 + (col + 0.5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + 0.5) * cd, cw, D, cd, tone(c, 1 + f), false, "t", key]);
         }
-        out.push(...top.values());
+        for (const decal of top.values()) emit(decal, i);
       }
     });
     return out;
@@ -466,8 +491,30 @@ var Characters = (() => {
     headgear(B, s);
     accessories(B, s, bw, arm);
     held(B, s, arm, trim);
+    separateCoplanarFaces(out);
     if (opts.texel ?? RULES.texel) out.push(...texelPass(out, texelRole(s)));
     return out;
+  }
+  function separateCoplanarFaces(boxes) {
+    const relief = 5e-4, layers = boxes.map(() => Array(6).fill(0));
+    for (let j = 0; j < boxes.length; j++) for (let i = 0; i < j; i++) {
+      const a = boxes[i], b = boxes[j];
+      for (let axis = 0; axis < 3; axis++) {
+        if (![0, 1, 2].filter((k) => k !== axis).every((k) => Math.min(a[k] + a[k + 3] / 2, b[k] + b[k + 3] / 2) - Math.max(a[k] - a[k + 3] / 2, b[k] - b[k + 3] / 2) > 1e-8)) continue;
+        for (const sign of [-1, 1]) {
+          const face2 = axis * 2 + (sign === 1 ? 1 : 0);
+          if (Math.abs(a[axis] + sign * a[axis + 3] / 2 - b[axis] - sign * b[axis + 3] / 2) < 1e-8)
+            layers[j][face2] = Math.max(layers[j][face2], layers[i][face2] + 1);
+        }
+      }
+    }
+    boxes.forEach((b, i) => {
+      for (let axis = 0; axis < 3; axis++) {
+        const lo = layers[i][axis * 2] * relief, hi = layers[i][axis * 2 + 1] * relief;
+        b[axis] += (hi - lo) / 2;
+        b[axis + 3] += hi + lo;
+      }
+    });
   }
   function texelRole(s) {
     const hair2 = [s.hair, s.hair2, s.beardC, s.brow], metal = [STEEL, MAIL, IRON, s.trim], cloth = [s.cloth, s.cloth2, s.capeC, s.hat, s.accent, CREAM, GREEN];
@@ -1118,7 +1165,7 @@ var Characters = (() => {
     const sx = lw / xspan, sy = lh / yspan;
     const rect = (b) => {
       const l = Math.round((m * b[0] - b[3] / 2 - x0) * sx), r = Math.round((m * b[0] + b[3] / 2 - x0) * sx), t = Math.round((y1 - b[1] - b[4] / 2) * sy), bt = Math.round((y1 - b[1] + b[4] / 2) * sy);
-      return [l, t, Math.max(1, r - l), Math.max(1, bt - t)];
+      return [l, t, Math.max(b.length > 8 ? 0 : 1, r - l), Math.max(b.length > 8 ? 0 : 1, bt - t)];
     };
     const flat = boxes.filter((b) => b[8] !== "t"), order0 = flat;
     const order = order0.map((b, i) => [(b.length > 8 ? b[9] : b[2] + b[5] / 2) * m, i]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((a) => order0[a[1]]);

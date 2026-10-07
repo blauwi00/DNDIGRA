@@ -67,7 +67,6 @@
           conflict = !!e.conflict;
           badge(e.message);
           g().render();
-          open();
           return false;
         }
       }
@@ -117,6 +116,7 @@
     pending = null;
     failed = conflict = false;
     leaving = true;
+    window.GeneratedWorlds?.prime(record);
     g().loadWorld(record.snapshot);
     window.CinematicMenu?.applyPreferences(true);
     leaving = false;
@@ -252,7 +252,7 @@
       const body = $("modal-body");
       body.replaceChildren();
       const p = document.createElement("p");
-      p.textContent = "Лимит переноса золота определим после настройки экономики. В этой пробе можно оставить всё золото в завершённом мире и перейти только с надетой экипировкой и предметами в руках. Содержимое рюкзака тоже останется в архиве.";
+      p.textContent = "В новый мир перейдут надетая экипировка и предметы в руках. Золото и содержимое рюкзака останутся в архиве завершённого мира.";
       body.append(p, button("Начать без переноса золота", () => create(h, worlds, true, options), "gold"), button("Остаться пока здесь", () => paintChoice(h, worlds)));
       return;
     }
@@ -333,7 +333,7 @@
   }
   function render() {
     document.body.classList.toggle("playing-world", !!current);
-    document.body.classList.toggle("world-locked", !!current && (current.status !== "active" || failed || conflict));
+    document.body.classList.toggle("world-locked", !!current && (current.status !== "active" || conflict));
     if (!current) return;
     const s = g().state;
     if (s.world && !s.world.discovered.includes(s.scene)) s.world.discovered.push(s.scene);
@@ -368,7 +368,7 @@
   }, get current() {
     return current;
   }, get locked() {
-    return atMenu || !!current && (current.status !== "active" || failed || conflict);
+    return atMenu || !!current && (current.status !== "active" || conflict);
   }, get pending() {
     return pending;
   }, get saving() {

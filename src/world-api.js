@@ -18,6 +18,11 @@ function layout(meta) {
 const json = (v, status = 200) => Response.json(v, { status, headers: { "Cache-Control": "no-store" } }), xp = [0, 300, 900, 2700, 6500, 14e3, 23e3, 34e3, 48e3, 64e3, 85e3, 1e5, 12e4, 14e4, 165e3, 195e3, 225e3, 265e3, 305e3, 355e3];
 const one = async (db, sql, ...args) => (await db.prepare(sql).bind(...args).all()).results[0];
 const record = (r) => ({ id: r.id, heroId: r.hero_id, status: r.status, revision: r.revision, createdAt: r.created_at, updatedAt: r.updated_at, snapshot: JSON.parse(r.snapshot) });
+function generatedData(snapshot) {
+  if (!snapshot.world?.gen) return {};
+  const plan = planFor(genMeta(snapshot.world.gen));
+  return { generated: { plan, scene: generateScene(plan, snapshot.scene) } };
+}
 function initial(hero, id, chapter, options) {
   const a = structuredClone(hero);
   Object.assign(a, { x: 5, y: 9, facing: 2, move: a.speed, acted: false, bonusUsed: false, reactionUsed: false, concentration: null, conditions: [], death: { success: 0, failure: 0, stable: false } });
@@ -108,7 +113,16 @@ export async function worldAPI(request, env) {
     if (request.method === "GET") {
       if (id) {
         const row = await one(env.DB, "SELECT * FROM worlds WHERE id = ? AND owner = ?", id, owner);
-        return row ? json({ world: record(row) }) : json({ error: "Мир не найден." }, 404);
+        if (!row) return json({ error: "Мир не найден." }, 404);
+        const world = record(row);
+        if (parts[3] === 'scene') {
+          const sid = url.searchParams.get('id'), meta = world.snapshot.world?.gen;
+          if (!meta) return json({ error: 'Этот мир не использует генератор.' }, 400);
+          const plan = planFor(genMeta(meta));
+          if (!sid || !Object.hasOwn(plan.scenes, sid)) return json({ error: 'Место не найдено.' }, 404);
+          return json({ scene: generateScene(plan, sid) });
+        }
+        return json({ world: { ...world, ...generatedData(world.snapshot) } });
       }
       const heroId = url.searchParams.get("hero_id");
       if (!heroId) return json({ error: "Выберите героя." }, 400);
@@ -150,7 +164,7 @@ export async function worldAPI(request, env) {
         if (String(e).includes("UNIQUE")) return json({ error: "Мир уже создан. Обновите список." }, 409);
         throw e;
       }
-      return json({ world: { id: worldId, heroId: body.heroId, status: "active", snapshot, revision: 1, createdAt: now, updatedAt: now } }, 201);
+      return json({ world: { id: worldId, heroId: body.heroId, status: "active", snapshot, revision: 1, createdAt: now, updatedAt: now, ...generatedData(snapshot) } }, 201);
     }
     if (id && (request.method === "PUT" || request.method === "POST" && parts[3] === "finish")) {
       const row = await one(env.DB, "SELECT * FROM worlds WHERE id = ? AND owner = ?", id, owner);

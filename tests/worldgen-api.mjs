@@ -35,10 +35,15 @@ const {hero}=await call('heroes','POST',draft);
 for(const gen of [{seed:'x',size:'huge'},{seed:'x'.repeat(129),size:'small'},{seed:{x:1},size:'small'}])assert.equal((await call('worlds','POST',{heroId:hero.id,...gen})).status,400);
 let r=await call('worlds','POST',{heroId:hero.id,seed:'integration-large',size:'large'});assert.equal(r.status,201);let w=r.world;
 const plan=createWorld(w.snapshot.world.gen.seed,w.snapshot.world.gen.size);
+assert.equal(w.generated.scene.id,w.snapshot.scene);
+assert.equal(w.generated.plan.seed,plan.seed);
+assert.equal((await call('worlds/'+w.id+'/scene?id=town','GET',undefined,'owner-b')).status,404);
+assert.equal((await call('worlds/'+w.id+'/scene?id=__proto__')).status,404);
+assert.equal((await call('worlds/'+w.id+'/scene?id=town','GET',undefined,null)).status,401);
 async function reject(change){const s=structuredClone(w.snapshot);change(s);assert.equal((await call('worlds/'+w.id,'PUT',{revision:w.revision,snapshot:s})).status,400);}
 await reject(s=>s.scene='b999');await reject(s=>s.scene='__proto__');await reject(s=>s.party[0].x=generateScene(plan,'town').W);await reject(s=>s.world.gen.size='small');await reject(s=>s.gen.opened={'b1:fake':true});await reject(s=>s.drops=[{id:'x',name:'Мел',itemType:'gear',scene:'dng:99',x:0,y:0}]);
 for(const id of sceneIds(plan)){
- const z=generateScene(plan,id),s=structuredClone(w.snapshot);s.scene=id;[s.party[0].x,s.party[0].y]=z.spawns[0];
+ const z=generateScene(plan,id),s=structuredClone(w.snapshot);assert.deepEqual((await call('worlds/'+w.id+'/scene?id='+encodeURIComponent(id))).scene,JSON.parse(JSON.stringify(z)));s.scene=id;[s.party[0].x,s.party[0].y]=z.spawns[0];
  r=await call('worlds/'+w.id,'PUT',{revision:w.revision,snapshot:s});assert.equal(r.status,200,id);w=r.world;
 }
 const z=generateScene(plan,'dng:1'),trap=z.traps[0],s=structuredClone(w.snapshot);s.gen.fired={['dng:1:'+trap.id]:true};s.gen.known={['dng:1:'+trap.id]:true};

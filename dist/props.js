@@ -62,6 +62,31 @@ var Props = (() => {
   };
   function texelPass(boxes, role2 = () => "other", size = TEXEL.size, { minDepth = TEXEL.minD } = {}) {
     const out = [], D = TEXEL.decalDepth;
+    function emit(decal, parent) {
+      const axis = decal[8] === "f" ? 2 : 1, axes = axis === 2 ? [0, 1] : [0, 2];
+      const surface = decal[axis] - decal[axis + 3] / 2;
+      let pieces = [decal];
+      boxes.forEach((b, j) => {
+        if (j === parent || b.length > 8) return;
+        const near = b[axis] - b[axis + 3] / 2, far = b[axis] + b[axis + 3] / 2;
+        if (near >= surface + D - 1e-8 || far < surface - 1e-8 || Math.abs(far - surface) < 1e-8 && j < parent) return;
+        const [u, v] = axes, l = b[u] - b[u + 3] / 2, r = b[u] + b[u + 3] / 2, t = b[v] - b[v + 3] / 2, bt = b[v] + b[v + 3] / 2;
+        pieces = pieces.flatMap((d) => {
+          const dl = d[u] - d[u + 3] / 2, dr = d[u] + d[u + 3] / 2, dt = d[v] - d[v + 3] / 2, db = d[v] + d[v + 3] / 2;
+          const il = Math.max(dl, l), ir = Math.min(dr, r), it = Math.max(dt, t), ib = Math.min(db, bt);
+          if (ir - il < 1e-8 || ib - it < 1e-8) return [d];
+          return [[dl, il, dt, db], [ir, dr, dt, db], [il, ir, dt, it], [il, ir, ib, db]].filter(([l2, r2, t2, b2]) => r2 - l2 > 1e-8 && b2 - t2 > 1e-8).map(([l2, r2, t2, b2]) => {
+            const next = [...d];
+            next[u] = (l2 + r2) / 2;
+            next[u + 3] = r2 - l2;
+            next[v] = (t2 + b2) / 2;
+            next[v + 3] = b2 - t2;
+            return next;
+          });
+        });
+      });
+      out.push(...pieces);
+    }
     boxes.forEach((b, i) => {
       if (b.length > 8 || b[7]) return;
       const [x, y, z, w, h, d, c] = b;
@@ -109,7 +134,7 @@ var Props = (() => {
         while (col + cs < n && cells[row][col + cs] === color) cs++;
         while (row + rs < m && cells[row + rs].slice(col, col + cs).every((v) => v === color)) rs++;
         for (let r = row; r < row + rs; r++) cells[r].fill(null, col, col + cs);
-        out.push([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key]);
+        emit([x - w / 2 + (col + cs / 2) * cw, y + h / 2 - (row + rs / 2) * ch, zf, cs * cw, rs * ch, D, color, false, "f", key], i);
       }
       if (w >= 0.18 && d >= 0.15) {
         const nd = Math.max(1, Math.round(d / size)), cd = d / nd, top = /* @__PURE__ */ new Map();
@@ -119,7 +144,7 @@ var Props = (() => {
           const col = Math.floor(R() * n), r = Math.floor(R() * nd);
           top.set(r * n + col, [x - w / 2 + (col + 0.5) * cw, y + h / 2 + D / 2, z - d / 2 + (r + 0.5) * cd, cw, D, cd, tone(c, 1 + f), false, "t", key]);
         }
-        out.push(...top.values());
+        for (const decal of top.values()) emit(decal, i);
       }
     });
     return out;
