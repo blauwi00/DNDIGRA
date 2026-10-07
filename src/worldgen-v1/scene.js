@@ -1,4 +1,3 @@
-import { SURFACES, varyFloor } from './surfaces.js';
 // Сборщик сцены в формате игры (dist/world.js): плитки void/floor/wall, props, decor, lights, spawns.
 // Стены строятся как в игре: пустая клетка рядом (по 8 направлениям) с полом становится стеной.
 // Все предметы ставятся с проверкой: проходы не перекрываются, у каждого предмета есть свободная соседняя клетка.
@@ -12,11 +11,7 @@ export class SceneBuilder {
     Object.assign(this, { id, name, W, H, rng, meta });
     this.floor = new Uint8Array(W * H); this.props = []; this.decor = []; this.lights = []; this.encounters = [];
     this.occ = new Map(); this.reserved = new Set(); this.counter = 0; this.anchor = null; this._reach = null;
-    this.surf = new Array(W * H).fill(null); this.baseSurface = meta.base || 'stone'; this.wallStyle = meta.wall || 'stone';
   }
-  // Поверхность пола. Не влияет на проходимость.
-  paint(x, y, w, h, id) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (this.inb(i, j)) this.surf[j * this.W + i] = id; }
-  paintCells(cells, id) { for (const [x, y] of cells) if (this.inb(x, y)) this.surf[y * this.W + x] = id; }
   inb(x, y) { return x >= 0 && y >= 0 && x < this.W && y < this.H; }
   isFloor(x, y) { return this.inb(x, y) && this.floor[y * this.W + x] === 1; }
   setFloor(x, y, v = 1) { if (this.inb(x, y)) this.floor[y * this.W + x] = v; this._reach = null; }
@@ -54,7 +49,7 @@ export class SceneBuilder {
   put(prop, x = prop.x, y = prop.y) {
     prop.x = x; prop.y = y; if (!prop.id) prop.id = this.nid(prop.type || 'p');
     const solid = prop.solid !== false && !NON_BLOCKING.has(prop.type);
-    if (!solid && !NON_BLOCKING.has(prop.type) && (this.props.some(q => q.x === x && q.y === y) || this.reserved.has(key(x, y)) || !this.isFloor(x, y) || this.occ.has(key(x, y)))) return null; // не ставим один неблокирующий предмет на другой
+    if (!solid && !NON_BLOCKING.has(prop.type) && this.props.some(q => q.x === x && q.y === y)) return null; // не ставим один неблокирующий предмет на другой
     if (solid) { if (!this.canBlock(x, y)) return null; this.occ.set(key(x, y), prop); this._reach = null; }
     this.props.push(prop); return prop;
   }
@@ -137,8 +132,6 @@ export class SceneBuilder {
   finish(entry) {
     this.mountLights();
     const tiles = Array.from({ length: this.H }, (_, y) => Array.from({ length: this.W }, (_, x) => this.isFloor(x, y) ? 'floor' : this.isWall(x, y) ? 'wall' : 'void'));
-    const sid = this.meta.seed + '/' + this.id;
-    const surface = Array.from({ length: this.H }, (_, y) => Array.from({ length: this.W }, (_, x) => { if (!this.isFloor(x, y)) return ' '; const base = this.surf[y * this.W + x] || this.baseSurface; return SURFACES[varyFloor(base, sid, x, y)].code; }).join(''));
     const start = entry || this.anchor || this.floorCells()[0];
     const taken = new Set(), spawns = this.nearestFree(start[0], start[1], 3); spawns.forEach(c => taken.add(key(c[0], c[1])));
     const training = this.nearestFree(start[0], start[1], 6, taken).slice(3, 6), farFirst = this.floorCells().filter(([x, y]) => this.free(x, y) && !taken.has(key(x, y))).sort((a, b) => Math.hypot(b[0] - start[0], b[1] - start[1]) - Math.hypot(a[0] - start[0], a[1] - start[1]));
@@ -146,7 +139,6 @@ export class SceneBuilder {
     return {
       id: this.id, name: this.name, W: this.W, H: this.H, tiles, props: this.props, decor: this.decor, dummies: [], lights: this.lights,
       spawns, trainingSpawn: training.length === 3 ? training : spawns.slice(), enemySpawn, encounters: this.encounters, gen: this.meta,
-      surface, wallStyle: this.wallStyle, // surface[y][x] — код поверхности (surfaces.js), ' ' вне пола
     };
   }
 }
@@ -180,3 +172,4 @@ export function validateScene(scene) {
   const ids = new Set(); for (const p of scene.props) { if (ids.has(p.id)) errs.push('Повтор id: ' + p.id); ids.add(p.id); }
   return errs;
 }
+

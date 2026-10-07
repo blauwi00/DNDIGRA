@@ -14,8 +14,8 @@
   function restore(state){
     const meta=state?.world?.gen;
     if(!meta){plan=null;metaKey='';serverWorld=null;canonical.clear();loading.clear();return;}
-    if(meta.v!==WorldGen.GEN_VERSION)throw Error('Версия генератора этого мира не поддерживается.');
-    const key=JSON.stringify(meta);if(key!==metaKey){plan=WorldGen.createWorld(meta.seed,meta.size);metaKey=key;serverWorld=null;canonical.clear();loading.clear();}
+    if(!WorldGen.SUPPORTED_VERSIONS.includes(meta.v))throw Error('Версия генератора этого мира не поддерживается.');
+    const key=JSON.stringify(meta);if(key!==metaKey){plan=WorldGen.createWorld(meta.seed,meta.size,meta.v);metaKey=key;serverWorld=null;canonical.clear();loading.clear();}
     get(state.scene);prefetch(state.scene);
   }
   function prime(record){

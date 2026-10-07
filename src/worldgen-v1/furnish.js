@@ -40,64 +40,14 @@ const CAT = {
   rack: { type: 'rack', name: 'Стойка с оружием', d: ['Оружие на стойке отполировано до блеска.'] },
   banner: { type: 'banner', name: 'Знамя', d: ['Знамя выцвело, но гербовый зверь ещё виден.'], solid: false },
   scrolls: { type: 'scrolls', name: 'Свитки', d: ['Свитки лежат аккуратной стопкой.'] },
-  // ——— крупная мебель (занимает клетку, расставляется с проверкой проходов) ———
-  workbench: { type: 'furniture', model: 'workbench', name: 'Верстак', d: ['Верстак в зарубках и опилках.', 'На верстаке разложен инструмент.'] },
-  loom: { type: 'furniture', model: 'loom', name: 'Ткацкий станок', d: ['Станок с натянутой основой, работа брошена на полпути.'] },
-  bathtub: { type: 'furniture', model: 'bathtub', name: 'Ванна', d: ['Медная ванна с остывшей водой.'] },
-  cradle: { type: 'furniture', model: 'cradle', name: 'Колыбель', d: ['Пустая колыбель слегка покачивается.'] },
-  sackpile: { type: 'furniture', model: 'sackpile', name: 'Мешки', d: ['Стопка мешков с зерном.', 'Мешки сложены неровно, но надёжно.'] },
-  haybale: { type: 'furniture', model: 'haybale', name: 'Тюк сена', d: ['Сухой тюк сена пахнет летом.'] },
-  cratestack: { type: 'furniture', model: 'cratestack', name: 'Стопка ящиков', d: ['Ящики сложены друг на друга и перетянуты верёвкой.'] },
-  barrelstack: { type: 'furniture', model: 'barrelstack', name: 'Пирамида бочек', d: ['Бочки сложены пирамидой, снизу сочится влага.'] },
-  statue: { type: 'furniture', model: 'statue', name: 'Статуя', d: ['Каменная фигура, лицо стёрто временем.', 'У подножия статуи следы свечного воска.'] },
-  pulpit: { type: 'furniture', model: 'pulpit', name: 'Кафедра', d: ['Кафедра со старой книгой проповедей.'] },
-  font: { type: 'furniture', model: 'font', name: 'Купель', d: ['Чаша с чистой водой.'] },
-  coffin: { type: 'furniture', model: 'coffin', name: 'Гроб', d: ['Крышка плотно прибита.', 'Гроб без имени.'] },
-  cage: { type: 'furniture', model: 'cage', name: 'Клетка', d: ['Железная клетка, дверца заперта.'] },
-  throne: { type: 'furniture', model: 'throne', name: 'Трон', d: ['Резной трон с красной подушкой.'] },
-  lamppost: { type: 'furniture', model: 'lamppost', name: 'Фонарный столб', d: ['Фонарь горит ровным светом.'] },
-  // ——— напольные мелочи (через них можно ходить) ———
-  bucket: { type: 'furniture', model: 'bucket', name: 'Ведро', d: ['Ведро с водой.', 'Пустое ведро с вмятиной.'], solid: false },
-  broom: { type: 'furniture', model: 'broom', name: 'Метла', d: ['Метла стоит в углу.'], solid: false },
-  sack: { type: 'furniture', model: 'sack', name: 'Мешок', d: ['Мешок с чем-то мягким.'], solid: false },
-  basket: { type: 'furniture', model: 'basket', name: 'Корзина', d: ['Плетёная корзина.'], solid: false },
-  rope: { type: 'furniture', model: 'rope', name: 'Бухта верёвки', d: ['Аккуратно свёрнутая верёвка.'], solid: false },
-  boots: { type: 'furniture', model: 'boots', name: 'Сапоги', d: ['Стоптанные сапоги.'], solid: false },
-  wheel: { type: 'furniture', model: 'wheel', name: 'Колесо от телеги', d: ['Колесо от телеги, прислонённое к стене.'], solid: false },
-  puddle: { type: 'furniture', model: 'puddle', name: 'Лужа', d: ['Лужа, в которой отражается свет.'], solid: false },
-  straw: { type: 'furniture', model: 'straw', name: 'Солома', d: ['Рассыпанная солома.'], solid: false },
-  rubble: { type: 'furniture', model: 'rubble', name: 'Груда камней', d: ['Обломки каменной кладки.'], solid: false },
-  lantern_floor: { type: 'furniture', model: 'lantern_floor', name: 'Фонарь', d: ['Фонарь, оставленный на полу.'], solid: false },
-  pitchfork: { type: 'furniture', model: 'pitchfork', name: 'Вилы', d: ['Вилы с обломанным зубцом.'], solid: false },
-  shovel: { type: 'furniture', model: 'shovel', name: 'Лопата', d: ['Лопата в засохшей земле.'], solid: false },
-  // ——— настенные детали (висят на стене, ничего не занимают) ———
-  shield: { type: 'decor', model: 'shield', name: 'Щит на стене', d: ['Щит с гербом, краска облупилась.'], wall: true },
-  swords: { type: 'decor', model: 'swords', name: 'Мечи на стене', d: ['Два меча, давно не бывшие в деле.'], wall: true },
-  antlers: { type: 'decor', model: 'antlers', name: 'Оленьи рога', d: ['Рога висят над входом на счастье.'], wall: true },
-  painting: { type: 'decor', model: 'painting', name: 'Картина', d: ['Пейзаж в потемневшей раме.', 'Картина слегка висит набок.'], wall: true },
-  tapestry: { type: 'decor', model: 'tapestry', name: 'Гобелен', d: ['Гобелен с выцветшим узором.'], wall: true },
-  mirror: { type: 'decor', model: 'mirror', name: 'Зеркало', d: ['Зеркало в золочёной раме.'], wall: true },
-  clock: { type: 'decor', model: 'clock', name: 'Часы', d: ['Часы спешат на четверть часа.', 'Часы тихо тикают.'], wall: true },
-  hooks: { type: 'decor', model: 'hooks', name: 'Вешалка', d: ['На крючках плащи и шапки.'], wall: true },
-  jars: { type: 'decor', model: 'jars', name: 'Полка с банками', d: ['Банки с засолкой и сушёными травами.'], wall: true },
-  map: { type: 'decor', model: 'map', name: 'Карта', d: ['Карта окрестностей, на ней пометки.'], wall: true },
-  noticeboard: { type: 'decor', model: 'noticeboard', name: 'Доска объявлений', d: ['На доске объявления о пропаже и найме.'], wall: true },
-  pans: { type: 'decor', model: 'pans', name: 'Сковороды', d: ['Сковороды, начищенные до блеска.'], wall: true },
-  herbs_hang: { type: 'decor', model: 'herbs_hang', name: 'Пучки трав', d: ['Травы сушатся вниз головой и пахнут лугом.'], wall: true },
-  tavernsign: { type: 'decor', model: 'tavernsign', name: 'Вывеска', d: ['Вывеска поскрипывает на ветру.'], wall: true },
-  shutter: { type: 'decor', model: 'shutter', name: 'Окно со ставнями', d: ['Через стекло едва пробивается свет.'], wall: true },
-  keysboard: { type: 'decor', model: 'keysboard', name: 'Доска с ключами', d: ['Ключи висят под номерами.'], wall: true },
-  shackles: { type: 'decor', model: 'shackles', name: 'Кандалы', d: ['Кандалы на стене, звенья потёрты.'], wall: true },
-  horseshoe: { type: 'decor', model: 'horseshoe', name: 'Подкова', d: ['Подкова висит на счастье.'], wall: true },
-  net: { type: 'decor', model: 'net', name: 'Рыболовная сеть', d: ['Сеть пахнет рекой.'], wall: true },
   altar: { type: 'altar', name: 'Алтарь', d: ['Алтарь тёплый на ощупь, свечи горят ровно.'] },
 };
 export const CATALOG = CAT;
-export const dirRot = (dx, dy) => dy === 1 ? 0 : dx === -1 ? 3 : dy === -1 ? 2 : 1; // куда смотрит лицевая сторона: от стены, в комнату
+const dirRot = (dx, dy) => dy === 1 ? 0 : dx === -1 ? 3 : dy === -1 ? 2 : 1; // куда смотрит лицевая сторона: от стены, в комнату
 
 export function mk(sb, key, extra = {}) {
   const c = CAT[key], p = { type: c.type, kind: 24, name: c.name, description: sb.rng.pick(c.d), ...extra };
-  if (c.model) p.model = c.model; if (c.solid === false) p.solid = false; if (c.wall) { p.kind = 22; p.solid = false; } if (c.type === 'chest') p.kind = 17; if (c.type === 'altar') p.kind = 18; if (c.type === 'books') p.kind = 21; if (c.type === 'cover') p.kind = 19;
+  if (c.model) p.model = c.model; if (c.solid === false) p.solid = false; if (c.type === 'chest') p.kind = 17; if (c.type === 'altar') p.kind = 18; if (c.type === 'books') p.kind = 21; if (c.type === 'cover') p.kind = 19;
   p.cat = key; return p;
 }
 
@@ -123,12 +73,12 @@ export function wallMount(sb, r, key, n = 1) {
   for (let y = r.y - 1; y <= r.y + r.h; y++) for (let x = r.x - 1; x <= r.x + r.w; x++) {
     if (!sb.isWall(x, y) || sb.isFloor(x, y)) continue;
     const fronts = DIRS.filter(([dx, dy]) => sb.isFloor(x + dx, y + dy) && inRoom(r, x + dx, y + dy) && !sb.occ.has((x + dx) + ',' + (y + dy)) && !sb.reserved.has((x + dx) + ',' + (y + dy)));
-    if (fronts.length === 1) cand.push([x, y, fronts[0]]);
+    if (fronts.length === 1) cand.push([x, y]);
   }
-  for (const [x, y, [dx, dy]] of sb.rng.shuffle(cand)) {
+  for (const [x, y] of sb.rng.shuffle(cand)) {
     if (out.length >= n) break;
     if (sb.props.some(p => Math.abs(p.x - x) + Math.abs(p.y - y) < 2 && (p.solid === false || p.type === 'portal' || p.type === 'door'))) continue;
-    const p = mk(sb, key); p.x = x; p.y = y; p.id = sb.nid('wall'); p.rot = dirRot(dx, dy); p.gen = true; sb.props.push(p); out.push(p);
+    const p = mk(sb, key); p.x = x; p.y = y; p.id = sb.nid('wall'); sb.props.push(p); out.push(p);
   }
   return out;
 }
@@ -168,6 +118,7 @@ export function stock(sb, p, ctx, theme, opts = {}) {
   if (opts.lockKey) p.lock = { key: opts.lockKey, pickDc: 12 + depth, forceDc: 14 + depth };
   if (opts.trap) p.trap = rollTrap(r, depth, opts.trapKinds);
   if (opts.extraGear) p.loot.gear.push(...opts.extraGear);
+  p.description = (p.description ? p.description + ' ' : '') + (p.lock ? 'Заперт.' : '');
   return p;
 }
 export function plainContainers(sb, r, ctx, theme, count, keys = ['chest', 'crate', 'barrel']) {
@@ -177,10 +128,7 @@ export function plainContainers(sb, r, ctx, theme, count, keys = ['chest', 'crat
 }
 
 // ——— роли комнат ———
-// Поверхность пола по роли комнаты (surfaces.js). Только внешний вид, на проходимость не влияет.
-const SURF_BY_ROLE = { living: 'planks', bedroom: 'planks', kitchen: 'tiles', hall: 'planks_dark', storage: 'planks_dark', cellar: null, smithy: 'stone_dark', alchemy: 'planks', shop: 'planks', chapel: 'flagstone', guard: 'stone', cells: 'stone_dark', armory: 'stone', warehouse: 'planks_dark', library: 'planks', crypt: 'stone_dark', guardroom: 'stone', treasure: 'flagstone', shrine: 'flagstone', dungeonlib: 'stone', camp: 'dirt', courtyard: 'cobble', greathall: 'flagstone', lord: 'planks' };
-function furnishCore(sb, role, r, ctx) {
-  const underground = sb.meta.type === 'dungeon', surface = underground && ['storage', 'library', 'living', 'bedroom'].includes(role) ? 'stone' : SURF_BY_ROLE[role]; if (surface) sb.paint(r.x, r.y, r.w, r.h, surface); else if (role === 'cellar') sb.paint(r.x, r.y, r.w, r.h, sb.meta.cellarFloor || 'stone');
+export function furnish(sb, role, r, ctx) {
   const rng = sb.rng, area = r.w * r.h, depth = ctx.depth || 0, big = area >= 30;
   const fire = ps => { for (const p of ps) if (CAT[p.cat].light) sb.light(p.x + .5, p.y + .5, { radius: 3, power: .7 }); };
   switch (role) {
@@ -220,47 +168,3 @@ function furnishCore(sb, role, r, ctx) {
   }
 }
 
-// ——— оформление комнаты: предметы на столах, настенные и напольные детали, крупные добавки ———
-const FLAVOR = { living: 'living', kitchen: 'kitchen', hall: 'hall', alchemy: 'alchemy', shop: 'shop', library: 'study', guard: 'study', lord: 'study', smithy: 'smith', bedroom: 'bedroom', greathall: 'hall', guardroom: 'hall' };
-const WALL_POOLS = {
-  living: ['painting', 'clock', 'hooks', 'tapestry', 'mirror', 'herbs_hang', 'horseshoe'], bedroom: ['painting', 'mirror', 'tapestry', 'hooks'], kitchen: ['pans', 'herbs_hang', 'jars', 'hooks', 'clock'],
-  hall: ['antlers', 'shield', 'tapestry', 'swords', 'painting', 'clock', 'horseshoe'], storage: ['hooks', 'net', 'horseshoe', 'keysboard'], cellar: ['net', 'keysboard', 'hooks'],
-  smithy: ['swords', 'shield', 'horseshoe', 'hooks'], alchemy: ['jars', 'herbs_hang', 'map', 'clock'], shop: ['painting', 'keysboard', 'hooks', 'map', 'clock', 'jars'],
-  chapel: ['tapestry', 'painting', 'clock'], guard: ['shield', 'swords', 'map', 'noticeboard', 'keysboard'], cells: ['shackles', 'net'], armory: ['shield', 'swords', 'antlers'],
-  warehouse: ['net', 'hooks', 'keysboard', 'noticeboard'], library: ['map', 'painting', 'clock', 'jars'], crypt: ['shackles', 'tapestry', 'net'], guardroom: ['shield', 'swords', 'noticeboard'],
-  treasure: ['tapestry', 'shield', 'swords'], shrine: ['tapestry', 'shackles'], dungeonlib: ['map', 'jars', 'shackles'], greathall: ['tapestry', 'shield', 'swords', 'antlers', 'painting', 'mirror'], lord: ['tapestry', 'mirror', 'painting', 'clock', 'shield'], courtyard: ['shield', 'noticeboard', 'horseshoe'], camp: ['net'],
-};
-const FLOOR_POOLS = {
-  living: ['basket', 'boots', 'broom', 'rope'], bedroom: ['boots', 'basket'], kitchen: ['bucket', 'sack', 'basket', 'broom', 'rope'], hall: ['sack', 'boots', 'puddle', 'bucket'],
-  storage: ['sack', 'rope', 'bucket', 'straw', 'pitchfork', 'basket'], cellar: ['straw', 'puddle', 'rope', 'sack', 'rubble', 'bucket'], smithy: ['bucket', 'rubble', 'shovel', 'sack'],
-  alchemy: ['basket', 'bucket', 'sack'], shop: ['basket', 'sack', 'rope'], chapel: ['basket'], guard: ['boots', 'bucket', 'rope'], cells: ['straw', 'bucket', 'rubble', 'puddle'], armory: ['boots', 'rope'],
-  warehouse: ['sack', 'rope', 'bucket', 'straw', 'basket', 'wheel'], library: ['basket'], crypt: ['rubble', 'puddle'], guardroom: ['boots', 'bucket', 'rubble'], treasure: ['rubble'],
-  shrine: ['rubble'], dungeonlib: ['rubble', 'straw'], courtyard: ['wheel', 'bucket', 'straw', 'rope', 'shovel', 'pitchfork', 'puddle'], camp: ['rope', 'bucket', 'lantern_floor', 'boots', 'sack'],
-};
-const SOLID_POOLS = {
-  kitchen: [['workbench', 'atWall', .5]], smithy: [['workbench', 'atWall', .8], ['sackpile', 'atWall', .4]], storage: [['sackpile', 'atWall', .8], ['cratestack', 'atWall', .6], ['barrelstack', 'atWall', .5], ['haybale', 'atWall', .3]],
-  cellar: [['barrelstack', 'atWall', .6], ['cratestack', 'atWall', .5]], warehouse: [['cratestack', 'atWall', .9], ['barrelstack', 'atWall', .8], ['sackpile', 'atWall', .8], ['haybale', 'atWall', .5]],
-  bedroom: [['cradle', 'atWall', .18]], living: [['loom', 'atWall', .18], ['bathtub', 'atWall', .1]], chapel: [['pulpit', 'atWall', .8], ['font', 'atWall', .6], ['statue', 'atWall', .5]],
-  crypt: [['coffin', 'atWall', .5], ['statue', 'atWall', .4]], cells: [['cage', 'atWall', .5]], greathall: [['throne', 'atWall', .7], ['statue', 'atWall', .5]], lord: [['statue', 'atWall', .3]],
-  treasure: [['statue', 'atWall', .5]], shrine: [['statue', 'atWall', .6]], courtyard: [['haybale', 'atWall', .6], ['cratestack', 'atWall', .6], ['barrelstack', 'atWall', .5], ['statue', 'inside', .3]], camp: [['haybale', 'atWall', .4]],
-};
-export function deco(sb, role, r) {
-  const rng = sb.rng, area = r.w * r.h, place = { atWall, inside, anywhere };
-  for (const p of sb.props) if (!p.flavor && (p.cat === 'table' || p.cat === 'counter') && p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h) p.flavor = FLAVOR[role] || 'default';
-  for (const [key, how, chance] of SOLID_POOLS[role] || []) if (rng.chance(chance)) place[how](sb, r, key, 1);
-  const wp = WALL_POOLS[role]; if (wp) { const n = Math.min(5, Math.max(1, Math.floor((r.w + r.h) / 5))); for (let i = 0; i < n; i++) wallMount(sb, r, rng.pick(wp), 1); }
-  const fp = FLOOR_POOLS[role]; if (fp) { const n = Math.min(6, Math.floor(area / 14) + (rng.chance(.5) ? 1 : 0)); for (let i = 0; i < n; i++) anywhere(sb, r, rng.pick(fp), 1); }
-}
-// Предельная доля клеток комнаты, занятых крупными предметами. Больше — тесно: по комнате должен ходить отряд.
-const COVER = { living: .26, bedroom: .26, kitchen: .3, hall: .27, storage: .36, cellar: .3, smithy: .28, alchemy: .28, shop: .28, chapel: .22, guard: .26, cells: .22, armory: .26, warehouse: .38, library: .3, crypt: .2, guardroom: .22, treasure: .24, shrine: .2, dungeonlib: .22, camp: .1, courtyard: .1, greathall: .22, lord: .26 };
-// Что убирать в первую очередь (меньше число = убирается раньше). Не трогаем: жителей, алтари, очаги, кровати, прилавки, контейнеры с добычей, замками и ловушками.
-const DROP_ORDER = { chair: 0, stool: 0, bench: 1, planter: 1, barrel: 2, crate: 2, sackpile: 2, cratestack: 2, barrelstack: 2, haybale: 2, pillar: 3, rack: 3, scrolls: 3, bush: 3, tree: 3, signpost: 3, cart: 3, table: 4, wardrobe: 5, shelf: 5 };
-export function thin(sb, r, maxCover) {
-  const cells = roomCells(sb, r).length, inR = p => p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h, kk = p => p.x + ',' + p.y;
-  let solid = sb.props.filter(p => inR(p) && sb.occ.get(kk(p)) === p);
-  if (solid.length / cells <= maxCover) return;
-  const keep = p => p.type === 'npc' || (p.container && p.loot && (p.loot.gold || p.loot.potions || p.loot.gear.length || p.lock || p.trap));
-  const drop = sb.rng.shuffle(solid.filter(p => !keep(p) && DROP_ORDER[p.cat] !== undefined && !(p.cat === 'table' && sb.props.some(q => q.cat === 'chair' && Math.abs(q.x - p.x) + Math.abs(q.y - p.y) === 1)))).sort((a, b) => DROP_ORDER[a.cat] - DROP_ORDER[b.cat]);
-  for (const p of drop) { if (solid.length / cells <= maxCover) break; sb.props.splice(sb.props.indexOf(p), 1); sb.occ.delete(kk(p)); solid = solid.filter(q => q !== p); sb._reach = null; }
-}
-export function furnish(sb, role, r, ctx) { furnishCore(sb, role, r, ctx); deco(sb, role, r); if (COVER[role]) thin(sb, r, COVER[role]); }

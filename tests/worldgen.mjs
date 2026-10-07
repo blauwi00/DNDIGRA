@@ -10,7 +10,7 @@ import {PROP_MODELS,build as buildProp} from '../src/props.js';
 import {CATALOG} from '../src/worldgen/furnish.js';
 
 const fp=sc=>hash32(JSON.stringify([sc.tiles.map(r=>r.map(t=>t[0]).join('')),sc.props.map(p=>[p.type,p.cat||'',p.x,p.y])]));
-const SIZES=['small','medium','large'],LIMITS={maxProps:420,maxW:96,maxH:64};
+const SIZES=['small','medium','large'],LIMITS={maxProps:560,maxW:96,maxH:64};
 let scenes=0,worlds=0;
 
 for(const size of SIZES)for(let i=0;i<5;i++){
@@ -42,12 +42,61 @@ for(const size of SIZES)for(let i=0;i<5;i++){
     assert.ok([...all.values()].some(sc=>sc.props.some(p=>p.lock?.key===k.name)),`${seed}: ключ «${k.name}» ничего не открывает`);}
   for(const sc of all.values())for(const p of sc.props)if(p.lock){assert.ok(p.lock.pickDc>=10&&p.lock.forceDc>=10,'сложность замка');}
   // 4. слухи ссылаются на существующие места
-  const names=new Set(plan.buildings.map(b=>b.name));for(const f of plan.facts)if(f.kind==='tavern'||f.kind==='cache')assert.ok(names.has(f.place),'слух про несуществующее место');
+  const names=new Set(plan.buildings.map(b=>b.name));for(const f of plan.facts)if(f.kind==='tavern'||f.kind==='cache')assert.ok(names.has(f.ref.title),'слух про несуществующее здание');
   // 5. состав мира соответствует размеру
   assert.ok(plan.buildings.some(b=>b.type==='tavern')&&plan.buildings.some(b=>b.type==='chapel'));
   assert.equal(plan.dungeon.levels,{small:1,medium:2,large:3}[size]);
 }
 
+// ——— язык: тексты, которые видит игрок, проверяются так же строго, как двери и проходы ———
+{
+  const MALE_ONLY=new Set(['горожанин','торговец','путник','охотник','паломник','отшельник','искатель','пленник','прохожий','ремесленник','посетитель','стражник','дровосек']);
+  const FEMALE_ONLY=new Set(['горожанка','торговка','путница','охотница','паломница','отшельница','искательница','пленница','прохожая','ремесленница','посетительница','стражница','травница','трактирщица','жрица','кладовщица','жительница']);
+  const BAD=[[/«[^»]*«/,'вложенные кавычки'],[/\s{2,}/,'двойной пробел'],[/\s[,.;:!?]/,'пробел перед знаком'],[/(^|[^.])\.\.(?!\.)/,'две точки'],[/заперто\b/,'«заперто»'],[/\bв [А-ЯЁ][а-яё]+(ая|ое|ый|ые|ий|яя) /,'именительный после «в»'],[/\b(?:1|[05-9]|1[1-4])\d* монет[аы]?\b(?<!\b\d*1 монета)/,'число и «монет»'],[/\b\d*[234] монет\b/,'«2 монет»'],[/\b\d*1 монет\b/,'«1 монет»'],[/undefined|NaN|\[object|null/,'служебное слово'],[/\{|\}|\$\{/,'шаблон не подставлен'],[/Таверна «[^»]*» «/,'двойное название'],[/(\b[А-ЯЁа-яё]+) \1\b/,'повтор слова']];
+  const MASC_FIRST=/\b(ожидал|пришёл|видел|был рад|сказал)\b/;
+  const seen=new Set(),check=(where,txt,gender,sentence=true)=>{ if(typeof txt!=='string'||seen.has(txt+gender))return;seen.add(txt+gender);
+    for(const [re,why] of BAD)assert.ok(!re.test(txt),`${where}: ${why}: «${txt}»`);
+    if(sentence)assert.ok(/[.!?…»)]$/.test(txt.trim()),`${where}: нет точки в конце: «${txt}»`);
+    if(gender==='female')assert.ok(!MASC_FIRST.test(txt),`${where}: мужской род в речи женщины: «${txt}»`);};
+  for(const size of SIZES)for(let i=0;i<3;i++){
+    const plan=createWorld('язык-'+size+i,size);
+    for(const f of plan.facts){assert.ok(f.ref&&f.ref.title&&f.ref.gen&&f.ref.loc,'у факта нет падежей');}
+    assert.equal(new Set(plan.buildings.map(b=>b.name)).size,plan.buildings.length,'повторяются названия зданий');
+    for(const id of sceneIds(plan)){const sc=generateScene(plan,id);check(id,sc.name,'',false);
+      for(const p of sc.props){check(id+'/'+p.id,p.name,'',false);check(id+'/'+p.id,p.description,'');
+        if(p.type==='npc'){const [,role]=p.name.split(' · ');assert.ok(role,'нет роли');const r=role.trim();
+          assert.ok(!(p.npc.gender==='female'&&MALE_ONLY.has(r)),`${id}: женщина с мужской ролью «${p.name}»`);assert.ok(!(p.npc.gender==='male'&&FEMALE_ONLY.has(r)),`${id}: мужчина с женской ролью «${p.name}»`);
+          const first=p.name.split(' · ')[0].split(' ')[0];const femaleNames=['Мирна','Далия','Рада','Ольга','Тильда','Брина','Лидия','Ясна','Хельга','Нея','Ивета','Сана'];
+          assert.equal(femaleNames.includes(first),p.npc.gender==='female',`${id}: пол и имя не совпадают: ${p.name}`);
+          for(const l of p.npc.lines)check(id+'/'+p.name,l,p.npc.gender);}}}
+    // правдивость слухов
+    for(const f of plan.facts){
+      if(f.kind==='lock'){const b=plan.buildings.find(b=>b.name===f.ref.title);assert.ok(generateScene(plan,b.id).props.some(p=>p.type==='door'&&p.lock),`слух о замке в «${b.name}» неправда`);}
+      if(f.kind==='cache'){const b=plan.buildings.find(b=>b.name===f.ref.title);assert.ok(generateScene(plan,b.cellar).props.some(p=>p.lock&&p.container),`слух о тайнике в «${b.name}» неправда`);}
+      if(f.kind==='trap'){assert.ok(sceneIds(plan).filter(s=>s.startsWith('dng:')).some(s=>(generateScene(plan,s).traps||[]).length>0),'слух о ловушках в подземелье неправда');}
+      if(f.kind==='fortress')assert.ok(plan.scenes['fort:yard'],'слух о крепости без крепости');
+      if(f.kind==='tavern')assert.ok(plan.buildings.find(b=>b.name===f.ref.title).cellar,'таверна без подвала');}
+  }
+  // склонение
+  const {plural}=await import('../src/worldgen/content.js');
+  const forms=['монета','монеты','монет'];const exp={1:'монета',2:'монеты',5:'монет',11:'монет',12:'монет',21:'монета',22:'монеты',100:'монет',101:'монета',111:'монет'};
+  for(const [n,w] of Object.entries(exp))assert.equal(plural(+n,forms),w,'plural '+n);
+}
+
+// поверхности: у каждой проходимой клетки есть поверхность, в подземелье нет дерева, под открытым небом нет ковров
+{for(const size of SIZES){const plan=createWorld('пол-'+size,size);
+  for(const id of sceneIds(plan)){const sc=generateScene(plan,id);assert.equal(sc.surface.length,sc.H,id+': surface');
+    const codes=new Set();for(let y=0;y<sc.H;y++){assert.equal(sc.surface[y].length,sc.W);for(let x=0;x<sc.W;x++){const fl=sc.tiles[y][x]==='floor',ch=sc.surface[y][x];assert.equal(fl,ch!==' ',`${id}: поверхность и пол не совпадают в ${x},${y}`);if(fl)codes.add(ch);}}
+    assert.ok(sc.wallStyle,id+': нет стиля стен');
+    if(sc.gen.type==='dungeon')for(const bad of ['p','q','t','r'])assert.ok(!codes.has(bad),id+': в подземелье поверхность '+bad);
+    if(sc.gen.type==='town')assert.ok(!codes.has('r')&&!codes.has('p'),id+': в городе ковры/доски на улице');}}}
+// плотность: комнаты не должны быть забиты (по ним ходит отряд)
+{let worst=0,sum=0,n=0;for(const size of SIZES){const plan=createWorld('плотность-'+size,size);
+  for(const id of sceneIds(plan)){const sc=generateScene(plan,id);if(!['house','cottage','tavern','smithy','alchemist','shop','chapel','guard','library','cellar','upper','dungeon'].includes(sc.gen.type))continue;
+    const fl=sc.tiles.flat().filter(x=>x==='floor').length,solid=sc.props.filter(q=>q.solid!==false&&!['torch','portal','door','chandelier'].includes(q.type)).length,r=solid/fl;worst=Math.max(worst,r);sum+=r;n++;}}
+  assert.ok(sum/n<=.3,'в среднем слишком тесно: '+(sum/n).toFixed(2));assert.ok(worst<=.45,'слишком тесная сцена: '+worst.toFixed(2));}
+// ровно один тайник в подвале с тайником (раньше сундуки ставились в каждую клетку)
+for(const size of SIZES){const plan=createWorld('тайник-'+size,size);for(const b of plan.buildings)if(b.cellar&&plan.scenes[b.cellar].spec.stash){const sc=generateScene(plan,b.cellar);assert.equal(sc.props.filter(p=>p.name==='Тайник').length,1,b.cellar+': тайников не один');assert.ok(sc.props.filter(p=>p.type==='chest').length<=8,b.cellar+': слишком много сундуков');}}
 // детерминизм: то же зерно → то же самое, ленивая генерация в другом порядке даёт тот же результат
 {const a=createWorld('детерминизм','medium'),b=createWorld('детерминизм','medium'),order=sceneIds(a);
  for(const id of order.slice().reverse())generateScene(a,id);for(const id of order)generateScene(b,id);

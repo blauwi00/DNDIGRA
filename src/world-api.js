@@ -1,10 +1,10 @@
 import { slotsUsed, CAPACITY, handType, focusName } from "./inventory-rules.js";
 import { CLASSES } from "./hero-rules.js";
 import {generate} from './location-generator.js';
-import {createWorld,generateScene,isGeneratedId,normalizeGen,GEN_VERSION,randomSeed,validateScene} from './worldgen/world.js';
+import {createWorld,generateScene,isGeneratedId,normalizeGen,SUPPORTED_VERSIONS,randomSeed,validateScene} from './worldgen/world.js';
 const plans=new Map(),checkedScenes=new WeakSet();
-function genMeta(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw)||![undefined,GEN_VERSION].includes(raw.v)||!['string','number'].includes(typeof raw.seed)||!String(raw.seed).length||String(raw.seed).length>128||!['auto','small','medium','large'].includes(raw.size))throw Error('Некорректное зерно, размер или версия генератора.');return normalizeGen(raw);}
-function planFor(meta){const key=JSON.stringify(meta);if(!plans.has(key)){if(plans.size>=16)plans.delete(plans.keys().next().value);plans.set(key,createWorld(meta.seed,meta.size));}return plans.get(key);}
+function genMeta(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw)||![undefined,...SUPPORTED_VERSIONS].includes(raw.v)||!['string','number'].includes(typeof raw.seed)||!String(raw.seed).length||String(raw.seed).length>128||!['auto','small','medium','large'].includes(raw.size))throw Error('Некорректное зерно, размер или версия генератора.');return normalizeGen(raw);}
+function planFor(meta){const key=JSON.stringify(meta);if(!plans.has(key)){if(plans.size>=16)plans.delete(plans.keys().next().value);plans.set(key,createWorld(meta.seed,meta.size,meta.v));}return plans.get(key);}
 const layouts = new Map();
 function layout(meta) {
   const key = meta.version + ':' + meta.seed;

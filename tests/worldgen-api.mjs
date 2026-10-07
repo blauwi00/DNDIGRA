@@ -51,6 +51,13 @@ r=await call('worlds/'+w.id,'PUT',{revision:w.revision,snapshot:s});assert.equal
 const chestScene=sceneIds(plan).map(id=>generateScene(plan,id)).find(z=>z.props.some(p=>p.container)),chest=chestScene.props.find(p=>p.container),claimed=structuredClone(w.snapshot);claimed.gen.opened={[chestScene.id+':'+chest.id]:true};
 r=await call('worlds/'+w.id,'PUT',{revision:w.revision,snapshot:claimed});assert.equal(r.status,200);w=r.world;await reject(s=>s.gen.opened={});
 assert.deepEqual((await call('worlds/'+w.id)).world.snapshot,w.snapshot);
+// A persisted v1 world must continue using its original canonical generator.
+const v1plan=createWorld('legacy-v1-regression','small',1),v1scene=generateScene(v1plan,'town'),v1snap=structuredClone(w.snapshot);
+v1snap.world.gen={v:1,seed:v1plan.seed,size:'small'};v1snap.world.discovered=['town'];v1snap.scene='town';v1snap.gen={};v1snap.doors={};v1snap.loot={};v1snap.drops=[];
+[v1snap.party[0].x,v1snap.party[0].y]=v1scene.spawns[0];
+db.prepare('UPDATE worlds SET snapshot=? WHERE id=?').run(JSON.stringify(v1snap),w.id);
+assert.deepEqual((await call('worlds/'+w.id+'/scene?id=town')).scene,JSON.parse(JSON.stringify(v1scene)));
+r=await call('worlds/'+w.id,'PUT',{revision:w.revision,snapshot:v1snap});assert.equal(r.status,200);assert.equal(r.world.snapshot.world.gen.v,1);w=r.world;
 // Persisted bounded prototype remains accepted after adding WorldGen.
 const {generate}=await import('../src/location-generator.js');const old=structuredClone(w.snapshot),legacy=generate('legacy-regression');delete old.world.gen;delete old.gen;old.procedural={version:legacy.version,seed:legacy.seed};old.scene=legacy.start.location;[old.party[0].x,old.party[0].y]=[legacy.start.x,legacy.start.y];db.prepare('UPDATE worlds SET snapshot=? WHERE id=?').run(JSON.stringify(old),w.id);
 r=await call('worlds/'+w.id,'PUT',{revision:w.revision,snapshot:old});assert.equal(r.status,200);assert.deepEqual(r.world.snapshot.procedural,old.procedural);

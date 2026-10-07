@@ -2,14 +2,14 @@
 import { SceneBuilder } from './scene.js';
 import { Rng } from './rng.js';
 import { furnish, roomCells } from './furnish.js';
-import { person, talkFor, roleFor } from './content.js';
+import { person, dialogueFor } from './content.js';
 import { makeNpc } from './npc.js';
 
 const SIZES = { small: [34, 24], medium: [40, 28], large: [48, 32] };
 export function genYard(spec, plan) {
   const [W0, H0] = SIZES[plan.size], rngBase = new Rng(plan.seed + '/' + spec.id);
   for (let attempt = 0; attempt < 10; attempt++) {
-    const rng = rngBase.fork('try' + attempt), W = W0 + rng.int(-2, 6), H = H0 + rng.int(-1, 4), sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'fortress', seed: plan.seed, base: 'cobble', wall: 'castle' });
+    const rng = rngBase.fork('try' + attempt), W = W0 + rng.int(-2, 6), H = H0 + rng.int(-1, 4), sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'fortress', seed: plan.seed });
     const yard = { x: 2, y: 7, w: W - 4, h: H - 9 }, towers = [{ x: 3, y: 2, w: 6, h: 4 }, { x: W - 9, y: 2, w: 6, h: 4 }];
     sb.rect(yard.x, yard.y, yard.w, yard.h); for (const t of towers) sb.rect(t.x, t.y, t.w, t.h);
     // внутренние постройки двора (конюшни, казармы, склады) — глухие блоки, оставляют проходы не уже 3 клеток
@@ -25,8 +25,9 @@ export function genYard(spec, plan) {
     const ctx = { depth: 1, trapChance: .12 }; furnish(sb, 'courtyard', yard, ctx); furnish(sb, 'armory', towers[0], ctx); furnish(sb, 'guardroom', towers[1], ctx);
     for (const s of [[8, 9], [W - 9, 9], [gx - 6, 12], [gx + 6, 12], [gx, H - 6], [10, H - 5], [W - 10, H - 5]]) sb.light(s[0] + .5, s[1] + .5, { radius: 3.6, power: .6, intensity: 10, distance: 9 });
     for (const t of towers) sb.light(t.x + t.w / 2, t.y + t.h / 2, { radius: 3, power: .5 });
-    for (let i = 0; i < 3; i++) { const who = person(rng.fork('g' + i)), n = makeNpc(sb, who, 'guard', talkFor(rng.fork('l' + i), 'fortress', who, plan.facts || []), { role: i === 0 ? 'капитан стражи' : roleFor('guard', who.gender) }); for (const [x, y] of rng.shuffle(roomCells(sb, yard))) if (sb.put({ ...n, id: 'guard' + i }, x, y)) break; }
+    for (let i = 0; i < 3; i++) { const who = person(rng.fork('g' + i)), n = makeNpc(sb, who, 'guard', dialogueFor(rng.fork('l' + i), 'fortress', who, plan.facts || []), { role: i === 0 ? 'капитан стражи' : 'стражник' }); for (const [x, y] of rng.shuffle(roomCells(sb, yard))) if (sb.put({ ...n, id: 'guard' + i }, x, y)) break; }
     return sb.finish(south.front);
   }
   throw new Error('Не удалось построить двор крепости');
 }
+

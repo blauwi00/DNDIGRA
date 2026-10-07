@@ -29,7 +29,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     await page.getByRole('button',{name:'Создать мир',exact:true}).click();
     await page.waitForFunction(()=>gameDebug.state.scene==='town'&&!!Worlds.current);
     await page.evaluate(()=>{gameDebug.state.settings.animations=false;gameDebug.save();});
-    const meta=await page.evaluate(()=>gameDebug.state.world.gen);assert.deepEqual(meta,{v:1,seed:'integration-large',size:'large'});
+    const meta=await page.evaluate(()=>gameDebug.state.world.gen);assert.deepEqual(meta,{v:2,seed:'integration-large',size:'large'});
     await page.evaluate(async()=>{for(const id of WorldGen.sceneIds(GeneratedWorlds.plan))await GeneratedWorlds.ensure(id);});
     const idle=await page.evaluate(()=>{voxel.sync();return gameDebug.props.filter(p=>p.type==='npc').map(p=>({id:p.id,facing:voxel.models.get('prop:'+p.id).userData.idleFacing,angle:voxel.models.get('prop:'+p.id).rotation.y}));});
     assert.ok(new Set(idle.map(p=>p.angle)).size>1,'Map NPCs face different directions');
@@ -39,6 +39,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     for(const id of places){
       await page.evaluate(id=>{closeDialogue();gameDebug.enterScene(id,true);camera.center(gameDebug.active(),true);gameDebug.save();},id);
       await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>gameDebug.scene.id),id);
+      const render=await page.evaluate(()=>({surface:!!gameDebug.scene.surface,wall:gameDebug.scene.wallStyle,batch:voxel.staticBatchStats}));
+      assert.ok(render.surface&&render.wall,'v2 floor and wall styles '+id);
+      assert.ok(render.batch.props>0&&render.batch.drawMeshes<render.batch.sourceMeshes,'Scene-wide batching '+id);
       await page.screenshot({path:'qa/worldgen-'+id.replaceAll(':','-')+'-390.png'});
       assert.equal(await page.evaluate(()=>document.body.scrollWidth<=390),true,'mobile viewport '+id);
       console.log('PLACE',id);
@@ -53,6 +56,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     },kind);}
     const npc=await prepare('npc');await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);gameDebug.select(p);await gameDebug.approachInteract(p);},npc.pid);
     assert.equal(await page.locator('#speaker-art canvas').count(),1);
+    assert.equal(await page.evaluate(()=>{const sheets=[];for(const a of gameDebug.state.party){voxel.models.get(a.id).traverse(m=>{if(m.userData.decal)sheets.push(m);});}const ids=new Set(sheets.map(m=>m.material.uuid));return ids.size===sheets.length&&sheets.every(m=>m.isInstancedMesh&&!m.frustumCulled&&m.material.polygonOffset&&!m.material.transparent&&m.material.opacity===1);}),true,'Independent opaque decal materials without culling');
     assert.equal(await page.evaluate(pid=>{const p=gameDebug.props.find(p=>p.id===pid),a=gameDebug.active(),dx=a.x-p.x,dy=a.y-p.y,f=Math.abs(dx)>Math.abs(dy)?dx>0?1:3:dy<0?2:0;return voxel.models.get('prop:'+pid).rotation.y===[0,Math.PI/2,Math.PI,-Math.PI/2][f];},npc.pid),true,'Talking NPC faces the hero');await page.screenshot({path:'qa/worldgen-dialogue-390.png'});
     await page.getByRole('button',{name:'Дальше',exact:true}).click();await page.getByRole('button',{name:'Попрощаться',exact:true}).click();
     assert.equal(await page.evaluate(pid=>{const m=voxel.models.get('prop:'+pid);return m.rotation.y===[0,Math.PI/2,Math.PI,-Math.PI/2][m.userData.idleFacing];},npc.pid),true,'Closing conversation restores idle pose');

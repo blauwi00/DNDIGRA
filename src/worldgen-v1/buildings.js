@@ -1,13 +1,12 @@
 // Интерьеры зданий: комнаты по BSP, двери между ними, вход с улицы, лестницы в подвал и на второй этаж.
 import { SceneBuilder, DIRS } from './scene.js';
-import { furnish, roomCells, dirRot } from './furnish.js';
+import { furnish, roomCells } from './furnish.js';
 import { Rng } from './rng.js';
-import { talkFor, BUILDING_TYPES, roleFor } from './content.js';
+import { dialogueFor, BUILDING_TYPES } from './content.js';
 import { makeNpc } from './npc.js';
 
 const SIZES = { keep: [16, 20, 11, 14], lordhall: [14, 18, 9, 11], house: [7, 10, 6, 8], cottage: [6, 7, 5, 6], tavern: [13, 16, 9, 11], smithy: [9, 11, 7, 8], alchemist: [8, 10, 6, 7], shop: [8, 10, 6, 8], chapel: [9, 12, 8, 10], guard: [10, 12, 7, 9], warehouse: [11, 14, 8, 10], library: [9, 12, 7, 8] };
 const ROLES = { keep: ['greathall', 'guardroom', 'armory', 'kitchen', 'storage', 'library'], lordhall: ['lord', 'bedroom', 'treasure', 'library', 'bedroom'], house: ['living', 'bedroom', 'kitchen'], cottage: ['living', 'bedroom'], tavern: ['hall', 'kitchen', 'storage'], smithy: ['smithy', 'storage'], alchemist: ['alchemy', 'living'], shop: ['shop', 'storage'], chapel: ['chapel', 'storage'], guard: ['guard', 'cells', 'armory'], warehouse: ['warehouse', 'storage'], library: ['library', 'living'] };
-const WALL_BY_TYPE = { house: 'timber', cottage: 'timber', tavern: 'timber', smithy: 'stone', alchemist: 'plaster', shop: 'plaster', chapel: 'stone', guard: 'stone', warehouse: 'timber', library: 'plaster', keep: 'castle', lordhall: 'castle' };
 export const sizeOf = type => SIZES[type] || SIZES.house;
 
 // Делит прямоугольник на n комнат разделительными линиями в 1 клетку. Возвращает листья и разрезы.
@@ -46,7 +45,7 @@ export function genBuilding(spec, plan) {
   const rngBase = new Rng(plan.seed + '/' + spec.id);
   for (let attempt = 0; attempt < 24; attempt++) {
     const rng = rngBase.fork('try' + attempt), [w0, w1, h0, h1] = spec.dims || sizeOf(spec.type), w = rng.int(w0, w1), h = rng.int(h0, h1), W = w + 2, H = h + 2;
-    const sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: spec.type, building: spec.id, seed: plan.seed, base: 'planks', wall: WALL_BY_TYPE[spec.type] || rng.pick(['timber', 'plaster']) });
+    const sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: spec.type, building: spec.id, seed: plan.seed });
     const roles = spec.roles || ROLES[spec.type] || ['living'], { leaves, splits } = partition(rng, { x: 1, y: 1, w, h }, roles.length);
     for (const l of leaves) sb.rect(l.x, l.y, l.w, l.h);
     const doors = cutDoors(sb, splits); if (!doors) continue;
@@ -69,15 +68,15 @@ export function genBuilding(spec, plan) {
     if (spec.cellar && !stairs(spec.cellar, 'Лестница в подвал', roomOf('kitchen') || roomOf('storage') || roomOf('living') || main, 'stairs-down')) continue;
     if (spec.up && !stairs(spec.up, 'Лестница наверх', main, 'stairs-up')) continue;
     // дверь в «тайную» комнату запирают: отмычки/сила, ключ не обязателен
-    if (spec.lockRoom) { const dd = sb.props.filter(p => p.type === 'door' && p.lockable); const d = dd[dd.length - 1]; if (d) d.lock = { pickDc: 12 + (plan.depthBonus || 0), forceDc: 14, key: spec.lockKey || null, gen: true }, d.name = 'Запертая дверь'; }
+    if (spec.lockRoom) { const dd = sb.props.filter(p => p.type === 'door' && p.lockable); const d = dd[dd.length - 1]; if (d && dd.length > 1) d.lock = { pickDc: 12 + (plan.depthBonus || 0), forceDc: 14, key: spec.lockKey || null, gen: true }, d.name = 'Запертая дверь'; }
     const ctx = { depth: spec.depth || 0, trapChance: spec.trapChance ?? .08, vaultKey: spec.vaultKey };
     for (const [l, role] of rooms) furnish(sb, role, l, ctx);
     lightRooms(sb, rooms.keys());
     // жители
-    const lines = talkFor(rng.fork('talk'), spec.type, spec.owner, spec.facts || [], spec.topic);
+    const lines = dialogueFor(rng.fork('talk'), spec.type, spec.owner, spec.facts || [], spec.topic);
     const cells = roomCells(sb, main).filter(([x, y]) => Math.abs(x - entry.x) + Math.abs(y - entry.y) > 2);
     if (spec.owner) { const npcSpec = makeNpc(sb, spec.owner, spec.type, lines); for (const [x, y] of rng.shuffle(cells)) { if (sb.put({ ...npcSpec, id: 'owner' }, x, y)) break; } }
-    for (let i = 0; i < (spec.extraNpcs || 0) && spec.guests?.[i]; i++) { const p = spec.guests[i], n = makeNpc(sb, p, 'house', talkFor(rng.fork('g' + i), 'guest', p, spec.facts || []), { role: roleFor('guest', p.gender) }); for (const [x, y] of rng.shuffle(cells)) if (sb.put({ ...n, id: 'guest' + i }, x, y)) break; }
+    for (let i = 0; i < (spec.extraNpcs || 0); i++) { const g = rng.pick(['male', 'female']), p = { first: 'Гость', genitive: 'Гостя', full: spec.guestNames?.[i] || 'Гость', gender: g }, n = makeNpc(sb, p, 'house', dialogueFor(rng.fork('g' + i), 'house', p, spec.facts || []), { role: 'посетитель' }); for (const [x, y] of rng.shuffle(cells)) if (sb.put({ ...n, id: 'guest' + i }, x, y)) break; }
     // ключи, спрятанные в контейнерах
     for (const key of spec.keysHere || []) hideKey(sb, key);
     // окна
@@ -97,7 +96,7 @@ export function hideKey(sb, key) {
 export function addWindows(sb, rng, n) {
   const used = new Set(sb.props.map(p => p.x + ',' + p.y)); let placed = 0;
   const cand = []; for (let y = 0; y < sb.H; y++) for (let x = 0; x < sb.W; x++) if (sb.isWall(x, y) && !used.has(x + ',' + y) && (x === 0 || y === 0 || x === sb.W - 1 || y === sb.H - 1) && DIRS.some(([dx, dy]) => sb.isFloor(x + dx, y + dy) && !sb.occ.has((x + dx) + ',' + (y + dy)))) cand.push([x, y]);
-  for (const [x, y] of rng.shuffle(cand)) { if (placed >= n) break; if (sb.props.some(p => p.solid === false && Math.abs(p.x - x) + Math.abs(p.y - y) < 3)) continue; const fr = DIRS.find(([dx, dy]) => sb.isFloor(x + dx, y + dy)); sb.props.push(rng.chance(.55) && fr ? { id: sb.nid('window'), x, y, kind: 22, name: 'Окно со ставнями', type: 'decor', solid: false, model: 'shutter', rot: dirRot(fr[0], fr[1]), description: 'Через стекло едва пробивается свет.', gen: true } : { id: sb.nid('window'), x, y, kind: 22, name: 'Окно', type: 'decor', solid: false }); placed++; }
+  for (const [x, y] of rng.shuffle(cand)) { if (placed >= n) break; if (sb.props.some(p => p.solid === false && Math.abs(p.x - x) + Math.abs(p.y - y) < 3)) continue; sb.props.push({ id: sb.nid('window'), x, y, kind: 22, name: 'Окно', type: 'decor', solid: false }); placed++; }
 }
 
 // Подвал: 1–3 комнаты, лестница вверх, бочки, ящики, иногда тайник.
@@ -105,7 +104,7 @@ export function genCellar(spec, plan) {
   const rngBase = new Rng(plan.seed + '/' + spec.id);
   for (let attempt = 0; attempt < 24; attempt++) {
     const rng = rngBase.fork('try' + attempt), w = rng.int(8, 12), h = rng.int(6, 9), n = rng.int(1, 3), W = w + 2, H = h + 2;
-    const sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'cellar', building: spec.parent, seed: plan.seed, base: 'stone', wall: 'rough', cellarFloor: rng.pick(['stone', 'dirt', 'stone']) });
+    const sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'cellar', building: spec.parent, seed: plan.seed });
     const { leaves, splits } = partition(rng, { x: 1, y: 1, w, h }, n); for (const l of leaves) sb.rect(l.x, l.y, l.w, l.h);
     const doors = cutDoors(sb, splits); if (!doors) continue;
     const main = leaves.slice().sort((a, b) => b.w * b.h - a.w * a.h)[0];
@@ -115,9 +114,9 @@ export function genCellar(spec, plan) {
     const ctx = { depth: 1, trapChance: .18, vaultKey: spec.vaultKey };
     leaves.forEach((l, i) => furnish(sb, i === 0 && spec.stash ? 'storage' : 'cellar', l, ctx));
     if (spec.stash) { // тайник: запертый сундук с хорошей добычей, ключ лежит в другом месте мира
-      const room = leaves[leaves.length - 1]; let c = null;
-      for (const [x, y] of rng.shuffle(roomCells(sb, room))) { c = sb.put({ type: 'chest', kind: 17, name: 'Тайник', cat: 'chest', description: 'Сундук задвинут в самый тёмный угол.', rot: 0 }, x, y); if (c) break; } // один сундук, в первую подходящую клетку
-      if (c) { c.gen = true; c.container = true; c.loot = { gold: rng.int(30, 70), potions: 1, torches: 0, gear: [] }; c.lock = { pickDc: 14, forceDc: 16, key: spec.stash.key }; c.trap = { kind: 'needle', name: 'Ядовитая игла', save: 'con', dc: 13, detectDc: 13, disarmDc: 13, dice: 1, sides: 4, poison: true, alarm: false, text: 'Из замка выскакивает игла с ядом.', hint: 'Рядом с замочной скважиной виден крошечный прокол.' }; }
+      const room = leaves[leaves.length - 1], chest = sb.rng.chance(.5) ? null : null; void chest;
+      const c = [...roomCells(sb, room)].sort(() => rng.next() - .5).map(([x, y]) => sb.put({ type: 'chest', kind: 17, name: 'Тайник', cat: 'chest', description: 'Сундук задвинут в самый тёмный угол.', rot: 0 }, x, y)).find(Boolean);
+      if (c) { c.gen = true; c.container = true; c.loot = { gold: rng.int(30, 70), potions: 1, torches: 0, gear: [] }; c.lock = { pickDc: 14, forceDc: 16, key: spec.stash.key }; c.trap = { kind: 'needle', name: 'Ядовитая игла', save: 'con', dc: 13, detectDc: 13, disarmDc: 13, dice: 1, sides: 4, poison: true, alarm: false, text: 'Из замка выскакивает игла с ядом.', hint: 'Рядом с замочной скважиной виден крошечный прокол.' }; c.description += ' Заперт.'; }
     }
     lightRooms(sb, leaves);
     for (const key of spec.keysHere || []) hideKey(sb, key);
@@ -131,7 +130,7 @@ export function genUpper(spec, plan) {
   const rngBase = new Rng(plan.seed + '/' + spec.id);
   for (let attempt = 0; attempt < 24; attempt++) {
     const rng = rngBase.fork('try' + attempt), cols = rng.int(2, 4), cw = rng.int(4, 5), w = cols * (cw + 1) - 1, W = w + 2, H = 1 + 4 + 1 + 2 + 1 + 4 + 1;
-    const sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'upper', building: spec.parent, seed: plan.seed, base: 'planks', wall: 'timber' });
+    const sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'upper', building: spec.parent, seed: plan.seed });
     sb.rect(1, 6, w, 2); // коридор
     const rooms = [];
     for (let c = 0; c < cols; c++) { const x = 1 + c * (cw + 1); for (const [y, h] of [[1, 4], [9, 4]]) { if (!rng.chance(c === 0 || y === 1 ? .95 : .8)) continue; sb.rect(x, y, cw, h); rooms.push({ x, y, w: cw, h }); } }
@@ -151,3 +150,4 @@ export function genUpper(spec, plan) {
   }
   throw new Error('Не удалось построить этаж ' + spec.id);
 }
+

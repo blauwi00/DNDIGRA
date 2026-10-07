@@ -27,6 +27,9 @@ const {build} = require('esbuild');
   const sheets=m=>{const out=[];m.traverse(n=>{if(n.userData.decal){if(!n.isInstancedMesh||n.castShadow)throw Error('Unbatched or shadow-casting decal');out.push(n)}});return out;};
   const party=gameDebug.state.party.map(a=>sheets(voxel.models.get(a.id)).length);
   if(party.some(n=>n!==1))throw Error('Party must have exactly three sheets: '+party);
+  Characters.RULES.texel=false;
+  if(sheets(voxel.buildModel(2,gameDebug.active())).length)throw Error('Documented texel diagnostic switch ignored by 3D bundle');
+  Characters.RULES.texel=true;
   let colors=0,portraits=0;
   for(const classId of ['fighter','wizard','rogue','cleric'])for(const gender of ['male','female']){
    const a={classId,kind:2,appearance:{...Characters.defaultLook(classId,gender),headgear:'wizhat'}};

@@ -2,7 +2,7 @@
 import { SceneBuilder, DIRS } from './scene.js';
 import { Rng } from './rng.js';
 import { mk, atWall, inside, anywhere, stock, roomCells } from './furnish.js';
-import { person, talkFor, BUILDING_TYPES, roleFor } from './content.js';
+import { person, dialogueFor, BUILDING_TYPES } from './content.js';
 import { makeNpc } from './npc.js';
 
 export const TOWN_SIZES = {
@@ -76,7 +76,7 @@ function lotFree(sb, lots, x, y, dx, dy, depth = 4, half = 2) {
 }
 
 export function genTown(plan, tryIndex = 0) {
-  const P = TOWN_SIZES[plan.size], rng = new Rng(plan.seed + '/town').fork('try' + tryIndex), sb = new SceneBuilder('town', plan.name, P.W + rng.int(-3, 6), P.H + rng.int(-2, 4), rng, { type: 'town', seed: plan.seed, base: 'cobble', wall: rng.pick(['plaster', 'brick', 'timber', 'stone']) }); // размер и вид улиц каждый раз немного другие
+  const P = TOWN_SIZES[plan.size], rng = new Rng(plan.seed + '/town').fork('try' + tryIndex), sb = new SceneBuilder('town', plan.name, P.W + rng.int(-3, 6), P.H + rng.int(-2, 4), rng, { type: 'town', seed: plan.seed }); // размер каждый раз немного другой
   const { ys, streets } = carveStreets(sb, rng, P);
   const plaza = addPlaza(sb, rng, P, ys), yards = addYards(sb, rng, P);
   const mainY = ys[ys.length - 1]; keepLargest(sb, [plaza.x + 1, plaza.y + 1]);
@@ -92,9 +92,7 @@ export function genTown(plan, tryIndex = 0) {
   const dest = b => b.type === 'tavern' || b.type === 'shop' || b.type === 'alchemist' || b.type === 'library' ? [px, py] : b.type === 'cottage' || b.type === 'guard' ? [sb.W - 3, mainY + 1] : b.type === 'chapel' ? [px, py + 3] : [px + rng.int(-14, 14), py + rng.int(-8, 8)];
   for (const b of plan.buildings) {
     const want = dest(b), pool = rng.shuffle(sites).filter(s => !doors.some(d => Math.hypot(d.x - s.x, d.y - s.y) < 4.5) && !(b.type !== 'tavern' && b.type !== 'shop' && b.type !== 'alchemist' && inPlaza(s.front[0], s.front[1]) && rng.chance(.5)));
-    // Draw jitter once per candidate, not inside a non-transitive comparator.
-    const score=new Map(pool.map(s=>[s,Math.hypot(s.x-want[0],s.y-want[1])+rng.int(-3,3)]));
-    pool.sort((a,c)=>score.get(a)-score.get(c)||a.y-c.y||a.x-c.x);
+    pool.sort((a, c) => Math.hypot(a.x - want[0], a.y - want[1]) - Math.hypot(c.x - want[0], c.y - want[1]) + rng.int(-3, 3));
     for (const s of pool) { const cells = lotFree(sb, lots, s.x, s.y, s.dx, s.dy); if (!cells) continue; cells.forEach(c => lots.add(c)); const spot = { x: s.x, y: s.y, axis: s.axis, front: s.front }; const p = sb.addPortal(spot, b.id, b.name, { id: 'door-' + b.id, building: b.type }); doors.push(p); placed.push(b.id); b.door = [s.x, s.y]; break; }
   }
   // вывески у дверей
@@ -103,7 +101,6 @@ export function genTown(plan, tryIndex = 0) {
     if (cand.length) { const [a, c] = rng.pick(cand); sb.props.push({ id: 'sign-' + b.id, x: a, y: c, type: 'banner', kind: 24, solid: false, name: 'Вывеска: ' + b.name, description: b.name }); }
   }
   // площадь: колодец или фонтан, лотки, лавки, деревья
-  sb.paint(plaza.x, plaza.y, plaza.w, plaza.h, 'flagstone');
   const pr = { x: plaza.x + 1, y: plaza.y + 1, w: plaza.w - 2, h: plaza.h - 2 };
   const center = sb.put(mk(sb, rng.chance(.5) ? 'well' : 'fountain'), px, py);
   if (center) center.cat === 'well' && (center.description = 'Колодец в центре площади. Вода холодная и чистая.');
@@ -111,14 +108,13 @@ export function genTown(plan, tryIndex = 0) {
   atWall(sb, plaza, 'barrel', 2).forEach(p => stock(sb, p, { depth: 0 }, 'storage')); atWall(sb, plaza, 'crate', 2).forEach(p => stock(sb, p, { depth: 0 }, 'storage'));
   // дворы
   for (const y of yards) {
-    sb.paint(y.x, y.y, y.w, y.h, y.kind === 'farm' ? 'dirt' : 'grass');
     if (y.kind === 'park') { anywhere(sb, y, 'tree', rng.int(3, 5)); anywhere(sb, y, 'bush', 2); atWall(sb, y, 'bench', 1); }
     if (y.kind === 'graveyard') { anywhere(sb, y, 'gravestone', rng.int(4, 7)); anywhere(sb, y, 'tree', 1); atWall(sb, y, 'bones', 1); }
     if (y.kind === 'farm') { anywhere(sb, y, 'haystack', 2); anywhere(sb, y, 'cart', 1); atWall(sb, y, 'barrel', 2).forEach(p => stock(sb, p, { depth: 0 }, 'camp')); anywhere(sb, y, 'crate', 1).forEach(p => stock(sb, p, { depth: 0 }, 'camp')); }
   }
   // переулки: ящики, бочки, телеги, деревья у стен
   const all = sb.floorCells(); const edge = rng.shuffle(all.filter(([x, y]) => !inPlaza(x, y)));
-  let cnt = 0; for (const [x, y] of edge) { if (cnt >= Math.floor(all.length / 55)) break; if (!DIRS.some(([dx, dy]) => !sb.isFloor(x + dx, y + dy))) continue; const k = rng.pick(['crate', 'barrel', 'barrel', 'cart', 'tree', 'bush', 'signpost', 'wheel', 'bucket', 'sackpile', 'haybale', 'cratestack', 'barrelstack', 'lamppost', 'puddle', 'straw', 'rubble', 'basket', 'pitchfork']); const p = sb.put(mk(sb, k), x, y); if (p) { if (p.container || k === 'crate' || k === 'barrel') stock(sb, p, { depth: 0, trapChance: .05 }, 'storage', { trap: rng.chance(.07) }); cnt++; } }
+  let cnt = 0; for (const [x, y] of edge) { if (cnt >= Math.floor(all.length / 55)) break; if (!DIRS.some(([dx, dy]) => !sb.isFloor(x + dx, y + dy))) continue; const k = rng.pick(['crate', 'barrel', 'barrel', 'cart', 'tree', 'bush', 'signpost']); const p = sb.put(mk(sb, k), x, y); if (p) { if (p.container || k === 'crate' || k === 'barrel') stock(sb, p, { depth: 0, trapChance: .05 }, 'storage', { trap: rng.chance(.07) }); cnt++; } }
   // фонари вдоль улиц
   const lampCells = rng.shuffle(all.filter(([x, y]) => Math.hypot(x - px, y - py) > 0)); const lamps = []; const maxL = plan.size === 'small' ? 10 : plan.size === 'medium' ? 16 : 22;
   for (const [x, y] of lampCells) { if (lamps.length >= maxL) break; if (lamps.every(([a, b]) => Math.hypot(a - x, b - y) > 7.5)) lamps.push([x, y]); }
@@ -128,7 +124,7 @@ export function genTown(plan, tryIndex = 0) {
   const classes = ['fighter', 'rogue', 'wizard', 'cleric'];
   for (let i = 0; i < P.npcs; i++) {
     const g = rng.pick(['male', 'female']), who = person(rng.fork('p' + i), g), kind = rng.pick(['street', 'street', 'street', 'street']);
-    const lines = talkFor(rng.fork('t' + i), 'street', who, plan.facts || []), n = makeNpc(sb, who, 'house', lines, { classId: i < 2 ? 'fighter' : classes[i % 4], role: i < 2 ? roleFor('guard', g) : roleFor('street', g, rng) });
+    const lines = dialogueFor(rng.fork('t' + i), 'street', who, plan.facts || []), n = makeNpc(sb, who, 'house', lines, { classId: i < 2 ? 'fighter' : classes[i % 4], role: i < 2 ? 'стражник' : rng.pick(['прохожий', 'торговец', 'путник', 'ремесленник', 'горожанин']) });
     if (i < 2) n.npc.hands = ['sword', 'empty'];
     const cs = i < 2 ? [[sb.W - 3, mainY], [sb.W - 3, mainY + 2]] : rng.shuffle(all.filter(([x, y]) => !sb.reserved.has(key(x, y))));
     for (const [x, y] of cs) { if (sb.put({ ...n, id: 'npc' + i }, x, y)) break; }
@@ -136,3 +132,4 @@ export function genTown(plan, tryIndex = 0) {
   const scene = sb.finish([px, py + (plaza.h > 4 ? 1 : 0)]);
   scene.gen.placed = placed; scene.gen.plaza = plaza; return scene;
 }
+

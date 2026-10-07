@@ -10,7 +10,7 @@
 //   hurt(n, why) → hp героя после урона;  poison() — отравление (если игра умеет)
 //   log(text)                       — записать строку в журнал
 // }
-import { lootSentence } from './content.js';
+import { lootText } from './content.js';
 
 const ABILITY = { dex: 'Ловкость', con: 'Телосложение', str: 'Сила', wis: 'Мудрость', int: 'Интеллект' };
 const key = (sceneId, id) => sceneId + ':' + id;
@@ -46,7 +46,7 @@ export function begin(host, sceneId, p) {
   if (p.type === 'door' && p.lock && !g.unlocked[k]) return { kind: 'door', title: p.name, text: 'Дверь заперта' + (p.lock.key ? ', замок необычный.' : '.'), options: lockOptions(host, p, g, k) };
   if (!p.container || !p.loot) return null;
   if (g.opened[k]) return { kind: 'container', title: p.name, text: 'Здесь уже пусто.', options: [{ id: 'leave', label: 'Закрыть' }] };
-  if (p.lock && !g.unlocked[k]) return { kind: 'container', title: p.name, text: ((p.description || '') + ' Замок закрыт.').trim(), options: lockOptions(host, p, g, k) };
+  if (p.lock && !g.unlocked[k]) return { kind: 'container', title: p.name, text: (p.description || '') + ' Он заперт.', options: lockOptions(host, p, g, k) };
   return armedStep(host, p, g, k, p.description);
 }
 // Ловушка на контейнере: пассивная внимательность, затем выбор.
@@ -60,7 +60,7 @@ function armedStep(host, p, g, k, intro = '') {
 function takeLoot(host, p, g, k) {
   const l = p.loot; g.opened[k] = true;
   if (l.gold) host.gold(l.gold); if (l.potions) host.potions(l.potions); if (l.torches) host.torches(l.torches); for (const it of l.gear) host.give(it, 1);
-  const t = lootSentence(l); host.log(t); return t;
+  const t = `Внутри: ${lootText(l)}.`; host.log(t); return t;
 }
 const lockCheck = (host, p, g, k, how) => {
   const lock = p.lock, ab = how === 'force' ? 'str' : 'dex', dc = how === 'force' ? lock.forceDc : lock.pickDc, { r, total } = d20(host, host.mod(ab)), ok = total >= dc;
@@ -112,3 +112,4 @@ export function step(host, scene, x, y) {
 export function knownTraps(host, scene) { const g = gstate(host); return (scene.traps || []).filter(t => g.known[key(scene.id, t.id)] && !g.fired[key(scene.id, t.id)] && !g.disarmed[key(scene.id, t.id)]); }
 // Состояние предмета для отрисовки: открыт ли контейнер, отперта ли дверь.
 export function isOpened(host, sceneId, p) { const g = gstate(host), k = key(sceneId, p.id); return !!(g.opened[k] || g.unlocked[k]); }
+

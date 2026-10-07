@@ -35,7 +35,7 @@ assert.equal(r.status, 201);
 let w = r.world;
 const id = w.id;
 assert.equal(w.snapshot.scene,'town');
-assert.equal(w.snapshot.world.gen.v,1);
+assert.equal(w.snapshot.world.gen.v,2);
 const firstSeed=w.snapshot.world.gen.seed;
 const changedSeed=structuredClone(w.snapshot);changedSeed.world.gen.seed='tampered';
 assert.equal((await call('worlds/'+id,'PUT',{revision:w.revision,snapshot:changedSeed})).status,400);

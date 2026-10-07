@@ -2,20 +2,20 @@
 import { SceneBuilder, DIRS } from './scene.js';
 import { Rng } from './rng.js';
 import { mk, atWall, anywhere, stock, furnish } from './furnish.js';
-import { person, talkFor, roleFor } from './content.js';
+import { person, dialogueFor } from './content.js';
 import { makeNpc } from './npc.js';
 
 const SIZES = { small: [44, 30], medium: [56, 38], large: [70, 46] };
 const key = (x, y) => x + ',' + y;
 function walk(sb, rng, x0, y0, x1, y1, th = 3) {
-  let x = x0, y = y0; const stamp = (a, b) => { for (let j = 0; j < th; j++) for (let i = 0; i < th; i++) { const px = a + i - 1, py = b + j - 1; if (px >= 2 && py >= 2 && px < sb.W - 2 && py < sb.H - 2) { sb.setFloor(px, py); sb.paint(px, py, 1, 1, 'dirt'); } } };
+  let x = x0, y = y0; const stamp = (a, b) => { for (let j = 0; j < th; j++) for (let i = 0; i < th; i++) { const px = a + i - 1, py = b + j - 1; if (px >= 2 && py >= 2 && px < sb.W - 2 && py < sb.H - 2) sb.setFloor(px, py); } };
   stamp(x, y);
   for (let guard = 0; guard < 2000 && (x !== x1 || y !== y1); guard++) { const dx = x1 - x, dy = y1 - y, horiz = Math.abs(dx) > Math.abs(dy) ? rng.chance(.8) : rng.chance(.25); if (horiz && dx) x += Math.sign(dx); else if (dy) y += Math.sign(dy); else x += Math.sign(dx); if (rng.chance(.18)) y += rng.pick([-1, 1]); y = Math.max(3, Math.min(sb.H - 4, y)); stamp(x, y); }
 }
 export function genOutskirts(spec, plan) {
   const [W0, H0] = SIZES[plan.size], rngBase = new Rng(plan.seed + '/' + spec.id);
   for (let attempt = 0; attempt < 20; attempt++) {
-    const rng = rngBase.fork('try' + attempt), W = W0 + rng.int(-4, 8), H = H0 + rng.int(-3, 6), sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'outskirts', seed: plan.seed, base: 'grass', wall: 'cave' });
+    const rng = rngBase.fork('try' + attempt), W = W0 + rng.int(-4, 8), H = H0 + rng.int(-3, 6), sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'outskirts', seed: plan.seed });
     // клеточный автомат
     let g = Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => x > 2 && y > 2 && x < W - 3 && y < H - 3 && rng.chance(.55) ? 1 : 0));
     for (let it = 0; it < 4; it++) g = g.map((row, y) => row.map((_, x) => { let n = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (g[y + j]?.[x + i]) n++; return x > 2 && y > 2 && x < W - 3 && y < H - 3 && n >= 5 ? 1 : 0; }));
@@ -43,7 +43,7 @@ export function genOutskirts(spec, plan) {
     const far = (c, others) => others.every(o => Math.hypot(o[0] - c[0], o[1] - c[1]) > 10);
     const pick = rng.shuffle(open).filter(c => far(c, spots.map(s => s.front))); const camp = pick[0], shrine = pick.find(c => camp && Math.hypot(c[0] - camp[0], c[1] - camp[1]) > 10);
     const ctx = { depth: 0, trapChance: .1 };
-    if (camp) { furnish(sb, 'camp', { x: camp[0] - 2, y: camp[1] - 2, w: 5, h: 5 }, ctx); sb.light(camp[0] + .5, camp[1] + .5, { radius: 3.6, power: .65, intensity: 11, distance: 9 }); const g1 = rng.pick(['male', 'female']), who = person(rng.fork('camper'), g1), n = makeNpc(sb, who, 'cottage', talkFor(rng.fork('c'), 'outskirts', who, plan.facts || []), { role: roleFor('camp', g1, rng), classId: rng.pick(['rogue', 'fighter', 'cleric']) }); for (const [x, y] of sb.nearestFree(camp[0], camp[1] + 3, 12)) if (sb.put({ ...n, id: 'camper' }, x, y)) break; }
+    if (camp) { furnish(sb, 'camp', { x: camp[0] - 2, y: camp[1] - 2, w: 5, h: 5 }, ctx); sb.light(camp[0] + .5, camp[1] + .5, { radius: 3.6, power: .65, intensity: 11, distance: 9 }); const g1 = rng.pick(['male', 'female']), who = person(rng.fork('camper'), g1), n = makeNpc(sb, who, 'cottage', dialogueFor(rng.fork('c'), 'outskirts', who, plan.facts || []), { role: rng.pick(['путник', 'охотник', 'торговец', 'паломник']), classId: rng.pick(['rogue', 'fighter', 'cleric']) }); for (const [x, y] of sb.nearestFree(camp[0], camp[1] + 3, 12)) if (sb.put({ ...n, id: 'camper' }, x, y)) break; }
     if (shrine) furnish(sb, 'shrine', { x: shrine[0] - 2, y: shrine[1] - 2, w: 5, h: 5 }, ctx);
     // деревья и кусты
     const maxTrees = Math.floor(cells.length / 14); let t = 0;
@@ -55,3 +55,4 @@ export function genOutskirts(spec, plan) {
   }
   throw new Error('Не удалось построить окрестности');
 }
+

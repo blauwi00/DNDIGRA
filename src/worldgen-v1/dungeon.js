@@ -1,11 +1,11 @@
 // Подземелье: комнаты, коридоры, двери, ловушки на плитах, лестницы между уровнями.
 import { SceneBuilder, DIRS } from './scene.js';
 import { Rng } from './rng.js';
-import { furnish, roomCells, mk } from './furnish.js';
+import { furnish, roomCells } from './furnish.js';
 import { rollTrap } from './content.js';
 import { hideKey } from './buildings.js';
 import { makeNpc } from './npc.js';
-import { person, talkFor, roleFor } from './content.js';
+import { person, dialogueFor } from './content.js';
 
 const SIZES = { small: [38, 26, 5, 7], medium: [48, 32, 8, 11], large: [58, 38, 11, 15] };
 const key = (x, y) => x + ',' + y;
@@ -21,7 +21,7 @@ const ROLE_POOL = [['crypt', 3], ['guardroom', 3], ['shrine', 1.5], ['dungeonlib
 export function genDungeon(spec, plan) {
   const [W0, H0, n0, n1] = SIZES[plan.size], rngBase = new Rng(plan.seed + '/' + spec.id);
   for (let attempt = 0; attempt < 30; attempt++) {
-    const rng = rngBase.fork('try' + attempt), W = W0 + rng.int(-4, 8), H = H0 + rng.int(-3, 6), sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'dungeon', level: spec.level, seed: plan.seed, base: 'stone', wall: spec.level > 1 ? 'rough' : 'stone' }), rooms = [];
+    const rng = rngBase.fork('try' + attempt), W = W0 + rng.int(-4, 8), H = H0 + rng.int(-3, 6), sb = new SceneBuilder(spec.id, spec.name, W, H, rng, { type: 'dungeon', level: spec.level, seed: plan.seed }), rooms = [];
     const target = rng.int(n0, n1) + (spec.level > 1 ? 1 : 0);
     for (let t = 0; t < 400 && rooms.length < target; t++) { const w = rng.int(4, 9), h = rng.int(4, 7), r = { x: rng.int(3, W - w - 3), y: rng.int(3, H - h - 3), w, h }; if (rooms.every(o => !overlap(r, o, 2))) rooms.push(r); }
     if (rooms.length < 3) continue;
@@ -63,11 +63,10 @@ export function genDungeon(spec, plan) {
     const nTraps = Math.min(corrCells.length, rng.int(1, 2 + spec.level + (plan.size === 'large' ? 2 : 0)));
     for (const [x, y] of corrCells.slice(0, nTraps)) { const tr = rollTrap(rng, ctx.depth, ['dart', 'pit', 'fire', 'alarm', 'gas']); sb.traps.push({ id: 'plate' + sb.traps.length + '-' + x + '-' + y, x, y, trap: tr }); }
     // жители подземелья: отшельник или пленник
-    if (rng.chance(.7)) { const g = rng.pick(['male', 'female']), who = person(rng.fork('hermit'), g), n = makeNpc(sb, who, 'house', talkFor(rng.fork('d'), 'dungeon', who, plan.facts || []), { role: roleFor('dungeon', g, rng) }); const rr = rng.pick(mid.length ? mid : rooms); for (const [x, y] of rng.shuffle(roomCells(sb, rr))) if (sb.put({ ...n, id: 'dweller' }, x, y)) break; }
-    { const trapTiles = new Set(sb.traps.map(t => key(t.x, t.y))), cc = rng.shuffle(links.flatMap(l => l[2])).filter(([x, y]) => !trapTiles.has(key(x, y)) && !rooms.some(r => inR(r, [x, y])));
-      for (const [x, y] of cc.slice(0, Math.floor(cc.length / 9))) sb.put((rng.chance(.5) ? mk : mk)(sb, rng.pick(['rubble', 'puddle', 'bones', 'straw', 'rubble'])), x, y); }
+    if (rng.chance(.7)) { const g = rng.pick(['male', 'female']), who = person(rng.fork('hermit'), g), n = makeNpc(sb, who, 'house', dialogueFor(rng.fork('d'), 'dungeon', who, plan.facts || []), { role: rng.pick(['отшельник', 'искатель', 'пленник', 'бродяга']) }); const rr = rng.pick(mid.length ? mid : rooms); for (const [x, y] of rng.shuffle(roomCells(sb, rr))) if (sb.put({ ...n, id: 'dweller' }, x, y)) break; }
     for (const keyName of spec.keysHere || []) hideKey(sb, keyName);
     const scene = sb.finish(up.front); scene.traps = sb.traps; return scene;
   }
   throw new Error('Не удалось построить подземелье ' + spec.id);
 }
+

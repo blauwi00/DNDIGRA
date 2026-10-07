@@ -1,5 +1,6 @@
 import * as T from "three";
 import {npcFacing,faceCell} from "./npc-facing.js";
+import {batchStaticModels} from './static-batches.js';
 import { createMenuStage } from './menu-stage.js';
 import { texelPass, TEXEL } from "./texel.js";
 import { fitPreviewCamera } from "./preview-frame.js";
@@ -116,13 +117,14 @@ function box(group, x, y, z, w, h, d, color, emissive = false) {
   group.add(m);
   return m;
 }
-let decalMaterial;
 function compact(group) {
   for (const child of group.children.filter((c) => c.isGroup)) compact(child);
   const decals = group.children.filter((c) => c.isMesh && !c.isInstancedMesh && c.userData.decal);
   if (decals.length) {
-    decalMaterial ??= new T.MeshStandardMaterial({ color: 16777215, roughness: 0.92, metalness: 0 });
+    const decalMaterial = new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     const sheet = new T.InstancedMesh(geo, decalMaterial, decals.length);
+    sheet.frustumCulled = false;
+    sheet.userData.disposeMaterial = true;
     decals.forEach((m, i) => {
       m.updateMatrix();
       sheet.setMatrixAt(i, m.matrix);
@@ -281,7 +283,7 @@ function figure(kind, actor, options = {}) {
       }
       p.userData.rig=rig;
     }
-    for (const source of characterBuild(spec)) {
+    for (const source of characterBuild(spec,{texel:options.texel??window.Characters?.RULES.texel})) {
       const v=[...source];let target=p;
       if(rig){const [x,y]=v;const key=(Math.abs(x)>.29||(Math.abs(x)>.19&&y<.74))?(x<0?'armL':'armR'):y>=.74?'head':y<.4?(x<0?'legL':'legR'):'torso';target=rig[key];v[0]-=target.position.x;v[1]-=target.position.y;v[2]-=target.position.z;}
       if (v.length > 8) decalBox(target, v);
@@ -744,6 +746,7 @@ function patternedRug() {
   rugMaterial = new T.MeshStandardMaterial({ map: t, roughness: 1 });
   return rugMaterial;
 }
+let staticBatches;
 function addStatic() {
   const S = g.scene, terrainSeed = S.visualSeed ?? g.state.seed;
   signature = S.id + ":" + (S.layoutKey || "") + ":" + g.state.party.map((p) => p.id).join(",");
@@ -755,6 +758,7 @@ function addStatic() {
   doors.clear();
   torches.length = 0;
   motions.clear();
+  staticBatches=null;
   const boxes = /* @__PURE__ */ new Map();
   function block(x, y, z, w, h, d, color) {
     if (!boxes.has(color)) boxes.set(color, []);
@@ -764,7 +768,8 @@ function addStatic() {
     const type = World.tile(S, x, y), noise = (x * 113 + y * 71 + terrainSeed) % 11 / 100;
     if (type === "floor") {
       const grass=S.ground?.[y]?.[x]==='grass';
-      const col = new T.Color(grass ? 0x527b3c : S.id === "proc-tavern" ? 6836539 : S.outdoor ? 0x978872 : 4544347);
+      const surface=window.WorldGen?.SURFACE_BY_CODE[S.surface?.[y]?.[x]];
+      const col = new T.Color(surface ? WorldGen.surfaceColor(surface,x,y) : grass ? 0x527b3c : S.id === "proc-tavern" ? 6836539 : S.outdoor ? 0x978872 : 4544347);
       col.offsetHSL(0, -noise * 0.3, noise * 0.24);
       block(x + 0.5, -0.095, y + 0.5, 1, 0.17, 1, col.getHex());
       const pattern = (x * 37 + y * 61 + terrainSeed) % 17;
@@ -775,12 +780,12 @@ function addStatic() {
         continue;
       }
       if (S.outdoor && y !== 1) {
-        block(x + 0.5, 0.1, y + 0.5, 0.99, 0.2, 0.99, 7501415);
+        block(x + 0.5, 0.1, y + 0.5, 0.99, 0.2, 0.99, S.wallStyle ? WorldGen.wallColor(S.wallStyle,x,y) : 7501415);
         continue;
       }
       const front = World.tile(S, x, y - 1) === "floor" && !S.lights.some((l) => l.wallX === x && l.wallY === y), height = front ? 0.48 : 0.94;
       for (let row = 0; row < (front ? 2 : 4); row++) {
-        const col = new T.Color(8486504);
+        const col = new T.Color(S.wallStyle ? WorldGen.wallColor(S.wallStyle,x,y) : 8486504);
         col.offsetHSL(0, -noise, 0.01 * (row % 2));
         if (row % 2) {
           block(x + 0.125, 0.12 + row * 0.235, y + 0.5, 0.22, 0.22, 0.97, col.getHex());
@@ -806,6 +811,7 @@ function addStatic() {
     m.receiveShadow = true;
     world.add(m);
   }
+  const staticRoots=[];
   for (const p of S.props) {
     if (["torch", "chandelier"].includes(p.type)) continue;
     const m = propModel(p);
@@ -816,7 +822,9 @@ function addStatic() {
     world.add(m);
     models.set("prop:" + p.id, m);
     if (p.type === "door") doors.set(p.id, m);
+    if(!['npc','door','portal','chest','ground-item','torch','chandelier'].includes(p.type)&&!p.container)staticRoots.push(m);
   }
+  staticBatches=batchStaticModels(staticRoots,world);
   for (const d of S.decor) {
     if (d.kind === "bench") {
       const m = new T.Group();
@@ -884,13 +892,16 @@ function addStatic() {
   document.body.classList.add("voxel-ready");
   resize();
 }
+function disposeModel(root){
+  root.traverse(o=>{
+    if(o.isInstancedMesh)o.dispose();
+    if(o.geometry&&o.geometry!==geo)o.geometry.dispose();
+    if(o.userData.disposeMaterial)o.material.dispose();
+  });
+}
 function clear(group) {
   for (const c of [...group.children]) {
-    c.traverse((o) => {
-      if (o.isInstancedMesh) o.dispose();
-      if (o.geometry && o.geometry !== geo) o.geometry.dispose();
-      if (o.userData.disposeMaterial) o.material.dispose();
-    });
+    disposeModel(c);
     group.remove(c);
   }
   for (const l of torches) scene.remove(l.light);
@@ -908,6 +919,7 @@ function sync() {
   const ground2 = g.props.filter((p) => p.type === "ground-item");
   for (const [id, m] of models) if (m.userData.p?.type === "ground-item" && !ground2.some((p) => "prop:" + p.id === id)) {
     world.remove(m);
+    disposeModel(m);
     models.delete(id);
   }
   for (const p of ground2) if (!models.has("prop:" + p.id)) {
@@ -923,6 +935,7 @@ function sync() {
     const loadout = JSON.stringify([p.hands || [], p.appearance || null, p.classId]);
     if (m && m.userData.loadout !== loadout) {
       actors.remove(m);
+      disposeModel(m);
       models.delete(p.id);
       m = null;
     }
@@ -954,6 +967,7 @@ function sync() {
   }
   for (const [id, m] of models) if (!id.startsWith("prop:") && !ids.has(id)) {
     actors.remove(m);
+    disposeModel(m);
     models.delete(id);
   }
   const novice = models.get("prop:novice");
@@ -968,6 +982,7 @@ function sync() {
       m.userData.hinge.userData.goal = goal;
       if (!g.animate()) m.userData.hinge.rotation.y = goal;
     }
+    if(m.userData.staticBatched)staticBatches.update(m);
   }
   while (markers.children.length) {
     const m = markers.children[0];
@@ -1079,6 +1094,7 @@ function ground(x, y) {
   return raycaster.ray.intersectPlane(plane, new T.Vector3());
 }
 const pointers = /* @__PURE__ */ new Map();
+raycaster.layers.enable(1);
 let drag = false, start, panStart, pinchDist = 0, pinchHalf = 0;
 canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
@@ -1266,6 +1282,7 @@ function tick(time) {
         m.rotation.z = t.baseZ;
         delete m.userData.tap;
       }
+      if(m.userData.staticBatched)staticBatches.update(m);
     }
     if (m.userData.strike) {
       const s = m.userData.strike, t = (time - s.start) / 280;
@@ -1387,7 +1404,7 @@ window.fx = { step: () => {
 }, pulse: (p) => impact(p, "Отклик", false, true, "heal") };
 let menuStage;
 function renderMenu(time){menuStage ||= createMenuStage({figure,propModel,shadedBox,compact,terrainMaterial});renderer.setRenderTarget(null);menuStage.render(renderer,time,g.state.settings,window.CinematicMenu.editor);}
-window.voxel = { resize, turnHero:delta=>menuStage?.turn(delta), get menuDebug(){return menuStage?.debug;}, buildModel: (kind, actor, options) => figure(kind, actor, options), buildItem: itemModel, buildProp: propModel, compact, shadedBox, heroPortrait: (a, angle = 0) => portrait(a.kind, null, a, angle), portrait, sync, move, impact, tap, reset, fit, ground, get selectionMask() {
+window.voxel = { resize, get staticBatchStats(){return staticBatches&&{props:staticBatches.roots.length,sourceMeshes:staticBatches.sourceMeshes,drawMeshes:staticBatches.meshes.length};}, turnHero:delta=>menuStage?.turn(delta), get menuDebug(){return menuStage?.debug;}, buildModel: (kind, actor, options) => figure(kind, actor, options), buildItem: itemModel, buildProp: propModel, compact, shadedBox, heroPortrait: (a, angle = 0) => portrait(a.kind, null, a, angle), portrait, sync, move, impact, tap, reset, fit, ground, get selectionMask() {
   return { root: maskRoot, objects: maskObjects, material: contourMaterial };
 }, get ready() {
   return ready;
