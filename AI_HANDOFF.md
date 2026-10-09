@@ -1,3 +1,6 @@
+## Stone atlas · 2026-10-09
+Owner approved connecting the existing terrain-materials.png atlas to stone floors/walls only. src/stone-atlas.js selects bounded deterministic variants, shares the source image, keeps opaque fallback on load failure and uses lit MeshStandardMaterial. Non-stone surfaces, props, characters, generators and saves are unchanged. src/voxel.js retains instanced terrain batches; dist/voxel.js is generated. tests/stone-atlas.mjs covers selection, UV bounds, loading and material caching. Browser/device visual QA is unavailable in this managed session; no visual acceptance claim.
+
 # Current publication · 2026-10-09
 The owner explicitly requested a link to the updated playable game. Publish the reviewed story-prologue snapshot to this existing Site appgprj_6abd85e3189481919bbcd8003341cb45, preserving its audience, DB, prior migration bytes and local key beyond-voxel-dnd-1. This is the Site source repository, separate from GitHub; GitHub main remains unchanged. Previous no-publication task limits are superseded for this publication only. New worlds use the short v3 story; old saves retain their version. No test player data is imported. The FPS script is not loaded.
 
