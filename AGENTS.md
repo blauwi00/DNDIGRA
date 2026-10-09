@@ -2,7 +2,16 @@
 
 Before planning, editing, reviewing, testing, or deploying this game, **read [docs/DEVELOPMENT_RULES.md](docs/DEVELOPMENT_RULES.md)**. It records the owner's approved game architecture and progression/story rules, and clearly separates unresolved proposals. Do not confuse future requirements with implemented features. The owner's latest explicit instruction overrides conflicting documentation; flag any conflict before changing a confirmed rule. This documentation requirement applies to Codex, Claude, and other AI coding agents.
 
-# Current task: story prologue and native prototype · 2026-10-08
+# Current task: streamed outdoor region · 2026-10-09
+Owner approved the first small stage of combined renderer/world work and explicitly requested immediate publication to the existing Site. Work stays isolated on `feat/region-streaming`; preserve saved worlds and frozen generator versions. This supersedes earlier no-publication task notes. No GitHub main merge or audience change is authorized.
+
+Read `docs/superpowers/specs/2026-10-09-region-streaming-design.md` and its implementation plan. Keep the full bounded logical scene; stream only terrain/prop rendering for large outdoor scenes. Small scenes and interiors retain the full renderer. `Прогулка по окрестностям` is an isolated temporary 96×64 practice region, with exact original-world restoration and no reward transfer. It is the first foundation for a larger hybrid world, not a replacement for existing adventures or a new generator version.
+
+Renderer resources must have clear ownership: unloading a chunk cannot dispose shared resources or remove pinned live actors, motion targets, interactions or combatants. Use ready-aware picking and a lightweight overview. Experimental chunk sizes/budgets require measured evidence; Linux Chromium timings do not establish iPhone performance. Run logic/API suites and relevant real-browser region, tutorial, movement, world-generation and native checks sequentially; never rebuild served files during a test. Keep QA artifacts outside commits and deployment archives.
+
+Publish to `.openai/hosting.json` project ID, preserving the existing custom audience, database and migrations. In the Site checkout preserve title `За гранью` and local save key `beyond-voxel-dnd-1`; the feature checkout's iPhone-test key must not replace the live key.
+
+# Previous task: story prologue and native prototype · 2026-10-08
 Owner authorized a solo opening in the current game: several prepared coherent stories, a readable clearing/road/settlement, appearance-bound camera/text intro, panic messenger, DND combat and mandatory replayable tutorial. Allies mean future human players; no bot party or multiplayer now. Tutorial defeat is unconsciousness followed by healer rescue. Paid AI GM/free-text adjudication is deferred. Keep work on separate `feat/story-prologue`, based on `feat/worldgen-runtime`; preserve existing project and saves. No Site publication or main update is part of this task.
 
 New worlds default to WorldGen v3; frozen v1/v2 dispatch stays intact. Use `docs/ADVENTURE.md`, `docs/IOS.md` and `docs/superpowers/specs/2026-10-08-adventure-design.md`. Practice restores the original snapshot and never writes its rewards/progress into the saved world. Local/native UUIDs use `LocalAPI.randomUUID`; local JSON responses must work without static `Response.json`. The iOS app target is 15.4; its resources are generated with build/copy. A successful Linux copy is not an Xcode or physical-device test.

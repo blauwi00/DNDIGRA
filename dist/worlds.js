@@ -306,8 +306,8 @@
   }
   function open() {
     if(practice){
-      const body=$("modal-body");$("modal-title").textContent="Учебная практика";body.replaceChildren();
-      const p=document.createElement('p');p.textContent='Вещи, здоровье и опыт основного приключения сохраняются отдельно.';
+      const body=$("modal-body");$("modal-title").textContent=practice.kind==='region'?'Прогулка по окрестностям':'Учебная практика';body.replaceChildren();
+      const p=document.createElement('p');p.textContent=practice.kind==='region'?'Это временная прогулка. Найденные вещи, монеты и опыт не переносятся в приключение.':'Вещи, здоровье и опыт основного приключения сохраняются отдельно.';
       body.append(p,button('Вернуться в приключение',async()=>{await endPractice();$('modal').close();}));$('modal').showModal();return;
     }
     if (!current) return window.Heroes.open();
@@ -354,7 +354,7 @@
   function render() {
     document.body.classList.toggle("playing-world", !!current || !!practice);
     document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict));
-    if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+' · Учебная практика';if($("world-save"))$("world-save").hidden=true;return;}
+    if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+(practice.kind==='region'?' · Находки не переносятся':' · Учебная практика');if($("world-save"))$("world-save").hidden=true;return;}
     if (!current) return;
     const s = g().state;
     if (s.world && !s.world.discovered.includes(s.scene)) s.world.discovered.push(s.scene);
@@ -384,37 +384,73 @@
     const id=localStorage.getItem(resumeKey);if(!id)throw Error('Сначала создайте героя и мир.');
     const {world}=await api('/'+encodeURIComponent(id));attach(world);
   }
-  async function startPractice(){
+  function practiceBlocked(){return g().moving||g().actionBusy||g().state.combat||window.HUD?.pending;}
+  function restorePracticeBookkeeping(original){
+    current=original.current;pending=original.pending;lastSaved=original.lastSaved;failed=original.failed;conflict=original.conflict;atMenu=original.atMenu;serial=original.serial;
+  }
+  function restorePracticeScene(original){
+    if(!original.regionScene)return;
+    const {id,previous}=original.regionScene;
+    if(previous===undefined)delete window.World.scenes[id];else window.World.scenes[id]=previous;
+  }
+  function loadPracticeOriginal(original){
+    if(original.generatedContext!==undefined)window.GeneratedWorlds?.restoreContext(original.generatedContext);
+    else if(original.current)window.GeneratedWorlds?.prime(original.current);
+    g().loadWorld(original.state);
+  }
+  async function startTemporaryPractice(kind){
     if(practice)return true;
-    if(g().moving||g().actionBusy||g().state.combat||window.HUD?.pending)throw Error('Дождитесь завершения действия или боя.');
-    const hero=structuredClone(g().active());
-    if(!hero.confirmed)throw Error('Создайте героя, чтобы пройти обучение с его классом и внешностью.');
+    if(practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
+    if(!g().active().confirmed)throw Error('Создайте героя, чтобы отправиться на практику с его классом и внешностью.');
     if(current?.status==='active'){capture();if(!await flush())throw Error('Сначала сохраните текущее приключение.');}
     if(practice)return true;
-    if(g().moving||g().actionBusy||g().state.combat||window.HUD?.pending)throw Error('Дождитесь завершения действия или боя.');
-    if(!window.LocalAPI?.initialWorld)throw Error('Обучение пока недоступно. Обновите игру.');
+    if(practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
+    if(!window.LocalAPI?.initialWorld||kind==='region'&&!window.RegionWalk?.createRegionWalk)throw Error('Практика пока недоступна. Обновите игру.');
+    const hero=structuredClone(g().active());
     const snapshot=window.LocalAPI.initialWorld(hero,'practice-'+window.LocalAPI.randomUUID(),1,{seed:'practice-'+hero.id,size:'small',generatorVersion:3,tutorialCompleted:false});
-    snapshot.story.intro=3;snapshot.story.npcWarned=true;snapshot.story.npcDeparted=true;
-    if(window.TutorialRules?.createTutorial)snapshot.tutorial=window.TutorialRules.createTutorial({classId:hero.classId,mode:'practice'});
-    else snapshot.tutorial.mode='practice';
-    const a=snapshot.party[0];a.hp=a.max;a.dead=false;a.slots=a.maxSlots;a.secondWind=a.maxSecondWind;
-    practice={state:structuredClone(g().state),current,pending,lastSaved,failed,conflict,atMenu};
+    let regionScene=null;
+    if(kind==='region'){
+      const scene=window.RegionWalk.createRegionWalk('region-walk-'+hero.id);
+      window.World.compileCollisions(scene);
+      regionScene={id:scene.id,previous:window.World.scenes[scene.id]};
+      for(const field of ['story','tutorial','gen','procedural','episode','encounter'])delete snapshot[field];
+      delete snapshot.world.gen;snapshot.world.title=scene.name;snapshot.world.discovered=[scene.id];snapshot.scene=scene.id;
+      Object.assign(snapshot.party[0],{x:scene.spawns[0][0],y:scene.spawns[0][1]});
+      snapshot.logs=['Временная прогулка по окрестностям. Найденные вещи, монеты и опыт не переносятся в приключение.'];
+      window.World.scenes[scene.id]=scene;
+    }else{
+      snapshot.story.intro=3;snapshot.story.npcWarned=true;snapshot.story.npcDeparted=true;
+      if(window.TutorialRules?.createTutorial)snapshot.tutorial=window.TutorialRules.createTutorial({classId:hero.classId,mode:'practice'});
+      else snapshot.tutorial.mode='practice';
+      const a=snapshot.party[0];a.hp=a.max;a.dead=false;a.slots=a.maxSlots;a.secondWind=a.maxSecondWind;
+    }
+    practice={kind,regionScene,generatedContext:window.GeneratedWorlds?.captureContext?.(),state:structuredClone(g().state),current,pending,lastSaved,failed,conflict,atMenu,serial};
     clearTimeout(timer);atMenu=false;leaving=true;
     try{document.querySelectorAll('dialog[open]').forEach(d=>d.close());window.CinematicMenu?.play();document.body.classList.remove('at-main-menu');g().loadWorld(snapshot);window.viewsDebug.switchTab('map');}
-    catch(e){const original=practice;practice=null;current=original.current;atMenu=original.atMenu;g().loadWorld(original.state);throw e;}
+    catch(e){
+      const original=practice;
+      restorePracticeBookkeeping(original);
+      try{loadPracticeOriginal(original);}finally{restorePracticeScene(original);practice=null;document.body.classList.toggle('at-main-menu',atMenu);if(atMenu)window.CinematicMenu?.open();}
+      badge(current?'Мир сохранён':'');render();throw e;
+    }
     finally{leaving=false;}
     render();return true;
   }
+  async function startPractice(){return startTemporaryPractice('tutorial');}
+  async function startRegionWalk(){return startTemporaryPractice('region');}
   async function endPractice(){
     if(!practice)return true;
-    if(g().moving||g().actionBusy||window.HUD?.pending)throw Error('Дождитесь завершения действия.');
-    const original=practice;practice=null;leaving=true;
-    current=original.current;pending=original.pending;lastSaved=original.lastSaved;failed=original.failed;conflict=original.conflict;atMenu=original.atMenu;
-    try{if(current)window.GeneratedWorlds?.prime(current);g().loadWorld(original.state);document.body.classList.toggle('at-main-menu',atMenu);if(atMenu)window.CinematicMenu?.open();else window.CinematicMenu?.play();window.viewsDebug.switchTab('map');}
+    if(practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
+    const original=practice,temporary=structuredClone(g().state);leaving=true;
+    try{
+      try{loadPracticeOriginal(original);}catch(e){g().loadWorld(temporary);throw e;}
+      restorePracticeBookkeeping(original);restorePracticeScene(original);practice=null;
+      document.body.classList.toggle('at-main-menu',atMenu);if(atMenu)window.CinematicMenu?.open();else window.CinematicMenu?.play();window.viewsDebug.switchTab('map');
+    }
     finally{leaving=false;}
     badge(current?'Мир сохранён':'');render();return true;
   }
-  window.Worlds = { resume, resumeKey, startPractice, endPractice, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get atMenu() {
+  window.Worlds = { resume, resumeKey, startPractice, startRegionWalk, endPractice, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get practiceKind(){return practice?.kind||null;}, get atMenu() {
     return atMenu;
   }, get current() {
     return current;

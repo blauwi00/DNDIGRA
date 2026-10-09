@@ -1,3 +1,12 @@
+## Streamed outdoor region · 2026-10-09
+Current work is on `feat/region-streaming`. Owner explicitly requested direct publication to the existing Site after checks; this overrides earlier no-publish task notes. Do not merge GitHub main or change the Site audience.
+
+The first stage preserves all logical terrain, global coordinates, collisions, saves and frozen generators. `src/region-streaming.js` plans bounded detail groups and schedules one build per frame; `src/region-rendering.js` owns camera demand and resource lifetime; `src/voxel.js` integrates them for large outdoor scenes. Small scenes retain full rendering. A lightweight overview handles whole-region framing. Actor/motion/interaction pins and ready-aware picking protect active gameplay while terrain groups unload.
+
+`src/region-walk.js` provides an isolated 96×64 prepared map, bundled before worlds/menu. Menu `Прогулка по окрестностям` uses the current confirmed hero and the existing practice lifecycle; finds never transfer. Return must restore both the original snapshot/save bookkeeping and canonical generated-scene adapter context, including after PUT responses without `generated`. This stage does not add a streamed logical generator, new story content, multiplayer or AI GM.
+
+Follow the accepted spec/plan under `docs/superpowers`. Root owns serialized commits, immutable-build browser verification and Site publication. Keep QA local. Use the existing Site ID, custom audience, DB/migrations, title and save key. Physical iPhone/Xcode/App Store validation remains separate.
+
 ## Story prologue, tutorial and native scaffold · 2026-10-08
 Work lives on `feat/story-prologue`, based on `feat/worldgen-runtime`; do not merge or publish Sites automatically. User authorized current JS/Three project, several prepared stories, solo play, and tutorial unconsciousness with rescue. Allies mean future human players; do not add AI party members.
 

@@ -8,7 +8,7 @@ const suites=[
   'npc-facing','static-batches','texel-overlap','location-generator',
   'worldgen-versions','worldgen','heroes-api','worlds-api','worlds-client','worldgen-api',
   'adventure-worldgen','adventure-api','adventure-client','tutorial-rules',
-  'worlds-practice','local-api','enemy-models','prompt-input'
+  'region-streaming','region-resources','region-renderer','region-walk','worlds-practice','local-api','enemy-models','prompt-input'
 ];
 const cwd=fileURLToPath(new URL('..',import.meta.url));
 let failed=0;

@@ -33,12 +33,15 @@
   function menu() {
     const d = $("modal"), body = $("modal-body");
     $("modal-title").textContent = "Меню";
-    if (window.Tutorial?.practicing) {
-      body.replaceChildren(button("Вернуться из практики", () => window.Tutorial.exitPractice()), button("Действия героя", actions), button("Журнал", () => g().journal()), button("Как играть", () => g().help()));
+    if (window.Worlds?.practice) {
+      const region = window.Worlds.practiceKind === 'region';
+      const note = document.createElement('p');
+      note.textContent = region ? 'Это временная прогулка. Найденные вещи, монеты и опыт не переносятся в приключение.' : 'Вещи, здоровье и опыт основного приключения сохраняются отдельно.';
+      body.replaceChildren(note, button(region ? "Вернуться в приключение" : "Вернуться из практики", () => region ? window.Worlds.endPractice() : window.Tutorial.exitPractice()), button("Действия героя", actions), button("Журнал", () => g().journal()), button("Как играть", () => g().help()));
       d.showModal();
       return;
     }
-    body.replaceChildren(button("Повторить обучение · отдельная практика", () => window.Tutorial?.replay()), button("Сохранить и выйти в меню героев", () => window.Worlds.exitToMenu()), button("Текущий мир", () => window.Worlds.open()), button("Мои герои", () => window.Heroes.open()), button("Таверна · генератор локаций", () => window.ProceduralLocations.open()), button("Эпизод · Пропавший послушник", () => window.Episode.open()), button("Действия героя", actions), button("Хроника", () => g().journal()), button("Как играть", () => g().help()), button("Правила и источники", () => {
+    body.replaceChildren(button("Прогулка по окрестностям", () => window.Worlds.startRegionWalk()), button("Повторить обучение · отдельная практика", () => window.Tutorial?.replay()), button("Сохранить и выйти в меню героев", () => window.Worlds.exitToMenu()), button("Текущий мир", () => window.Worlds.open()), button("Мои герои", () => window.Heroes.open()), button("Таверна · генератор локаций", () => window.ProceduralLocations.open()), button("Эпизод · Пропавший послушник", () => window.Episode.open()), button("Действия героя", actions), button("Хроника", () => g().journal()), button("Как играть", () => g().help()), button("Правила и источники", () => {
       const d2 = $("modal");
       $("modal-title").textContent = "Правила и источники";
       const p = document.createElement("p");

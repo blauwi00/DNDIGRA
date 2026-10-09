@@ -37,10 +37,10 @@ Interfaces:
 - `createChunkStream({build,release,schedule,onChange,onError})` returns `{update(plan),reset(),flush(limit=1),isReady(id),stats}`. `build(chunk)` synchronously returns a resource; `release(resource,chunk)` frees it; `schedule(callback)` returns an optional cancellation function. Default scheduling uses a new task. Only one chunk is built per scheduled flush. Stats expose ready IDs/count, queued count, built/released counts, generation, errors and last build duration.
 - Priorities: pins, visible chunks, margin. If visible+pins exceed budget, overview contains pins only; hysteresis avoids oscillation. When pins alone exceed budget, only their explicitly counted overflow is allowed. Queue derives from this bounded desired set.
 
-- [ ] Add behavior tests for camera demand, boundaries, exact edge coverage, deterministic ordering, overview/return hysteresis, pin overflow and invalid inputs. Tests must first fail because the feature is absent.
-- [ ] Add lifecycle tests with real resources/counters for update reconciliation, one build per callback, reset cancellation, re-entrant reset, build failure/retry and repeated traversal plateau.
-- [ ] Implement the interfaces above without DOM/Three dependencies.
-- [ ] Run `node tests/region-streaming.mjs`; record red/green evidence, then review before renderer verification.
+- [x] Add behavior tests for camera demand, boundaries, exact edge coverage, deterministic ordering, overview/return hysteresis, pin overflow and invalid inputs. Tests must first fail because the feature is absent.
+- [x] Add lifecycle tests with real resources/counters for update reconciliation, one build per callback, reset cancellation, re-entrant reset, build failure/retry and repeated traversal plateau.
+- [x] Implement the interfaces above without DOM/Three dependencies.
+- [x] Run `node tests/region-streaming.mjs`; record red/green evidence, then review before renderer verification.
 
 ## Task 2: Outdoor renderer integration
 
@@ -48,13 +48,13 @@ Files: modify `src/voxel.js`, `src/static-batches.js` only if ownership/update s
 
 Consumes Task 1 interfaces; produces `voxel.regionStats` for QA (no product-visible technical panel), ready-aware picking and preserved existing voxel methods.
 
-- [ ] Add tests/assertions for streamed counts and readiness before modifying the renderer; use pure resource tests where GPU is unnecessary.
-- [ ] Keep existing full renderer for small scenes/interiors; stream sufficiently large outdoor scenes using configurable experimental dimensions/budget. Preserve the whole-scene behavior of old small maps.
-- [ ] Split terrain/decor/props into independently owned groups; preserve world coordinates, layer1 picking, per-group batches and state-derived updates. Resource release cannot dispose shared resources still used by another group.
-- [ ] Reconcile demand on camera pan/zoom/resize and game movement. Pin current hero, active combat/interaction/motion/speaker targets and immediate movement area; actors/portable lights keep independent lifecycles. Never pin the entire long path.
-- [ ] Provide lightweight overview terrain/landmarks when demand exceeds budget. Preserve pan/zoom/return controls, meaningful model bounds and light influence margins. Loading groups does not recenter camera.
-- [ ] Guard unready/overview clicks before fallback ground selection. Clear stale prompt/silhouette links on unload, and handle construction failure without changing logical state.
-- [ ] Test reset/mount cycles and compatibility of `staticBatchStats`, then report exact changed files and verification commands. Do not run parallel GPU browsers.
+- [x] Add tests/assertions for streamed counts and readiness before modifying the renderer; use pure resource tests where GPU is unnecessary.
+- [x] Keep existing full renderer for small scenes/interiors; stream sufficiently large outdoor scenes using configurable experimental dimensions/budget. Preserve the whole-scene behavior of old small maps.
+- [x] Split terrain/decor/props into independently owned groups; preserve world coordinates, layer1 picking, per-group batches and state-derived updates. Resource release cannot dispose shared resources still used by another group.
+- [x] Reconcile demand on camera pan/zoom/resize and game movement. Pin current hero, active combat/interaction/motion/speaker targets and immediate movement area; actors/portable lights keep independent lifecycles. Never pin the entire long path.
+- [x] Provide lightweight overview terrain/landmarks when demand exceeds budget. Preserve pan/zoom/return controls, meaningful model bounds and light influence margins. Loading groups does not recenter camera.
+- [x] Guard unready/overview clicks before fallback ground selection. Clear stale prompt/silhouette links on unload, and handle construction failure without changing logical state.
+- [x] Test reset/mount cycles and compatibility of `staticBatchStats`, then report exact changed files and verification commands. Do not run parallel GPU browsers.
 
 ## Task 3: Isolated region walk, verification and publication
 
@@ -65,12 +65,12 @@ Interfaces:
 - `Worlds.startRegionWalk()` starts isolated practice using the confirmed current hero; `Worlds.endPractice()` restores the exact original snapshot/record/save bookkeeping. `Worlds.practiceKind` distinguishes tutorial and region for menu/label purposes. Existing zero-argument `startPractice()` stays valid.
 - Product label: `Прогулка по окрестностям`; exit: `Вернуться в приключение`. The user is told that it is a temporary walk and finds do not transfer. Starting is blocked during action/combat/pending HUD or failed original save, as with tutorial practice.
 
-- [ ] Write failing generator/connectivity tests and practice isolation/restoration tests. Implement the map and minimal practice/menu integration, preserving prior tutorial behavior and preventing API writes during the walk.
-- [ ] Add bundle/script order and suites; preserve the Site-specific title and saved-state key at delivery. Verify no story/tutorial auto-events run in the region fixture.
-- [ ] Real Chromium: enter via menu, cross several group boundaries through controls, pan away/return, overview readiness, chest round-trip, combat pinning, rapid reset/cancellation, repeated traversal resource plateau and exact restoration of the original world. Record controllable fixtures explicitly.
+- [x] Write failing generator/connectivity tests and practice isolation/restoration tests. Implement the map and minimal practice/menu integration, preserving prior tutorial behavior and preventing API writes during the walk.
+- [x] Add bundle/script order and suites; preserve the Site-specific title and saved-state key at delivery. Verify no story/tutorial auto-events run in the region fixture.
+- [x] Real Chromium: enter via menu, cross several group boundaries through controls, pan away/return, overview readiness, chest round-trip, combat pinning, rapid reset/cancellation, repeated traversal resource plateau and exact restoration of the original world. Record controllable fixtures explicitly.
 - [ ] Run `npm test`, relevant movement/mobile/WorldGen/adventure/practice browser regressions sequentially, inspect 390px and 320px screenshots and update the native resource copy.
-- [ ] Compare chunk configurations and full-render control on the same fixture; report generation/first-show/build times and resource/draw counts with software-GPU limits.
-- [ ] Review final feature diff and address material findings; document only verified outcomes.
+- [x] Compare chunk configurations and full-render control on the same fixture; report generation/first-show/build times and resource/draw counts with software-GPU limits.
+- [x] Review final feature diff and address material findings; document only verified outcomes.
 - [ ] Copy reviewed source to the opened existing Site checkout, preserving Site-specific notes/key/title and immutable migrations. Build, package client/server/manifest/migrations, push exact source, save version, deploy with unchanged audience and confirm successful native status.
 
 ## Execution record
