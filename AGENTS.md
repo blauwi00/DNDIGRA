@@ -1,3 +1,7 @@
+# Mandatory project rules — read first
+
+Before planning, editing, reviewing, testing, or deploying this game, **read [docs/DEVELOPMENT_RULES.md](docs/DEVELOPMENT_RULES.md)**. It records the owner's approved game architecture and progression/story rules, and clearly separates unresolved proposals. Do not confuse future requirements with implemented features. The owner's latest explicit instruction overrides conflicting documentation; flag any conflict before changing a confirmed rule. This documentation requirement applies to Codex, Claude, and other AI coding agents.
+
 # Current task: story prologue and native prototype · 2026-10-08
 Owner authorized a solo opening in the current game: several prepared coherent stories, a readable clearing/road/settlement, appearance-bound camera/text intro, panic messenger, DND combat and mandatory replayable tutorial. Allies mean future human players; no bot party or multiplayer now. Tutorial defeat is unconsciousness followed by healer rescue. Paid AI GM/free-text adjudication is deferred. Keep work on separate `feat/story-prologue`, based on `feat/worldgen-runtime`; preserve existing project and saves. No Site publication or main update is part of this task.
 
