@@ -21,9 +21,19 @@
   function prime(record){
     if(!record.generated||!record.snapshot.world?.gen)return;
     metaKey=JSON.stringify(record.snapshot.world.gen);plan=record.generated.plan;
-    Object.defineProperty(plan,'cache',{value:new Map(),enumerable:false});
+    if(!plan.cache)Object.defineProperty(plan,'cache',{value:new Map(),enumerable:false});
     plan.cache.set(record.generated.scene.id,record.generated.scene);
     serverWorld=record.id;canonical=new Set([record.generated.scene.id]);loading=new Map();
+  }
+  // Practice must preserve the live canonical owner even after a PUT response
+  // replaces the current record with a snapshot-only payload. Keep cached scenes
+  // and their canonical status; pending requests are reconciled afresh on return.
+  function captureContext(){
+    return plan?{plan,metaKey,serverWorld,canonical:new Set(canonical)}:null;
+  }
+  function restoreContext(context){
+    plan=context?.plan||null;metaKey=context?.metaKey||'';serverWorld=context?.serverWorld||null;
+    canonical=new Set(context?.canonical||[]);loading=new Map();
   }
   async function ensure(id){
     if(!serverWorld||canonical.has(id))return get(id);
@@ -62,5 +72,5 @@
   function opened(p){return runtime().isOpened(host(),game().state.scene,p);}
   async function presentTrap(result){if(result?.check)await window.HUD?.check({...result.check,outcome:result.check.success?'Успех · вы избежали ловушки':result.dmg?'Неудача · '+result.dmg+' урона':'Неудача · поднята тревога'},'Спасбросок от ловушки');}
   async function step(scene,x,y){for(const event of runtime().step(host(),scene,x,y)){game().tell(event.text||event.result.text);game().save();await presentTrap(event.result);}}
-  window.GeneratedWorlds={prime,ensure,restore,prefetch,interact,opened,step,host,get plan(){return plan;}};
+  window.GeneratedWorlds={prime,captureContext,restoreContext,ensure,restore,prefetch,interact,opened,step,host,get plan(){return plan;}};
 })();

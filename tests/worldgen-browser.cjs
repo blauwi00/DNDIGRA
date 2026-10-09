@@ -34,29 +34,65 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     await page.evaluate(()=>{gameDebug.state.settings.animations=false;gameDebug.save();});
     const meta=await page.evaluate(()=>gameDebug.state.world.gen);assert.deepEqual(meta,{v:2,seed:'integration-large',size:'large'});
     await page.evaluate(async()=>{for(const id of WorldGen.sceneIds(GeneratedWorlds.plan))await GeneratedWorlds.ensure(id);});
-    const idle=await page.evaluate(()=>{voxel.sync();return gameDebug.props.filter(p=>p.type==='npc').map(p=>({id:p.id,facing:voxel.models.get('prop:'+p.id).userData.idleFacing,angle:voxel.models.get('prop:'+p.id).rotation.y}));});
+    async function rendererSettled(target=null){
+      await page.evaluate(async()=>{await voxel.regionIdle(90000);await new Promise(resolve=>requestAnimationFrame(resolve));});
+      const render=await page.evaluate(target=>({stats:voxel.regionStats,heroReady:voxel.regionReady(gameDebug.active().x,gameDebug.active().y),targetReady:!target||voxel.regionReady(target.x,target.y)}),target);
+      assert.equal(render.stats.errors,0,'Generated scene groups build successfully');
+      assert.equal(render.stats.idle,true,'Renderer demand settles before model checks');
+      assert.equal(render.heroReady,true,'Current hero terrain is ready for interaction');
+      assert.equal(render.targetReady,true,'Interaction target terrain is ready');
+      if(render.stats.enabled){
+        assert.equal(render.stats.mode,'detail','Ordinary hero camera retains detailed rendering');
+        assert.ok(render.stats.ready<=Math.max(render.stats.maxChunks,render.stats.demand.pinnedKeys.length),'Generated outdoor detail obeys the group budget');
+      }
+    }
+    // Large v2 towns are streamed. Visit each real NPC's legal neighboring cell
+    // instead of requiring every distant source model to exist simultaneously.
+    const townStart=await page.evaluate(()=>({x:gameDebug.active().x,y:gameDebug.active().y}));
+    const npcIds=await page.evaluate(()=>gameDebug.props.filter(p=>p.type==='npc').map(p=>p.id)),idle=[];
+    assert.ok(npcIds.length>1,'Generated town has several NPCs to compare');
+    for(const pid of npcIds){
+      const target=await page.evaluate(pid=>{
+        closeDialogue();const p=gameDebug.props.find(p=>p.id===pid),a=gameDebug.active();
+        if(!p)throw Error('Missing generated NPC '+pid);
+        const cell=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c)&&!gameDebug.all().some(actor=>actor.id!==a.id&&actor.x===c.x&&actor.y===c.y));
+        if(!cell)throw Error('No legal adjacent NPC fixture '+pid);
+        a.x=cell.x;a.y=cell.y;gameDebug.render();camera.center(a,true);return{x:p.x,y:p.y};
+      },pid);
+      await rendererSettled(target);
+      const pose=await page.evaluate(pid=>{
+        const model=voxel.models.get('prop:'+pid);
+        if(!model||!model.isGroup||!model.children.length)throw Error('Missing ready NPC source model '+pid);
+        return{id:pid,facing:model.userData.idleFacing,angle:model.rotation.y};
+      },pid);
+      assert.ok(Number.isInteger(pose.facing)&&pose.facing>=0&&pose.facing<4,'NPC has a valid idle facing '+pid);
+      assert.equal(pose.angle,[0,Math.PI/2,Math.PI,-Math.PI/2][pose.facing],'Ready source model uses its idle facing '+pid);
+      idle.push(pose);
+    }
     assert.ok(new Set(idle.map(p=>p.angle)).size>1,'Map NPCs face different directions');
+    await page.evaluate(cell=>{Object.assign(gameDebug.active(),cell);gameDebug.render();camera.center(gameDebug.active(),true);},townStart);
+    await rendererSettled();
     const places=await page.evaluate(()=>{
       const p=GeneratedWorlds.plan;const types=[...new Set(p.buildings.map(b=>b.type))];return ['town',...types.map(type=>p.buildings.find(b=>b.type===type).id),p.buildings.find(b=>b.cellar).cellar,p.buildings.find(b=>b.up).up,'out','dng:1','fort:yard','fort:keep','fort:up','fort:dng'];
     });
     for(const id of places){
       await page.evaluate(id=>{closeDialogue();gameDebug.enterScene(id,true);camera.center(gameDebug.active(),true);gameDebug.save();},id);
-      await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>gameDebug.scene.id),id);
+      await rendererSettled();assert.equal(await page.evaluate(()=>gameDebug.scene.id),id);
       const render=await page.evaluate(()=>({surface:!!gameDebug.scene.surface,wall:gameDebug.scene.wallStyle,batch:voxel.staticBatchStats}));
       assert.ok(render.surface&&render.wall,'v2 floor and wall styles '+id);
-      assert.ok(render.batch.props>0&&render.batch.drawMeshes<render.batch.sourceMeshes,'Scene-wide batching '+id);
+      assert.ok(render.batch&&render.batch.props>0&&render.batch.drawMeshes<render.batch.sourceMeshes,'Ready static batching '+id);
       await page.screenshot({path:'qa/worldgen-'+id.replaceAll(':','-')+'-390.png'});
       assert.equal(await page.evaluate(()=>document.body.scrollWidth<=390),true,'mobile viewport '+id);
       console.log('PLACE',id);
     }
     // Choose actual generated props. Position at a legal adjacent cell to isolate UI/runtime from long walking routes.
-    async function prepare(kind){return await page.evaluate(kind=>{
+    async function prepare(kind){const target=await page.evaluate(kind=>{
       closeDialogue();const plan=GeneratedWorlds.plan;for(const id of WorldGen.sceneIds(plan)){
         const s=World.scenes[id],p=s.props.find(p=>kind==='npc'?!!p.npc:kind==='door'?p.type==='door'&&p.lock:!!p.container&&!!p.trap&&!p.lock);if(!p)continue;
-        gameDebug.enterScene(id);const a=gameDebug.active();const cell=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c));if(!cell)continue;
-        a.x=cell.x;a.y=cell.y;gameDebug.render();camera.center(a,true);return{id,pid:p.id};
+        gameDebug.enterScene(id);const a=gameDebug.active();const cell=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c)&&!gameDebug.all().some(actor=>actor.id!==a.id&&actor.x===c.x&&actor.y===c.y));if(!cell)continue;
+        a.x=cell.x;a.y=cell.y;gameDebug.render();camera.center(a,true);return{id,pid:p.id,x:p.x,y:p.y};
       }throw Error('Missing '+kind);
-    },kind);}
+    },kind);await rendererSettled(target);assert.equal(await page.evaluate(pid=>!!voxel.models.get('prop:'+pid),target.pid),true,'Prepared interaction has a ready real source model');return target;}
     const npc=await prepare('npc');await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);gameDebug.select(p);await gameDebug.approachInteract(p);},npc.pid);
     assert.equal(await page.locator('#speaker-art canvas').count(),1);
     assert.equal(await page.evaluate(()=>{const sheets=[];for(const a of gameDebug.state.party){voxel.models.get(a.id).traverse(m=>{if(m.userData.decal)sheets.push(m);});}const ids=new Set(sheets.map(m=>m.material.uuid));return ids.size===sheets.length&&sheets.every(m=>m.isInstancedMesh&&!m.frustumCulled&&m.material.polygonOffset&&!m.material.transparent&&m.material.opacity===1);}),true,'Independent opaque decal materials without culling');
@@ -88,7 +124,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     const afterGold=await page.evaluate(()=>gameDebug.state.gold);assert(afterGold>=beforeGold);
     await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);await gameDebug.approachInteract(p);},chest.pid);assert.match(await page.locator('#dialogue-text').innerText(),/пусто/);await page.getByRole('button',{name:'Закрыть',exact:true}).click();assert.equal(await page.evaluate(()=>gameDebug.state.gold),afterGold);
     await page.evaluate(async()=>{
-      gameDebug.enterScene('dng:1');const t=gameDebug.scene.traps[0],a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:t.x+dx,y:t.y+dy})).find(c=>!gameDebug.blocked(c));a.hp=a.max;a.x=c.x;a.y=c.y;gameDebug.render();gameDebug.mapTap({x:t.x,y:t.y});const action=objectPrompt.actions.find(a=>a.id==='move');if(!action?.enabled)throw Error('No floor-trap route');gameDebug.dismissMapActions();action.run();while(gameDebug.moving||gameDebug.busy)await new Promise(r=>setTimeout(r,20));
+      gameDebug.enterScene('dng:1');const t=gameDebug.scene.traps[0],a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:t.x+dx,y:t.y+dy})).find(c=>!gameDebug.blocked(c));a.hp=a.max;a.x=c.x;a.y=c.y;gameDebug.render();camera.center(a,true);await voxel.regionIdle(90000);gameDebug.mapTap({x:t.x,y:t.y});const action=objectPrompt.actions.find(a=>a.id==='move');if(!action?.enabled)throw Error('No floor-trap route');gameDebug.dismissMapActions();action.run();while(gameDebug.moving||gameDebug.busy)await new Promise(r=>setTimeout(r,20));
       if(!gameDebug.state.gen.fired['dng:1:'+t.id])throw Error('Floor trap did not fire');
       gameDebug.save();Worlds.capture();if(!await Worlds.flush())throw Error('Save failed');
     });
@@ -98,8 +134,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),before);await page.evaluate(async()=>{await GeneratedWorlds.ensure('town');await GeneratedWorlds.ensure('out');});assert.equal(await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),layout);
     // Real portal back to outdoors and reciprocal entrance.
     // The trap can kill the hero; portal coverage requires a living actor.
-    await page.evaluate(()=>{gameDebug.active().hp=gameDebug.active().max;gameDebug.enterScene('out');});const dest=await page.evaluate(()=>gameDebug.props.find(p=>p.destination==='town').destination);
-    await page.evaluate(async()=>{const p=gameDebug.props.find(p=>p.destination==='town');const a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c));a.x=c.x;a.y=c.y;gameDebug.render();await gameDebug.approachInteract(p);});await page.waitForFunction(()=>gameDebug.state.scene==='town');
+    await page.evaluate(()=>{gameDebug.active().hp=gameDebug.active().max;gameDebug.enterScene('out');});await rendererSettled();const dest=await page.evaluate(()=>gameDebug.props.find(p=>p.destination==='town').destination);
+    const portal=await page.evaluate(()=>{const p=gameDebug.props.find(p=>p.destination==='town');const a=gameDebug.active(),c=World.directions.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(c=>!gameDebug.blocked(c));if(!c)throw Error('No legal reciprocal portal fixture');a.x=c.x;a.y=c.y;gameDebug.render();camera.center(a,true);return{x:p.x,y:p.y};});await rendererSettled(portal);
+    await page.evaluate(async()=>{await gameDebug.approachInteract(gameDebug.props.find(p=>p.destination==='town'));});await page.waitForFunction(()=>gameDebug.state.scene==='town');await rendererSettled();
     assert.equal(dest,'town');await page.evaluate(async()=>{gameDebug.save();Worlds.capture();if(!await Worlds.flush())throw Error('Final save failed');});
     assert.deepEqual(errors,[]);console.log('PASS worldgen browser: creation fields, all generated building types and outdoor/underground/fortress places, NPC portrait/dialogue, lock, trapped chest once, floor trap, reciprocal portal, real SQLite save/reload.');
   }finally{await browser?.close();server.close();db.close();}

@@ -1,6 +1,8 @@
 import * as T from "three";
 import {npcFacing,faceCell} from "./npc-facing.js";
 import {batchStaticModels} from './static-batches.js';
+import {planRegionChunks,createChunkStream} from './region-streaming.js';
+import {regionConfig,regionChunkId,cameraGroundBounds,expandRegionBounds,collectRegionPins,canSelectRegionCell,disposeOwnedGroup,countGroupResources} from './region-rendering.js';
 import { createMenuStage } from './menu-stage.js';
 import { texelPass, TEXEL } from "./texel.js";
 import { fitPreviewCamera } from "./preview-frame.js";
@@ -762,25 +764,39 @@ function patternedRug() {
   rugMaterial = new T.MeshStandardMaterial({ map: t, roughness: 1 });
   return rugMaterial;
 }
-let staticBatches;
-function addStatic() {
-  const S = g.scene, terrainSeed = S.visualSeed ?? g.state.seed;
-  signature = S.id + ":" + (S.layoutKey || "") + ":" + g.state.party.map((p) => p.id).join(",");
-  setSelectionMask(null);
-  for (const t of torches) t.light.shadow.dispose();
-  clear(world);
-  clear(actors);
-  models.clear();
-  doors.clear();
-  torches.length = 0;
-  motions.clear();
-  staticBatches=null;
+let staticBatches, regionStream=null, regionPlan=null, regionOptions=null, regionBounds=null, regionDemandKey='', regionScene=null, regionPadding=1, regionGeneration=0, regionMounting=false;
+const regionResources=new Map(),regionFailures=new Set();
+const regionError=document.createElement('button');
+regionError.className='webgl-note';regionError.hidden=true;regionError.type='button';
+regionError.textContent='Не удалось подгрузить окружение. Повторить';viewport.append(regionError);
+regionError.onclick=()=>{regionFailures.clear();regionError.hidden=true;reconcileRegions(true);};
+function lightAnchor(S,l){const fixture=S.props.find(p=>p.id===(l.fixtureId||l.id));return fixture||{x:l.wallX??Math.floor(l.x),y:l.wallY??Math.floor(l.y)};}
+function applyPropState(m,p){
+  m.visible=!(p.type==='chest'&&g.state.loot[g.state.scene+':'+p.id]);
+  if(p.type==='npc'){
+    const speaker=window.viewsDebug?.speaker,talking=speaker&&(speaker.id?speaker.id===p.id:speaker.name===p.name);
+    m.rotation.y=[0,Math.PI/2,Math.PI,-Math.PI/2][talking?faceCell(p,g.active()):m.userData.idleFacing??0];
+  }
+  if(m.userData.hinge){
+    const goal=p.type==='door'&&g.isOpen(p)||g.departingNpc?.doorId===p.id?-Math.PI*.48:0;
+    m.userData.hinge.userData.goal=goal;
+    // New groups must reflect authoritative state immediately, without playing
+    // an old door's opening animation again on remount.
+    if(!m.parent||!g.animate())m.userData.hinge.rotation.y=goal;
+  }
+}
+function buildEnvironment(S,rect){
+  const terrainSeed=S.visualSeed??g.state.seed;
+  const resource={root:new T.Group(),models:new Map(),doors:new Map(),torches:[],batches:null,chunk:rect};
+  resource.root.name='region:'+rect.id;
+  const belongs=p=>p.x>=rect.x&&p.x<rect.x+rect.w&&p.y>=rect.y&&p.y<rect.y+rect.h;
+  try {
   const boxes = /* @__PURE__ */ new Map();
   function block(x, y, z, w, h, d, color) {
     if (!boxes.has(color)) boxes.set(color, []);
     boxes.get(color).push([x, y, z, w, h, d]);
   }
-  for (let y = 0; y < S.H; y++) for (let x = 0; x < S.W; x++) {
+  for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
     const type = World.tile(S, x, y), noise = (x * 113 + y * 71 + terrainSeed) % 11 / 100;
     if (type === "floor") {
       const grass=S.ground?.[y]?.[x]==='grass';
@@ -825,23 +841,28 @@ function addStatic() {
     });
     m.castShadow = data.some((a) => a[1] > 0.12);
     m.receiveShadow = true;
-    world.add(m);
+    resource.root.add(m);
   }
-  const staticRoots=[];
-  for (const p of S.props) {
+  const staticRoots=[],currentProps=new Map(g.props.map(p=>[p.id,p]));
+  const sourceProps=[...S.props,...g.props.filter(p=>p.type==='ground-item'&&!S.props.some(source=>source.id===p.id))];
+  for (const anchor of sourceProps.filter(belongs)) {
+    const p=currentProps.get(anchor.id)||anchor;
     if (["torch", "chandelier"].includes(p.type)) continue;
     const m = propModel(p);
     m.position.set(p.x + 0.5, 0, p.y + 0.5);
     if(p.type==='npc')m.userData.idleFacing=npcFacing(S,p,g.state.world?.gen?.seed||g.state.procedural?.seed||g.state.world?.id||'');
     if (p.solid !== false && !["door", "portal", "decor", "banner"].includes(p.type)) contact(m, 0.88, 0.78);
     m.userData.p = p;
-    world.add(m);
-    models.set("prop:" + p.id, m);
-    if (p.type === "door") doors.set(p.id, m);
+    applyPropState(m,p);
+    m.visible &&= currentProps.has(p.id);
+    resource.root.add(m);
+    resource.models.set("prop:" + p.id, m);
+    if (p.type === "door") resource.doors.set(p.id, m);
     if(!['npc','door','portal','chest','ground-item','torch','chandelier'].includes(p.type)&&!p.container)staticRoots.push(m);
   }
-  staticBatches=batchStaticModels(staticRoots,world);
-  for (const d of S.decor) {
+  resource.batches=batchStaticModels(staticRoots,resource.root);
+  for(const root of staticRoots)root.userData.staticBatchOwner=resource.batches;
+  for (const d of (S.decor || []).filter(belongs)) {
     if (d.kind === "bench") {
       const m = new T.Group();
       shadedBox(m, 0, 0.35, 0, 0.88, 0.13, 0.35, 7950386);
@@ -850,7 +871,7 @@ function addStatic() {
       compact(m);
       contact(m, 1, 0.55);
       m.position.set(d.x + 0.5, 0, d.y + 0.5);
-      world.add(m);
+      resource.root.add(m);
     } else {
       const m = new T.Group();
       const textile = new T.Mesh(new T.PlaneGeometry(d.w - 0.08, d.h - 0.08), patternedRug());
@@ -860,10 +881,10 @@ function addStatic() {
       m.add(textile);
       for (const side of [-1, 1]) shadedBox(m, side * (d.w / 2 - 0.08), 0.017, 0, 0.025, 6e-3, d.h - 0.08, 10979920);
       m.position.set(d.x - 0.5 + d.w / 2, 0, d.y - 0.5 + d.h / 2);
-      world.add(m);
+      resource.root.add(m);
     }
   }
-  for (const l of S.lights) {
+  for (const l of (S.lights || []).filter(l => belongs(lightAnchor(S,l)))) {
     const candle = l.id === "altar", chandelier = l.kind === "chandelier", m = l.kind === "fixture" ? new T.Group() : chandelier ? chandelierModel() : torchModel(), flames = m.userData.flames || [];
     if (l.kind === "wall") {
       m.position.set(l.x, 0.56, l.y);
@@ -878,71 +899,176 @@ function addStatic() {
       root.add(holder, m);
       root.userData.p = S.props.find((p) => p.id === l.fixtureId);
       root.userData.lightSource = l.id;
-      world.add(root);
-      models.set("prop:" + l.fixtureId, root);
+      resource.root.add(root);
+      resource.models.set("prop:" + l.fixtureId, root);
     } else {
       m.position.set(l.x, 0, l.y);
       m.userData.lightSource = l.id;
       if (chandelier) {
         m.userData.p = S.props.find((p) => p.id === l.id);
-        models.set("prop:" + l.id, m);
+        resource.models.set("prop:" + l.id, m);
       }
-      world.add(m);
+      resource.root.add(m);
     }
     if (candle) m.visible = false;
     const light = new T.PointLight(16760192, l.intensity ?? (candle ? 2 : 12), l.distance ?? 8, 2);
     light.position.set(l.x, l.height ?? (candle ? 0.96 : 1.22), l.y);
     configureShadow(light);
-    scene.add(light);
-    torches.push({ model: m, flames, light, source: l, chandelier });
+    resource.root.add(light);
+    resource.torches.push({ model: m, flames, light, source: l, chandelier });
   }
-  for (const a of g.state.party) {
-    const light = new T.PointLight(16760192, 12, 10, 2);
-    configureShadow(light, true);
-    light.visible = false;
-    scene.add(light);
-    torches.push({ light, portable: true, actorId: a.id, flames: [] });
+
+  return resource;
+  }catch(error){disposeOwnedGroup(resource.root,{sharedGeometries:new Set([geo])});throw error;}
+}
+function installEnvironment(resource){
+  world.add(resource.root);
+  for(const [id,m]of resource.models){m.userData.regionOwner=resource.chunk.id;m.userData.regionAnchor={x:resource.chunk.x,y:resource.chunk.y};models.set(id,m);}
+  for(const [id,m]of resource.doors)doors.set(id,m);
+  torches.push(...resource.torches);
+  renderer.shadowMap.needsUpdate=true;
+  return resource;
+}
+function releaseEnvironment(resource){
+  if(!resource)return;
+  for(const [id,m]of resource.models){
+    if(maskRoot===m||maskRoot===m.userData.hinge)setSelectionMask(null);
+    motions.delete(id);motions.delete(m.userData.p?.id);
+    delete m.userData.tap;delete m.userData.strike;
+    if(models.get(id)===m)models.delete(id);
+    if(doors.get(m.userData.p?.id)===m)doors.delete(m.userData.p.id);
   }
-  renderer.shadowMap.needsUpdate = true;
-  ready = true;
-  document.body.classList.add("voxel-ready");
-  resize();
+  for(const torch of resource.torches){const index=torches.indexOf(torch);if(index>=0)torches.splice(index,1);}
+  const prompt=window.objectPrompt?.p;
+  if(prompt&&resource.models.has('prop:'+prompt.id)){objectPrompt.hidden=true;promptInput.clear();}
+  world.remove(resource.root);
+  disposeOwnedGroup(resource.root,{sharedGeometries:new Set([geo])});
+  resource.models.clear();resource.doors.clear();resource.torches.length=0;
+  if(regionResources.get(resource.chunk.id)===resource)regionResources.delete(resource.chunk.id);
+  renderer.shadowMap.needsUpdate=true;
 }
-function disposeModel(root){
-  root.traverse(o=>{
-    if(o.isInstancedMesh)o.dispose();
-    if(o.geometry&&o.geometry!==geo)o.geometry.dispose();
-    if(o.userData.disposeMaterial)o.material.dispose();
-  });
-}
-function clear(group) {
-  for (const c of [...group.children]) {
-    disposeModel(c);
-    group.remove(c);
+function overviewEnvironment(S){
+  const root=new T.Group(),map=document.createElement('canvas');map.width=S.W*2;map.height=S.H*2;
+  const ctx=map.getContext('2d');
+  for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){
+    const tile=World.tile(S,x,y);if(tile==='void')continue;
+    const surface=window.WorldGen?.SURFACE_BY_CODE[S.surface?.[y]?.[x]];
+    const color=tile==='wall'?0x77745f:surface?WorldGen.surfaceColor(surface,x,y):S.ground?.[y]?.[x]==='grass'?0x527b3c:0x978872;
+    ctx.fillStyle='#'+new T.Color(color).getHexString();ctx.fillRect(x*2,y*2,2,2);
+    ctx.fillStyle='rgba(0,0,0,.05)';ctx.fillRect(x*2+1,y*2+1,1,1);
   }
-  for (const l of torches) scene.remove(l.light);
+  // Landmarks live in the low-cost map texture; they carry no picking identity.
+  for(const p of S.props){
+    if(['tree','bush','bones'].includes(p.model)||['ground-item','npc','torch','chandelier'].includes(p.type))continue;
+    ctx.fillStyle=['door','portal','waymark'].includes(p.type)?'#d6b370':'#69584a';ctx.fillRect(p.x*2,p.y*2,2,2);
+  }
+  const texture=new T.CanvasTexture(map);texture.colorSpace=T.SRGBColorSpace;texture.magFilter=texture.minFilter=T.NearestFilter;texture.generateMipmaps=false;
+  const mat=new T.MeshStandardMaterial({map:texture,transparent:true,roughness:1}),mesh=new T.Mesh(new T.PlaneGeometry(S.W,S.H),mat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(S.W/2,-.018,S.H/2);mesh.receiveShadow=true;
+  mesh.userData.disposeMaterial=true;mesh.userData.disposeTexture=true;root.add(mesh);root.name='region-overview';world.add(root);
+  return root;
 }
+function scenePadding(S){
+  let padding=2.25;
+  for(const p of S.props){
+    if(p.model&&window.Props){
+      // Numeric model boxes avoid constructing any GPU model merely to find its
+      // footprint. Height affects ground-projected visibility at this angle.
+      for(const b of window.Props.build(p,{texel:false})||[])padding=Math.max(padding,Math.abs(b[0])+b[3]/2,Math.abs(b[2])+b[5]/2+(b[1]+b[4]/2)*.7);
+    }
+  }
+  for(const d of S.decor||[])padding=Math.max(padding,d.w||1,d.h||1);
+  return padding;
+}
+function reconcileRegions(force=false){
+  if(!regionOptions?.enabled||!regionStream||!g||g.scene!==regionScene)return;
+  regionBounds=expandRegionBounds(cameraGroundBounds(camera),{padding:regionPadding,lights:g.scene.lights||[]});
+  const pins=collectRegionPins(g,motions,effects,window.viewsDebug?.speaker,window.objectPrompt,models);
+  const plan=planRegionChunks({width:g.scene.W,height:g.scene.H,bounds:regionBounds,pins,...regionOptions,previousMode:regionPlan?.mode||'detail'});
+  const key=plan.mode+':'+plan.chunks.map(c=>c.id+(c.pinned?'p':'')).join('|');
+  regionPlan=plan;
+  for(const id of regionFailures)if(id!=='scheduler'&&!plan.chunks.some(c=>c.id===id))regionFailures.delete(id);
+  regionError.hidden=!regionFailures.size;
+  if(key!==regionDemandKey||force){regionDemandKey=key;regionStream.update(plan);}
+}
+function addStatic(){
+  const S=g.scene;regionGeneration++;regionMounting=true;
+  signature=S.id+':'+(S.layoutKey||'')+':'+g.state.party.map(p=>p.id).join(',');
+  setSelectionMask(null);objectPrompt.hidden=true;promptInput.clear();
+  regionStream?.reset();regionStream=null;regionResources.clear();regionPlan=null;regionDemandKey='';regionScene=S;
+  regionFailures.clear();regionError.hidden=true;
+  for(const t of torches){scene.remove(t.light);if(t.portable)t.light.shadow.dispose();}
+  clear(world);clear(actors);clearMarkers();models.clear();doors.clear();torches.length=0;motions.clear();staticBatches=null;
+  for(const effect of effects){effect.el?.remove();if(effect.mesh){scene.remove(effect.mesh);disposeModel(effect.mesh);}}effects.length=0;
+  regionOptions=regionConfig(S,window.location.search);
+  if(regionOptions.enabled){
+    regionPadding=scenePadding(S);overviewEnvironment(S);
+    regionStream=createChunkStream({
+      schedule:callback=>{const id=requestAnimationFrame(callback);return ()=>cancelAnimationFrame(id);},
+      build:chunk=>{const resource=buildEnvironment(S,chunk);regionFailures.delete(chunk.id);regionResources.set(chunk.id,resource);return installEnvironment(resource);},
+      release:releaseEnvironment,
+      onChange:()=>{regionError.hidden=!regionFailures.size;if(!regionMounting&&g.scene===S){refreshSelectionMask();draw();}},
+      onError:(error,chunk)=>{regionFailures.add(chunk?.id||'scheduler');regionError.hidden=false;console.error('Region loading failed',error);}
+    });
+    cameraUpdate();
+    reconcileRegions();
+    // One pinned group provides immediate nearby terrain; all other
+    // detailed groups are frame-scheduled, never a full-scene blocking build.
+    regionStream.flush(1);
+  }else{
+    const resource=installEnvironment(buildEnvironment(S,{id:'full',x:0,y:0,w:S.W,h:S.H}));staticBatches=resource.batches;
+  }
+  for(const a of g.state.party){
+    const light=new T.PointLight(16760192,12,10,2);configureShadow(light,true);light.visible=false;scene.add(light);
+    torches.push({light,portable:true,actorId:a.id,flames:[]});
+  }
+  renderer.shadowMap.needsUpdate=true;ready=true;regionMounting=false;document.body.classList.add('voxel-ready');resize();
+}
+function disposeModel(root){disposeOwnedGroup(root,{sharedGeometries:new Set([geo])});}
+function clear(group){disposeModel(group);group.clear();}
 function outline(x, z, color, size = 0.94) {
   const points = [[-size / 2, -size / 2], [size / 2, -size / 2], [size / 2, size / 2], [-size / 2, size / 2], [-size / 2, -size / 2]].map(([a, b]) => new T.Vector3(x + a, 0.025, z + b));
   const m = new T.Line(new T.BufferGeometry().setFromPoints(points), new T.LineBasicMaterial({ color, transparent: true, opacity: 0.8 }));
   markers.add(m);
   return m;
 }
+function clearMarkers(){
+  while (markers.children.length) {
+    const m = markers.children[0];
+    m.traverse((c) => {
+      if (c.geometry && !c.userData.silhouette) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+      if (c.isInstancedMesh) c.dispose();
+    });
+    markers.remove(m);
+  }
+}
+function refreshSelectionMask(){
+  const selectedProp=g.selected&&g.props.find(p=>p.x===g.selected.x&&p.y===g.selected.y);
+  const selectedActor=g.selected&&g.all().find(p=>p.x===g.selected.x&&p.y===g.selected.y);
+  const chosen=selectedProp?models.get('prop:'+selectedProp.id):selectedActor?models.get(selectedActor.id):null;
+  setSelectionMask(chosen);return chosen;
+}
 function sync() {
   g = window.gameDebug;
   if (!g) return;
-  if (signature !== g.scene.id + ":" + (g.scene.layoutKey || "") + ":" + g.state.party.map((p) => p.id).join(",")) addStatic();
+  if (regionScene !== g.scene || signature !== g.scene.id + ":" + (g.scene.layoutKey || "") + ":" + g.state.party.map((p) => p.id).join(",")) addStatic();
   const ground2 = g.props.filter((p) => p.type === "ground-item");
   for (const [id, m] of models) if (m.userData.p?.type === "ground-item" && !ground2.some((p) => "prop:" + p.id === id)) {
-    world.remove(m);
+    if(maskRoot===m||maskRoot===m.userData.hinge)setSelectionMask(null);
+    m.parent?.remove(m);
     disposeModel(m);
     models.delete(id);
+    regionResources.get(m.userData.regionOwner)?.models.delete(id);
   }
   for (const p of ground2) if (!models.has("prop:" + p.id)) {
+    const owner=regionOptions?.enabled?regionResources.get(regionChunkId(p.x,p.y,regionOptions.chunkSize)):null;
+    if(regionOptions?.enabled&&!owner)continue;
     const m = propModel(p);
     m.position.set(p.x + 0.5, 0, p.y + 0.5);
     m.userData.p = p;
-    world.add(m);
+    (owner?.root||world).add(m);
+    if(owner){owner.models.set('prop:'+p.id,m);m.userData.regionOwner=owner.chunk.id;m.userData.regionAnchor={x:owner.chunk.x,y:owner.chunk.y};}
     models.set("prop:" + p.id, m);
   }
   const entities = g.all(), ids = new Set(entities.map((p) => p.id));
@@ -950,6 +1076,7 @@ function sync() {
     let m = models.get(p.id);
     const loadout = JSON.stringify([p.hands || [], p.appearance || null, p.classId, p.visual || null, p.gen || null]);
     if (m && m.userData.loadout !== loadout) {
+      if(maskRoot===m)setSelectionMask(null);
       actors.remove(m);
       disposeModel(m);
       models.delete(p.id);
@@ -982,35 +1109,19 @@ function sync() {
     }
   }
   for (const [id, m] of models) if (!id.startsWith("prop:") && !ids.has(id)) {
+    if(maskRoot===m)setSelectionMask(null);
     actors.remove(m);
     disposeModel(m);
     models.delete(id);
   }
-  const novice = models.get("prop:novice");
-  if (novice) novice.visible = g.props.some((p) => p.id === "novice");
-  for (const p of g.props) {
-    const m = models.get("prop:" + p.id);
-    if (!m) continue;
-    m.visible = !(p.type === "chest" && g.state.loot[g.state.scene + ":" + p.id]);
-    if(p.type==='npc'){const speaker=window.viewsDebug?.speaker;const talking=speaker&&(speaker.id?speaker.id===p.id:speaker.name===p.name);m.rotation.y=[0,Math.PI/2,Math.PI,-Math.PI/2][talking?faceCell(p,g.active()):m.userData.idleFacing??0];}
-    if (m.userData.hinge) {
-      const goal = p.type === "door" && g.isOpen(p) || g.departingNpc?.doorId === p.id ? -Math.PI * 0.48 : 0;
-      m.userData.hinge.userData.goal = goal;
-      if (!g.animate()) m.userData.hinge.rotation.y = goal;
-    }
-    if(m.userData.staticBatched)staticBatches.update(m);
+  const currentProps=new Map(g.props.map(p=>[p.id,p]));
+  for(const [id,m]of models)if(id.startsWith('prop:')){
+    const p=currentProps.get(m.userData.p?.id);
+    if(p){m.userData.p=p;applyPropState(m,p);}else m.visible=false;
+    if(m.userData.staticBatched)m.userData.staticBatchOwner?.update(m);
   }
-  while (markers.children.length) {
-    const m = markers.children[0];
-    m.traverse((c) => {
-      if (c.geometry && !c.userData.silhouette) c.geometry.dispose();
-      if (c.material) c.material.dispose();
-      if (c.isInstancedMesh) c.dispose();
-    });
-    markers.remove(m);
-  }
-  const selectedProp = g.selected && g.props.find((p) => p.x === g.selected.x && p.y === g.selected.y), selectedActor = g.selected && entities.find((p) => p.x === g.selected.x && p.y === g.selected.y), chosen = selectedProp ? models.get("prop:" + selectedProp.id) : selectedActor ? models.get(selectedActor.id) : null;
-  setSelectionMask(chosen);
+  clearMarkers();
+  const chosen=refreshSelectionMask();
   const a = g.active();
   outline(a.x + 0.5, a.y + 0.5, 9481331, 0.74);
   if(g.state.world?.gen)for(const t of window.WorldGen.Runtime.knownTraps(window.GeneratedWorlds.host(),g.scene))outline(t.x+.5,t.y+.5,0xd87a38,.82);
@@ -1030,6 +1141,7 @@ function sync() {
   renderer.shadowMap.enabled = g.state.settings.lights;
   for (const t of torches) if (t.portable) t.light.shadow.needsUpdate = true;
   renderer.shadowMap.needsUpdate = true;
+  reconcileRegions();
   draw();
 }
 function cameraUpdate() {
@@ -1038,10 +1150,13 @@ function cameraUpdate() {
   camera.right = half * aspect;
   camera.top = half;
   camera.bottom = -half;
-  camera.position.set(focus.x, 12, focus.z + 8.4);
+  const elevation=regionOptions?.enabled?Math.max(12,half*1.4):12;
+  camera.far=Math.max(80,elevation+half*4);
+  camera.position.set(focus.x, elevation, focus.z + elevation*.7);
   camera.lookAt(focus.x, 0, focus.z);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
+  reconcileRegions();
 }
 function resize() {
   const w = viewport.clientWidth || 390, h = viewport.clientHeight || 520;
@@ -1052,6 +1167,7 @@ function resize() {
   draw();
 }
 function center(p) {
+  if(regionOptions?.enabled&&regionPlan?.mode==='overview')half=4.8;
   focus = { x: p.x + 0.5, z: p.y + 0.5 };
   cameraUpdate();
   draw();
@@ -1149,18 +1265,19 @@ canvas.addEventListener("pointerup", (e) => {
     const p = ground(e.clientX, e.clientY);
     const fixtures = [...models.values()].filter((m) => m.visible && m.userData.p && m.userData.p.type !== "chandelier");
     const hits = raycaster.intersectObjects(fixtures, true);
-    if (hits.length) {
+    if (regionPlan?.mode!=='overview' && hits.length) {
       let obj = hits[0].object;
       while (obj && !obj.userData.p) obj = obj.parent;
       if (obj) {
         const target = obj.userData.p;
+        if(!canSelectRegionCell(regionOptions,regionPlan,regionStream,target.x,target.y)){g.mapTap(null);pointers.delete(e.pointerId);start=null;return;}
         g.mapTap(target);
         pointers.delete(e.pointerId);
         start = null;
         return;
       }
     }
-    if (p && World.tile(g.scene, Math.floor(p.x), Math.floor(p.z)) !== "void") g.mapTap({ x: Math.floor(p.x), y: Math.floor(p.z) });
+    if (p && canSelectRegionCell(regionOptions,regionPlan,regionStream,Math.floor(p.x),Math.floor(p.z)) && World.tile(g.scene, Math.floor(p.x), Math.floor(p.z)) !== "void") g.mapTap({ x: Math.floor(p.x), y: Math.floor(p.z) });
     else g.mapTap(null);
   }
   pointers.delete(e.pointerId);
@@ -1190,6 +1307,7 @@ function move(id, from, to, duration) {
   if (!m) return;
   motions.set(id, { from: { x: from.x + 0.5, z: from.y + 0.5 }, to: { x: to.x + 0.5, z: to.y + 0.5 }, start: performance.now(), duration: Math.max(1, duration), m });
   m.rotation.y = [0, Math.PI / 2, Math.PI, -Math.PI / 2][m.userData.p?.facing || 0];
+  reconcileRegions();
 }
 function impact(p, value, crit = false, animated = true, type = "damage") {
   const el = document.createElement("span");
@@ -1278,6 +1396,7 @@ function tick(time) {
     tick.lastShadow = time;
   }
   const animate = g.animate(), a = g.active();
+  reconcileRegions();
   for (const [id, v] of motions) {
     const t = Math.min(1, (time - v.start) / v.duration), ease = 1 - (1 - t) ** 3;
     v.m.position.set(T.MathUtils.lerp(v.from.x, v.to.x, ease), animate ? Math.sin(t * Math.PI) * 0.035 : 0, T.MathUtils.lerp(v.from.z, v.to.z, ease));
@@ -1298,7 +1417,7 @@ function tick(time) {
         m.rotation.z = t.baseZ;
         delete m.userData.tap;
       }
-      if(m.userData.staticBatched)staticBatches.update(m);
+      if(m.userData.staticBatched)m.userData.staticBatchOwner?.update(m);
     }
     if (m.userData.strike) {
       const s = m.userData.strike, t = (time - s.start) / 280;
@@ -1326,7 +1445,7 @@ function tick(time) {
       t.lastPosition = t.light.position.clone();
     }
     if (t.portable) {
-      const m = models.get(owner.id), hand = m?.userData.torch;
+      const m = models.get(owner?.id), hand = m?.userData.torch;
       if (hand) {
         hand.updateWorldMatrix(true, false);
         t.light.position.copy(hand.localToWorld(new T.Vector3(0, 0.64, 0)));
@@ -1382,7 +1501,7 @@ function tick(time) {
     }
   }
   const prompt = window.objectPrompt;
-  objectPrompt.hidden = !prompt?.p || !document.getElementById("dialogue").hidden || !!window.CinematicMenu?.active;
+  objectPrompt.hidden = !prompt?.p || !canSelectRegionCell(regionOptions,regionPlan,regionStream,prompt?.p?.x,prompt?.p?.y) || !document.getElementById("dialogue").hidden || !!window.CinematicMenu?.active;
   if(objectPrompt.hidden)promptInput.clear();
   if (prompt?.p) {
     const p = prompt.p, point = new T.Vector3(p.x + 0.5, 0.45, p.y + 0.5).project(camera);
@@ -1423,7 +1542,28 @@ window.fx = { step: () => {
 }, pulse: (p) => impact(p, "Отклик", false, true, "heal") };
 let menuStage;
 function renderMenu(time){menuStage ||= createMenuStage({figure,propModel,shadedBox,compact,terrainMaterial});renderer.setRenderTarget(null);menuStage.render(renderer,time,g.state.settings,window.CinematicMenu.editor);}
-window.voxel = { resize, get staticBatchStats(){return staticBatches&&{props:staticBatches.roots.length,sourceMeshes:staticBatches.sourceMeshes,drawMeshes:staticBatches.meshes.length};}, turnHero:delta=>menuStage?.turn(delta), get menuDebug(){return menuStage?.debug;}, buildModel: (kind, actor, options) => figure(kind, actor, options), buildItem: itemModel, buildProp: propModel, compact, shadedBox, heroPortrait: (a, angle = 0) => portrait(a.kind, null, a, angle), portrait, sync, move, impact, tap, reset, fit, ground, get selectionMask() {
+function regionSnapshot(){
+  const stats=regionStream?.stats||{},resources=countGroupResources(world);
+  return {enabled:!!regionOptions?.enabled,mode:regionOptions?.enabled?regionPlan?.mode||'detail':'full',
+    chunkSize:regionOptions?.chunkSize,maxChunks:regionOptions?.maxChunks,budgetOverflow:regionPlan?.budgetOverflow||0,
+    ready:stats.readyCount??(ready?1:0),readyIds:stats.readyIds||[],queued:stats.queuedCount||0,idle:!(stats.queuedCount||0),
+    built:stats.builtCount||0,released:stats.releasedCount||0,generation:regionGeneration,streamGeneration:stats.generation||0,errors:stats.errors||0,lastError:stats.lastError||null,lastBuildMs:stats.lastBuildDuration||0,
+    resources,actorResources:countGroupResources(actors),portableLights:torches.filter(t=>t.portable).length,
+    groups:[...regionResources.values()].map(r=>({id:r.chunk.id,...countGroupResources(r.root)})),
+    shared:{materials:materials.size+terrainMaterials.size,textures:terrainTextures.size+(rugMaterial?1:0)+1,geometries:1},
+    gpu:{...renderer.info.memory,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},
+    demand:{visibleKeys:regionPlan?.visibleKeys||[],pinnedKeys:regionPlan?.pinnedKeys||[],bounds:regionBounds},
+    failedIds:[...regionFailures]};
+}
+function waitRegionIdle(timeout=10000){
+  const started=performance.now();return new Promise((resolve,reject)=>{
+    function check(){const stats=regionSnapshot();if(stats.idle)return resolve(stats);if(performance.now()-started>timeout)return reject(new Error('Region loading timed out'));requestAnimationFrame(check);}check();
+  });
+}
+window.voxel = { resize, get staticBatchStats(){
+  const batches=regionOptions?.enabled?[...regionResources.values()].map(r=>r.batches):staticBatches?[staticBatches]:[];
+  return batches.length?batches.reduce((n,b)=>({props:n.props+b.roots.length,sourceMeshes:n.sourceMeshes+b.sourceMeshes,drawMeshes:n.drawMeshes+b.meshes.length}),{props:0,sourceMeshes:0,drawMeshes:0}):null;
+}, get regionStats(){return regionSnapshot();}, regionReady:(x,y)=>canSelectRegionCell(regionOptions,regionPlan,regionStream,x,y), regionIdle:waitRegionIdle, turnHero:delta=>menuStage?.turn(delta), get menuDebug(){return menuStage?.debug;}, buildModel: (kind, actor, options) => figure(kind, actor, options), buildItem: itemModel, buildProp: propModel, compact, shadedBox, heroPortrait: (a, angle = 0) => portrait(a.kind, null, a, angle), portrait, sync, move, impact, tap, reset, fit, ground, get selectionMask() {
   return { root: maskRoot, objects: maskObjects, material: contourMaterial };
 }, get ready() {
   return ready;
