@@ -1,3 +1,7 @@
+# Mandatory project rules — read first
+
+Before planning, editing, reviewing, testing, or deploying this game, **read [docs/DEVELOPMENT_RULES.md](docs/DEVELOPMENT_RULES.md)**. It records the owner's approved game architecture and progression/story rules, and clearly separates unresolved proposals. Do not confuse future requirements with implemented features. The owner's latest explicit instruction overrides conflicting documentation; flag any conflict before changing a confirmed rule. This documentation requirement applies to Codex, Claude, and other AI coding agents.
+
 # Current task: death screen · 2026-10-07
 Owner requested a death screen and missing saving throws after an altar approach. Show trap saves through HUD, apply DND.damage, stop movement and interaction at zero HP. Zero HP is unconsciousness until DND rules confirm death. Preserve saves and heroes; never automatically finish/delete the world. Run death-browser, WorldGen and existing mobile/movement/API regressions. Owner subsequently authorized publishing; update TEST Site only, not main. Keep separate feat/worldgen-runtime GitHub branch. QA screenshots never go to GitHub.
 
