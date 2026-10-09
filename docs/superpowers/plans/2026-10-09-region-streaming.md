@@ -68,7 +68,7 @@ Interfaces:
 - [x] Write failing generator/connectivity tests and practice isolation/restoration tests. Implement the map and minimal practice/menu integration, preserving prior tutorial behavior and preventing API writes during the walk.
 - [x] Add bundle/script order and suites; preserve the Site-specific title and saved-state key at delivery. Verify no story/tutorial auto-events run in the region fixture.
 - [x] Real Chromium: enter via menu, cross several group boundaries through controls, pan away/return, overview readiness, chest round-trip, combat pinning, rapid reset/cancellation, repeated traversal resource plateau and exact restoration of the original world. Record controllable fixtures explicitly.
-- [ ] Run `npm test`, relevant movement/mobile/WorldGen/adventure/practice browser regressions sequentially, inspect 390px and 320px screenshots and update the native resource copy.
+- [x] Run `npm test`, relevant movement/mobile/WorldGen/adventure/practice browser regressions sequentially, inspect 390px and 320px screenshots and update the native resource copy.
 - [x] Compare chunk configurations and full-render control on the same fixture; report generation/first-show/build times and resource/draw counts with software-GPU limits.
 - [x] Review final feature diff and address material findings; document only verified outcomes.
 - [ ] Copy reviewed source to the opened existing Site checkout, preserving Site-specific notes/key/title and immutable migrations. Build, package client/server/manifest/migrations, push exact source, save version, deploy with unchanged audience and confirm successful native status.
@@ -80,3 +80,5 @@ The source worktree is already isolated on `feat/region-streaming`.
 Baseline: `npm test` runs before implementation; results are in `/workspace/region-baseline-logic.log`.
 Task reports/ledger stay outside the repository in `/workspace/dndigra-region-work/`.
 Only the root agent performs Site operations and GPU verification.
+
+Verification selection: the current 27-suite build, region touch/resource/restoration scenario, map controls, mobile editor/HUD, both legacy location routes, v2 WorldGen, death screen, full fighter tutorial with replay and native/offline reload were checked. The region scenario also starts the actual v3 intro. Previous all-class/full adventure campaign runs were not repeated because their rules are unchanged; the current report states this explicitly. Physical iPhone/Xcode validation remains outside this environment.
