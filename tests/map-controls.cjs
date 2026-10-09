@@ -1,3 +1,4 @@
+const {configureBrowserPage}=require('./browser-harness.cjs');
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const {build}=require('esbuild');
 (async()=>{
@@ -6,8 +7,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const {bui
  await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
  try {
   browser=await chromium.launch({executablePath:process.env.CHROME_EXECUTABLE,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.voxel?.ready);await page.addScriptTag({url:'http://127.0.0.1:'+server.address().port+'/fixture.js'});
+  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];await configureBrowserPage(page);page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready);await page.addScriptTag({url:'http://127.0.0.1:'+server.address().port+'/fixture.js'});
   await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());CinematicMenu.play();Worlds.detach();gameDebug.test('reset');gameDebug.state.settings.animations=false;viewsDebug.switchTab('map');closeDialogue();camera.center(gameDebug.props.find(p=>p.id==='desk'),true);});
   assert.equal(await page.locator('#action').isVisible(),false,'Bottom interaction removed');
   const initial=await page.evaluate(()=>JSON.stringify(camera.state));
@@ -19,7 +20,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');const {bui
   await page.touchscreen.tap(deskPoint.x,deskPoint.y);assert.equal(await page.evaluate(()=>gameDebug.busy),false,'Second tap does not use object');
   await page.locator('.object-prompt [data-action=approach]').click();await page.waitForFunction(()=>!gameDebug.busy&&Math.abs(gameDebug.active().x-5)+Math.abs(gameDebug.active().y-2)===1);
   assert.equal(await page.locator('#dialogue').isVisible(),false,'Approach does not inspect');assert.equal(await page.evaluate(()=>JSON.stringify(camera.state)),initial,'Camera fixed while approaching');
-  await page.evaluate(()=>gameDebug.mapTap(gameDebug.props.find(p=>p.id==='desk')));await page.locator('.object-prompt [data-action=inspect]').click();await page.waitForFunction(()=>!gameDebug.busy&&!document.getElementById('dialogue').hidden);assert.ok((await page.locator('#dialogue-text').innerText()).length);assert.equal(await page.locator('.object-prompt').isVisible(),false,'Menu hidden behind dialogue');
+  await page.evaluate(()=>gameDebug.mapTap(gameDebug.props.find(p=>p.id==='desk')));await page.locator('.object-prompt [data-action=inspect]').focus();await page.locator('.object-prompt [data-action=inspect]').press('Enter');await page.waitForFunction(()=>!gameDebug.busy&&!document.getElementById('dialogue').hidden);assert.ok((await page.locator('#dialogue-text').innerText()).length);assert.equal(await page.locator('.object-prompt').isVisible(),false,'Keyboard inspection still works and hides the menu behind dialogue');
   await page.evaluate(()=>{closeDialogue();const p=gameDebug.props.find(p=>p.id==='chest');camera.center(p,true);gameDebug.mapTap(p);});
   assert.ok((await page.locator('.object-prompt button').allTextContents()).some(s=>s.includes('Открыть')),'Far chest exposes Open');
   const gold=await page.evaluate(()=>gameDebug.state.gold);await page.locator('.object-prompt [data-action=inspect]').click();await page.waitForFunction(()=>!gameDebug.busy&&!document.getElementById('dialogue').hidden);

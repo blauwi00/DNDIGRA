@@ -8,6 +8,12 @@ for(const [size,hash]of Object.entries(hashes)){
  assert.equal(createHash('sha256').update(JSON.stringify(sceneIds(plan).map(id=>generateScene(plan,id)))).digest('hex'),hash);
 }
 assert.equal(normalizeGen({v:1,seed:'old',size:'small'}).v,1);
-assert.equal(createWorld('new','small').v,2);
+const v2hashes={small:'2d7b1eca81244d3267f8c243d08c18c103519690180d40f485137d9b9237f3da',large:'65e7d40c41e2ed7a28769bfdef0253b22ee8863d9dcc546c90059b0b42e63537'};
+for(const [size,hash]of Object.entries(v2hashes)){
+ const plan=createWorld('legacy-v2-regression',size,2);
+ assert.equal(plan.v,2);
+ assert.equal(createHash('sha256').update(JSON.stringify(sceneIds(plan).map(id=>generateScene(plan,id)))).digest('hex'),hash);
+}
+assert.equal(createWorld('new','small').v,3);
 assert.throws(()=>normalizeGen({v:99}));
-console.log('PASS immutable v1 layouts/loot/NPCs and version dispatch');
+console.log('PASS immutable v1/v2 layouts/loot/NPCs and v3 version dispatch');

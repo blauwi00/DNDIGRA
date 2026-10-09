@@ -32,9 +32,9 @@ async function call(path, method = "GET", body, owner = "owner-a") {
 
 const {createWorld,generateScene,sceneIds}=await import('../src/worldgen/index.js');
 const {hero}=await call('heroes','POST',draft);
-for(const gen of [{seed:'x',size:'huge'},{seed:'x'.repeat(129),size:'small'},{seed:{x:1},size:'small'}])assert.equal((await call('worlds','POST',{heroId:hero.id,...gen})).status,400);
-let r=await call('worlds','POST',{heroId:hero.id,seed:'integration-large',size:'large'});assert.equal(r.status,201);let w=r.world;
-const plan=createWorld(w.snapshot.world.gen.seed,w.snapshot.world.gen.size);
+for(const gen of [{seed:'x',size:'huge'},{seed:'x'.repeat(129),size:'small'},{seed:{x:1},size:'small'}])assert.equal((await call('worlds','POST',{generatorVersion:2,heroId:hero.id,...gen})).status,400);
+let r=await call('worlds','POST',{generatorVersion:2,heroId:hero.id,seed:'integration-large',size:'large'});assert.equal(r.status,201);let w=r.world;
+const plan=createWorld(w.snapshot.world.gen.seed,w.snapshot.world.gen.size,w.snapshot.world.gen.v);
 assert.equal(w.generated.scene.id,w.snapshot.scene);
 assert.equal(w.generated.plan.seed,plan.seed);
 assert.equal((await call('worlds/'+w.id+'/scene?id=town','GET',undefined,'owner-b')).status,404);

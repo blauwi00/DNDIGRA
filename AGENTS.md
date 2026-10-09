@@ -1,4 +1,11 @@
-# Current task: death screen · 2026-10-07
+# Current task: story prologue and native prototype · 2026-10-08
+Owner authorized a solo opening in the current game: several prepared coherent stories, a readable clearing/road/settlement, appearance-bound camera/text intro, panic messenger, DND combat and mandatory replayable tutorial. Allies mean future human players; no bot party or multiplayer now. Tutorial defeat is unconsciousness followed by healer rescue. Paid AI GM/free-text adjudication is deferred. Keep work on separate `feat/story-prologue`, based on `feat/worldgen-runtime`; preserve existing project and saves. No Site publication or main update is part of this task.
+
+New worlds default to WorldGen v3; frozen v1/v2 dispatch stays intact. Use `docs/ADVENTURE.md`, `docs/IOS.md` and `docs/superpowers/specs/2026-10-08-adventure-design.md`. Practice restores the original snapshot and never writes its rewards/progress into the saved world. Local/native UUIDs use `LocalAPI.randomUUID`; local JSON responses must work without static `Response.json`. The iOS app target is 15.4; its resources are generated with build/copy. A successful Linux copy is not an Xcode or physical-device test.
+
+Run `npm test` and the relevant real-browser story/tutorial/native and legacy regressions. In software-rendered environments run GPU browser tests sequentially and do not rebuild files while a reload test serves them. Performance overlay is opt-in through `?qa=1`. Keep QA screenshots local, including modifications of already tracked legacy screenshots.
+
+# Previous task: death screen · 2026-10-07
 Owner requested a death screen and missing saving throws after an altar approach. Show trap saves through HUD, apply DND.damage, stop movement and interaction at zero HP. Zero HP is unconsciousness until DND rules confirm death. Preserve saves and heroes; never automatically finish/delete the world. Run death-browser, WorldGen and existing mobile/movement/API regressions. Owner subsequently authorized publishing; update TEST Site only, not main. Keep separate feat/worldgen-runtime GitHub branch. QA screenshots never go to GitHub.
 
 # Previous task: updated WorldGen archive · 2026-10-07

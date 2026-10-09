@@ -7,7 +7,7 @@
   function get(id){
     if(!plan||!Object.hasOwn(plan.scenes,id))return base[id];
     const s=WorldGen.generateScene(plan,id);
-    if(!s.layoutKey){const errors=WorldGen.validateScene(s);if(errors.length)throw Error('Некорректная сцена: '+errors.join('; '));s.generated=true;s.outdoor=['town','outskirts','yard'].includes(s.gen.type);s.layoutKey=metaKey+':'+id+':'+(++revision);World.compileCollisions(s);}
+    if(!s.layoutKey){const errors=WorldGen.validateScene(s);if(errors.length)throw Error('Некорректная сцена: '+errors.join('; '));s.generated=true;s.outdoor=s.outdoor??['town','outskirts','yard'].includes(s.gen.type);s.layoutKey=metaKey+':'+id+':'+(++revision);World.compileCollisions(s);}
     return s;
   }
   World.scenes=new Proxy(base,{get(target,id){return typeof id==='string'?get(id):target[id];}});
@@ -41,11 +41,12 @@
   function prefetch(id){if(!plan||!Object.hasOwn(plan.scenes,id))return;const activePlan=plan;for(const next of WorldGen.exits(get(id)))idle(()=>{if(plan===activePlan)ensure(next).catch(()=>{});});}
   function host(){const g=game(),s=g.state,a=g.active();return{state:s,roll:n=>g.roll(n,false),mod:key=>DND.mod(a.stats[key]),has:name=>s.party.some(p=>p.inventory.includes(name)),give:(name,n=1)=>{for(let i=0;i<n;i++)a.inventory.push(name);},gold:n=>s.gold+=n,potions:n=>s.potions+=n,torches:n=>a.torches+=n,hurt:(n,why)=>{DND.damage(a,n);g.tell(why+': '+n+' урона.');return a.hp;},poison:()=>{if(!a.conditions.includes('poisoned'))a.conditions.push('poisoned');},log:t=>g.tell(t)};}
   // Award only when the complete loot fits. No partial rewards or lost keys.
-  function fits(p){if(!p.container||!p.loot||opened(p))return true;const g=game(),a=structuredClone(g.active()),s={...g.state,potions:g.state.potions+(p.loot.potions||0)};a.inventory.push(...p.loot.gear);a.torches+=(p.loot.torches||0);return a.inventory.length<=100&&InventoryRules.slotsUsed(a,s)<=InventoryRules.CAPACITY;}
+  function fits(p){const g=game();if(!p.container||!p.loot||g.state.gen?.opened?.[g.state.scene+':'+p.id])return true;const a=structuredClone(g.active()),s={...g.state,potions:g.state.potions+(p.loot.potions||0)};a.inventory.push(...p.loot.gear);a.torches+=(p.loot.torches||0);return a.inventory.length<=100&&InventoryRules.slotsUsed(a,s)<=InventoryRules.CAPACITY;}
   function show(p,act){window.openGeneratedDialogue(p,act.text,(act.options||[]).map(o=>({label:o.label,fn:async()=>{
     if(game().active().hp<=0||window.HUD?.pending)return;
     if(o.id==='open'&&!fits(p)){show(p,{text:'Рюкзак заполнен. Добыча остаётся здесь; освободите место.',options:[{id:'leave',label:'Отойти'}]});return;}
     const g=game(),result=runtime().choose(host(),g.state.scene,p,o.id);
+    if(result.looted)window.dispatchEvent(new CustomEvent('game-action',{detail:{type:'loot',success:true,propId:p.id,scene:g.state.scene}}));
     if(result.opened)g.state.doors[g.state.scene+':'+p.id]=true;
     if(result.text)g.tell(result.text);
     const presented=presentTrap(result.trap);g.save();g.render();window.voxel?.sync();
