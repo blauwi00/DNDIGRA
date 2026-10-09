@@ -8,9 +8,17 @@
   function button(label, fn) {
     const b = document.createElement("button");
     b.textContent = label;
-    b.onclick = () => {
+    b.onclick = async () => {
       close();
-      fn();
+      try { await fn(); }
+      catch (error) {
+        const d = $("modal"), message = document.createElement("p");
+        $("modal-title").textContent = "Действие пока недоступно";
+        message.textContent = error?.message || "Не удалось выполнить действие. Попробуйте ещё раз.";
+        const dismiss = document.createElement("button"); dismiss.textContent = "Закрыть"; dismiss.onclick = close;
+        $("modal-body").replaceChildren(message, dismiss);
+        if (!d.open) d.showModal();
+      }
     };
     b.className = "menu-option";
     return b;
@@ -19,11 +27,18 @@
     const d = $("actions-panel");
     $("combat-tools").hidden = false;
     d.showModal();
+    window.dispatchEvent(new CustomEvent('game-action', { detail: { type: 'actions', success: true } }));
+    window.Tutorial?.render();
   }
   function menu() {
     const d = $("modal"), body = $("modal-body");
     $("modal-title").textContent = "Меню";
-    body.replaceChildren(button("Сохранить и выйти в меню героев", () => window.Worlds.exitToMenu()), button("Текущий мир", () => window.Worlds.open()), button("Мои герои", () => window.Heroes.open()), button("Таверна · генератор локаций", () => window.ProceduralLocations.open()), button("Эпизод · Пропавший послушник", () => window.Episode.open()), button("Действия героя", actions), button("Хроника", () => g().journal()), button("Как играть", () => g().help()), button("Правила и источники", () => {
+    if (window.Tutorial?.practicing) {
+      body.replaceChildren(button("Вернуться из практики", () => window.Tutorial.exitPractice()), button("Действия героя", actions), button("Журнал", () => g().journal()), button("Как играть", () => g().help()));
+      d.showModal();
+      return;
+    }
+    body.replaceChildren(button("Повторить обучение · отдельная практика", () => window.Tutorial?.replay()), button("Сохранить и выйти в меню героев", () => window.Worlds.exitToMenu()), button("Текущий мир", () => window.Worlds.open()), button("Мои герои", () => window.Heroes.open()), button("Таверна · генератор локаций", () => window.ProceduralLocations.open()), button("Эпизод · Пропавший послушник", () => window.Episode.open()), button("Действия героя", actions), button("Хроника", () => g().journal()), button("Как играть", () => g().help()), button("Правила и источники", () => {
       const d2 = $("modal");
       $("modal-title").textContent = "Правила и источники";
       const p = document.createElement("p");

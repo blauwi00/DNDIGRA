@@ -13,7 +13,7 @@
   function setRoute(name){route=name;document.body.dataset.cinemaRoute=name;editor=null;const el=$('cinematic-menu');el.classList.remove('arrive');void el.offsetWidth;el.classList.add('arrive');el.hidden=name==='heroes'||name==='worlds';}
   function open(){active=true;fromGame=false;document.body.classList.add('cinematic-active');setRoute('home');home();requestAnimationFrame(()=>window.voxel?.resize());}
   function home(){setRoute('home');const root=$('cinematic-menu');root.replaceChildren();const mast=document.createElement('div');mast.className='cinema-mast';mast.innerHTML='<h1>За гранью</h1><div class="cinema-ornament" aria-hidden="true"><i></i></div>';const actions=document.createElement('nav');actions.className='cinema-actions';actions.setAttribute('aria-label','Главное меню');
-    const cont=button('Продолжить',()=>Worlds.resume(),'play',true);cont.disabled=!Worlds.current&&!localStorage.getItem('last-world-id');
+    const cont=button('Продолжить',()=>Worlds.resume(),'play',true);cont.disabled=!Worlds.current&&!localStorage.getItem(Worlds.resumeKey||'last-world-id');
     actions.append(cont,button('Новая игра',()=>{setRoute('heroes');Heroes.start(false);Heroes.open();},'new',cont.disabled),button('Герои',()=>{setRoute('heroes');return Heroes.list();},'hero'),button('Миры',()=>worlds(),'world'),button('Настройки',settings,'settings'));
     const status=document.createElement('p');status.id='cinema-status';status.setAttribute('role','status');root.append(mast,actions,status);
   }
