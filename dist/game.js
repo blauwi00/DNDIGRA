@@ -32,7 +32,9 @@
   } catch {
     state = fresh();
   }
-  const scene = () => World.scenes[state.scene], props = () => scene().props.filter((p) => p.id !== "novice" || (state.scene === "crypt" ? state.episode?.stage === "investigate" : ["report", "done"].includes(state.episode?.stage))).map((p) => p.id === departingNpc?.id ? departingNpc : p).concat((state.drops || []).filter((p) => p.scene === state.scene).map((p) => ({ ...p, type: "ground-item", solid: false, kind: 42 }))), doorKey = (p) => state.scene + ":" + p.id, isOpen = (p) => !!state.doors[doorKey(p)] || !!(state.world?.gen && window.GeneratedWorlds?.opened(p));
+  const scene = () => World.scenes[state.scene], props = () => scene().props.filter((p) => (p.id !== "novice" || (state.scene === "crypt" ? state.episode?.stage === "investigate" : ["report", "done"].includes(state.episode?.stage))) && window.Adventure?.visibleProp(p, state) !== false).map((p) => p.id === departingNpc?.id ? departingNpc : p).concat((state.drops || []).filter((p) => p.scene === state.scene).map((p) => ({ ...p, type: "ground-item", solid: false, kind: 42 }))), doorKey = (p) => state.scene + ":" + p.id, isOpen = (p) => !!state.doors[doorKey(p)] || !!(state.world?.gen && window.GeneratedWorlds?.opened(p));
+  const emitGameAction = (type, detail = {}) => window.dispatchEvent(new CustomEvent('game-action', { detail: { type, ...detail } }));
+  const actionAllowed = (type, id) => !window.Adventure?.locked && window.Tutorial?.allowsAction?.(type, id) !== false;
   function save() {
     if (state.world) {
       window.Worlds?.capture();
@@ -60,6 +62,7 @@
     const hit = World.collisionAt(scene(), p.x, p.y);
     if (!hit || !hit.blocksMovement) return false;
     const owner = hit.owner;
+    if (window.Adventure?.visibleProp(owner, state) === false) return false;
     if (owner.id === "novice" && !props().some((p2) => p2.id === "novice")) return false;
     if (owner.type === "door" && isOpen(owner) || owner.type === "chest" && state.loot[doorKey(owner)]) return false;
     return true;
@@ -224,7 +227,7 @@
   }
   function select(p) {
     if (prop(p)?.type === "chandelier") return;
-    if (busy || window.HUD?.pending || window.Worlds?.locked) return;
+    if (busy || window.HUD?.pending || window.Worlds?.locked || window.Adventure?.locked) return;
     selected = p;
     path = [];
     window.voxel?.tap(prop(p) || entity(p));
@@ -238,10 +241,11 @@
       else if (!blocked(p)) path = pathTo(active(), p) || [];
     }
     render();
+    emitGameAction('selection', { kind: e ? 'actor' : prop(p) ? 'prop' : 'tile', x: p.x, y: p.y });
   }
   function mapTap(p) {
     if (moving) { stopRequested = true; return; }
-    if (busy || window.HUD?.pending || window.Worlds?.locked) return;
+    if (busy || window.HUD?.pending || window.Worlds?.locked || window.Adventure?.locked) return;
     if (!p) { selected = null; path = []; render(); return; }
     select(p);
   }
@@ -331,7 +335,7 @@
   }
   async function approachInteract(p, mode = "use") {
     const a = active(), id = state.scene;
-    if (busy || a.hp <= 0 || window.Worlds?.locked || state.combat && mode === "use" || !props().some((o) => o.id === p.id)) return;
+    if (busy || a.hp <= 0 || window.Worlds?.locked || !actionAllowed('interaction') || state.combat && mode === "use" || !props().some((o) => o.id === p.id)) return;
     const through = mode === "use" && p.type === "door" && isOpen(p), route = mode === "use" ? interactionRoute(a, p) : approachPath(a, p);
     if (route === null) {
       tell("К этому предмету нет свободного прохода.");
@@ -389,6 +393,12 @@
     return { label: "Идти", enabled: false };
   }
   function render() {
+    // A natural 20 on the ordinary death save returns the hero to the same
+    // unresolved encounter, with the surviving enemies and their saved HP.
+    if (state.world?.gen?.v === 3 && state.encounter && !state.encounter.tutorial && !state.combat && state.party.some(p => p.hp > 0 && !p.dead)) {
+      state.combat = true;
+      queueMicrotask(() => resumeEncounter());
+    }
     window.Torches?.ensure();
     document.body.classList.toggle("no-animations", !state.settings.animations);
     const a = active(), S = scene();
@@ -460,7 +470,9 @@
     window.Episode?.render();
     window.Worlds?.render();
     window.HUD?.render();
-    window.DeathScreen?.render();
+    window.Adventure?.render();
+    window.Tutorial?.render();
+    if (!state.encounter?.tutorial && state.tutorial?.phase !== 'rescue') window.DeathScreen?.render();
     window.ProceduralLocations?.render();
     if (window.Worlds?.locked) {
       $("action").disabled = true;
@@ -512,6 +524,10 @@
         window.fx?.step(e, duration);
         await wait(duration);
         completed++;
+        if (controlled) {
+          emitGameAction('movement', { success: true, from, to: { x: e.x, y: e.y }, scene: state.scene });
+          if (window.Adventure?.step(scene(), e.x, e.y)) return completed;
+        }
         if(e.hp<=0||e.dead)return completed;
         if (controlled) path = steps.slice(completed);
       }
@@ -521,7 +537,7 @@
     }
   }
   async function move() {
-    if (window.Worlds?.locked) return;
+    if (window.Worlds?.locked || window.Adventure?.locked) return;
     const a = active(), r = path.slice();
     if (busy || !r.length || state.combat && r.length > a.move) return;
     busy = true;
@@ -600,7 +616,15 @@
     }
     await window.HUD?.check({ ...r, sides: 20, success: r.weapon.save ? r.success : r.hit, outcome: r.hit ? "Попадание" : "Промах" }, a.name + " · " + r.weapon.name);
     await window.fx?.strike(a, b, animate());
+    if (enemy && state.encounter) a.acted = true;
     DND.damage(b, r.amount, r.critical);
+    // Training uses the real attack and damage rolls, but never causes a
+    // permanent death. A knockout is recovered separately from the lesson's
+    // scripted ambush, without marking that rescue checkpoint complete.
+    if (b.kind < 3 && state.encounter?.tutorial && b.hp <= 0) {
+      b.dead = false;
+      b.death = { success: 0, failure: 0, stable: true };
+    }
     if (b.concentration && r.amount) {
       if (!b.hp) b.concentration = null;
       else {
@@ -616,15 +640,20 @@
   }
   function victory() {
     if (state.enemies.length && state.enemies.every((e) => e.hp <= 0)) {
+      const encounter = state.encounter;
       state.combat = false;
-      state.xp += 60;
-      tell("Тренировочный бой завершён. +60 опыта.");
+      if (!window.Adventure?.victory(encounter)) {
+        state.xp += 60;
+        tell("Тренировочный бой завершён. +60 опыта.");
+      }
+      save();
+      emitGameAction('victory', { success: true, encounterId: encounter?.id });
       return true;
     }
     return false;
   }
   async function attack(e) {
-    if (window.Worlds?.locked) return;
+    if (window.Worlds?.locked || !actionAllowed('attack')) return;
     const a = active();
     if (busy || !canAttack(a, e)) return;
     busy = true;
@@ -632,6 +661,7 @@
     try {
       await strike(a, e);
       if (state.combat) a.acted = true;
+      emitGameAction('attack', { success: true, targetId: e.id, encounterId: state.encounter?.id });
       victory();
     } catch (error) {
       console.error(error);
@@ -657,7 +687,66 @@
       if (p.hp) p.conditions = p.conditions.filter((c) => c !== "unconscious");
     }
   }
-  async function enemiesUntilPlayer(advance = true) {
+  async function beginEncounter(spec, options = {}) {
+    if (busy || state.combat || !state.world || active().hp <= 0 || active().dead) return false;
+    const training = options.tutorial === true;
+    const canonical = training ? window.GeneratedWorlds?.plan?.story?.tutorial?.[spec.id === 'tutorial-win' ? 'win' : spec.id === 'tutorial-loss' ? 'loss' : ''] : (scene().encounters || []).find(e => e.id === spec.id);
+    if (!canonical || !canonical.enemies?.length || !training && state.story?.cleared.includes(canonical.id)) return false;
+    const reward = training ? { xp: 0, gold: 0 } : { xp: canonical.reward?.xp || 0, gold: canonical.reward?.gold || 0 };
+    state.encounter = { id: canonical.id, scene: state.scene, name: canonical.name, tutorial: training, scriptedLoss: training && options.scriptedLoss === true && canonical.id === 'tutorial-loss', reward };
+    state.enemies = canonical.enemies.map(def => {
+      const e = DND.init({ id: def.id, name: def.name, kind: def.kind ?? 3, x: def.x, y: def.y, facing: 2, visual: def.visual, gen: def.gen });
+      e.hp = e.max = def.max; e.ac = e.baseAC = def.ac;
+      e.className = ({ beast: 'Зверь', bandit: 'Налётчик', training: 'Учебный манекен' })[def.visual] || e.className;
+      return e;
+    });
+    if (training) {
+      const first = state.enemies[0], hero = active();
+      const spawn = DIRS.map(([dx, dy]) => ({ x: first.x + dx, y: first.y + dy }))
+        .filter(p => !blocked(p) && !state.enemies.some(e => same(e, p)))
+        .sort((a, b) => dist(a, hero) - dist(b, hero))[0];
+      if (spawn) { hero.x = spawn.x; hero.y = spawn.y; }
+      // The class lesson has already spent its real resource. Renew it for
+      // repeated training attempts, while retaining the wound for the potion.
+      for (const p of state.party) { p.slots = p.maxSlots; p.secondWind = p.maxSecondWind; }
+    }
+    state.combat = true; state.round = 1; state.cursor = 0;
+    selected = null; path = []; busy = true;
+    try {
+      const contenders = [...state.party, ...state.enemies].filter(p => !p.dead && p.hp > 0);
+      for (const p of contenders) {
+        const roll = DND.test(DND.mod(p.stats.dex), 0);
+        p.initiative = roll.total;
+        report(p.name + ' · инициатива · ' + roll.text);
+        window.HUD?.showRoll(roll, p.name + ' · инициатива');
+      }
+      state.order = contenders.sort((a, b) => b.initiative - a.initiative || a.id.localeCompare(b.id)).map(p => p.id);
+      save(); render(); window.voxel?.sync();
+      await enemiesUntilPlayer(false);
+      return true;
+    } finally { busy = false; save(); render(); }
+  }
+  async function resumeEncounter() {
+    if (busy || !state.combat || !state.encounter) return;
+    if (state.encounter.id === 'tutorial-win' && state.party.every(p => p.hp <= 0)) { recoverTrainingWin(); render(); return; }
+    const p = all().find(p => p.id === state.order[state.cursor]);
+    if (p?.kind < 3 && p.hp > 0) { state.active = p.id; render(); return; }
+    busy = true;
+    try { await enemiesUntilPlayer(false, true); } finally { busy = false; save(); render(); }
+  }
+  function recoverTrainingWin() {
+    if (!state.encounter?.tutorial || state.encounter.id !== 'tutorial-win') return false;
+    for (const p of state.party) {
+      p.dead = false; heal(p, p.max); p.conditions = []; p.slots = p.maxSlots; p.secondWind = p.maxSecondWind;
+      p.move = p.speed; p.acted = p.bonusUsed = p.reactionUsed = false;
+      if ([13, 14].includes(state.tutorial?.step)) DND.damage(p, Math.min(3, p.max - 1));
+    }
+    state.combat = false; state.encounter = null; state.enemies = []; state.order = []; state.cursor = 0;
+    tell('Учебный противник останавливается. Целитель помогает тебе подняться; можно повторить бой без риска для жизни.');
+    emitGameAction('training-retry', { success: true, encounterId: 'tutorial-win' });
+    return true;
+  }
+  async function enemiesUntilPlayer(advance = true, resuming = false) {
     if (advance) {
       state.cursor++;
       if (state.cursor >= state.order.length) {
@@ -669,6 +758,8 @@
     while (state.combat && guard++ < state.order.length * 2) {
       const id = state.order[state.cursor], p = [...state.party, ...state.enemies].find((p2) => p2.id === id);
       if (p && !p.dead) {
+        const resumeSpentEnemy = resuming && state.encounter && p.kind === 3 && p.acted;
+        if (!resumeSpentEnemy) {
         startTurn(p);
         if (p.kind < 3 && p.hp > 0) {
           state.active = p.id;
@@ -676,6 +767,11 @@
           break;
         }
         if (p.kind === 3 && p.hp > 0) {
+          // Ambushers wait for the learner's first completed turn; initiative
+          // is still rolled and saved with the ordinary D&D rules.
+          if (state.encounter?.scriptedLoss && state.tutorial?.step === 17) {
+            p.acted = true;
+          } else {
           const t = state.party.filter((a) => a.hp > 0 && !a.dead).sort((a, b) => dist(p, a) - dist(p, b))[0];
           if (t) {
             if (dist(p, t) > 1) {
@@ -684,17 +780,29 @@
             }
             if (p.hp > 0 && dist(p, t) === 1) await strike(p, t, true);
           }
+          }
+          p.acted = true;
+          save();
+        }
         }
       }
       state.cursor++;
+      resuming = false;
       if (state.cursor >= state.order.length) {
         state.cursor = 0;
         state.round++;
       }
       if (state.party.every((p2) => p2.hp <= 0)) {
+        if (state.encounter?.tutorial) {
+          if (!recoverTrainingWin()) window.Adventure?.defeatRescue();
+          break;
+        }
         state.combat = false;
-        tell("Отряд выведен из боя. В «Тесте» можно восстановить героев.");
+        tell(state.world?.gen?.v === 3 ? "Ты потерял сознание. Броски спасения от смерти решат твою судьбу; угроза на дороге остаётся." : "Отряд выведен из боя. В «Тесте» можно восстановить героев.");
       }
+      // On a new round enemies receive fresh actions; the saved acted flag
+      // only suppresses a completed enemy action when resuming its checkpoint.
+      if (state.cursor === 0) state.enemies.forEach(e => e.acted = false);
     }
     selected = null;
     path = [];
@@ -703,15 +811,18 @@
     render();
   }
   async function endTurn() {
-    if (window.Worlds?.locked) return;
+    if (window.Worlds?.locked || !actionAllowed('turn')) return;
     if (busy || !state.combat) return;
     busy = true;
     selected = null;
     path = [];
     render();
+    emitGameAction('turn', { success: true, encounterId: state.encounter?.id });
     await enemiesUntilPlayer();
+    if (state.encounter?.scriptedLoss) window.Adventure?.defeatRescue();
   }
   function potion() {
+    if (!actionAllowed('potion')) return;
     if ($("potion").disabled) return;
     const a = active(), r = DND.roll("2d4+2"), before = a.hp;
     heal(a, r.total);
@@ -720,13 +831,14 @@
     window.fx?.impact(a, "+" + (a.hp - before), false, animate(), "heal");
     report(a.name + " · лечебное зелье · " + r.text + " HP; восстановлено " + (a.hp - before) + ".");
     window.HUD?.showRoll({ ...r, outcome: "Восстановлено " + (a.hp - before) + " HP" }, "Лечебное зелье");
+    emitGameAction('potion', { success: true, amount: a.hp - before });
     render();
   }
   function target() {
     return selected && entity(selected);
   }
   async function special(id) {
-    if (window.Worlds?.locked) return;
+    if (window.Worlds?.locked || !actionAllowed(['dodge', 'disengage'].includes(id) ? 'defense' : 'ability', id)) return;
     const a = active();
     if (busy || a.hp <= 0 || a.dead) return;
     const bonus = ["torch", "secondWind", "mark"].includes(id);
@@ -741,6 +853,10 @@
           p.secondWind = p.maxSecondWind;
           p.hitDice = Math.min(p.maxHitDice, p.hitDice + Math.max(1, Math.floor(state.level / 2)));
           p.concentration = null;
+          if (p.mageArmor) {
+            p.armorAC = p.baseAC - (p.hands.includes('shield') ? 2 : 0);
+            delete p.mageArmor;
+          }
           p.ac = p.baseAC;
         } else {
           if (p.hp < p.max && p.hitDice > 0) {
@@ -789,6 +905,7 @@
       if (state.combat) a.acted = true;
       report(a.name + " · Лечение ран · " + r.text);
       window.HUD?.showRoll(r, "Лечение ран");
+      emitGameAction('ability', { success: true, id });
       render();
       return;
     }
@@ -804,6 +921,7 @@
       if (state.combat) a.bonusUsed = true;
       report(a.name + " · Второе дыхание · " + r.text);
       window.HUD?.showRoll(r, "Второе дыхание");
+      emitGameAction('ability', { success: true, id });
       render();
       return;
     }
@@ -818,6 +936,7 @@
       a.concentration = { id: "mark", target: b.id };
       if (state.combat) a.bonusUsed = true;
       tell(a.name + " накладывает Метку охотника: +1d6 к попаданиям оружием. Требует концентрации.");
+      emitGameAction('ability', { success: true, id });
       render();
       return;
     }
@@ -829,9 +948,12 @@
       }
       if (id === "magearmor") {
         a.slots--;
-        a.ac = 13 + DND.mod(a.stats.dex);
+        a.mageArmor = true;
+        a.armorAC = 13 + DND.mod(a.stats.dex);
+        a.ac = a.armorAC + (a.hands.includes('shield') ? 2 : 0);
         if (state.combat) a.acted = true;
         tell("Доспехи мага: КД " + a.ac + " на 8 часов.");
+        emitGameAction('ability', { success: true, id });
         render();
         return;
       }
@@ -864,6 +986,7 @@
         }
       }
       if (state.combat) a.acted = true;
+      emitGameAction('ability', { success: true, id });
       victory();
       busy = false;
       save();
@@ -891,6 +1014,7 @@
       window.HUD?.showRoll(r, "Восприятие");
     } else if (!["hide"].includes(id)) tell(a.name + ": " + ({ dodge: "уклонение до следующего хода", disengage: "отход без провоцированных атак", dash: "рывок · дополнительное движение" }[id] || id));
     if (state.combat) a.acted = true;
+    emitGameAction(id === 'dodge' ? 'dodge' : 'ability', { success: true, id });
     render();
   }
   async function approachTransfer(p, onArrive) {
@@ -921,7 +1045,7 @@
     if (!portal) return false;
     const route = approachPath(p, portal);
     if (route === null) {
-      tell("Лин ждёт: освободите проход к выходу.");
+      tell((p.name || 'Путник').split(' · ')[0] + " ждёт: освободите проход к выходу.");
       render();
       return false;
     }
@@ -948,8 +1072,29 @@
       busy = false;
     }
   }
+  async function arriveNpc(p) {
+    if (busy || state.combat || window.Worlds?.locked) return false;
+    const portal = props().find(p => p.type === 'portal');
+    if (!portal) return false;
+    const route = approachPath(p, portal);
+    if (route === null) return false;
+    const steps = [{ x: p.x, y: p.y }, ...route, { x: portal.x, y: portal.y }].reverse();
+    busy = true; departingNpc = { ...p, ...steps[0] };
+    selected = null; path = []; render(); window.voxel?.sync();
+    try {
+      for (const next of steps.slice(1)) {
+        const from = { x: departingNpc.x, y: departingNpc.y };
+        face(departingNpc, next); Object.assign(departingNpc, next);
+        const model = window.voxel?.models.get('prop:' + p.id);
+        if (model) model.userData.p = departingNpc;
+        window.voxel?.move('prop:' + p.id, from, next, animate() ? 160 : 0);
+        render(); await wait(animate() ? 160 : 0);
+      }
+      return true;
+    } finally { departingNpc = null; busy = false; render(); }
+  }
   function enterScene(id, throughDoor = false, entryId = null) {
-    if (busy || !World.scenes[id]) return;
+    if (busy || state.combat || !World.scenes[id] || throughDoor && window.Adventure?.blocksPortals) return;
     window.GeneratedWorlds?.prefetch(id);
     const previousScene = state.scene;
     state.scene = id;
@@ -1005,14 +1150,24 @@
     }
     render();
     window.camera?.reset();
+    window.Adventure?.enterScene();
+    emitGameAction('scene', { success: true, from: previousScene, to: id });
     $("viewport").classList.remove("scene-enter");
     void $("viewport").offsetWidth;
     $("viewport").classList.add("scene-enter");
   }
   function interact(p) {
     if (window.Worlds?.locked) return;
-    if (busy || active().hp<=0 || active().dead || dist(active(), p) !== 1) return;
-    if(state.world?.gen && !state.combat && window.GeneratedWorlds.interact(p)) return;
+    if (busy || !actionAllowed('interaction') || active().hp<=0 || active().dead || dist(active(), p) !== 1) return;
+    if (p.type === 'portal' && (state.combat || window.Adventure?.blocksPortals || window.Tutorial?.blocksPortals)) return;
+    if (!state.combat && window.Adventure?.interact(p)) {
+      emitGameAction('interaction', { success: true, propId: p.id, propType: p.type });
+      return;
+    }
+    if(state.world?.gen && !state.combat && window.GeneratedWorlds.interact(p)) {
+      emitGameAction('interaction', { success: true, propId: p.id, propType: p.type });
+      return;
+    }
     if (p.type === "ground-item") {
       window.Inventory.pickup(p);
       return;
@@ -1089,7 +1244,9 @@
     $("modal").showModal();
   }
   function journal() {
+    if (window.Adventure?.journal()) return;
     modal("Хроника", state.logs.slice(-20).join("\n\n"));
+    emitGameAction('journal', { success: true });
   }
   function help() {
     modal("Как проверять полигон", "Нажмите свободную клетку, затем выберите «Идти» возле неё. Нажмите предмет — действия появятся возле его клетки. Осмотр требует подхода. Во время движения тап по карте останавливает героя. Движение и атаки — по четырём сторонам (домашнее правило). Инициатива задаёт очередь, действие и бонус расходуются отдельно. Факел сначала нужно снять с настенного крепления с соседней клетки. В «Герое» или «Действиях» выберите, что держать в двух руках; в «Рюкзаке» можно зажечь, погасить и убрать найденный факел. На пустое крепление его можно вернуть. Щит даёт +2 КД, лук занимает две руки. Домашние правила: факел в руке даёт помеху атакам; в бою смена снаряжения расходует действие, операции с факелом — бонусное действие. Преимущество и помеха взаимно отменяются. Откройте «Действия» для навыков и отдыха. Фигурки поворачиваются к шагу и цели. Приближайте карту двумя пальцами и двигайте одним. Предметы и NPC доступны с соседней клетки. Вкладка «Тест» восстанавливает предметы, запускает бой и позволяет менять свет. Диалоги сейчас сценарные; ИИ-ведущий ещё не подключён.");
@@ -1298,7 +1455,7 @@
     window.GeneratedWorlds?.restore(snapshot);
     state = structuredClone(snapshot);
     state.altarClaims ||= {};
-    state.world.discovered ||= ["hub"];
+    if (state.world) state.world.discovered ||= ["hub"];
     selected = null;
     path = [];
     busy = moving = false;
@@ -1311,13 +1468,17 @@
     render();
     window.voxel?.reset();
     window.camera?.center(active());
+    window.Adventure?.restore(state);
+    window.Tutorial?.restore();
     return true;
   }
   window.gameDebug = { startGenerated, loadWorld, loadHero, get state() {
     return state;
   }, get departingNpc() {
     return departingNpc;
-  }, departNpc, approachTransfer, get busy() {
+  }, departNpc, arriveNpc, beginEncounter, resumeEncounter, endTurn, recoverTrainingWin, approachTransfer, get actionBusy() {
+    return busy;
+  }, get busy() {
     return busy || !!window.Worlds?.locked;
   }, get props() {
     return props();

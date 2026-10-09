@@ -7,6 +7,8 @@ import { fitPreviewCamera } from "./preview-frame.js";
 import { fillSilhouette } from "./silhouette.js";
 import { characterParts, characterProfile } from "./character-style.js";
 import { spec as characterSpec, build as characterBuild } from "./characters.js";
+import { enemyModel } from './enemy-models.js';
+import { bindPromptInput } from './prompt-input.js';
 const viewport = document.getElementById("viewport"), canvas = document.createElement("canvas");
 canvas.id = "voxel-canvas";
 canvas.setAttribute("aria-label", "Объёмная карта: двигайте одним пальцем, приближайте двумя");
@@ -14,14 +16,21 @@ viewport.prepend(canvas);
 const objectPrompt = document.createElement("div");
 objectPrompt.setAttribute("role", "group");
 objectPrompt.tabIndex = -1;
+const promptInput = bindPromptInput(document,objectPrompt,()=>{
+  const p=window.objectPrompt?.p;
+  return JSON.stringify([g.state.world?.id,g.state.scene,p?.id||[p?.x,p?.y],objectPrompt.dataset.signature]);
+});
 objectPrompt.onclick = (e) => {
   e.stopPropagation();
   const prompt = window.objectPrompt;
   const button = e.target.closest("button[data-action]");
+  // Selecting the map can create this popup under a finger before the browser
+  // dispatches its follow-up click. An action requires its own press; keyboard
+  // and assistive clicks (detail 0) still activate the focused control.
+  if (!promptInput.accept(e,button)) return;
   const action = button && prompt?.actions?.find(a => a.id === button.dataset.action);
   if (action?.enabled) { g.dismissMapActions(); action.run?.(); }
 };
-objectPrompt.addEventListener("pointerdown", (e) => e.stopPropagation());
 objectPrompt.addEventListener("keydown", e => { if (e.key === "Escape") g.mapTap(null); });
 objectPrompt.className = "object-prompt";
 objectPrompt.hidden = true;
@@ -272,8 +281,15 @@ function propDetail(o, p) {
 function figure(kind, actor, options = {}) {
   const p = new T.Group();
   if(options.base !== false) base(p);
-  const spec = kind !== 3 && kind !== 4 ? characterSpec(kind, actor) : null;
-  if (spec) {
+  const storyEnemy = kind === 3 ? enemyModel(actor, { texel: options.texel ?? window.Characters?.RULES.texel ?? true }) : null;
+  const spec = storyEnemy?.spec || (kind !== 3 && kind !== 4 ? characterSpec(kind, actor) : null);
+  if (storyEnemy && !spec) {
+    p.userData.enemyVisual = storyEnemy.visual;
+    for (const v of storyEnemy.boxes) {
+      if (v.length > 8) decalBox(p, v);
+      else box(p, ...v);
+    }
+  } else if (spec) {
     p.userData.characterStyle = spec;
     let rig;
     if(options.articulated) {
@@ -283,7 +299,7 @@ function figure(kind, actor, options = {}) {
       }
       p.userData.rig=rig;
     }
-    for (const source of characterBuild(spec,{texel:options.texel??window.Characters?.RULES.texel})) {
+    for (const source of storyEnemy?.boxes || characterBuild(spec,{texel:options.texel??window.Characters?.RULES.texel})) {
       const v=[...source];let target=p;
       if(rig){const [x,y]=v;const key=(Math.abs(x)>.29||(Math.abs(x)>.19&&y<.74))?(x<0?'armL':'armR'):y>=.74?'head':y<.4?(x<0?'legL':'legR'):'torso';target=rig[key];v[0]-=target.position.x;v[1]-=target.position.y;v[2]-=target.position.z;}
       if (v.length > 8) decalBox(target, v);
@@ -932,7 +948,7 @@ function sync() {
   const entities = g.all(), ids = new Set(entities.map((p) => p.id));
   for (const p of entities) {
     let m = models.get(p.id);
-    const loadout = JSON.stringify([p.hands || [], p.appearance || null, p.classId]);
+    const loadout = JSON.stringify([p.hands || [], p.appearance || null, p.classId, p.visual || null, p.gen || null]);
     if (m && m.userData.loadout !== loadout) {
       actors.remove(m);
       disposeModel(m);
@@ -1201,7 +1217,7 @@ async function strike(a, b, animated) {
 }
 const portraits = /* @__PURE__ */ new Map();
 function portrait(kind, object, actor, angle = 0) {
-  const key = JSON.stringify([characterSpec(kind, actor) || characterProfile(actor || {}, kind), angle]) + kind + ":" + (object || "") + ":" + (actor?.portalKind || "");
+  const key = JSON.stringify([characterSpec(kind, actor) || characterProfile(actor || {}, kind), angle]) + kind + ":" + (object || "") + ":" + (actor?.portalKind || "") + ":" + (actor?.visual || "");
   if (!portraits.has(key)) {
     try {
       if (!portraitRenderer) {
@@ -1367,11 +1383,13 @@ function tick(time) {
   }
   const prompt = window.objectPrompt;
   objectPrompt.hidden = !prompt?.p || !document.getElementById("dialogue").hidden || !!window.CinematicMenu?.active;
+  if(objectPrompt.hidden)promptInput.clear();
   if (prompt?.p) {
     const p = prompt.p, point = new T.Vector3(p.x + 0.5, 0.45, p.y + 0.5).project(camera);
     const x = (point.x + 1) * viewport.clientWidth / 2, y = (-point.y + 1) * viewport.clientHeight / 2;
     const actions = prompt.actions || [], signature = JSON.stringify([p.name, actions.map(a=>[a.id,a.label,a.enabled])]);
     if (objectPrompt.dataset.signature !== signature) {
+      promptInput.clear();
       objectPrompt.dataset.signature = signature;
       const title = document.createElement("strong"); title.textContent = p.name;
       const buttons = actions.map(a=>{ const b=document.createElement("button");b.type="button";b.dataset.action=a.id;b.textContent=a.label;b.disabled=!a.enabled;return b; });
@@ -1385,6 +1403,7 @@ function tick(time) {
     if (top < 76) top = y + 24;
     top = Math.max(6, Math.min(bottom - height, top));
     objectPrompt.hidden ||= x < 0 || x > viewport.clientWidth || y < 0 || y > bottom || bottom < height;
+    if(objectPrompt.hidden)promptInput.clear();
     objectPrompt.style.left = Math.max(width / 2 + 6, Math.min(viewport.clientWidth - width / 2 - 6, x)) + "px";
     objectPrompt.style.top = top + "px";
   }

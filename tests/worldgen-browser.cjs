@@ -1,3 +1,4 @@
+const {configureBrowserPage}=require('./browser-harness.cjs');
 // Real Worker API + SQLite + browser: no mocked world creation or saves.
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
@@ -19,8 +20,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
   try{
     browser=await chromium.launch({executablePath:process.env.CHROME_EXECUTABLE,args:[...JSON.parse(process.env.CHROMIUM_ARGS||'[]'),'--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>{console.error('PAGEERROR',e.message);errors.push(e.message)});page.on('console',m=>console.log('BROWSER',m.text()));page.on('requestfailed',r=>console.error('FAILED',r.url(),r.failure()));
-    await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.voxel?.ready);
+    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];await configureBrowserPage(page);page.on('pageerror',e=>{console.error('PAGEERROR',e.message);errors.push(e.message)});page.on('console',m=>console.log('BROWSER',m.text()));page.on('requestfailed',r=>console.error('FAILED',r.url(),r.failure()));
+    // Pin existing death/runtime regressions to their original v2 generator.
+    await page.route('**/api/worlds', route => {const request=route.request();return request.method()==='POST'?route.continue({postData:JSON.stringify({...request.postDataJSON(),generatorVersion:2})}):route.continue();});
+    await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready);
     const worlds=[];
     await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());Heroes.start(true);Heroes.open();});
     await page.getByRole('button',{name:'Подтвердить героя',exact:true}).click();
@@ -66,7 +69,21 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     assert.equal(await page.evaluate(pid=>gameDebug.isOpen(gameDebug.props.find(p=>p.id===pid)),door.pid),true);await page.evaluate(()=>closeDialogue());
     const chest=await prepare('chest');await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);gameDebug.select(p);await gameDebug.approachInteract(p);},chest.pid);
     await page.screenshot({path:'qa/worldgen-chest-390.png'});const beforeGold=await page.evaluate(()=>gameDebug.state.gold);
-    const open=page.getByRole('button',{name:/^Открыть( как есть)?$/});await open.click();await page.getByRole('button',{name:'Закрыть',exact:true}).click();
+    const open=page.getByRole('button',{name:/^Открыть( как есть)?$/});await open.click();
+    await page.waitForFunction(pid=>gameDebug.state.gen.fired[gameDebug.state.scene+':'+pid]&&!HUD.active,chest.pid);
+    const chestOutcome=await page.evaluate(pid=>({hp:gameDebug.active().hp,gold:gameDebug.state.gold,opened:!!gameDebug.state.gen.opened[gameDebug.state.scene+':'+pid],text:document.getElementById('dialogue-text').textContent}),chest.pid);
+    console.log('CHEST_OUTCOME',chestOutcome);
+    // The actual 2d6 trap can knock out a full-health level-one fighter. Verify
+    // that legitimate branch before recovering this interaction fixture; no
+    // trap roll or damage is overridden and the fired trap stays fired.
+    if(chestOutcome.hp<=0){
+      await page.waitForFunction(()=>document.getElementById('death-screen')?.open);
+      assert.equal(chestOutcome.opened,false,'A lethal chest trap leaves its loot inside');
+      assert.equal(chestOutcome.gold,beforeGold,'A lethal chest trap grants no reward');
+      await page.evaluate(async pid=>{gameDebug.heal(gameDebug.active(),gameDebug.active().max);gameDebug.render();await gameDebug.approachInteract(gameDebug.props.find(p=>p.id===pid));},chest.pid);
+      await page.getByRole('button',{name:'Открыть',exact:true}).click();
+    }
+    await page.getByRole('button',{name:'Закрыть',exact:true}).click();
     assert.equal(await page.evaluate(pid=>GeneratedWorlds.opened(gameDebug.props.find(p=>p.id===pid)),chest.pid),true);
     const afterGold=await page.evaluate(()=>gameDebug.state.gold);assert(afterGold>=beforeGold);
     await page.evaluate(async pid=>{const p=gameDebug.props.find(p=>p.id===pid);await gameDebug.approachInteract(p);},chest.pid);assert.match(await page.locator('#dialogue-text').innerText(),/пусто/);await page.getByRole('button',{name:'Закрыть',exact:true}).click();assert.equal(await page.evaluate(()=>gameDebug.state.gold),afterGold);
@@ -76,7 +93,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
       gameDebug.save();Worlds.capture();if(!await Worlds.flush())throw Error('Save failed');
     });
     const before=await page.evaluate(()=>JSON.stringify(gameDebug.state)),layout=await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),worldId=await page.evaluate(()=>Worlds.current.id);
-    await page.screenshot({path:'qa/worldgen-trap-390.png'});await page.reload();await page.waitForFunction(()=>window.voxel?.ready);
+    await page.screenshot({path:'qa/worldgen-trap-390.png'});await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready);
     await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(id=>Worlds.current?.id===id,worldId);
     assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),before);await page.evaluate(async()=>{await GeneratedWorlds.ensure('town');await GeneratedWorlds.ensure('out');});assert.equal(await page.evaluate(()=>JSON.stringify({tiles:World.scenes.town.tiles,props:World.scenes.town.props.map(({collision,...p})=>p)})),layout);
     // Real portal back to outdoors and reciprocal entrance.

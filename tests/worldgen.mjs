@@ -1,7 +1,8 @@
 // Проверка процедурной генерации миров (src/worldgen): корректность сцен, связность графа мест, ключи, детерминизм,
 // разнообразие по зёрнам и правила взаимодействия (замки, ловушки, диалоги) на подставном хосте.
 import assert from 'node:assert/strict';
-import {createWorld,generateScene,sceneIds,validateScene,randomSeed,GEN_VERSION,normalizeGen,TOWN_SIZES} from '../src/worldgen/world.js';
+// This suite exercises the large v2 town/dungeon generator; new adventure worlds have their own suite.
+import {createWorld,generateScene,sceneIds,validateScene,randomSeed,GEN_VERSION,normalizeGen,TOWN_SIZES} from '../src/worldgen/world-v2.js';
 import {Runtime} from '../src/worldgen/index.js';
 import {hash32,Rng} from '../src/worldgen/rng.js';
 import {MAX_LIGHTS} from '../src/worldgen/scene.js';

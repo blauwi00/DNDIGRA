@@ -18,7 +18,7 @@
     if (!state?.procedural) return;
     install(LocationGenerator.generate(state.procedural.seed, {version:state.procedural.version}));
   }
-  function newWalk(seed = crypto.randomUUID()) {
+  function newWalk(seed = window.LocalAPI.randomUUID()) {
     if (game().state.world || game().busy || game().state.combat) throw Error('Сначала завершите текущее действие.');
     const world = LocationGenerator.generate(seed);
     install(world);
@@ -79,7 +79,7 @@
     const generate = button("Новая прогулка", async () => {
       generate.disabled = true;
       try {
-        const world = LocationGenerator.generate(input.value.trim() || crypto.randomUUID());
+        const world = LocationGenerator.generate(input.value.trim() || window.LocalAPI.randomUUID());
         if (game().busy && !Worlds.atMenu || game().state.combat) throw Error("Дождитесь завершения действия.");
         if (game().state.world || Worlds.atMenu) {
           await Worlds.workshop();

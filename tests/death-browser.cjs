@@ -1,3 +1,4 @@
+const {configureBrowserPage}=require('./browser-harness.cjs');
 // Real Worker API + SQLite + browser: no mocked world creation or saves.
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
@@ -19,8 +20,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
   try{
     browser=await chromium.launch({executablePath:process.env.CHROME_EXECUTABLE,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.voxel?.ready);
+    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];await configureBrowserPage(page);page.on('pageerror',e=>errors.push(e.message));
+    // Pin existing death/runtime regressions to their original v2 generator.
+    await page.route('**/api/worlds', route => {const request=route.request();return request.method()==='POST'?route.continue({postData:JSON.stringify({...request.postDataJSON(),generatorVersion:2})}):route.continue();});
+    await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready);
     await page.evaluate(()=>{document.querySelectorAll('dialog').forEach(d=>d.close());Heroes.start(true);Heroes.open();});
     await page.getByRole('button',{name:'Подтвердить героя',exact:true}).click();await page.locator('#world-seed').fill('integration-large');await page.locator('#world-size').selectOption('large');await page.getByRole('button',{name:'Создать мир',exact:true}).click();
     await page.waitForFunction(()=>Worlds.current&&gameDebug.state.scene==='town');
@@ -41,7 +44,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     await page.getByRole('button',{name:'В главное меню',exact:true}).click();await page.waitForFunction(()=>CinematicMenu.active);
     await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(()=>document.getElementById('death-screen')?.open);
     assert.equal(await page.evaluate(()=>Worlds.current.id),worldId);assert.equal(await page.evaluate(()=>gameDebug.active().hp),0);
-    await page.reload();await page.waitForFunction(()=>voxel.ready);await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(()=>document.getElementById('death-screen')?.open);
+    await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>voxel.ready);await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(()=>document.getElementById('death-screen')?.open);
     assert.equal(await page.evaluate(()=>gameDebug.active().hp),0,'Reload must not resurrect');
     // Zero HP is unconsciousness, not irreversible death. Exercise normal DND saves.
     await page.evaluate(()=>{const a=gameDebug.active();a.dead=false;a.death={success:0,failure:0,stable:false};gameDebug.render();const original=DND.death;DND.death=p=>original(p,()=>1);});

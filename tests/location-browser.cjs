@@ -1,3 +1,4 @@
+const {configureBrowserPage}=require('./browser-harness.cjs');
 const fs = require("fs"), http = require("http"), path = require("path"), assert = require("node:assert/strict");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 (async () => {
@@ -22,8 +23,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
   try {
     browser = await chromium.launch({ executablePath: process.env.CHROME_EXECUTABLE, args: [...JSON.parse(process.env.CHROMIUM_ARGS || "[]"), "--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), errors = [];
+    await configureBrowserPage(page);
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto("http://127.0.0.1:" + server.address().port);
+    await page.goto("http://127.0.0.1:" + server.address().port, {waitUntil:"domcontentloaded"});
     await page.waitForFunction(() => window.voxel?.ready);
     await page.evaluate(() => {
       document.querySelectorAll("dialog").forEach((d) => d.close());
@@ -100,7 +102,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     }
     const snapshot = () => ({ seed: gameDebug.state.procedural, scene: gameDebug.state.scene, party: gameDebug.state.party.map((p) => [p.x, p.y]), doors: gameDebug.state.doors, loot: gameDebug.state.loot, layout: JSON.stringify(ProceduralLocations.current.locations) });
     const before = await page.evaluate(snapshot);
-    await page.reload();
+    await page.reload({waitUntil:'domcontentloaded'});
     await page.waitForFunction(() => window.voxel?.ready);
     assert.deepEqual(await page.evaluate(snapshot), before);
     await page.evaluate(() => {
