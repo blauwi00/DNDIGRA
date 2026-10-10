@@ -15,35 +15,80 @@ import {spec as characterSpec,build as characterBuild} from '../src/characters.j
 import {enemyModel} from '../src/enemy-models.js';
 import {bindPromptInput} from '../src/prompt-input.js';
 import {planRegionChunks,createChunkStream} from '../src/region-streaming.js';
+import {stoneTile,createStoneMaterials} from '../src/stone-atlas.js';
+import {SURFACE_BY_CODE,surfaceColor,wallColor} from '../src/worldgen/surfaces.js';
 import * as regionHelpers from '../src/region-rendering.js';
 import * as Props from '../src/props.js';
 const noop=()=>{},frames=new Map(),elements=new Map();let nextFrame=0,time=0,tapped='unset';
+// Keep the real atlas/material cache; stub only the browser image request.
+const stoneMaterials=new Map();let atlasLoaded,atlasFailed,atlasLoads=0;
+function createTestStoneMaterials(){
+ const lookup=createStoneMaterials({load(url,onLoad,_progress,onError){
+  assert.equal(url,'assets/terrain-materials.png');atlasLoads++;atlasLoaded=onLoad;atlasFailed=onError;
+ }});
+ return tile=>{const material=lookup(tile);stoneMaterials.set(tile,material);return material;};
+}
 const context=new Proxy({createRadialGradient:()=>({addColorStop:noop})},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
 function element(){return {hidden:false,dataset:{},clientWidth:390,clientHeight:520,children:[],events:new Map(),classList:{add:noop,remove:noop,toggle:noop},setAttribute:noop,prepend(...nodes){this.children.unshift(...nodes);},append(...nodes){this.children.push(...nodes);},addEventListener(name,fn){this.events.set(name,fn);},replaceChildren(...nodes){this.children=nodes;},remove:noop,setPointerCapture:noop,getContext:()=>context,getBoundingClientRect:()=>({left:0,top:0,width:390,height:520,bottom:520,height:520}),insertAdjacentHTML:noop};}
 const document={body:element(),hidden:false,createElement:element,addEventListener:noop,getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);}};
 class Renderer{constructor(){this.shadowMap={};this.info={memory:{geometries:0,textures:0},render:{calls:0,triangles:0}};}setPixelRatio(){}setSize(){}setRenderTarget(){}render(scene){scene.updateMatrixWorld(true);}readRenderTargetPixels(_t,_x,_y,_w,_h,pixels){pixels.fill(0);}}
 const hero={id:'hero',kind:2,classId:'fighter',hp:10,x:8,y:8,hands:[],appearance:{}},hidden={id:'hidden',x:4,y:4,type:'chest',solid:true};
 let departingNpc=null;
-let scene={id:'small',W:20,H:20,outdoor:true,props:[hidden],decor:[],lights:[],tiles:Array.from({length:20},()=>Array(20).fill('floor'))},showHidden=false;
+let scene={id:'small',W:20,H:20,outdoor:false,props:[hidden],decor:[],lights:[],tiles:Array.from({length:20},()=>Array(20).fill('floor'))},showHidden=false;
 const state={scene:'small',party:[hero],active:'hero',seed:4,settings:{lights:false,animations:false,ambient:.5,intensity:1},loot:{},enemies:[],combat:false};
 const game={state,get scene(){return scene;},get props(){return scene.props.filter(p=>p.id!=='hidden'||showHidden).map(p=>p.id===departingNpc?.id?departingNpc:p);},get departingNpc(){return departingNpc;},active:()=>hero,all:()=>[hero,...state.enemies],animate:()=>false,render:noop,isOpen:p=>!!state.doors?.[p.id],selected:null,route:[],mapTap:p=>{tapped=p;},dismissMapActions:noop};
 const World={tile:(s,x,y)=>s.tiles[y]?.[x]||'void'};
-const env={T:{...Three,WebGLRenderer:Renderer},npcFacing,faceCell,batchStaticModels,createMenuStage,texelPass,TEXEL,fitPreviewCamera,fillSilhouette,characterParts,characterProfile,characterSpec,characterBuild,enemyModel,bindPromptInput,planRegionChunks,createChunkStream,...regionHelpers,
+const env={T:{...Three,WebGLRenderer:Renderer},stoneTile,createStoneMaterials:createTestStoneMaterials,WorldGen:{SURFACE_BY_CODE,surfaceColor,wallColor},npcFacing,faceCell,batchStaticModels,createMenuStage,texelPass,TEXEL,fitPreviewCamera,fillSilhouette,characterParts,characterProfile,characterSpec,characterBuild,enemyModel,bindPromptInput,planRegionChunks,createChunkStream,...regionHelpers,
  document,performance:{now:()=>time},requestAnimationFrame:fn=>{const id=++nextFrame;frames.set(id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id),ResizeObserver:class{observe(){}},setTimeout:noop,console,World,Props,devicePixelRatio:1,location:{search:'?qa=1'},gameDebug:game,Torches:{lightSources:()=>[],fixture:()=>({present:true})}};env.window=env;env.document.getElementById('dialogue').hidden=true;
 vm.createContext(env);vm.runInContext(readFileSync(new URL('../src/voxel.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,''),env);
 const voxel=env.voxel;
 assert.equal(voxel.regionStats.enabled,false);assert.ok(voxel.models.has('hero'));
+function environment(id){let root;voxel.scene.traverse(node=>{if(node.name==='region:'+id)root=node;});return root;}
+function floorMesh(root,x,y){
+ const matrix=new Three.Matrix4();
+ return root.children.find(mesh=>mesh.isInstancedMesh&&Array.from({length:mesh.count},(_,i)=>i).some(i=>{
+  mesh.getMatrixAt(i,matrix);const e=matrix.elements;return Math.abs(e[12]-(x+.5))<1e-6&&Math.abs(e[13]+.095)<1e-6&&Math.abs(e[14]-(y+.5))<1e-6;
+ }));
+}
+const interiorFloor=floorMesh(environment('full'),8,8);
+assert.equal(interiorFloor.material,stoneMaterials.get(stoneTile({},8,8)),'Small interior uses the actual cached stone fallback');
+assert.equal(interiorFloor.material.map,null,'Small interior remains visible before the atlas is loaded');
+assert.equal(interiorFloor.material.transparent,false);assert.equal(interiorFloor.material.opacity,1);
+atlasFailed();assert.equal(interiorFloor.material.map,null,'Image failure leaves the interior fallback opaque');
 showHidden=true;voxel.sync();
 assert.ok(voxel.models.has('prop:hidden'),'A story prop becoming visible in the same scene needs its existing source model');
 
 function loadLarge(){
- scene={id:'large',W:96,H:64,outdoor:true,visualSeed:4,props:[{id:'keeper',type:'npc',x:9,y:28,name:'Хранитель'}, {id:'open-door',type:'door',x:18,y:30}, {id:'camp',x:18,y:28,type:'chest'},{id:'far',x:78,y:39,type:'chest'},...Array.from({length:60},(_,i)=>({id:'tree'+i,x:3+i%20*4,y:3+Math.floor(i/20)*18,model:'tree',type:'decor',solid:false}))],decor:[],lights:[],tiles:Array.from({length:64},()=>Array(96).fill('floor'))};
+ scene={id:'large',W:96,H:64,outdoor:true,visualSeed:4,surface:Array.from({length:64},()=>Array(96).fill('c')),props:[{id:'keeper',type:'npc',x:9,y:28,name:'Хранитель'}, {id:'open-door',type:'door',x:18,y:30}, {id:'camp',x:18,y:28,type:'chest'},{id:'far',x:78,y:39,type:'chest'},...Array.from({length:60},(_,i)=>({id:'tree'+i,x:3+i%20*4,y:3+Math.floor(i/20)*18,model:'tree',type:'decor',solid:false}))],decor:[],lights:[],tiles:Array.from({length:64},()=>Array(96).fill('floor'))};
  state.scene='large';state.doors={'open-door':true};hero.x=8;hero.y=32;game.selected=null;game.route=[];voxel.sync();env.camera.center(hero);
 }
 function drain(){for(let n=0;n<80&&voxel.regionStats.queued;n++){const callbacks=[...frames.entries()];frames.clear();time+=40;for(const [,fn]of callbacks)fn(time);}assert.equal(voxel.regionStats.queued,0);assert.equal(voxel.regionStats.errors,0);}
 function visit(x,y){hero.x=x;hero.y=y;game.selected=null;voxel.sync();env.camera.center(hero);drain();}
 loadLarge();assert.ok(voxel.regionStats.queued>0,'Only one group is built synchronously');assert.ok(voxel.regionStats.ready<=1);drain();
 assert.equal(voxel.regionStats.enabled,true);assert.equal(voxel.regionReady(8,32),true);assert.ok(voxel.regionStats.ready<=12);assert.ok(voxel.staticBatchStats.props>0);
+const firstStoneGroup=environment('0,2'),firstStoneFloor=floorMesh(firstStoneGroup,8,32);
+const sharedStoneMaterial=stoneMaterials.get(stoneTile({surface:'cobble'},8,32));
+assert.equal(firstStoneFloor.material,sharedStoneMaterial,'Streamed cobble variants use global cell coordinates');
+const sharedBeforeAtlas=voxel.regionStats.shared;
+atlasLoaded(new Three.Texture({width:1448,height:1086}));
+const sharedStoneMap=sharedStoneMaterial.map;
+assert.ok(sharedStoneMap?.isTexture,'Real atlas callback updates an already mounted chunk material');
+assert.equal(voxel.regionStats.shared.textures-sharedBeforeAtlas.textures,stoneMaterials.size,'Shared-resource statistics include the atlas maps');
+let stoneMaterialDisposed=0,stoneMapDisposed=0,stoneMeshDisposed=0;
+sharedStoneMaterial.addEventListener('dispose',()=>stoneMaterialDisposed++);
+sharedStoneMap.addEventListener('dispose',()=>stoneMapDisposed++);
+firstStoneFloor.addEventListener('dispose',()=>stoneMeshDisposed++);
+visit(88,32);
+assert.equal(environment('0,2'),undefined,'Distant cobble group really unloads');
+assert.equal(firstStoneGroup.parent,null);assert.equal(stoneMeshDisposed,1,'Eviction releases the owned instanced mesh');
+assert.equal(stoneMaterialDisposed,0,'Eviction keeps the material used by neighboring chunks');
+assert.equal(stoneMapDisposed,0,'Eviction keeps the shared atlas map');
+visit(8,32);
+const remountedStoneGroup=environment('0,2'),remountedStoneFloor=floorMesh(remountedStoneGroup,8,32);
+assert.notEqual(remountedStoneGroup,firstStoneGroup,'Returning creates a new chunk group');
+assert.equal(remountedStoneFloor.material,sharedStoneMaterial,'Remount reuses the cached material');
+assert.equal(remountedStoneFloor.material.map,sharedStoneMap,'Remount reuses the same live atlas map');
+assert.equal(atlasLoads,1,'Chunk traversal does not request another atlas image');
 const actor=voxel.models.get('hero');
 for(const x of [32,48,72,88])visit(x,32);
 assert.equal(voxel.models.get('hero'),actor,'Static eviction cannot replace the actor model');
@@ -79,4 +124,6 @@ env.camera.center({x:88,y:32});const oldCallbacks=[...frames.values()];
 scene={id:'replacement',W:10,H:10,outdoor:false,props:[],decor:[],lights:[],tiles:Array.from({length:10},()=>Array(10).fill('floor'))};state.scene=scene.id;hero.x=4;hero.y=4;game.selected=null;voxel.sync();
 for(const fn of oldCallbacks){time+=40;fn(time);}
 assert.equal(voxel.regionStats.mode,'full');assert.ok(![...voxel.models.keys()].some(id=>id.startsWith('prop:')));assert.ok(!voxel.scene.children[0].children.some(node=>node.name.startsWith('region:')&&node.name!=='region:full'));
-console.log('PASS source renderer full-scene compatibility, one-group first build, actor independence, stateful remount, live resource plateau, combat pins, overview picking and stale callback cancellation');
+assert.equal(floorMesh(environment('full'),4,4).material,stoneMaterials.get(stoneTile({},4,4)),'A later small interior retains the common material cache');
+assert.equal(stoneMaterialDisposed,0);assert.equal(stoneMapDisposed,0);assert.equal(atlasLoads,1);
+console.log('PASS source renderer full-scene compatibility, opaque interior fallback, shared stone material/map retention, one-group first build, actor independence, stateful remount, live resource plateau, combat pins, overview picking and stale callback cancellation');
