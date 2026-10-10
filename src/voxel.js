@@ -1,4 +1,6 @@
 import * as T from "three";
+import {stoneTile,createStoneMaterials} from './stone-atlas.js';
+const stoneMaterial=createStoneMaterials(), sharedStoneMaterials=new Set();
 import {npcFacing,faceCell} from "./npc-facing.js";
 import {batchStaticModels} from './static-batches.js';
 import {planRegionChunks,createChunkStream} from './region-streaming.js';
@@ -792,23 +794,27 @@ function buildEnvironment(S,rect){
   const belongs=p=>p.x>=rect.x&&p.x<rect.x+rect.w&&p.y>=rect.y&&p.y<rect.y+rect.h;
   try {
   const boxes = /* @__PURE__ */ new Map();
-  function block(x, y, z, w, h, d, color) {
-    if (!boxes.has(color)) boxes.set(color, []);
-    boxes.get(color).push([x, y, z, w, h, d]);
+  let stone=null;
+  function block(x, y, z, w, h, d, color, tile=stone) {
+    const key=tile===null?color:'stone:'+tile;
+    if (!boxes.has(key)) boxes.set(key, []);
+    boxes.get(key).push([x, y, z, w, h, d]);
   }
   for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
     const type = World.tile(S, x, y), noise = (x * 113 + y * 71 + terrainSeed) % 11 / 100;
     if (type === "floor") {
       const grass=S.ground?.[y]?.[x]==='grass';
       const surface=window.WorldGen?.SURFACE_BY_CODE[S.surface?.[y]?.[x]];
+      stone=stoneTile({surface,grass,outdoor:S.outdoor,id:S.id},x,y);
       const col = new T.Color(surface ? WorldGen.surfaceColor(surface,x,y) : grass ? 0x527b3c : S.id === "proc-tavern" ? 6836539 : S.outdoor ? 0x978872 : 4544347);
       col.offsetHSL(0, -noise * 0.3, noise * 0.24);
       block(x + 0.5, -0.095, y + 0.5, 1, 0.17, 1, col.getHex());
       const pattern = (x * 37 + y * 61 + terrainSeed) % 17;
-      if ((x * 7 + y * 13) % 19 === 0) block(x + 0.7, 5e-3, y + 0.24, 0.16, 7e-3, 0.18, 5859403);
+      if ((x * 7 + y * 13) % 19 === 0) block(x + 0.7, 5e-3, y + 0.24, 0.16, 7e-3, 0.18, 5859403,null);
     } else if (type === "wall") {
+      stone=stoneTile({wall:true,wallStyle:S.wallStyle},x,y);
       if (S.props.some((p) => ["door", "portal"].includes(p.type) && p.x === x && p.y === y)) {
-        block(x + 0.5, -0.095, y + 0.5, 1, 0.17, 1, 4544347);
+        block(x + 0.5, -0.095, y + 0.5, 1, 0.17, 1, 4544347,stone===null?null:stoneTile({},x,y));
         continue;
       }
       if (S.outdoor && y !== 1) {
@@ -830,11 +836,13 @@ function buildEnvironment(S,rect){
       }
       block(x + 0.5, height + 0.03, y + 0.5, 0.99, 0.06, 0.99, 9671035);
       const weather = (x * 19 + y * 43 + terrainSeed) % 13;
-      if (weather === 7) block(x + 0.82, height + 0.064, y + 0.76, 0.11, 9e-3, 0.08, 7568982);
+      if (weather === 7) block(x + 0.82, height + 0.064, y + 0.76, 0.11, 9e-3, 0.08, 7568982,null);
     }
   }
   for (const [color, data] of boxes) {
-    const m = new T.InstancedMesh(geo, terrainMaterial(color, data.some((b) => b[1] > 0.05) ? 2 : 8), data.length), matrix = new T.Matrix4(), quat = new T.Quaternion();
+    const material=typeof color==='string'?stoneMaterial(Number(color.slice(6))):terrainMaterial(color,data.some(b=>b[1]>.05)?2:8);
+    if(typeof color==='string')sharedStoneMaterials.add(material);
+    const m = new T.InstancedMesh(geo, material, data.length), matrix = new T.Matrix4(), quat = new T.Quaternion();
     data.forEach(([x, y, z, w, h, d], i) => {
       matrix.compose(new T.Vector3(x, y, z), quat, new T.Vector3(w, h, d));
       m.setMatrixAt(i, matrix);
@@ -1550,7 +1558,7 @@ function regionSnapshot(){
     built:stats.builtCount||0,released:stats.releasedCount||0,generation:regionGeneration,streamGeneration:stats.generation||0,errors:stats.errors||0,lastError:stats.lastError||null,lastBuildMs:stats.lastBuildDuration||0,
     resources,actorResources:countGroupResources(actors),portableLights:torches.filter(t=>t.portable).length,
     groups:[...regionResources.values()].map(r=>({id:r.chunk.id,...countGroupResources(r.root)})),
-    shared:{materials:materials.size+terrainMaterials.size,textures:terrainTextures.size+(rugMaterial?1:0)+1,geometries:1},
+    shared:{materials:materials.size+terrainMaterials.size+sharedStoneMaterials.size,textures:terrainTextures.size+(rugMaterial?1:0)+1+[...sharedStoneMaterials].filter(material=>material.map).length,geometries:1},
     gpu:{...renderer.info.memory,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},
     demand:{visibleKeys:regionPlan?.visibleKeys||[],pinnedKeys:regionPlan?.pinnedKeys||[],bounds:regionBounds},
     failedIds:[...regionFailures]};

@@ -75,6 +75,13 @@ const {configureBrowserPage} = require('./browser-harness.cjs');
       return s;
     }
     await settled();
+    // Image readiness is independent of the chunk queue. The boundary walls
+    // exercise the shared atlas before timing/resource snapshots are compared.
+    await page.waitForFunction(()=>{
+      let loaded=false;
+      voxel.scene.traverse(m=>{const image=m.material?.map?.image;if(m.isInstancedMesh&&image?.src?.includes('terrain-materials.png')&&image.width>0)loaded=true;});
+      return loaded;
+    });
     const first = await boundsCheck();
     assert(first.ready < 24, 'Detailed render does not build the entire 96x64 scene');
     assert.equal(await page.evaluate(() => Tutorial.active), false, 'Walk does not start story/tutorial events');

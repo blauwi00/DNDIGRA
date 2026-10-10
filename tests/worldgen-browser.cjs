@@ -46,6 +46,20 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
         assert.ok(render.stats.ready<=Math.max(render.stats.maxChunks,render.stats.demand.pinnedKeys.length),'Generated outdoor detail obeys the group budget');
       }
     }
+    async function assertStoneAtlas(label){
+      await page.waitForFunction(()=>{
+        let loaded=false;
+        voxel.scene.traverse(m=>{const map=m.material?.map,image=map?.image;if(m.isInstancedMesh&&image?.src?.includes('terrain-materials.png')&&image.width>0&&image.height>0)loaded=true;});
+        return loaded;
+      });
+      const atlas=await page.evaluate(()=>{
+        const materials=new Set();
+        voxel.scene.traverse(m=>{if(m.isInstancedMesh&&m.material?.map?.image?.src?.includes('terrain-materials.png'))materials.add(m.material);});
+        return{variants:materials.size,valid:[...materials].every(m=>m.isMeshStandardMaterial&&!m.transparent&&m.color.getHex()===0xffffff&&m.map.source.data.width>0&&m.map.repeat.x>0&&m.map.repeat.x<.25&&m.map.repeat.y>0&&m.map.repeat.y<1/3),mode:voxel.regionStats.mode};
+      });
+      assert.ok(atlas.variants>0&&atlas.valid,'Loaded opaque lit stone atlas with bounded UVs '+label);
+      console.log('ATLAS',label,atlas);
+    }
     // Large v2 towns are streamed. Visit each real NPC's legal neighboring cell
     // instead of requiring every distant source model to exist simultaneously.
     const townStart=await page.evaluate(()=>({x:gameDebug.active().x,y:gameDebug.active().y}));
@@ -72,12 +86,14 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     assert.ok(new Set(idle.map(p=>p.angle)).size>1,'Map NPCs face different directions');
     await page.evaluate(cell=>{Object.assign(gameDebug.active(),cell);gameDebug.render();camera.center(gameDebug.active(),true);},townStart);
     await rendererSettled();
+    await assertStoneAtlas('streamed town');
     const places=await page.evaluate(()=>{
       const p=GeneratedWorlds.plan;const types=[...new Set(p.buildings.map(b=>b.type))];return ['town',...types.map(type=>p.buildings.find(b=>b.type===type).id),p.buildings.find(b=>b.cellar).cellar,p.buildings.find(b=>b.up).up,'out','dng:1','fort:yard','fort:keep','fort:up','fort:dng'];
     });
     for(const id of places){
       await page.evaluate(id=>{closeDialogue();gameDebug.enterScene(id,true);camera.center(gameDebug.active(),true);gameDebug.save();},id);
       await rendererSettled();assert.equal(await page.evaluate(()=>gameDebug.scene.id),id);
+      if(id==='dng:1')await assertStoneAtlas('small stone interior');
       const render=await page.evaluate(()=>({surface:!!gameDebug.scene.surface,wall:gameDebug.scene.wallStyle,batch:voxel.staticBatchStats}));
       assert.ok(render.surface&&render.wall,'v2 floor and wall styles '+id);
       assert.ok(render.batch&&render.batch.props>0&&render.batch.drawMeshes<render.batch.sourceMeshes,'Ready static batching '+id);

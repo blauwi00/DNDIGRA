@@ -1,3 +1,6 @@
+## Stone atlas · 2026-10-09
+Owner approved connecting the existing terrain-materials.png atlas to stone floors/walls only. src/stone-atlas.js selects bounded deterministic variants, shares the source image, keeps opaque fallback on load failure and uses lit MeshStandardMaterial. Non-stone surfaces, props, characters, generators and saves are unchanged. src/voxel.js retains instanced terrain batches; dist/voxel.js is generated. tests/stone-atlas.mjs covers selection, UV bounds, loading and material caching. Browser/device visual QA is unavailable in this managed session; no visual acceptance claim. This paragraph records the separate v63 delivery. The subsequent region integration has local Chromium checks recorded in docs/VERIFICATION.md; physical device validation remains outstanding.
+
 ## Streamed outdoor region · 2026-10-09
 Current work is on `feat/region-streaming`. Owner explicitly requested direct publication to the existing Site after checks; this overrides earlier no-publish task notes. Do not merge GitHub main or change the Site audience.
 
