@@ -7,12 +7,19 @@
     "preview": "node scripts/preview.mjs",
     "test": "npm run build && node tests/run-logic.mjs",
     "test:local": "node --test tests/local-api.mjs",
+    "native:test": "node --test tests/native-config.mjs",
+    "android:add": "cap add android",
+    "android:copy": "npm run build && cap copy android",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:build": "node scripts/android-build.mjs",
     "ios:add": "cap add ios --packagemanager SPM",
     "ios:copy": "npm run build && cap copy ios",
     "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.3",
     "@capacitor/core": "8.5.3",
     "@capacitor/ios": "8.5.3",
     "three": "0.186.1"

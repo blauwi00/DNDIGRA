@@ -1,5 +1,8 @@
 # Mandatory project rules — read first
 
+## Current owner correction · 2026-10-12
+Work continues from latest existing v64 (feat/region-streaming509fdf7), not a replacement game. Preserve current approved characters, pixel textures, full editor, rules, equipment, icons/theme and recognized orthographic top-down view. Do not promote archived cartoon sprites or invent new models. Latest instructions override historical portrait/world rules: all screens landscape, islands600–1000drycells/10cellchunks, paid ships, entire hero property retained, no automatic enemy/resource respawn. Use existing Capacitor/local API to test installed game; do not publish Site/stores or merge main. Read docs/superpowers/specs/2026-10-12-existing-game-mobile-islands.md and plan. Root owns builds/GPU/Git/artifacts; workers only assigned paths. Rejected /workspace/DNDIGRA-godot is not the implementation base.
+
 Before planning, editing, reviewing, testing, or deploying this game, **read [docs/DEVELOPMENT_RULES.md](docs/DEVELOPMENT_RULES.md)**. It records the owner's approved game architecture and progression/story rules, and clearly separates unresolved proposals. Do not confuse future requirements with implemented features. The owner's latest explicit instruction overrides conflicting documentation; flag any conflict before changing a confirmed rule. This documentation requirement applies to Codex, Claude, and other AI coding agents.
 
 # Current task: streamed outdoor region · 2026-10-09

@@ -141,6 +141,16 @@ var LocalAPI = (() => {
     return { id, name: d.name.trim(), genitive: d.name.trim(), classId: d.classId, className: c.name, kind: c.kind, stats, appearance: { ...d.appearance, gender: d.appearance.gender || "male" }, background: d.background, inventory: [...kit.items], kit: d.kit, level: 1, xp: 0, gold: 0, hitDie: c.die, max: c.die + mod(stats.con), hp: c.die + mod(stats.con), armorAC: ac, ac: ac + (kit.hands.includes("shield") ? 2 : 0), baseAC: ac + (kit.hands.includes("shield") ? 2 : 0), hands: [...kit.hands], weapon: kit.weapon, skills: [...c.skills], saves: [...c.saves], slots: ["wizard", "cleric"].includes(d.classId) ? 2 : 0, maxSlots: ["wizard", "cleric"].includes(d.classId) ? 2 : 0, secondWind: d.classId === "fighter" ? 2 : 0, maxSecondWind: d.classId === "fighter" ? 2 : 0, hitDice: 1, maxHitDice: 1, conditions: [], death: { success: 0, failure: 0, stable: false }, concentration: null, torches: 0, torch: false, darkvision: 0, speed: 6, move: 6, facing: 2, acted: false, bonusUsed: false, reactionUsed: false, confirmed: true };
   }
 
+  // src/world-carry.js
+  function heroFromSnapshot(snapshot) {
+    return Object.assign(structuredClone(snapshot.party[0]), {
+      level: snapshot.level,
+      xp: snapshot.xp,
+      gold: snapshot.gold,
+      potions: snapshot.potions ?? 0
+    });
+  }
+
   // src/inventory-rules.js
   var word = (forms) => new RegExp("(?:^|[^\\p{L}\\p{N}])(?:" + forms.join("|") + ")(?![\\p{L}\\p{N}])", "iu");
   var ARMOR = word(["\u0431\u0440\u043E\u043D(?:\u044F|\u0438|\u044E|\u0435\u0439|\u0435)", "\u0434\u043E\u0441\u043F\u0435\u0445(?:\u0438|\u043E\u0432|\u0430|\u0430\u043C)?", "\u043A\u043E\u043B\u044C\u0447\u0443\u0433(?:\u0430|\u0438|\u0443|\u043E\u0439|\u0435)", "\u043A\u043E\u043B\u044C\u0447\u0443\u0436\u043D(?:\u0430\u044F|\u0443\u044E|\u043E\u0439) \u0440\u0443\u0431\u0430\u0445(?:\u0430|\u0438|\u0443|\u043E\u0439)"]);
@@ -154,7 +164,6 @@ var LocalAPI = (() => {
   var armorName = (name) => ARMOR.test(name);
   var handType = (name) => SHIELD.test(name) ? "shield" : STAFF.test(name) ? "staff" : SWORD.test(name) ? "sword" : BOW.test(name) ? "bow" : null;
   var stackable = (name) => STACK.test(name);
-  var focusName = (name) => FOCUS.test(name);
   function gearEntries(a) {
     const hands = new Set(a.hands || []);
     let armorTaken = false;
@@ -5346,13 +5355,13 @@ var LocalAPI = (() => {
     if (options.skipTutorial !== void 0 && typeof options.skipTutorial !== "boolean") throw Error("\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u044B\u0439 \u0432\u044B\u0431\u043E\u0440 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u044F.");
     if (options.skipTutorial && !options.tutorialCompleted) throw Error("\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043F\u0440\u043E\u0439\u0434\u0438\u0442\u0435 \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435 \u2014 \u0435\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u043C \u043F\u0440\u0438\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0438.");
     const a = structuredClone(hero);
-    Object.assign(a, { x: 5, y: 9, facing: 2, move: a.speed, acted: false, bonusUsed: false, reactionUsed: false, concentration: null, conditions: [], death: { success: 0, failure: 0, stable: false } });
+    Object.assign(a, { x: 5, y: 9, facing: 2, move: a.speed, acted: false, bonusUsed: false, reactionUsed: false });
     const seed = new Uint32Array(1);
     crypto.getRandomValues(seed);
     const gen = genMeta({ v: options.generatorVersion ?? 3, seed: options.seed === void 0 || options.seed === "" ? randomSeed3() : options.seed, size: options.size ?? "auto" }), plan = planFor(gen), startScene = generateScene4(plan, plan.start);
     Object.assign(a, { x: startScene.spawns[0][0], y: startScene.spawns[0][1] });
     const title = plan.name;
-    const snapshot = { world: { id, heroId: a.id, title, chapter, discovered: [plan.start], gen }, gen: {}, scene: plan.start, round: 1, combat: false, active: a.id, gold: 0, xp: a.xp, level: a.level, potions: 0, chest: false, relic: false, seed: seed[0], doors: {}, loot: {}, altarClaims: {}, lightFixtures: {}, settings: { lights: true, animations: true, grid: true, ambient: 0.28, intensity: 1 }, party: [a], enemies: [], rolls: [], advantage: 0, order: [], cursor: 0, autoShield: false, rulesStage: 3, logs: ["\u041D\u043E\u0432\u044B\u0439 \u043C\u0438\u0440: " + plan.name + ". \u0417\u0435\u0440\u043D\u043E: " + gen.seed + "."] };
+    const snapshot = { world: { id, heroId: a.id, title, chapter, discovered: [plan.start], gen }, gen: {}, scene: plan.start, round: 1, combat: false, active: a.id, gold: a.gold ?? 0, xp: a.xp, level: a.level, potions: a.potions ?? 0, chest: false, relic: false, seed: seed[0], doors: {}, loot: {}, altarClaims: {}, lightFixtures: {}, settings: { lights: true, animations: true, grid: true, ambient: 0.28, intensity: 1 }, party: [a], enemies: [], rolls: [], advantage: 0, order: [], cursor: 0, autoShield: false, rulesStage: 3, logs: ["\u041D\u043E\u0432\u044B\u0439 \u043C\u0438\u0440: " + plan.name + ". \u0417\u0435\u0440\u043D\u043E: " + gen.seed + "."] };
     if (gen.v === 3) {
       snapshot.story = { v: 1, intro: 0, npcWarned: false, npcDeparted: false, clues: [], cleared: [], reachedSettlement: false, reported: false };
       snapshot.tutorial = createTutorial({ classId: a.classId, skip: options.skipTutorial, canSkip: !!options.tutorialCompleted });
@@ -5516,19 +5525,13 @@ var LocalAPI = (() => {
   var json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
   var result = (data, status = 200) => ({ data, status });
   var error = (message, status = 400, extra = {}) => result({ error: message, ...extra }, status);
-  var latestWorld = (profile, heroId) => profile.worlds.filter((w) => w.heroId === heroId).sort((a, b) => b.createdAt - a.createdAt)[0];
+  var worldOrder = (a, b) => b.createdAt - a.createdAt || (b.snapshot.world.chapter || 0) - (a.snapshot.world.chapter || 0);
+  var latestWorld = (profile, heroId) => profile.worlds.filter((w) => w.heroId === heroId).sort(worldOrder)[0];
   var freshProfile = () => ({ v: 1, heroes: [], worlds: [], tutorialCompleted: false });
   function generatedData(snapshot) {
     if (!snapshot.world?.gen) return {};
     const gen = snapshot.world.gen, plan = createWorld4(gen.seed, gen.size, gen.v);
     return { generated: { plan, scene: generateScene4(plan, snapshot.scene) } };
-  }
-  function carry(previous) {
-    const s = previous.snapshot, a = structuredClone(s.party[0]), kit = CLASSES[a.classId].kits[a.kit];
-    Object.assign(a, { level: s.level, xp: s.xp, gold: 0, torches: 0, torch: false });
-    a.inventory = a.inventory.filter((v) => v === kit.armor || v.startsWith(kit.armor) || a.hands.includes("sword") && handType(v) === "sword" || a.hands.includes("shield") && handType(v) === "shield" || a.hands.includes("staff") && (handType(v) === "staff" || focusName(v)));
-    a.hands = a.hands.map((v) => v === "torch" ? "empty" : v);
-    return a;
   }
   function route2(profile, url, method, body, cryptography) {
     if (profile.v !== 1 || !Array.isArray(profile.heroes) || !Array.isArray(profile.worlds)) throw Error("Unsupported local save version");
@@ -5541,7 +5544,7 @@ var LocalAPI = (() => {
       if (method === "GET" && !id) return result({ heroes: profile.heroes.map((h) => {
         const w = latestWorld(profile, h.id);
         if (!w) return h;
-        const current = h.checkpointAt > w.updatedAt ? h : { ...w.snapshot.party[0], level: w.snapshot.level, xp: w.snapshot.xp, gold: w.snapshot.gold };
+        const current = h.checkpointAt > w.updatedAt ? h : heroFromSnapshot(w.snapshot);
         return { ...current, worldStatus: w.status, activeWorldId: w.status === "active" ? w.id : null };
       }), tutorialCompleted: !!profile.tutorialCompleted || profile.worlds.some((w) => w.snapshot.tutorial?.mode === "campaign" && w.snapshot.tutorial.completed === true) });
       if (method === "POST" && !id) {
@@ -5579,7 +5582,7 @@ var LocalAPI = (() => {
       }
       const heroId = url.searchParams.get("hero_id");
       if (!heroId) return error("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0435\u0440\u043E\u044F.");
-      return result({ worlds: profile.worlds.filter((w) => w.heroId === heroId).sort((a, b) => b.createdAt - a.createdAt), tutorialCompleted: !!profile.tutorialCompleted || profile.worlds.some((w) => w.snapshot.tutorial?.mode === "campaign" && w.snapshot.tutorial.completed === true) });
+      return result({ worlds: profile.worlds.filter((w) => w.heroId === heroId).sort(worldOrder), tutorialCompleted: !!profile.tutorialCompleted || profile.worlds.some((w) => w.snapshot.tutorial?.mode === "campaign" && w.snapshot.tutorial.completed === true) });
     }
     if (method === "POST" && !id) {
       const base = profile.heroes.find((h) => h.id === body?.heroId);
@@ -5587,8 +5590,7 @@ var LocalAPI = (() => {
       const active = profile.worlds.find((w) => w.heroId === base.id && w.status === "active");
       if (active) return error("\u0413\u0435\u0440\u043E\u0439 \u0443\u0436\u0435 \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442 \u0434\u0440\u0443\u0433\u043E\u0439 \u043C\u0438\u0440. \u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0438\u0441\u0442\u043E\u0440\u0438\u044E.", 409, { world: active });
       const previous = latestWorld(profile, base.id), checkpointNewer = base.checkpointAt > (previous?.updatedAt || 0);
-      if (previous && !checkpointNewer && previous.snapshot.gold > 0 && !body.leaveGold) return error("\u041C\u043E\u0436\u043D\u043E \u043F\u043E\u043A\u0430 \u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0437\u043E\u043B\u043E\u0442\u043E \u0432 \u0430\u0440\u0445\u0438\u0432\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u043E\u0433\u043E \u043C\u0438\u0440\u0430.", 409, { transferPending: true });
-      const hero = checkpointNewer || !previous ? base : carry(previous);
+      const hero = checkpointNewer || !previous ? base : heroFromSnapshot(previous.snapshot);
       if (hero.dead || hero.hp <= 0) return error("\u042D\u0442\u043E\u0442 \u0433\u0435\u0440\u043E\u0439 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u043D\u0430\u0447\u0430\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u043C\u0438\u0440.", 409);
       const tutorialCompleted = !!profile.tutorialCompleted || profile.worlds.some((w) => w.snapshot.tutorial?.mode === "campaign" && w.snapshot.tutorial.completed === true);
       let snapshot;
@@ -5599,7 +5601,7 @@ var LocalAPI = (() => {
         return error(e.message);
       }
       const now = Date.now(), createdAt = Math.max(now, ...profile.worlds.map((w) => w.createdAt + 1));
-      const record = { id: worldId, heroId: hero.id, status: "active", revision: 1, createdAt, updatedAt: now, snapshot };
+      const record = { id: worldId, heroId: hero.id, status: "active", revision: 1, createdAt, updatedAt: Math.max(createdAt, (previous?.updatedAt || 0) + 1, (base.checkpointAt || 0) + 1), snapshot };
       profile.worlds.push(record);
       return result({ world: { ...record, ...generatedData(snapshot) } }, 201);
     }
@@ -5608,7 +5610,7 @@ var LocalAPI = (() => {
       if (body?.revision !== world.revision) return error("\u041C\u0438\u0440 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0441\u044F. \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435\u043C.", 409, { conflict: true });
       const base = profile.heroes.find((h) => h.id === world.heroId), s = world.snapshot;
       if (base && latestWorld(profile, base.id)?.id === world.id && !(base.checkpointAt > world.updatedAt)) {
-        const checkpoint = { ...s.party[0], level: s.level, xp: s.xp, gold: s.gold, checkpointAt: Math.max(Date.now(), world.updatedAt + 1), checkpointChapter: s.world.chapter };
+        const checkpoint = { ...heroFromSnapshot(s), checkpointAt: Math.max(Date.now(), world.updatedAt + 1), checkpointChapter: s.world.chapter };
         profile.heroes[profile.heroes.indexOf(base)] = checkpoint;
       }
       profile.worlds = profile.worlds.filter((w) => w.id !== id);
@@ -5625,7 +5627,7 @@ var LocalAPI = (() => {
         return error(e.message);
       }
       if (action === "finish" && !canFinishWorld(snapshot)) return error("\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u0438\u0441\u0442\u043E\u0440\u0438\u044E, \u043E\u0431\u0443\u0447\u0435\u043D\u0438\u0435 \u0438 \u0431\u043E\u0439.");
-      Object.assign(world, { snapshot, revision: world.revision + 1, updatedAt: Date.now(), status: action === "finish" ? "completed" : "active" });
+      Object.assign(world, { snapshot, revision: world.revision + 1, updatedAt: Math.max(Date.now(), world.updatedAt + 1), status: action === "finish" ? "completed" : "active" });
       if (snapshot.tutorial?.mode === "campaign" && snapshot.tutorial.completed === true) profile.tutorialCompleted = true;
       return result({ world });
     }

@@ -3,7 +3,9 @@
   const $ = (id) => document.getElementById(id), g = () => window.gameDebug;
   const resumeKey = window.NativeRuntime?.offline ? 'dndigra-local-last-world-id' : 'last-world-id';
   let current = null, pending = null, inflight = null, timer = null, failed = false, conflict = false, leaving = false, lastSaved = "", serial = 0, atMenu = false;
+  let finishing = null;
   let practice = null;
+  const finishingCurrent = () => finishing?.epoch === serial && finishing.id === current?.id;
   function button(text, fn, cls = "") {
     const b = document.createElement("button");
     b.textContent = text;
@@ -238,7 +240,7 @@
         const record = current?.id === w.id ? current : w;
         await api("/" + record.id, "DELETE", { revision: record.revision });
         if (current?.id === w.id) {
-          const checkpoint = { ...g().active(), level: g().state.level, xp: g().state.xp, gold: g().state.gold };
+          const checkpoint = { ...g().active(), level: g().state.level, xp: g().state.xp, gold: g().state.gold, potions: g().state.potions };
           detach();
           g().loadHero(checkpoint);
         }
@@ -258,20 +260,11 @@
     const skipLabel=document.createElement('label'),skip=document.createElement('input');skip.type='checkbox';skip.id='skip-tutorial';
     const canSkip=tutorialCompleted||!!window.Tutorial?.canSkip?.()||worlds.some(w=>w.snapshot?.tutorial?.completed);skip.disabled=!canSkip;
     skipLabel.className='tutorial-skip';skipLabel.append(skip,document.createTextNode(canSkip?'Пропустить уже пройденное обучение':'Первое обучение обязательно; затем его можно пропускать'));
-    form.append(label,sizeLabel,skipLabel);const launch=button('Создать мир',async()=>{launch.disabled=true;try{await create(h,worlds,false,{seed:seed.value.trim(),size:size.value,skipTutorial:skip.checked});}finally{launch.disabled=false;}},'gold');body.append(note,form,launch);if(!$('modal').open)$('modal').showModal();
+    form.append(label,sizeLabel,skipLabel);const launch=button('Создать мир',async()=>{launch.disabled=true;try{await create(h,worlds,{seed:seed.value.trim(),size:size.value,skipTutorial:skip.checked});}finally{launch.disabled=false;}},'gold');body.append(note,form,launch);if(!$('modal').open)$('modal').showModal();
   }
-  async function create(h, worlds, leaveGold = false, options = {}) {
-    const latest = worlds[0];
-    if (latest?.status === "completed" && latest.snapshot.gold > 0 && !leaveGold) {
-      const body = $("modal-body");
-      body.replaceChildren();
-      const p = document.createElement("p");
-      p.textContent = "В новый мир перейдут надетая экипировка и предметы в руках. Золото и содержимое рюкзака останутся в архиве завершённого мира.";
-      body.append(p, button("Начать без переноса золота", () => create(h, worlds, true, options), "gold"), button("Остаться пока здесь", () => paintChoice(h, worlds)));
-      return;
-    }
+  async function create(h, worlds, options = {}) {
     try {
-      const { world } = await api("", "POST", { heroId: h.id, leaveGold, ...options });
+      const { world } = await api("", "POST", { heroId: h.id, ...options });
       attach(world);
       $("modal").close();
     } catch (e) {
@@ -281,17 +274,26 @@
   async function finish() {
     if (practice) return;
     if (!current || current.status !== "active" || g().busy || g().state.combat) return;
-    capture();
-    if (!await flush()) return;
+    const ticket = {epoch: serial, id: current.id};
+    finishing = ticket;
+    g().render();
     try {
-      const { world } = await api("/" + current.id + "/finish", "POST", { revision: current.revision });
+      capture();
+      if (!await flush() || ticket.epoch !== serial || ticket.id !== current?.id) return;
+      const { world } = await api("/" + ticket.id + "/finish", "POST", { revision: current.revision });
+      if (ticket.epoch !== serial || ticket.id !== current?.id) return;
       current = world;
       pending = null;
       badge("Архив · мир завершён");
       g().render();
       message("История завершена. Мир сохранён в архиве, герой свободен для следующего приключения. Откройте «Мои герои» → «Миры».");
     } catch (e) {
-      message(e.message);
+      if (ticket.epoch === serial && ticket.id === current?.id) message(e.message);
+    } finally {
+      if (finishing === ticket && ticket.epoch === serial) {
+        finishing = null;
+        g().render();
+      }
     }
   }
   async function reload() {
@@ -353,7 +355,7 @@
   }
   function render() {
     document.body.classList.toggle("playing-world", !!current || !!practice);
-    document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict));
+    document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict || finishingCurrent()));
     if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+(practice.kind==='region'?' · Находки не переносятся':' · Учебная практика');if($("world-save"))$("world-save").hidden=true;return;}
     if (!current) return;
     const s = g().state;
@@ -455,7 +457,7 @@
   }, get current() {
     return current;
   }, get locked() {
-    return atMenu || !practice && !!current && (current.status !== "active" || conflict);
+    return atMenu || !practice && !!current && (current.status !== "active" || conflict || finishingCurrent());
   }, get pending() {
     return pending;
   }, get saving() {

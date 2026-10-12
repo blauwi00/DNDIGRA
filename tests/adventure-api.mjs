@@ -16,7 +16,18 @@ function battleSnapshot(w,scene,encounter,{tutorial=false,scriptedLoss=false}={}
 function fixture(){
   const db=new DatabaseSync(':memory:');
   for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())db.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
-  const DB={async batch(statements){db.exec('BEGIN');try{const results=[];for(const q of statements)results.push(await q.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}},prepare(sql){const q=db.prepare(sql);return{bind(...args){return{all:async()=>({results:q.all(...args)}),run:async()=>({meta:{changes:q.run(...args).changes}})}}}}};
+  let nextRead;
+  function pauseNextRead(matches){
+    let release, started;
+    const gate=new Promise(resolve=>{release=resolve;}), observed=new Promise(resolve=>{started=resolve;});
+    nextRead={matches,gate,started};
+    return{observed,release};
+  }
+  const DB={async batch(statements){db.exec('BEGIN');try{const results=[];for(const q of statements)results.push(await q.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}},prepare(sql){const q=db.prepare(sql);return{bind(...args){return{all:async()=>{
+    const results=q.all(...args), pause=nextRead;
+    if(pause?.matches(sql)){nextRead=null;pause.started();await pause.gate;}
+    return{results};
+  },run:async()=>({meta:{changes:q.run(...args).changes}})}}}}};
   async function call(path,method='GET',body,owner='adventure-owner'){
     const response=await worker.fetch(new Request('https://game.test/api/'+path,{method,headers:{Origin:'https://game.test','oai-authenticated-user-id':owner},body:body===undefined?undefined:JSON.stringify(body)}),{DB});
     return{status:response.status,...await response.json()};
@@ -30,7 +41,7 @@ function fixture(){
     assert.equal(response.status,201);assert.equal(response.world.snapshot.world.gen.v,3,'New worlds use story generator v3');
     return response.world;
   }
-  return{db,call,hero,adventure};
+  return{db,call,hero,adventure,pauseNextRead};
 }
 
 test('first tutorial cannot be skipped through a request completion claim',async()=>{
@@ -43,6 +54,142 @@ test('world chooser exposes persisted tutorial eligibility without trusting requ
 
 test('new adventure initializes resumable intro, tutorial and encounter state',async()=>{
   const f=fixture();try{const w=await f.adventure();assert.equal(w.snapshot.scene,'glade');assert.deepEqual(w.snapshot.story,{v:1,intro:0,npcWarned:false,npcDeparted:false,clues:[],cleared:[],reachedSettlement:false,reported:false});assert.equal(w.snapshot.tutorial.v,1);assert.equal(w.snapshot.tutorial.completed,false);assert.equal(w.snapshot.tutorial.skipped,false);assert.equal(w.snapshot.encounter,null);assert.equal(typeof worldRules.initialWorld,'function');assert.equal(typeof worldRules.validateWorldSnapshot,'function');assert.equal(typeof worldRules.canFinishWorld,'function');assert.equal(worldRules.canFinishWorld(w.snapshot),false);}finally{f.db.close();}
+});
+
+test('same-millisecond server transitions keep the newest property through either archive deletion order', async () => {
+  const originalNow = Date.now, sameMillisecond = originalNow();
+  Date.now = () => sameMillisecond;
+  try {
+    for (const deletionOrder of ['old-first', 'new-first']) {
+      const f = fixture();
+      try {
+        const h = await f.hero();
+        f.db.prepare('UPDATE heroes SET sheet=? WHERE id=?').run(JSON.stringify({...h, gold: 9, potions: 1}), h.id);
+        let r = await f.call('worlds', 'POST', {heroId: h.id, generatorVersion: 2, seed: 'clock-tie-old', size: 'small', startingGold: 9999, potions: 9999});
+        assert.equal(r.status, 201, r.error);
+        assert.equal(r.world.snapshot.gold, 9, 'Fresh worlds use the saved hero, never requested starting resources');
+        assert.equal(r.world.snapshot.potions, 1);
+        const s = structuredClone(r.world.snapshot);
+        Object.assign(s, {gold: 21, potions: 2, xp: 65});
+        s.party[0].conditions = ['poisoned'];
+        s.party[0].permanentEffects = [{id: 'blessing', bonus: 1}];
+        s.party[0].inventory.push('Подаренная верёвка');
+        r = await f.call('worlds/' + r.world.id, 'PUT', {revision: r.world.revision, snapshot: s});
+        assert.equal(r.status, 200, r.error);
+        r = await f.call('worlds/' + r.world.id + '/finish', 'POST', {revision: r.world.revision});
+        assert.equal(r.status, 200, r.error);
+        const archive = r.world;
+        r = await f.call('worlds', 'POST', {heroId: h.id, generatorVersion: 2, seed: 'clock-tie-new', size: 'small'});
+        assert.equal(r.status, 201, r.error);
+        assert.ok(r.world.createdAt > archive.createdAt, 'Same-ms worlds must have a stable newest order');
+        assert.ok(r.world.updatedAt > archive.updatedAt, 'New worlds supersede the preceding saved checkpoint even without a first save');
+        const newer = structuredClone(r.world.snapshot);
+        Object.assign(newer, {gold: 17, potions: 1, xp: 125});
+        newer.party[0].inventory.push('Вторая верёвка');
+        r = await f.call('worlds/' + r.world.id, 'PUT', {revision: r.world.revision, snapshot: newer});
+        assert.equal(r.status, 200, r.error);
+        const current = r.world;
+        // Existing v64 records can already share timestamps. Keep their
+        // snapshots immutable and order the later chapter deterministically.
+        f.db.prepare('UPDATE worlds SET created_at=? WHERE id=?').run(archive.createdAt, current.id);
+        const listed = (await f.call('worlds?hero_id=' + h.id)).worlds;
+        assert.deepEqual(listed.map(w => w.id), [current.id, archive.id]);
+        assert.equal((await f.call('heroes')).heroes[0].activeWorldId, current.id);
+        const order = deletionOrder === 'old-first' ? [archive, current] : [current, archive];
+        for (const w of order) {
+          assert.equal((await f.call('worlds/' + w.id, 'DELETE', {revision: w.revision})).status, 200);
+          const saved = (await f.call('heroes')).heroes[0];
+          assert.equal(saved.gold, 17, deletionOrder);
+          assert.equal(saved.potions, 1, deletionOrder);
+          assert.equal(saved.xp, 125, deletionOrder);
+          assert.deepEqual(saved.inventory, newer.party[0].inventory, deletionOrder);
+        }
+        r = await f.call('worlds', 'POST', {heroId: h.id, generatorVersion: 2, seed: 'clock-tie-restart', size: 'small'});
+        assert.equal(r.status, 201, r.error);
+        assert.equal(r.world.snapshot.gold, 17);
+        assert.equal(r.world.snapshot.potions, 1);
+        assert.equal(r.world.snapshot.world.chapter, 3);
+        assert.deepEqual(r.world.snapshot.party[0].conditions, ['poisoned']);
+        assert.deepEqual(r.world.snapshot.party[0].permanentEffects, [{id: 'blessing', bonus: 1}]);
+        const live = structuredClone(r.world.snapshot);
+        Object.assign(live, {gold: 12, potions: 0});
+        r = await f.call('worlds/' + r.world.id, 'PUT', {revision: r.world.revision, snapshot: live});
+        assert.equal(r.status, 200, r.error);
+        const currentHero = (await f.call('heroes')).heroes[0];
+        assert.equal(currentHero.gold, 12, 'A saved new world supersedes its earlier deletion checkpoint');
+        assert.equal(currentHero.potions, 0);
+      } finally { f.db.close(); }
+    }
+  } finally { Date.now = originalNow; }
+});
+
+test('delayed creation rejects a completed source superseded by another finished world',async()=>{
+  const f=fixture();let pending, pause;
+  try{
+    const h=await f.hero(), options={heroId:h.id,generatorVersion:2,size:'small'};
+    let r=await f.call('worlds','POST',{...options,seed:'source-cas-old'});
+    assert.equal(r.status,201,r.error);
+    const old=structuredClone(r.world.snapshot);Object.assign(old,{gold:20,potions:2});
+    r=await f.call('worlds/'+r.world.id,'PUT',{revision:r.world.revision,snapshot:old});assert.equal(r.status,200,r.error);
+    r=await f.call('worlds/'+r.world.id+'/finish','POST',{revision:r.world.revision});assert.equal(r.status,200,r.error);
+    const archive=r.world;
+    pause=f.pauseNextRead(sql=>sql.startsWith('SELECT owner FROM player_progress'));
+    pending=f.call('worlds','POST',{...options,seed:'source-cas-delayed'});await pause.observed;
+    r=await f.call('worlds','POST',{...options,seed:'source-cas-new'});assert.equal(r.status,201,r.error);
+    const spent=structuredClone(r.world.snapshot);Object.assign(spent,{gold:5,potions:1});
+    r=await f.call('worlds/'+r.world.id,'PUT',{revision:r.world.revision,snapshot:spent});assert.equal(r.status,200,r.error);
+    r=await f.call('worlds/'+r.world.id+'/finish','POST',{revision:r.world.revision});assert.equal(r.status,200,r.error);
+    const newest=r.world;
+    pause.release();const stale=await pending;
+    assert.equal(stale.status,409,'A stale completed source cannot restore spent hero resources');
+    assert.equal(stale.conflict,true);
+    const worlds=(await f.call('worlds?hero_id='+h.id)).worlds;
+    assert.deepEqual(worlds.map(w=>w.id),[newest.id,archive.id],'Rejected creation inserts no partial world');
+    assert.deepEqual(worlds[0].snapshot,newest.snapshot);
+    const current=(await f.call('heroes')).heroes[0];assert.equal(current.gold,5);assert.equal(current.potions,1);
+  }finally{pause?.release();if(pending)await pending;f.db.close();}
+});
+
+test('delayed creation rejects a hero sheet changed by deleting its source before the latest-world read',async()=>{
+  const f=fixture();let pending, pause;
+  try{
+    const h=await f.hero(), options={heroId:h.id,generatorVersion:2,size:'small'};
+    let r=await f.call('worlds','POST',{...options,seed:'checkpoint-cas-source'});assert.equal(r.status,201,r.error);
+    const earned=structuredClone(r.world.snapshot);Object.assign(earned,{gold:20,potions:2});earned.party[0].inventory.push('Сохранённая верёвка');
+    r=await f.call('worlds/'+r.world.id,'PUT',{revision:r.world.revision,snapshot:earned});assert.equal(r.status,200,r.error);
+    r=await f.call('worlds/'+r.world.id+'/finish','POST',{revision:r.world.revision});assert.equal(r.status,200,r.error);
+    const archive=r.world;
+    pause=f.pauseNextRead(sql=>sql.startsWith('SELECT sheet FROM heroes'));
+    pending=f.call('worlds','POST',{...options,seed:'checkpoint-cas-delayed'});await pause.observed;
+    r=await f.call('worlds/'+archive.id,'DELETE',{revision:archive.revision});assert.equal(r.status,200,r.error);
+    const checkpoint=(await f.call('heroes')).heroes[0];
+    pause.release();const stale=await pending;
+    assert.equal(stale.status,409,'No remaining world must not make a stale starting sheet authoritative');
+    assert.equal(stale.conflict,true);
+    assert.deepEqual((await f.call('worlds?hero_id='+h.id)).worlds,[]);
+    assert.deepEqual((await f.call('heroes')).heroes[0],checkpoint,'Rejected creation preserves the deletion checkpoint');
+    r=await f.call('worlds','POST',{...options,seed:'checkpoint-cas-retry'});assert.equal(r.status,201,r.error);
+    assert.equal(r.world.snapshot.gold,20);assert.equal(r.world.snapshot.potions,2);assert.deepEqual(r.world.snapshot.party[0].inventory,earned.party[0].inventory);
+  }finally{pause?.release();if(pending)await pending;f.db.close();}
+});
+
+test('delayed creation with no previous world rejects a newer hero checkpoint even after that world is deleted',async()=>{
+  const f=fixture();let pending, pause;
+  try{
+    const h=await f.hero(), options={heroId:h.id,generatorVersion:2,size:'small'};
+    pause=f.pauseNextRead(sql=>sql.startsWith('SELECT owner FROM player_progress'));
+    pending=f.call('worlds','POST',{...options,seed:'empty-source-delayed'});await pause.observed;
+    let r=await f.call('worlds','POST',{...options,seed:'empty-source-new'});assert.equal(r.status,201,r.error);
+    const earned=structuredClone(r.world.snapshot);Object.assign(earned,{gold:20,potions:2});
+    r=await f.call('worlds/'+r.world.id,'PUT',{revision:r.world.revision,snapshot:earned});assert.equal(r.status,200,r.error);
+    r=await f.call('worlds/'+r.world.id,'DELETE',{revision:r.world.revision});assert.equal(r.status,200,r.error);
+    const checkpoint=(await f.call('heroes')).heroes[0];
+    pause.release();const stale=await pending;
+    assert.equal(stale.status,409,'An empty source set cannot bypass the observed hero-sheet identity');
+    assert.equal(stale.conflict,true);
+    assert.deepEqual((await f.call('worlds?hero_id='+h.id)).worlds,[]);
+    assert.deepEqual((await f.call('heroes')).heroes[0],checkpoint);
+  }finally{pause?.release();if(pending)await pending;f.db.close();}
 });
 
 test('only a persisted completion owned by the same player authorizes later skip',async()=>{

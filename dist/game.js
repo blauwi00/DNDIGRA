@@ -1418,7 +1418,7 @@
     state.level = a.level;
     state.xp = a.xp;
     state.gold = a.gold;
-    state.potions = 0;
+    state.potions = a.potions ?? 0;
     state.rulesStage = 3;
     state.logs = ["Тестовая комната · " + a.name + ". Здесь можно проверить созданного героя; испытания не меняют его сохранённый стартовый лист."];
     pieces.forEach((el) => el.remove());

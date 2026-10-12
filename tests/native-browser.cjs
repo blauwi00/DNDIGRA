@@ -30,8 +30,9 @@ function verifyNativeProject() {
   assert(spm.includes('.iOS(.v15)'));
   const plist = fs.readFileSync(path.join(root, 'ios/App/App/Info.plist'), 'utf8');
   const phoneOrientations = plist.match(/<key>UISupportedInterfaceOrientations<\/key>\s*<array>([\s\S]*?)<\/array>/)?.[1];
-  assert(phoneOrientations?.includes('UIInterfaceOrientationPortrait'));
-  assert(!phoneOrientations.includes('Landscape'));
+  assert(phoneOrientations?.includes('UIInterfaceOrientationLandscapeLeft'));
+  assert(phoneOrientations?.includes('UIInterfaceOrientationLandscapeRight'));
+  assert(!phoneOrientations.includes('Portrait'));
   const project = fs.readFileSync(path.join(root, 'ios/App/App.xcodeproj/project.pbxproj'), 'utf8');
   assert(project.includes('PRODUCT_BUNDLE_IDENTIFIER = ' + config.appId));
   const targets = [...project.matchAll(/IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);/g)].map(match => match[1]);
@@ -52,7 +53,7 @@ function verifyNativeProject() {
   walk(client);
   assert(copied > 50, 'Game assets were actually copied');
   assert(!fs.existsSync(path.join(packaged, 'qa')), 'QA screenshots are excluded');
-  console.log('PASS native project: matching Capacitor versions, SPM, bundled assets, portrait iPhone, ' + copied + ' copied files');
+  console.log('PASS native project: matching Capacitor versions, SPM, bundled assets, landscape iPhone, ' + copied + ' copied files');
 }
 
 (async () => {
@@ -84,7 +85,7 @@ function verifyNativeProject() {
       executablePath: process.env.CHROME_EXECUTABLE || '/usr/bin/chromium',
       args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...JSON.parse(process.env.CHROMIUM_ARGS || '[]')]
     });
-    const context = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true});
+    const context = await browser.newContext({viewport: {width: 852, height: 393}, isMobile: true, hasTouch: true});
     await context.addInitScript(() => {
       localStorage.setItem('beyond-menu-preferences-explicit', 'true');
       localStorage.setItem('beyond-menu-preferences', JSON.stringify({lights: false, animations: false, grid: false, ambient: .28, intensity: 1}));
@@ -167,7 +168,7 @@ function verifyNativeProject() {
     assert.deepEqual(after.heroes[0].appearance, hero.appearance);
     assert.equal(await page.evaluate(() => document.body.scrollWidth <= innerWidth), true);
     fs.mkdirSync(path.join(root, 'qa'), {recursive: true});
-    await page.screenshot({path: path.join(root, 'qa/native-offline-reload-390.png'), timeout: 60000});
+    await page.screenshot({path: path.join(root, 'qa/native-offline-reload-852.png'), timeout: 60000});
     assert.deepEqual(networkApiRequests, [], 'Local calls never reach browser networking');
     assert.deepEqual(externalRequests, [], 'Bundled offline gameplay loads no external resources');
     assert.deepEqual(errors, [], 'No JavaScript errors in offline creation or resume');

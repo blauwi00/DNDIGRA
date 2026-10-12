@@ -1,5 +1,5 @@
-import { slotsUsed, CAPACITY, handType, focusName } from "./inventory-rules.js";
-import { CLASSES } from "./hero-rules.js";
+import { slotsUsed, CAPACITY } from "./inventory-rules.js";
+import {heroFromSnapshot} from './world-carry.js';
 import {generate} from './location-generator.js';
 import {createWorld,generateScene,isGeneratedId,normalizeGen,SUPPORTED_VERSIONS,randomSeed,validateScene} from './worldgen/world.js';
 import {createTutorial,validateTutorial} from './tutorial-rules.js';
@@ -31,30 +31,19 @@ export function initialWorld(hero, id, chapter, options = {}) {
   if (options.skipTutorial !== undefined && typeof options.skipTutorial !== 'boolean') throw Error('Некорректный выбор обучения.');
   if (options.skipTutorial && !options.tutorialCompleted) throw Error('Сначала пройдите обучение — его можно пропустить в следующем приключении.');
   const a = structuredClone(hero);
-  Object.assign(a, { x: 5, y: 9, facing: 2, move: a.speed, acted: false, bonusUsed: false, reactionUsed: false, concentration: null, conditions: [], death: { success: 0, failure: 0, stable: false } });
+  Object.assign(a, { x: 5, y: 9, facing: 2, move: a.speed, acted: false, bonusUsed: false, reactionUsed: false });
   const seed = new Uint32Array(1);
   crypto.getRandomValues(seed);
   const gen=genMeta({v:options.generatorVersion??3,seed:options.seed===undefined||options.seed===''?randomSeed():options.seed,size:options.size??'auto'}), plan=planFor(gen), startScene=generateScene(plan,plan.start);
   Object.assign(a,{x:startScene.spawns[0][0],y:startScene.spawns[0][1]});
   const title=plan.name;
-  const snapshot = { world: { id, heroId: a.id, title, chapter, discovered: [plan.start], gen }, gen:{}, scene: plan.start, round: 1, combat: false, active: a.id, gold: 0, xp: a.xp, level: a.level, potions: 0, chest: false, relic: false, seed: seed[0], doors: {}, loot: {}, altarClaims: {}, lightFixtures: {}, settings: { lights: true, animations: true, grid: true, ambient: 0.28, intensity: 1 }, party: [a], enemies: [], rolls: [], advantage: 0, order: [], cursor: 0, autoShield: false, rulesStage: 3, logs: ['Новый мир: '+plan.name+'. Зерно: '+gen.seed+'.'] };
+  const snapshot = { world: { id, heroId: a.id, title, chapter, discovered: [plan.start], gen }, gen:{}, scene: plan.start, round: 1, combat: false, active: a.id, gold: a.gold ?? 0, xp: a.xp, level: a.level, potions: a.potions ?? 0, chest: false, relic: false, seed: seed[0], doors: {}, loot: {}, altarClaims: {}, lightFixtures: {}, settings: { lights: true, animations: true, grid: true, ambient: 0.28, intensity: 1 }, party: [a], enemies: [], rolls: [], advantage: 0, order: [], cursor: 0, autoShield: false, rulesStage: 3, logs: ['Новый мир: '+plan.name+'. Зерно: '+gen.seed+'.'] };
   if (gen.v === 3) {
     snapshot.story = {v:1,intro:0,npcWarned:false,npcDeparted:false,clues:[],cleared:[],reachedSettlement:false,reported:false};
     snapshot.tutorial = createTutorial({classId:a.classId,skip:options.skipTutorial,canSkip:!!options.tutorialCompleted});
     snapshot.encounter = null;
   }
   return snapshot;
-}
-function carry(previous) {
-  const s = previous.snapshot, a = structuredClone(s.party[0]), c = CLASSES[a.classId], kit = c.kits[a.kit];
-  a.level = s.level;
-  a.xp = s.xp;
-  a.gold = 0;
-  a.inventory = a.inventory.filter((v) => v === kit.armor || v.startsWith(kit.armor) || a.hands.includes("sword") && handType(v) === "sword" || a.hands.includes("shield") && handType(v) === "shield" || a.hands.includes("staff") && (handType(v) === "staff" || focusName(v)));
-  a.torches = 0;
-  a.hands = a.hands.map((v) => v === "torch" ? "empty" : v);
-  a.torch = false;
-  return a;
 }
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const uniqueKnown = (values, known) => Array.isArray(values) && values.length <= known.size && new Set(values).size === values.length && values.every(v=>typeof v==='string' && known.has(v));
@@ -198,7 +187,7 @@ export async function worldAPI(request, env) {
       }
       const heroId = url.searchParams.get("hero_id");
       if (!heroId) return json({ error: "Выберите героя." }, 400);
-      const rows = await env.DB.prepare("SELECT * FROM worlds WHERE owner = ? AND hero_id = ? ORDER BY created_at DESC").bind(owner, heroId).all();
+      const rows = await env.DB.prepare("SELECT * FROM worlds WHERE owner = ? AND hero_id = ? ORDER BY created_at DESC, json_extract(snapshot, '$.world.chapter') DESC").bind(owner, heroId).all();
       return json({ worlds: rows.results.map(record),tutorialCompleted:await tutorialCompleted(env.DB,owner) });
     }
     const raw = await request.text();
@@ -214,8 +203,8 @@ export async function worldAPI(request, env) {
       const row = await one(env.DB, "SELECT * FROM worlds WHERE id = ? AND owner = ?", id, owner);
       if (!row) return json({ error: "Мир не найден." }, 404);
       if (body.revision !== row.revision) return json({ error: "Мир изменился. Обновите сохранение перед удалением.", conflict: true }, 409);
-      const snap = JSON.parse(row.snapshot), hero = { ...snap.party[0], level: snap.level, xp: snap.xp, gold: snap.gold, checkpointAt: Date.now(), checkpointChapter: snap.world.chapter };
-      const result = await env.DB.batch([env.DB.prepare("UPDATE heroes SET sheet = ? WHERE id = ? AND owner = ? AND (json_extract(sheet, '$.checkpointAt') IS NULL OR json_extract(sheet, '$.checkpointAt') <= ?) AND EXISTS (SELECT 1 FROM worlds WHERE id = ? AND owner = ? AND revision = ?) AND NOT EXISTS (SELECT 1 FROM worlds WHERE hero_id = ? AND owner = ? AND created_at > ?)").bind(JSON.stringify(hero), row.hero_id, owner, row.updated_at, id, owner, row.revision, row.hero_id, owner, row.created_at), env.DB.prepare("DELETE FROM worlds WHERE id = ? AND owner = ? AND revision = ?").bind(id, owner, row.revision)]);
+      const snap = JSON.parse(row.snapshot), hero = { ...heroFromSnapshot(snap), checkpointAt: Math.max(Date.now(), row.updated_at + 1), checkpointChapter: snap.world.chapter };
+      const result = await env.DB.batch([env.DB.prepare("UPDATE heroes SET sheet = ? WHERE id = ? AND owner = ? AND (json_extract(sheet, '$.checkpointAt') IS NULL OR json_extract(sheet, '$.checkpointAt') <= ?) AND EXISTS (SELECT 1 FROM worlds WHERE id = ? AND owner = ? AND revision = ?) AND NOT EXISTS (SELECT 1 FROM worlds WHERE hero_id = ? AND owner = ? AND (created_at > ? OR (created_at = ? AND json_extract(snapshot, '$.world.chapter') > ?)))").bind(JSON.stringify(hero), row.hero_id, owner, row.updated_at, id, owner, row.revision, row.hero_id, owner, row.created_at, row.created_at, snap.world.chapter), env.DB.prepare("DELETE FROM worlds WHERE id = ? AND owner = ? AND revision = ?").bind(id, owner, row.revision)]);
       if (!result[1].meta?.changes) return json({ error: "Мир изменился. Обновите список.", conflict: true }, 409);
       return json({ deleted: true });
     }
@@ -224,21 +213,33 @@ export async function worldAPI(request, env) {
       if (!h) return json({ error: "Герой не найден." }, 404);
       const active = await one(env.DB, "SELECT * FROM worlds WHERE hero_id = ? AND status = 'active'", body.heroId);
       if (active) return json({ error: "Герой уже проходит другой мир. Продолжите его историю.", world: record(active) }, 409);
-      const latest = await one(env.DB, "SELECT * FROM worlds WHERE hero_id = ? AND owner = ? ORDER BY created_at DESC LIMIT 1", body.heroId, owner), previous = latest ? record(latest) : null;
-      if (previous && !(JSON.parse(h.sheet).checkpointAt > previous.updatedAt) && previous.snapshot.gold > 0 && !body.leaveGold) return json({ error: "Лимит переноса золота ещё не настроен. Можно пока оставить всё золото в архиве завершённого мира.", transferPending: true }, 409);
+      const latest = await one(env.DB, "SELECT * FROM worlds WHERE hero_id = ? AND owner = ? ORDER BY created_at DESC, json_extract(snapshot, '$.world.chapter') DESC LIMIT 1", body.heroId, owner), previous = latest ? record(latest) : null;
       const base = JSON.parse(h.sheet), checkpointNewer = base.checkpointAt > (previous?.updatedAt || 0);
-      const hero = checkpointNewer ? base : previous ? carry(previous) : base;
+      const hero = checkpointNewer ? base : previous ? heroFromSnapshot(previous.snapshot) : base;
       if (hero.dead || hero.hp <= 0) return json({ error: "Этот герой не может начать новый мир." }, 409);
       const worldId=crypto.randomUUID();let snapshot;
       const completed=await tutorialCompleted(env.DB,owner);
-      try{snapshot=initialWorld(hero,worldId,Math.max(previous?.snapshot.world.chapter||0,hero.checkpointChapter||0)+1,{...body,tutorialCompleted:!!completed});}catch(e){return json({error:e.message},400);}const now=Date.now();
+      try{snapshot=initialWorld(hero,worldId,Math.max(previous?.snapshot.world.chapter||0,hero.checkpointChapter||0)+1,{...body,tutorialCompleted:!!completed});}catch(e){return json({error:e.message},400);}const now=Date.now(),createdAt=Math.max(now,(previous?.createdAt||0)+1),updatedAt=Math.max(createdAt,(previous?.updatedAt||0)+1,(base.checkpointAt||0)+1);
       try {
-        await env.DB.prepare("INSERT INTO worlds (id, hero_id, owner, status, snapshot, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(worldId, body.heroId, owner, "active", JSON.stringify(snapshot), 1, now, now).run();
+        // Commit only while both observed sources still describe the current
+        // hero. The active-world index alone cannot detect a newer world that
+        // was finished or deleted during generation.
+        const result=await env.DB.prepare(`INSERT INTO worlds (id, hero_id, owner, status, snapshot, revision, created_at, updated_at)
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?
+          WHERE EXISTS (SELECT 1 FROM heroes WHERE id = ? AND owner = ? AND sheet = ?)
+            AND NOT EXISTS (SELECT 1 FROM worlds WHERE hero_id = ? AND status = 'active')
+            AND ((? IS NULL AND NOT EXISTS (SELECT 1 FROM worlds WHERE hero_id = ? AND owner = ?))
+              OR EXISTS (SELECT 1 FROM worlds WHERE id = ? AND hero_id = ? AND owner = ? AND revision = ? AND status = ?
+                AND id = (SELECT id FROM worlds WHERE hero_id = ? AND owner = ? ORDER BY created_at DESC, json_extract(snapshot, '$.world.chapter') DESC LIMIT 1)))`)
+          .bind(worldId,body.heroId,owner,"active",JSON.stringify(snapshot),1,createdAt,updatedAt,
+            body.heroId,owner,h.sheet,body.heroId,previous?.id??null,body.heroId,owner,
+            previous?.id??null,body.heroId,owner,previous?.revision??null,previous?.status??null,body.heroId,owner).run();
+        if(!result.meta?.changes)return json({error:"Сохранение героя изменилось. Обновите список миров.",conflict:true},409);
       } catch (e) {
         if (String(e).includes("UNIQUE")) return json({ error: "Мир уже создан. Обновите список." }, 409);
         throw e;
       }
-      return json({ world: { id: worldId, heroId: body.heroId, status: "active", snapshot, revision: 1, createdAt: now, updatedAt: now, ...generatedData(snapshot) } }, 201);
+      return json({ world: { id: worldId, heroId: body.heroId, status: "active", snapshot, revision: 1, createdAt, updatedAt, ...generatedData(snapshot) } }, 201);
     }
     if (id && (request.method === "PUT" || request.method === "POST" && parts[3] === "finish")) {
       const row = await one(env.DB, "SELECT * FROM worlds WHERE id = ? AND owner = ?", id, owner);
@@ -254,7 +255,7 @@ export async function worldAPI(request, env) {
       }
       const finish = parts[3] === "finish";
       if (finish && !canFinishWorld(snapshot)) return json({ error: "Сначала завершите историю, обучение и бой." }, 400);
-      const now=Date.now(),save=env.DB.prepare("UPDATE worlds SET snapshot = ?, revision = revision + 1, status = ?, updated_at = ? WHERE id = ? AND owner = ? AND revision = ? AND status = ?").bind(JSON.stringify(snapshot),finish?'completed':'active',now,id,owner,body.revision,'active');
+      const now=Math.max(Date.now(),row.updated_at+1),save=env.DB.prepare("UPDATE worlds SET snapshot = ?, revision = revision + 1, status = ?, updated_at = ? WHERE id = ? AND owner = ? AND revision = ? AND status = ?").bind(JSON.stringify(snapshot),finish?'completed':'active',now,id,owner,body.revision,'active');
       let result;
       if(snapshot.world?.gen?.v===3&&snapshot.tutorial?.completed&&snapshot.tutorial.mode==='campaign'){
         const progress=env.DB.prepare("INSERT INTO player_progress (owner, tutorial_version, updated_at) SELECT ?, 1, ? WHERE EXISTS (SELECT 1 FROM worlds WHERE id = ? AND owner = ? AND revision = ? AND json_extract(snapshot, '$.tutorial.completed') = 1 AND json_extract(snapshot, '$.tutorial.mode') = 'campaign') ON CONFLICT(owner) DO UPDATE SET tutorial_version = MAX(player_progress.tutorial_version, excluded.tutorial_version), updated_at = excluded.updated_at").bind(owner,now,id,owner,row.revision+1);
