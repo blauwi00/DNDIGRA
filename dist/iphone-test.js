@@ -1,5 +1,7 @@
 (() => {
  'use strict';
+ // Performance tools are opt-in so their overlay never blocks game controls.
+ if(new URLSearchParams(location.search).get('qa')!=='1')return;
  const panel=document.createElement('details');panel.id='iphone-test';
  panel.innerHTML='<summary>Тест · FPS <span id="test-fps">—</span></summary><div class="test-tools"><b>Тестовая копия с текселями</b><p>Здесь отдельные сохранения. Основная игра не меняется.</p><button id="test-start">Замер карты · 10 секунд</button><button id="test-locations">Таверна · генератор локаций</button><button id="test-editor">Проверить внешность</button><p id="test-result" role="status">Открой карту и запусти замер.</p><button id="test-copy" disabled>Скопировать результат</button><textarea id="test-report" aria-label="Результат проверки" readonly hidden></textarea></div>';
  document.body.append(panel);

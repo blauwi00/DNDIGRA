@@ -1,3 +1,4 @@
+const {configureBrowserPage}=require('./browser-harness.cjs');
 // Real Worker API + SQLite + browser: no mocked world creation or saves.
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
@@ -8,6 +9,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   for(const f of fs.readdirSync(path.join(__dirname,'../drizzle')).filter(f=>f.endsWith('.sql')).sort())db.exec(fs.readFileSync(path.join(__dirname,'../drizzle',f),'utf8'));
   const DB={async batch(qs){db.exec('BEGIN');try{const a=[];for(const q of qs)a.push(await q.run());db.exec('COMMIT');return a;}catch(e){db.exec('ROLLBACK');throw e;}},prepare(sql){const q=db.prepare(sql);return{bind(...args){return{all:async()=>({results:q.all(...args)}),run:async()=>({meta:{changes:q.run(...args).changes}})}}}}};
   const server=http.createServer(async(q,r)=>{try{
+    if(q.url.split('?')[0]==='/favicon.ico'){r.statusCode=204;return r.end();}
     if(q.url.startsWith('/api/')){
       const chunks=[];if(!['GET','HEAD'].includes(q.method))for await(const chunk of q)chunks.push(chunk);
       const response=await worker.fetch(new Request('http://127.0.0.1:'+server.address().port+q.url,{method:q.method,headers:{...q.headers,'oai-authenticated-user-id':'qa-owner'},body:['GET','HEAD'].includes(q.method)?undefined:Buffer.concat(chunks)}),{DB});
@@ -19,13 +21,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
   try{
     browser=await chromium.launch({executablePath:process.env.CHROME_EXECUTABLE,args:[...JSON.parse(process.env.CHROMIUM_ARGS||'[]'),'--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>{console.error('PAGEERROR',e.message);errors.push(e.message)});page.on('console',m=>console.log('BROWSER',m.text()));page.on('requestfailed',r=>console.error('FAILED',r.url(),r.failure()));
-    await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.voxel?.ready);
+    const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const errors=[];await configureBrowserPage(page);page.on('pageerror',e=>{console.error('PAGEERROR',e.message);errors.push(e.message)});page.on('response',r=>{if(r.status()>=400)console.log('HTTP_STATUS',r.status(),r.url());});page.on('console',m=>console.log('BROWSER',m.text()));page.on('requestfailed',r=>console.error('FAILED',r.url(),r.failure()));
+    await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready);
     await page.evaluate(async()=>{
       document.querySelectorAll('dialog').forEach(d=>d.close());
       const draft={name:'Regression',classId:'fighter',stats:HeroRules.preset('fighter'),appearance:Characters.defaultLook('fighter','male'),kit:0,background:HeroRules.background('fighter',()=>0)};
       const {hero}=await (await fetch('/api/heroes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(draft)})).json();
-      const {world}=await (await fetch('/api/worlds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({heroId:hero.id,seed:'sxq4hzc5',size:'auto'})})).json();
+      const {world}=await (await fetch('/api/worlds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({heroId:hero.id,seed:'sxq4hzc5',size:'auto',generatorVersion:2})})).json();
       Worlds.attach(world);gameDebug.state.settings.animations=false;
       for(const id of ['town',GeneratedWorlds.plan.buildings.find(b=>b.type==='tavern').id]){
         await GeneratedWorlds.ensure(id);

@@ -3,14 +3,25 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "preview": "node scripts/preview.mjs",
+    "test": "npm run build && node tests/run-logic.mjs",
+    "test:local": "node --test tests/local-api.mjs",
+    "ios:add": "cap add ios --packagemanager SPM",
+    "ios:copy": "npm run build && cap copy ios",
+    "ios:sync": "npm run build && cap sync ios",
+    "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.5",
-    "esbuild": "0.25.12"
+    "esbuild": "0.25.12",
+    "fake-indexeddb": "6.2.5"
   }
 }

@@ -3,3 +3,4 @@ export { CATALOG } from './furnish.js';
 export { lootText, lootSentence, rollLoot, plural } from './content.js';
 export * as Runtime from './runtime.js';
 export { SURFACES, SURFACE_BY_CODE, WALL_STYLES, surfaceColor, wallColor } from './surfaces.js';
+export { STORY_IDS } from './adventure-content.js';

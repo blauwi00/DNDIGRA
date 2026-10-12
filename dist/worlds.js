@@ -1,7 +1,9 @@
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id), g = () => window.gameDebug;
+  const resumeKey = window.NativeRuntime?.offline ? 'dndigra-local-last-world-id' : 'last-world-id';
   let current = null, pending = null, inflight = null, timer = null, failed = false, conflict = false, leaving = false, lastSaved = "", serial = 0, atMenu = false;
+  let practice = null;
   function button(text, fn, cls = "") {
     const b = document.createElement("button");
     b.textContent = text;
@@ -34,6 +36,7 @@
     b.onclick = open;
   }
   function capture() {
+    if (practice) return;
     if (!current || current.status !== "active" || leaving) return;
     const snap = JSON.stringify(g().state);
     if (snap === lastSaved || snap === pending) return;
@@ -43,6 +46,7 @@
     timer = setTimeout(() => flush(), 450);
   }
   async function flush() {
+    if (practice) return true;
     clearTimeout(timer);
     if (inflight) return inflight;
     if (conflict) return false;
@@ -81,6 +85,7 @@
     }
   }
   async function exitToMenu() {
+    if (practice) await endPractice();
     if (g().moving || g().busy && !window.Worlds.locked || window.HUD?.pending) {
       message("Дождитесь завершения текущего действия.");
       return;
@@ -107,6 +112,7 @@
     render();
   }
   function attach(record) {
+    practice = null;
     window.CinematicMenu?.play();
     atMenu = false;
     document.body.classList.toggle("at-main-menu", false);
@@ -124,12 +130,16 @@
     badge(record.status === "completed" ? "Архив · мир завершён" : "Мир сохранён");
     render();
     try {
-      localStorage.setItem("last-world-id", record.id);
+      localStorage.setItem(resumeKey, record.id);
     } catch {
     }
     window.viewsDebug.switchTab("map");
   }
   async function prepareLeave() {
+    if (practice) {
+      message("Сначала закончите практику или вернитесь из неё в своё приключение.");
+      return false;
+    }
     if (atMenu) return true;
     if (g().moving || g().busy && !window.Worlds.locked || g().state.combat) {
       message("Сначала завершите движение или бой. Мир можно закрыть и продолжить позже.");
@@ -169,18 +179,18 @@
     $("heroes-panel").close();
     d.showModal();
     try {
-      const { worlds } = await api("?hero_id=" + encodeURIComponent(h.id));
-      paintChoice(h, worlds);
+      const { worlds, tutorialCompleted } = await api("?hero_id=" + encodeURIComponent(h.id));
+      paintChoice(h, worlds, !!tutorialCompleted);
     } catch (e) {
       $("modal-body").textContent = e.message;
       $("modal-body").append(button("Повторить", () => choose(h)));
     }
   }
-  function paintChoice(h, worlds) {
+  function paintChoice(h, worlds, tutorialCompleted = false) {
     const body = $("modal-body");
     body.replaceChildren();
     const active = worlds.find((w) => w.status === "active"), p = document.createElement("p");
-    p.textContent = active ? "Продолжение загрузит тот же мир и сохранённый прогресс." : "Выберите зерно и размер нового мира. Пустое зерно создаст случайный мир.";
+    p.textContent = active ? "Продолжение загрузит тот же мир и сохранённый прогресс." : "Новый путь начинается на опушке. История, жители и находки будут связаны одной проблемой.";
     body.append(p);
     if (active) {
       const b = button("Продолжить · " + active.snapshot.world.title, async () => {
@@ -193,7 +203,7 @@
         }
       }, "gold");
       body.append(b, button("Удалить этот мир", () => removeWorld(h, active), "danger"));
-    } else body.append(button("Начать мир", () => newWorld(h, worlds), "gold"));
+    } else body.append(button("Начать мир", () => newWorld(h, worlds, tutorialCompleted), "gold"));
     for (const w of worlds.filter((w2) => w2.status === "completed")) {
       const details = document.createElement("details"), summary = document.createElement("summary");
       summary.textContent = "Мир " + w.snapshot.world.chapter + " · " + w.snapshot.world.title + " · завершён";
@@ -239,12 +249,16 @@
       }
     }, "danger"));
   }
-  function newWorld(h,worlds){
+  function newWorld(h,worlds,tutorialCompleted=false){
     const body=$('modal-body');body.replaceChildren();$('modal-title').textContent='Новый мир';
     const form=document.createElement('div');form.className='world-gen-options';
     const label=document.createElement('label');label.textContent='Зерно';const seed=document.createElement('input');seed.id='world-seed';seed.maxLength=128;seed.placeholder='Пусто — случайный мир';label.append(seed);
     const sizeLabel=document.createElement('label');sizeLabel.textContent='Размер';const size=document.createElement('select');size.id='world-size';for(const [value,text]of [['auto','Авто'],['small','Малый'],['medium','Средний'],['large','Большой']])size.add(new Option(text,value));sizeLabel.append(size);
-    form.append(label,sizeLabel);const launch=button('Создать мир',async()=>{launch.disabled=true;try{await create(h,worlds,false,{seed:seed.value.trim(),size:size.value});}finally{launch.disabled=false;}},'gold');body.append(form,launch);if(!$('modal').open)$('modal').showModal();
+    const note=document.createElement('p');note.textContent='Три возможные истории: тревожный туман, пропавшие путники или повреждённая печать. Зерно определяет историю и облик мест.';
+    const skipLabel=document.createElement('label'),skip=document.createElement('input');skip.type='checkbox';skip.id='skip-tutorial';
+    const canSkip=tutorialCompleted||!!window.Tutorial?.canSkip?.()||worlds.some(w=>w.snapshot?.tutorial?.completed);skip.disabled=!canSkip;
+    skipLabel.className='tutorial-skip';skipLabel.append(skip,document.createTextNode(canSkip?'Пропустить уже пройденное обучение':'Первое обучение обязательно; затем его можно пропускать'));
+    form.append(label,sizeLabel,skipLabel);const launch=button('Создать мир',async()=>{launch.disabled=true;try{await create(h,worlds,false,{seed:seed.value.trim(),size:size.value,skipTutorial:skip.checked});}finally{launch.disabled=false;}},'gold');body.append(note,form,launch);if(!$('modal').open)$('modal').showModal();
   }
   async function create(h, worlds, leaveGold = false, options = {}) {
     const latest = worlds[0];
@@ -265,6 +279,7 @@
     }
   }
   async function finish() {
+    if (practice) return;
     if (!current || current.status !== "active" || g().busy || g().state.combat) return;
     capture();
     if (!await flush()) return;
@@ -290,6 +305,11 @@
     }
   }
   function open() {
+    if(practice){
+      const body=$("modal-body");$("modal-title").textContent="Учебная практика";body.replaceChildren();
+      const p=document.createElement('p');p.textContent='Вещи, здоровье и опыт основного приключения сохраняются отдельно.';
+      body.append(p,button('Вернуться в приключение',async()=>{await endPractice();$('modal').close();}));$('modal').showModal();return;
+    }
     if (!current) return window.Heroes.open();
     const body = $("modal-body");
     $("modal-title").textContent = current.snapshot.world.title;
@@ -309,7 +329,7 @@
         $("modal").close();
         finish();
       }, "gold");
-      b.disabled = !g().state.procedural && !g().state.world?.gen && g().state.episode?.stage !== "done" || g().state.combat || g().busy;
+      b.disabled = !g().state.procedural && !g().state.world?.gen && g().state.episode?.stage !== "done" || g().state.world?.gen?.v===3&&!g().state.story?.reported || g().state.combat || g().busy;
       body.append(b);
     }
     if(g().state.world?.gen){const seed=document.createElement('p');seed.className='world-seed';seed.textContent='Зерно: '+g().state.world.gen.seed+' · Размер: '+g().state.world.gen.size;body.append(seed,button('Скопировать зерно',async()=>{try{await navigator.clipboard.writeText(g().state.world.gen.seed);}catch{g().tell('Зерно: '+g().state.world.gen.seed);}}));}
@@ -332,8 +352,9 @@
     viewsDebug.switchTab("test");
   }
   function render() {
-    document.body.classList.toggle("playing-world", !!current);
-    document.body.classList.toggle("world-locked", !!current && (current.status !== "active" || conflict));
+    document.body.classList.toggle("playing-world", !!current || !!practice);
+    document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict));
+    if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+' · Учебная практика';if($("world-save"))$("world-save").hidden=true;return;}
     if (!current) return;
     const s = g().state;
     if (s.world && !s.world.discovered.includes(s.scene)) s.world.discovered.push(s.scene);
@@ -360,15 +381,45 @@
   }
   async function resume(){
     if(current){atMenu=false;document.body.classList.remove('at-main-menu');window.CinematicMenu?.play();window.viewsDebug.switchTab('map');return;}
-    const id=localStorage.getItem('last-world-id');if(!id)throw Error('Сначала создайте героя и мир.');
+    const id=localStorage.getItem(resumeKey);if(!id)throw Error('Сначала создайте героя и мир.');
     const {world}=await api('/'+encodeURIComponent(id));attach(world);
   }
-  window.Worlds = { resume, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get atMenu() {
+  async function startPractice(){
+    if(practice)return true;
+    if(g().moving||g().actionBusy||g().state.combat||window.HUD?.pending)throw Error('Дождитесь завершения действия или боя.');
+    const hero=structuredClone(g().active());
+    if(!hero.confirmed)throw Error('Создайте героя, чтобы пройти обучение с его классом и внешностью.');
+    if(current?.status==='active'){capture();if(!await flush())throw Error('Сначала сохраните текущее приключение.');}
+    if(practice)return true;
+    if(g().moving||g().actionBusy||g().state.combat||window.HUD?.pending)throw Error('Дождитесь завершения действия или боя.');
+    if(!window.LocalAPI?.initialWorld)throw Error('Обучение пока недоступно. Обновите игру.');
+    const snapshot=window.LocalAPI.initialWorld(hero,'practice-'+window.LocalAPI.randomUUID(),1,{seed:'practice-'+hero.id,size:'small',generatorVersion:3,tutorialCompleted:false});
+    snapshot.story.intro=3;snapshot.story.npcWarned=true;snapshot.story.npcDeparted=true;
+    if(window.TutorialRules?.createTutorial)snapshot.tutorial=window.TutorialRules.createTutorial({classId:hero.classId,mode:'practice'});
+    else snapshot.tutorial.mode='practice';
+    const a=snapshot.party[0];a.hp=a.max;a.dead=false;a.slots=a.maxSlots;a.secondWind=a.maxSecondWind;
+    practice={state:structuredClone(g().state),current,pending,lastSaved,failed,conflict,atMenu};
+    clearTimeout(timer);atMenu=false;leaving=true;
+    try{document.querySelectorAll('dialog[open]').forEach(d=>d.close());window.CinematicMenu?.play();document.body.classList.remove('at-main-menu');g().loadWorld(snapshot);window.viewsDebug.switchTab('map');}
+    catch(e){const original=practice;practice=null;current=original.current;atMenu=original.atMenu;g().loadWorld(original.state);throw e;}
+    finally{leaving=false;}
+    render();return true;
+  }
+  async function endPractice(){
+    if(!practice)return true;
+    if(g().moving||g().actionBusy||window.HUD?.pending)throw Error('Дождитесь завершения действия.');
+    const original=practice;practice=null;leaving=true;
+    current=original.current;pending=original.pending;lastSaved=original.lastSaved;failed=original.failed;conflict=original.conflict;atMenu=original.atMenu;
+    try{if(current)window.GeneratedWorlds?.prime(current);g().loadWorld(original.state);document.body.classList.toggle('at-main-menu',atMenu);if(atMenu)window.CinematicMenu?.open();else window.CinematicMenu?.play();window.viewsDebug.switchTab('map');}
+    finally{leaving=false;}
+    badge(current?'Мир сохранён':'');render();return true;
+  }
+  window.Worlds = { resume, resumeKey, startPractice, endPractice, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get atMenu() {
     return atMenu;
   }, get current() {
     return current;
   }, get locked() {
-    return atMenu || !!current && (current.status !== "active" || conflict);
+    return atMenu || !practice && !!current && (current.status !== "active" || conflict);
   }, get pending() {
     return pending;
   }, get saving() {
