@@ -1,12 +1,6 @@
 ## Stone atlas · 2026-10-09
 Owner approved connecting the existing terrain-materials.png atlas to stone floors/walls only. src/stone-atlas.js selects bounded deterministic variants, shares the source image, keeps opaque fallback on load failure and uses lit MeshStandardMaterial. Non-stone surfaces, props, characters, generators and saves are unchanged. src/voxel.js retains instanced terrain batches; dist/voxel.js is generated. tests/stone-atlas.mjs covers selection, UV bounds, loading and material caching. Browser/device visual QA is unavailable in this managed session; no visual acceptance claim. This paragraph records the separate v63 delivery. The subsequent region integration has local Chromium checks recorded in docs/VERIFICATION.md; physical device validation remains outstanding.
 
-# Current publication · 2026-10-09
-Owner requested immediate publication of the reviewed first streamed-region stage to this existing Site appgprj_6abd85e3189481919bbcd8003341cb45. This Site source repository uses its own main branch; GitHub main is unchanged. Preserve the existing audience, DB, all migration bytes and local save key beyond-voxel-dnd-1. No test player data is imported. The FPS script is not loaded. The temporary region walk does not replace saved adventures or change generator versions. This explicit instruction supersedes historical no-publication notes for this delivery.
-
-## MAIN promotion · 2026-10-07
-Owner requested promoting the tested Site v14 to the main project. Current checkout is MAIN appgprj_6abd85e3189481919bbcd8003341cb45, not the test copy. Preserve existing D1 DB, migrations, audience and local storage key beyond-voxel-dnd-1. Test data is not transferred. The test FPS panel is not loaded. Tested gameplay/model/UI source comes from b1884b7695b123c9e5709356ce10e2cd7d130292; main source history is retained. Earlier test-only/no-main statements below are historical and superseded by this explicit request.
-
 ## Streamed outdoor region · 2026-10-09
 Current work is on `feat/region-streaming`. Owner explicitly requested direct publication to the existing Site after checks; this overrides earlier no-publish task notes. Do not merge GitHub main or change the Site audience.
 

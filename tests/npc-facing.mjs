@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {npcFacing,faceCell} from '../src/npc-facing.js';
 import {spec,build,defaultLook,CLASS_KIND} from '../src/characters.js';
+import {createIsland} from '../src/islands/terrain.js';
+import {tileAt} from '../src/islands/scene.js';
 const scene={id:'room',tiles:Array.from({length:20},()=>Array(20).fill('floor')),props:Array.from({length:8},(_,i)=>({id:'npc'+i,type:'npc',x:1+2*i,y:5}))};
 const snapshot=JSON.stringify(scene),directions=scene.props.map(p=>npcFacing(scene,p,'seed'));
 assert.equal(new Set(directions).size,4,'NPCs use all four directions in an open room');
@@ -16,4 +18,11 @@ for(const cls of Object.keys(CLASS_KIND))for(const gender of ['male','female']){
  assert.equal(boxes.some(b=>Math.abs(b[0])<1e-8&&Math.abs(b[1]-.845)<1e-8&&Math.abs(b[2]-.226)<.001&&b[3]<.05&&b[4]<.06),false,'No nose geometry');
  assert.ok(boxes.some(b=>b[2]>.23&&b[1]<.84&&b[1]>.75),'Mouth remains expressive');
 }
-console.log('PASS flat faces, varied stable NPC poses, open-floor direction and four-way conversation facing');
+const island=createIsland('npc-compact-facing',600),[x,y]=island.landmarks.port;
+const coastalNpc={id:'captain',type:'npc',x,y};
+const compact={id:'island',W:island.W,H:island.H,island,props:[coastalNpc]};
+const facing=npcFacing(compact,coastalNpc,'compact');
+const [dx,dy]=[[0,1],[1,0],[0,-1],[-1,0]][facing];
+assert.equal(tileAt(compact,x+dx,y+dy),'floor','An island NPC faces a dry approach without allocating a tile grid');
+assert.equal(npcFacing(JSON.parse(JSON.stringify(compact)),coastalNpc,'compact'),facing,'Compact NPC pose survives serialization');
+console.log('PASS flat faces, stable legacy/compact NPC poses, dry-floor direction and four-way conversation facing');

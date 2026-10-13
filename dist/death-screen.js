@@ -15,9 +15,10 @@
     rolling=true;close();
     try{
       const r=DND.death(a);if(!r)return;
-      if(a.hp>0)a.conditions=a.conditions.filter(c=>c!=='unconscious');
+      if(a.hp>0){a.conditions=a.conditions.filter(c=>c!=='unconscious');g.normalizeRecoveredEncounter?.();}
       g.tell(r.text);g.save();
       await window.HUD?.check({...r,sides:20,total:r.natural,expression:'d20',outcome:a.dead?'Герой погиб':a.hp?'Вы пришли в сознание':a.death.stable?'Состояние стабильно':'Успехи '+a.death.success+'/3 · провалы '+a.death.failure+'/3'},'Спасбросок от смерти');
+      if(a.hp>0&&g.state.combat&&g.state.encounter&&!g.state.encounter.tutorial)await g.resumeEncounter?.();
     }finally{rolling=false;g.render();}
   }
   async function exit(){

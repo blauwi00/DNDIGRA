@@ -1,5 +1,5 @@
-import {sheet, pointsUsed, POINT_BUDGET, CLASSES} from './hero-rules.js';
-import {handType, focusName} from './inventory-rules.js';
+import {sheet, pointsUsed, POINT_BUDGET} from './hero-rules.js';
+import {heroFromSnapshot} from './world-carry.js';
 import {initialWorld, validateWorldSnapshot, canFinishWorld} from './world-api.js';
 import {createWorld, generateScene} from './worldgen/world.js';
 
@@ -19,21 +19,14 @@ export function randomUUID(cryptography = globalThis.crypto) {
 const json = (data, status = 200) => new Response(JSON.stringify(data), {status, headers: {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}});
 const result = (data, status = 200) => ({data, status});
 const error = (message, status = 400, extra = {}) => result({error: message, ...extra}, status);
-const latestWorld = (profile, heroId) => profile.worlds.filter(w => w.heroId === heroId).sort((a, b) => b.createdAt - a.createdAt)[0];
+const worldOrder = (a, b) => b.createdAt - a.createdAt || (b.snapshot.world.chapter || 0) - (a.snapshot.world.chapter || 0);
+const latestWorld = (profile, heroId) => profile.worlds.filter(w => w.heroId === heroId).sort(worldOrder)[0];
 const freshProfile = () => ({v: 1, heroes: [], worlds: [], tutorialCompleted: false});
 
 function generatedData(snapshot) {
   if (!snapshot.world?.gen) return {};
   const gen = snapshot.world.gen, plan = createWorld(gen.seed, gen.size, gen.v);
   return {generated: {plan, scene: generateScene(plan, snapshot.scene)}};
-}
-
-function carry(previous) {
-  const s = previous.snapshot, a = structuredClone(s.party[0]), kit = CLASSES[a.classId].kits[a.kit];
-  Object.assign(a, {level: s.level, xp: s.xp, gold: 0, torches: 0, torch: false});
-  a.inventory = a.inventory.filter(v => v === kit.armor || v.startsWith(kit.armor) || a.hands.includes('sword') && handType(v) === 'sword' || a.hands.includes('shield') && handType(v) === 'shield' || a.hands.includes('staff') && (handType(v) === 'staff' || focusName(v)));
-  a.hands = a.hands.map(v => v === 'torch' ? 'empty' : v);
-  return a;
 }
 
 function route(profile, url, method, body, cryptography) {
@@ -47,7 +40,7 @@ function route(profile, url, method, body, cryptography) {
     if (method === 'GET' && !id) return result({heroes: profile.heroes.map(h => {
       const w = latestWorld(profile, h.id);
       if (!w) return h;
-      const current = h.checkpointAt > w.updatedAt ? h : {...w.snapshot.party[0], level: w.snapshot.level, xp: w.snapshot.xp, gold: w.snapshot.gold};
+      const current = h.checkpointAt > w.updatedAt ? h : heroFromSnapshot(w.snapshot);
       return {...current, worldStatus: w.status, activeWorldId: w.status === 'active' ? w.id : null};
     }), tutorialCompleted: !!profile.tutorialCompleted || profile.worlds.some(w => w.snapshot.tutorial?.mode === 'campaign' && w.snapshot.tutorial.completed === true)});
     if (method === 'POST' && !id) {
@@ -84,7 +77,7 @@ function route(profile, url, method, body, cryptography) {
     }
     const heroId = url.searchParams.get('hero_id');
     if (!heroId) return error('Выберите героя.');
-    return result({worlds: profile.worlds.filter(w => w.heroId === heroId).sort((a, b) => b.createdAt - a.createdAt), tutorialCompleted: !!profile.tutorialCompleted || profile.worlds.some(w => w.snapshot.tutorial?.mode === 'campaign' && w.snapshot.tutorial.completed === true)});
+    return result({worlds: profile.worlds.filter(w => w.heroId === heroId).sort(worldOrder), tutorialCompleted: !!profile.tutorialCompleted || profile.worlds.some(w => w.snapshot.tutorial?.mode === 'campaign' && w.snapshot.tutorial.completed === true)});
   }
 
   if (method === 'POST' && !id) {
@@ -93,8 +86,7 @@ function route(profile, url, method, body, cryptography) {
     const active = profile.worlds.find(w => w.heroId === base.id && w.status === 'active');
     if (active) return error('Герой уже проходит другой мир. Продолжите его историю.', 409, {world: active});
     const previous = latestWorld(profile, base.id), checkpointNewer = base.checkpointAt > (previous?.updatedAt || 0);
-    if (previous && !checkpointNewer && previous.snapshot.gold > 0 && !body.leaveGold) return error('Можно пока оставить золото в архиве завершённого мира.', 409, {transferPending: true});
-    const hero = checkpointNewer || !previous ? base : carry(previous);
+    const hero = checkpointNewer || !previous ? base : heroFromSnapshot(previous.snapshot);
     if (hero.dead || hero.hp <= 0) return error('Этот герой не может начать новый мир.', 409);
     const tutorialCompleted = !!profile.tutorialCompleted || profile.worlds.some(w => w.snapshot.tutorial?.mode === 'campaign' && w.snapshot.tutorial.completed === true);
     let snapshot;
@@ -102,7 +94,7 @@ function route(profile, url, method, body, cryptography) {
     try { snapshot = initialWorld(hero, worldId, Math.max(previous?.snapshot.world.chapter || 0, hero.checkpointChapter || 0) + 1, {seed: body.seed, size: body.size, generatorVersion: body.generatorVersion, skipTutorial: body.skipTutorial, tutorialCompleted}); }
     catch (e) { return error(e.message); }
     const now = Date.now(), createdAt = Math.max(now, ...profile.worlds.map(w => w.createdAt + 1));
-    const record = {id: worldId, heroId: hero.id, status: 'active', revision: 1, createdAt, updatedAt: now, snapshot};
+    const record = {id: worldId, heroId: hero.id, status: 'active', revision: 1, createdAt, updatedAt: Math.max(createdAt, (previous?.updatedAt || 0) + 1, (base.checkpointAt || 0) + 1), snapshot};
     profile.worlds.push(record);
     return result({world: {...record, ...generatedData(snapshot)}}, 201);
   }
@@ -112,7 +104,7 @@ function route(profile, url, method, body, cryptography) {
     if (body?.revision !== world.revision) return error('Мир изменился. Обновите сохранение перед удалением.', 409, {conflict: true});
     const base = profile.heroes.find(h => h.id === world.heroId), s = world.snapshot;
     if (base && latestWorld(profile, base.id)?.id === world.id && !(base.checkpointAt > world.updatedAt)) {
-      const checkpoint = {...s.party[0], level: s.level, xp: s.xp, gold: s.gold, checkpointAt: Math.max(Date.now(), world.updatedAt + 1), checkpointChapter: s.world.chapter};
+      const checkpoint = {...heroFromSnapshot(s), checkpointAt: Math.max(Date.now(), world.updatedAt + 1), checkpointChapter: s.world.chapter};
       profile.heroes[profile.heroes.indexOf(base)] = checkpoint;
     }
     profile.worlds = profile.worlds.filter(w => w.id !== id);
@@ -127,7 +119,7 @@ function route(profile, url, method, body, cryptography) {
     try { snapshot = method === 'PUT' ? validateWorldSnapshot(body.snapshot, world.snapshot) : world.snapshot; }
     catch (e) { return error(e.message); }
     if (action === 'finish' && !canFinishWorld(snapshot)) return error('Сначала завершите историю, обучение и бой.');
-    Object.assign(world, {snapshot, revision: world.revision + 1, updatedAt: Date.now(), status: action === 'finish' ? 'completed' : 'active'});
+    Object.assign(world, {snapshot, revision: world.revision + 1, updatedAt: Math.max(Date.now(), world.updatedAt + 1), status: action === 'finish' ? 'completed' : 'active'});
     if (snapshot.tutorial?.mode === 'campaign' && snapshot.tutorial.completed === true) profile.tutorialCompleted = true;
     return result({world});
   }

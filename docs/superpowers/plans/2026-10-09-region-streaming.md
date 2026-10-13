@@ -71,7 +71,7 @@ Interfaces:
 - [x] Run `npm test`, relevant movement/mobile/WorldGen/adventure/practice browser regressions sequentially, inspect 390px and 320px screenshots and update the native resource copy.
 - [x] Compare chunk configurations and full-render control on the same fixture; report generation/first-show/build times and resource/draw counts with software-GPU limits.
 - [x] Review final feature diff and address material findings; document only verified outcomes.
-- [ ] Copy reviewed source to the opened existing Site checkout, preserving Site-specific notes/key/title and immutable migrations. Build, package client/server/manifest/migrations, push exact source, save version, deploy with unchanged audience and confirm successful native status.
+- [x] Copy reviewed source to the opened existing Site checkout, preserving Site-specific notes/key/title and immutable migrations. Build, package client/server/manifest/migrations, push exact source, save version, deploy with unchanged audience and confirm successful native status.
 
 ## Execution record
 
@@ -84,3 +84,5 @@ Only the root agent performs Site operations and GPU verification.
 Verification selection: the current 28-suite combined build, region touch/resource/restoration scenario, map controls, mobile editor/HUD, both legacy location routes, v2 WorldGen, death screen, full fighter tutorial with replay and native/offline reload were checked. The region scenario also starts the actual v3 intro. Previous all-class/full adventure campaign runs were not repeated because their rules are unchanged; the current report states this explicitly. Physical iPhone/Xcode validation remains outside this environment.
 
 Publication integration: a concurrent owner-approved stone-atlas update reached Site v63 while the first push was pending. It was fetched and merged without overwriting. Shared atlas resources are retained across chunks; source VM tests, full 28-suite build and region browser were repeated for the combined source. Browser checks wait separately for atlas image readiness.
+
+Publication completed 2026-10-10: Site v64, source commit `37eee9934538134129ba5963c2977203ebaca165`, native deployment `appgdep_6ac9828251b08191aaeddebf27c8dfe8` succeeded. URL: https://eldar-tabletop-new.shefdw.chatgpt.site. Existing custom audience retained; archive contains 99 files and all 9 immutable migration/metadata files. GitHub main unchanged; implementation retained on `feat/region-streaming`.

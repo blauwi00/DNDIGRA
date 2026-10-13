@@ -168,6 +168,94 @@ test('finish, checkpoint and explicit deletion preserve the hero and archived st
   await f.api.close();
 });
 
+test('offline world transitions retain all hero property once across retry, archive deletion and restart', async () => {
+  const f = fixture();
+  const {hero, world} = await create(f.api, {generatorVersion: 2});
+  const s = structuredClone(world.snapshot);
+  Object.assign(s, {gold: 41, potions: 2, xp: 65});
+  Object.assign(s.party[0], {gold: 1, potions: 99, hp: 2, slots: 1, torches: 1, hands: ['staff', 'torch'], torch: true,
+    conditions: ['poisoned'], permanentEffects: [{id: 'blessing', bonus: 1}]});
+  s.party[0].inventory.push('Подаренная верёвка');
+  let r = await call(f.api, 'worlds/' + world.id, 'PUT', {revision: world.revision, snapshot: s});
+  assert.equal(r.status, 200, r.error);
+  r = await call(f.api, 'worlds/' + world.id + '/finish', 'POST', {revision: r.world.revision});
+  assert.equal(r.status, 200, r.error);
+  const archived = r.world;
+  const other = fixture(f.indexedDB, f.dbName);
+  const creation = {heroId: hero.id, generatorVersion: 2, startingGold: 9999, potions: 9999, hero: {...hero, gold: 9999}};
+  const attempts = await Promise.all([call(f.api, 'worlds', 'POST', creation), call(other.api, 'worlds', 'POST', {...creation, leaveGold: true})]);
+  assert.deepEqual(attempts.map(a => a.status).sort(), [201, 409]);
+  const next = attempts.find(a => a.status === 201).world;
+  const retry = attempts.find(a => a.status === 409);
+  assert.equal(retry.transferPending, undefined, 'No transition defers or discards gold');
+  assert.equal(retry.world.id, next.id);
+  assert.deepEqual(retry.world.snapshot, next.snapshot);
+  // A preserved prior profile can contain equal creation timestamps; do not
+  // rewrite snapshots to repair its most-recent-world order.
+  const db = await new Promise((resolve, reject) => { const r = f.indexedDB.open(f.dbName, 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('profiles', 'readwrite'), store = tx.objectStore('profiles'), request = store.get('player');
+    request.onsuccess = () => { const profile = request.result; profile.worlds.find(w => w.id === next.id).createdAt = archived.createdAt; store.put(profile, 'player'); };
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  assert.deepEqual((await call(f.api, 'worlds?hero_id=' + hero.id)).worlds.map(w => w.id), [next.id, archived.id]);
+  assert.equal(next.snapshot.gold, 41);
+  assert.equal(next.snapshot.potions, 2);
+  assert.equal(next.snapshot.xp, 65);
+  assert.equal(next.snapshot.level, s.level);
+  for (const key of ['inventory', 'hands', 'torches', 'torch', 'appearance', 'conditions', 'permanentEffects', 'hp', 'slots']) assert.deepEqual(next.snapshot.party[0][key], s.party[0][key], key);
+  assert.deepEqual((await call(f.api, 'worlds/' + archived.id)).world.snapshot, archived.snapshot);
+  assert.equal((await call(f.api, 'worlds?hero_id=' + hero.id)).worlds.length, 2);
+  assert.equal((await call(f.api, 'heroes')).heroes[0].potions, 2);
+  const modified = structuredClone(next.snapshot);
+  modified.gold = 33;
+  modified.potions = 1;
+  modified.party[0].inventory.push('Ещё одна верёвка');
+  r = await call(f.api, 'worlds/' + next.id, 'PUT', {revision: next.revision, snapshot: modified});
+  assert.equal(r.status, 200, r.error);
+  assert.equal((await call(f.api, 'worlds/' + next.id, 'DELETE', {revision: next.revision})).status, 409);
+  assert.deepEqual((await call(f.api, 'worlds/' + next.id)).world.snapshot, r.world.snapshot);
+  assert.equal((await call(f.api, 'worlds/' + next.id, 'DELETE', {revision: r.world.revision})).status, 200);
+  assert.equal((await call(f.api, 'worlds/' + archived.id, 'DELETE', {revision: archived.revision})).status, 200);
+  await f.api.close();
+  await other.api.close();
+  const reopened = fixture(f.indexedDB, f.dbName);
+  const savedHero = (await call(reopened.api, 'heroes')).heroes[0];
+  assert.equal(savedHero.gold, 33);
+  assert.equal(savedHero.potions, 1);
+  assert.deepEqual(savedHero.inventory, modified.party[0].inventory);
+  const restarted = await call(reopened.api, 'worlds', 'POST', {...creation, seed: 'after-property-checkpoint'});
+  assert.equal(restarted.status, 201, restarted.error);
+  assert.equal(restarted.world.snapshot.gold, 33);
+  assert.equal(restarted.world.snapshot.potions, 1);
+  assert.equal(restarted.world.snapshot.world.chapter, 3);
+  assert.deepEqual(restarted.world.snapshot.party[0].inventory, modified.party[0].inventory);
+  await reopened.api.close();
+});
+
+test('offline same-ms restarted worlds supersede deletion checkpoints with their current resources', async () => {
+  const originalNow = Date.now, fixed = originalNow(), f = fixture();
+  Date.now = () => fixed;
+  try {
+    const {hero, world} = await create(f.api, {generatorVersion: 2});
+    const old = structuredClone(world.snapshot);
+    Object.assign(old, {gold: 11, potions: 2});
+    let r = await call(f.api, 'worlds/' + world.id, 'PUT', {revision: world.revision, snapshot: old});
+    assert.equal(r.status, 200, r.error);
+    assert.equal((await call(f.api, 'worlds/' + world.id, 'DELETE', {revision: r.world.revision})).status, 200);
+    r = await call(f.api, 'worlds', 'POST', {heroId: hero.id, generatorVersion: 2, seed: 'same-ms-restart', size: 'small'});
+    assert.equal(r.status, 201, r.error);
+    const live = structuredClone(r.world.snapshot);
+    Object.assign(live, {gold: 7, potions: 1});
+    r = await call(f.api, 'worlds/' + r.world.id, 'PUT', {revision: r.world.revision, snapshot: live});
+    assert.equal(r.status, 200, r.error);
+    const currentHero = (await call(f.api, 'heroes')).heroes[0];
+    assert.equal(currentHero.gold, 7, 'The active snapshot supersedes its earlier checkpoint');
+    assert.equal(currentHero.potions, 1);
+  } finally { Date.now = originalNow; await f.api.close(); }
+});
+
 test('saved campaign training unlocks skip after world deletion and database restart', async () => {
   const f = fixture(); const {hero, world} = await create(f.api);
   assert.equal((await call(f.api, 'worlds?hero_id=' + hero.id)).tutorialCompleted, false);

@@ -45,6 +45,14 @@
     } catch {
     }
   }
+  function normalizeRecoveredEncounter() {
+    if ([3, 4].includes(state.world?.gen?.v) && state.encounter && !state.encounter.tutorial &&
+        !state.combat && state.party.some(p => p.hp > 0 && !p.dead)) {
+      state.combat = true;
+      return true;
+    }
+    return false;
+  }
   function tell(s) {
     state.logs.push(s);
     if (state.logs.length > 120) state.logs.shift();
@@ -73,18 +81,35 @@
   }
   function pathTo(a, b) {
     if (routeBlocked(b) || entity(b)) return null;
-    const q = [[{ x: a.x, y: a.y }]], seen = /* @__PURE__ */ new Set([a.x + "," + a.y]);
-    while (q.length) {
-      const r = q.shift(), last = r.at(-1);
-      if (same(last, b)) return r.slice(1);
-      for (const [dx, dy] of DIRS) {
-        const n = { x: last.x + dx, y: last.y + dy }, k = n.x + "," + n.y;
-        if (seen.has(k) || routeBlocked(n) || entity(n)) continue;
-        seen.add(k);
-        q.push([...r, n]);
+    const S = scene(), compact = !!S.island;
+    let passable = p => !routeBlocked(p) && !entity(p);
+    if (compact) {
+      // Capture the finite dynamic blockers once. Rebuilding props()/all()
+      // inside every search edge would create needless arrays on the phone.
+      const occupied = new Set(all().map(p => p.x + "," + p.y)), objects = new Map(), visible = props();
+      for (const o of visible) {
+        const key = o.x + "," + o.y;
+        if (!objects.has(key) && !(o.type === "chest" && state.loot[doorKey(o)])) objects.set(key, o);
       }
+      const collisions = new Set();
+      for (const hit of S.occupied?.values() || []) {
+        const o = hit.owner;
+        if (!hit.blocksMovement || window.Adventure?.visibleProp(o, state) === false ||
+            o.id === "novice" && !visible.some(p => p.id === "novice") ||
+            o.type === "door" && isOpen(o) || o.type === "chest" && state.loot[doorKey(o)]) continue;
+        collisions.add(hit.x + "," + hit.y);
+      }
+      passable = p => {
+        const key = p.x + "," + p.y, o = objects.get(key);
+        if (occupied.has(key)) return false;
+        if (S.generated && !state.combat && o?.type === "door" && (!o.lock || isOpen(o))) return true;
+        return World.tile(S, p.x, p.y) === "floor" &&
+          !(o && o.solid !== false && !(o.type === "door" && isOpen(o))) && !collisions.has(key);
+      };
     }
-    return null;
+    return World.shortestPath(S, a, b, passable, compact ?
+      { maxVisited: 16384, maxSteps: 2048 } :
+      { maxVisited: S.W * S.H, maxSteps: S.W * S.H, breadthFirst: true });
   }
   function line(a, b) {
     if (same(a, b) || a.x !== b.x && a.y !== b.y) return false;
@@ -181,6 +206,20 @@
       return;
     }
     const S = scene(), floor = $("terrain"), c = floor.getContext("2d"), unit = 48;
+    if (S.island) {
+      // The playable island is rendered and picked by the streamed WebGL map.
+      // Before it is ready, retain a small loading frame instead of allocating
+      // a 49,920-square canvas or showing archived fallback characters.
+      floor.width = 640;
+      floor.height = 360;
+      c.fillStyle = "#10231d";
+      c.fillRect(0, 0, floor.width, floor.height);
+      c.fillStyle = "#d6bb7f";
+      c.textAlign = "center";
+      c.font = "20px system-ui";
+      c.fillText("Подготовка острова…", floor.width / 2, floor.height / 2);
+      return;
+    }
     floor.width = S.W * unit;
     floor.height = S.H * unit;
     c.setTransform(unit, 0, 0, unit, 0, 0);
@@ -206,12 +245,24 @@
   }
   function createCells() {
     const S = scene();
+    $("cells").replaceChildren();
+    cells = [];
+    if (S.island) {
+      $("board").style.setProperty("--cols", 1);
+      $("board").style.setProperty("--rows", 1);
+      $("board").style.width = "100%";
+      $("board").style.height = "100%";
+      $("board").style.pointerEvents = "none";
+      $("torches").replaceChildren();
+      $("lighting").hidden = true;
+      return;
+    }
+    $("lighting").hidden = false;
+    $("board").style.pointerEvents = "";
     $("board").style.setProperty("--cols", S.W);
     $("board").style.setProperty("--rows", S.H);
     $("board").style.width = S.W * 64 + "px";
     $("board").style.height = S.H * 64 + "px";
-    $("cells").replaceChildren();
-    cells = [];
     for (let y = 0; y < S.H; y++) for (let x = 0; x < S.W; x++) {
       const b = document.createElement("button");
       b.className = "cell";
@@ -251,6 +302,11 @@
   }
   function dismissMapActions() { selected = null; render(); }
   function renderPieces() {
+    if (scene().island) {
+      for (const el of pieces.values()) el.remove();
+      pieces.clear();
+      return;
+    }
     for (const e of all()) {
       let el = pieces.get(e.id);
       if (!el) {
@@ -273,6 +329,7 @@
   }
   function renderObjects() {
     $("objects").replaceChildren();
+    if (scene().island) return;
     for (const p of props()) {
       if (p.type === "chest" && state.loot[doorKey(p)]) continue;
       const el = document.createElement("div");
@@ -395,8 +452,7 @@
   function render() {
     // A natural 20 on the ordinary death save returns the hero to the same
     // unresolved encounter, with the surviving enemies and their saved HP.
-    if (state.world?.gen?.v === 3 && state.encounter && !state.encounter.tutorial && !state.combat && state.party.some(p => p.hp > 0 && !p.dead)) {
-      state.combat = true;
+    if (normalizeRecoveredEncounter()) {
       queueMicrotask(() => resumeEncounter());
     }
     window.Torches?.ensure();
@@ -487,12 +543,31 @@
     }
   }
   const wait = (ms) => new Promise((r) => setTimeout(r, ms)), animate = () => state.settings.animations && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function pendingIslandLocationMilestone(snapshot, record) {
+    if (snapshot.world?.gen?.v !== 4 || record?.status !== "active" ||
+        record.id !== snapshot.world.id || record.snapshot?.world?.gen?.v !== 4) return false;
+    const now = snapshot.story, before = record.snapshot.story;
+    return !!(now && before && (now.reachedSettlement && !before.reachedSettlement ||
+      now.reported && !before.reported || now.clues?.some(id => !before.clues?.includes(id))));
+  }
+  async function checkpointIslandLocation() {
+    const snapshot = state, record = window.Worlds?.current;
+    if (!pendingIslandLocationMilestone(snapshot, record)) return true;
+    // These three milestones need a checkpoint at the physical proof cell.
+    // Ordinary transient autosaves still allow exploration. A failed proof
+    // remains pending and is retried here before any later controlled step.
+    save();
+    const saved = await window.Worlds.flush();
+    return !!saved && state === snapshot && window.Worlds.current?.id === record.id &&
+      !pendingIslandLocationMilestone(snapshot, window.Worlds.current);
+  }
   async function travel(e, steps) {
     let completed = 0;
     const controlled = e.kind < 3 && busy && e.id === state.active;
     moving = controlled;
     if (controlled) render();
     try {
+      if (controlled && !await checkpointIslandLocation()) { stopRequested = true; return completed; }
       for (const p of steps) {
         if(e.hp<=0||e.dead)return completed;
         if (controlled && stopRequested) break;
@@ -526,7 +601,9 @@
         completed++;
         if (controlled) {
           emitGameAction('movement', { success: true, from, to: { x: e.x, y: e.y }, scene: state.scene });
-          if (window.Adventure?.step(scene(), e.x, e.y)) return completed;
+          const interrupted = window.Adventure?.step(scene(), e.x, e.y);
+          if (!await checkpointIslandLocation()) { stopRequested = true; return completed; }
+          if (interrupted) return completed;
         }
         if(e.hp<=0||e.dead)return completed;
         if (controlled) path = steps.slice(completed);
@@ -691,7 +768,7 @@
     if (busy || state.combat || !state.world || active().hp <= 0 || active().dead) return false;
     const training = options.tutorial === true;
     const canonical = training ? window.GeneratedWorlds?.plan?.story?.tutorial?.[spec.id === 'tutorial-win' ? 'win' : spec.id === 'tutorial-loss' ? 'loss' : ''] : (scene().encounters || []).find(e => e.id === spec.id);
-    if (!canonical || !canonical.enemies?.length || !training && state.story?.cleared.includes(canonical.id)) return false;
+    if (!canonical || !canonical.enemies?.length || !training && state.story?.cleared?.includes(canonical.id)) return false;
     const reward = training ? { xp: 0, gold: 0 } : { xp: canonical.reward?.xp || 0, gold: canonical.reward?.gold || 0 };
     state.encounter = { id: canonical.id, scene: state.scene, name: canonical.name, tutorial: training, scriptedLoss: training && options.scriptedLoss === true && canonical.id === 'tutorial-loss', reward };
     state.enemies = canonical.enemies.map(def => {
@@ -730,7 +807,7 @@
     if (busy || !state.combat || !state.encounter) return;
     if (state.encounter.id === 'tutorial-win' && state.party.every(p => p.hp <= 0)) { recoverTrainingWin(); render(); return; }
     const p = all().find(p => p.id === state.order[state.cursor]);
-    if (p?.kind < 3 && p.hp > 0) { state.active = p.id; render(); return; }
+    if (p?.kind < 3 && p.hp > 0) { state.active = p.id; save(); render(); return; }
     busy = true;
     try { await enemiesUntilPlayer(false, true); } finally { busy = false; save(); render(); }
   }
@@ -798,7 +875,7 @@
           break;
         }
         state.combat = false;
-        tell(state.world?.gen?.v === 3 ? "Ты потерял сознание. Броски спасения от смерти решат твою судьбу; угроза на дороге остаётся." : "Отряд выведен из боя. В «Тесте» можно восстановить героев.");
+        tell([3, 4].includes(state.world?.gen?.v) ? "Ты потерял сознание. Броски спасения от смерти решат твою судьбу; угроза на дороге остаётся." : "Отряд выведен из боя. В «Тесте» можно восстановить героев.");
       }
       // On a new round enemies receive fresh actions; the saved acted flag
       // only suppresses a completed enemy action when resuming its checkpoint.
@@ -1041,21 +1118,22 @@
   }
   async function departNpc(p) {
     if (busy || state.combat || window.Worlds?.locked) return false;
-    const portal = props().find((p2) => p2.type === "portal");
-    if (!portal) return false;
-    const route = approachPath(p, portal);
+    const portal = scene().island ? null : props().find((p2) => p2.type === "portal");
+    const endpoint = scene().island && Array.isArray(p.departure) && p.departure.length === 2 ? { x: p.departure[0], y: p.departure[1] } : null;
+    if (!portal && !endpoint) return false;
+    const route = endpoint ? pathTo(p, endpoint) : approachPath(p, portal);
     if (route === null) {
       tell((p.name || 'Путник').split(' · ')[0] + " ждёт: освободите проход к выходу.");
       render();
       return false;
     }
     busy = true;
-    departingNpc = { ...p, doorId: portal.id };
+    departingNpc = { ...p, doorId: portal?.id };
     selected = null;
     path = [];
     render();
     try {
-      for (const next of [...route, { x: portal.x, y: portal.y }]) {
+      for (const next of endpoint ? route : [...route, { x: portal.x, y: portal.y }]) {
         const from = { x: departingNpc.x, y: departingNpc.y };
         face(departingNpc, next);
         departingNpc.x = next.x;
@@ -1074,11 +1152,12 @@
   }
   async function arriveNpc(p) {
     if (busy || state.combat || window.Worlds?.locked) return false;
-    const portal = props().find(p => p.type === 'portal');
-    if (!portal) return false;
-    const route = approachPath(p, portal);
+    const portal = scene().island ? null : props().find(p => p.type === 'portal');
+    const endpoint = scene().island && Array.isArray(p.departure) && p.departure.length === 2 ? { x: p.departure[0], y: p.departure[1] } : null;
+    if (!portal && !endpoint) return false;
+    const route = endpoint ? pathTo(p, endpoint) : approachPath(p, portal);
     if (route === null) return false;
-    const steps = [{ x: p.x, y: p.y }, ...route, { x: portal.x, y: portal.y }].reverse();
+    const steps = [{ x: p.x, y: p.y }, ...route, ...(endpoint ? [] : [{ x: portal.x, y: portal.y }])].reverse();
     busy = true; departingNpc = { ...p, ...steps[0] };
     selected = null; path = []; render(); window.voxel?.sync();
     try {
@@ -1118,7 +1197,7 @@
           [hero.x, hero.y] = scene().arrivals[entry.id][i];
           hero.facing = 2;
         });
-      } else if (entry) {
+      } else if (entry && !scene().island) {
         const claimed = /* @__PURE__ */ new Set();
         for (const hero of state.party) {
           const candidates = [];
@@ -1418,7 +1497,7 @@
     state.level = a.level;
     state.xp = a.xp;
     state.gold = a.gold;
-    state.potions = 0;
+    state.potions = a.potions ?? 0;
     state.rulesStage = 3;
     state.logs = ["Тестовая комната · " + a.name + ". Здесь можно проверить созданного героя; испытания не меняют его сохранённый стартовый лист."];
     pieces.forEach((el) => el.remove());
@@ -1492,7 +1571,7 @@
     return moving;
   }, stop: () => {
     stopRequested = true;
-  }, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, dismissMapActions, attack, pathTo, line, canAttack, approachInteract, approachPath, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
+  }, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, dismissMapActions, attack, pathTo, line, canAttack, approachInteract, approachPath, normalizeRecoveredEncounter, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
   window.Torches?.ensure();
   atlas.onload = cutAtlas;
   atlas.src = "assets/cartoon-atlas.png";

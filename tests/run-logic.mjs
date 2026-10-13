@@ -8,7 +8,8 @@ const suites=[
   'npc-facing','static-batches','texel-overlap','stone-atlas','location-generator',
   'worldgen-versions','worldgen','heroes-api','worlds-api','worlds-client','worldgen-api',
   'adventure-worldgen','adventure-api','adventure-client','tutorial-rules',
-  'region-streaming','region-resources','region-renderer','region-walk','worlds-practice','local-api','enemy-models','prompt-input'
+  'region-streaming','region-resources','region-renderer','region-walk','worlds-practice','local-api','enemy-models','prompt-input',
+  'world-carry','native-config','island-terrain','island-scenes','island-client','island-renderer','island-api'
 ];
 const cwd=fileURLToPath(new URL('..',import.meta.url));
 let failed=0;

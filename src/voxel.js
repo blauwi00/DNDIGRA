@@ -6,6 +6,7 @@ import {batchStaticModels} from './static-batches.js';
 import {planRegionChunks,createChunkStream} from './region-streaming.js';
 import {regionConfig,regionChunkId,cameraGroundBounds,expandRegionBounds,collectRegionPins,canSelectRegionCell,disposeOwnedGroup,countGroupResources} from './region-rendering.js';
 import { createMenuStage } from './menu-stage.js';
+import {islandRenderConfig,prepareIslandOverview,buildIslandTerrain,islandFoliage} from './islands/render.js';
 import { texelPass, TEXEL } from "./texel.js";
 import { fitPreviewCamera } from "./preview-frame.js";
 import { fillSilhouette } from "./silhouette.js";
@@ -44,7 +45,8 @@ try {
   renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
 } catch (error) {
   canvas.remove();
-  viewport.insertAdjacentHTML("afterbegin", '<p class="webgl-note">Объёмная сцена недоступна на этом устройстве. Открыт плоский режим.</p>');
+  const message='Не удалось запустить отображение карты. Перезапусти игру.';
+  viewport.insertAdjacentHTML("afterbegin", '<p class="webgl-note" data-renderer-failure>'+message+'</p>');
   throw error;
 }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
@@ -766,7 +768,7 @@ function patternedRug() {
   rugMaterial = new T.MeshStandardMaterial({ map: t, roughness: 1 });
   return rugMaterial;
 }
-let staticBatches, regionStream=null, regionPlan=null, regionOptions=null, regionBounds=null, regionDemandKey='', regionScene=null, regionPadding=1, regionGeneration=0, regionMounting=false;
+let staticBatches, regionStream=null, regionPlan=null, regionOptions=null, regionBounds=null, regionDemandKey='', regionScene=null, regionPadding=1, regionGeneration=0, regionMounting=false, regionOverviewInfo=null;
 const regionResources=new Map(),regionFailures=new Set();
 const regionError=document.createElement('button');
 regionError.className='webgl-note';regionError.hidden=true;regionError.type='button';
@@ -800,7 +802,12 @@ function buildEnvironment(S,rect){
     if (!boxes.has(key)) boxes.set(key, []);
     boxes.get(key).push([x, y, z, w, h, d]);
   }
-  for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
+  if(S.island){
+    resource.root.add(buildIslandTerrain(S,rect,{geometry:geo,materialFor:kind=>{
+      if(kind.startsWith('stone:')){const mat=stoneMaterial(Number(kind.slice(6)));sharedStoneMaterials.add(mat);return mat;}
+      return terrainMaterial(0xffffff,kind==='water'?2:8);
+    }}));
+  }else for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
     const type = World.tile(S, x, y), noise = (x * 113 + y * 71 + terrainSeed) % 11 / 100;
     if (type === "floor") {
       const grass=S.ground?.[y]?.[x]==='grass';
@@ -867,6 +874,12 @@ function buildEnvironment(S,rect){
     resource.models.set("prop:" + p.id, m);
     if (p.type === "door") resource.doors.set(p.id, m);
     if(!['npc','door','portal','chest','ground-item','torch','chandelier'].includes(p.type)&&!p.container)staticRoots.push(m);
+  }
+  if(S.island&&window.Props)for(const p of islandFoliage(S,rect)){
+    const m=propModel(p);m.position.set(p.x+.5,0,p.y+.5);
+    // These current-model trees are appearance only. They never enter models,
+    // collision, fixture picking, saved props or the actor/interaction pin list.
+    m.userData.islandDecoration=true;resource.root.add(m);staticRoots.push(m);
   }
   resource.batches=batchStaticModels(staticRoots,resource.root);
   for(const root of staticRoots)root.userData.staticBatchOwner=resource.batches;
@@ -956,23 +969,32 @@ function releaseEnvironment(resource){
   renderer.shadowMap.needsUpdate=true;
 }
 function overviewEnvironment(S){
-  const root=new T.Group(),map=document.createElement('canvas');map.width=S.W*2;map.height=S.H*2;
+  const root=new T.Group(),map=document.createElement('canvas'),generation=regionGeneration;
+  const isCurrent=()=>regionScene===S&&regionGeneration===generation;
+  const overview=S.island?prepareIslandOverview(S,{isCurrent}):null;
+  if(S.island&&!overview)return null;
+  map.width=overview?.width??S.W*2;map.height=overview?.height??S.H*2;
   const ctx=map.getContext('2d');
-  for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){
+  if(overview){
+    const image=ctx.createImageData(overview.width,overview.height);image.data.set(overview.pixels);ctx.putImageData(image,0,0);
+  }else for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){
     const tile=World.tile(S,x,y);if(tile==='void')continue;
     const surface=window.WorldGen?.SURFACE_BY_CODE[S.surface?.[y]?.[x]];
     const color=tile==='wall'?0x77745f:surface?WorldGen.surfaceColor(surface,x,y):S.ground?.[y]?.[x]==='grass'?0x527b3c:0x978872;
     ctx.fillStyle='#'+new T.Color(color).getHexString();ctx.fillRect(x*2,y*2,2,2);
     ctx.fillStyle='rgba(0,0,0,.05)';ctx.fillRect(x*2+1,y*2+1,1,1);
   }
+  if(!isCurrent())return null;
+  regionOverviewInfo={width:map.width,height:map.height,samples:overview?.samples??S.W*S.H};
+  const scaleX=map.width/S.W,scaleY=map.height/S.H;
   // Landmarks live in the low-cost map texture; they carry no picking identity.
   for(const p of S.props){
     if(['tree','bush','bones'].includes(p.model)||['ground-item','npc','torch','chandelier'].includes(p.type))continue;
-    ctx.fillStyle=['door','portal','waymark'].includes(p.type)?'#d6b370':'#69584a';ctx.fillRect(p.x*2,p.y*2,2,2);
+    ctx.fillStyle=['door','portal','waymark'].includes(p.type)?'#d6b370':'#69584a';ctx.fillRect(Math.floor(p.x*scaleX),Math.floor(p.y*scaleY),Math.max(1,Math.round(scaleX)),Math.max(1,Math.round(scaleY)));
   }
   const texture=new T.CanvasTexture(map);texture.colorSpace=T.SRGBColorSpace;texture.magFilter=texture.minFilter=T.NearestFilter;texture.generateMipmaps=false;
-  const mat=new T.MeshStandardMaterial({map:texture,transparent:true,roughness:1}),mesh=new T.Mesh(new T.PlaneGeometry(S.W,S.H),mat);
-  mesh.rotation.x=-Math.PI/2;mesh.position.set(S.W/2,-.018,S.H/2);mesh.receiveShadow=true;
+  const mat=new T.MeshStandardMaterial({map:texture,transparent:!S.island,roughness:1}),mesh=new T.Mesh(new T.PlaneGeometry(S.W,S.H),mat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(S.W/2,S.island?-.075:-.018,S.H/2);mesh.receiveShadow=true;
   mesh.userData.disposeMaterial=true;mesh.userData.disposeTexture=true;root.add(mesh);root.name='region-overview';world.add(root);
   return root;
 }
@@ -1004,11 +1026,11 @@ function addStatic(){
   signature=S.id+':'+(S.layoutKey||'')+':'+g.state.party.map(p=>p.id).join(',');
   setSelectionMask(null);objectPrompt.hidden=true;promptInput.clear();
   regionStream?.reset();regionStream=null;regionResources.clear();regionPlan=null;regionDemandKey='';regionScene=S;
-  regionFailures.clear();regionError.hidden=true;
+  regionFailures.clear();regionError.hidden=true;regionOverviewInfo=null;
   for(const t of torches){scene.remove(t.light);if(t.portable)t.light.shadow.dispose();}
   clear(world);clear(actors);clearMarkers();models.clear();doors.clear();torches.length=0;motions.clear();staticBatches=null;
   for(const effect of effects){effect.el?.remove();if(effect.mesh){scene.remove(effect.mesh);disposeModel(effect.mesh);}}effects.length=0;
-  regionOptions=regionConfig(S,window.location.search);
+  regionOptions=islandRenderConfig(regionConfig(S,window.location.search),S);
   if(regionOptions.enabled){
     regionPadding=scenePadding(S);overviewEnvironment(S);
     regionStream=createChunkStream({
@@ -1285,7 +1307,7 @@ canvas.addEventListener("pointerup", (e) => {
         return;
       }
     }
-    if (p && canSelectRegionCell(regionOptions,regionPlan,regionStream,Math.floor(p.x),Math.floor(p.z)) && World.tile(g.scene, Math.floor(p.x), Math.floor(p.z)) !== "void") g.mapTap({ x: Math.floor(p.x), y: Math.floor(p.z) });
+    if (p && canSelectRegionCell(regionOptions,regionPlan,regionStream,Math.floor(p.x),Math.floor(p.z)) && !["void","water"].includes(World.tile(g.scene, Math.floor(p.x), Math.floor(p.z)))) g.mapTap({ x: Math.floor(p.x), y: Math.floor(p.z) });
     else g.mapTap(null);
   }
   pointers.delete(e.pointerId);
@@ -1525,14 +1547,29 @@ function tick(time) {
     }
     const width = objectPrompt.offsetWidth || 190, height = objectPrompt.offsetHeight || 125;
     const vr = viewport.getBoundingClientRect(), dock = document.getElementById("play-dock")?.getBoundingClientRect();
-    const bottom = Math.min(viewport.clientHeight - 6, dock && dock.height ? dock.top - vr.top - 6 : viewport.clientHeight - 6);
-    let top = y - height - 24;
-    if (top < 76) top = y + 24;
-    top = Math.max(6, Math.min(bottom - height, top));
-    objectPrompt.hidden ||= x < 0 || x > viewport.clientWidth || y < 0 || y > bottom || bottom < height;
+    const full={left:6,right:viewport.clientWidth-6,top:6,bottom:viewport.clientHeight-6};
+    let spaces=[full];
+    if(dock?.width&&dock.height){
+      const left=dock.left-vr.left,right=left+dock.width,top=dock.top-vr.top,bottom=top+dock.height;
+      // A landscape side dock can be entirely outside this viewport. Its top
+      // must not clip map actions as though it were the portrait bottom dock.
+      if(left<viewport.clientWidth&&right>0&&top<viewport.clientHeight&&bottom>0){
+        spaces=[{...full,right:Math.min(full.right,left-6)},{...full,left:Math.max(full.left,right+6)},
+          {...full,bottom:Math.min(full.bottom,top-6)},{...full,top:Math.max(full.top,bottom+6)}];
+      }
+    }
+    const space=spaces.filter(r=>r.right-r.left>=width&&r.bottom-r.top>=height&&
+      x>=r.left-6&&x<=r.right+6&&y>=r.top-6&&y<=r.bottom+6)
+      .sort((a,b)=>(b.right-b.left)*(b.bottom-b.top)-(a.right-a.left)*(a.bottom-a.top))[0];
+    objectPrompt.hidden ||= !space || x < 0 || x > viewport.clientWidth || y < 0 || y > viewport.clientHeight;
     if(objectPrompt.hidden)promptInput.clear();
-    objectPrompt.style.left = Math.max(width / 2 + 6, Math.min(viewport.clientWidth - width / 2 - 6, x)) + "px";
-    objectPrompt.style.top = top + "px";
+    if(space){
+      let top=y-height-24;
+      if(top<76)top=y+24;
+      top=Math.max(space.top,Math.min(space.bottom-height,top));
+      objectPrompt.style.left=Math.max(space.left+width/2,Math.min(space.right-width/2,x))+"px";
+      objectPrompt.style.top=top+"px";
+    }
   }
   draw();
 }
@@ -1556,7 +1593,7 @@ function regionSnapshot(){
     chunkSize:regionOptions?.chunkSize,maxChunks:regionOptions?.maxChunks,budgetOverflow:regionPlan?.budgetOverflow||0,
     ready:stats.readyCount??(ready?1:0),readyIds:stats.readyIds||[],queued:stats.queuedCount||0,idle:!(stats.queuedCount||0),
     built:stats.builtCount||0,released:stats.releasedCount||0,generation:regionGeneration,streamGeneration:stats.generation||0,errors:stats.errors||0,lastError:stats.lastError||null,lastBuildMs:stats.lastBuildDuration||0,
-    resources,actorResources:countGroupResources(actors),portableLights:torches.filter(t=>t.portable).length,
+    resources,overview:regionOverviewInfo,actorResources:countGroupResources(actors),portableLights:torches.filter(t=>t.portable).length,
     groups:[...regionResources.values()].map(r=>({id:r.chunk.id,...countGroupResources(r.root)})),
     shared:{materials:materials.size+terrainMaterials.size+sharedStoneMaterials.size,textures:terrainTextures.size+(rugMaterial?1:0)+1+[...sharedStoneMaterials].filter(material=>material.map).length,geometries:1},
     gpu:{...renderer.info.memory,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},

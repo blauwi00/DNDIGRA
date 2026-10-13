@@ -3,7 +3,9 @@
   const $ = (id) => document.getElementById(id), g = () => window.gameDebug;
   const resumeKey = window.NativeRuntime?.offline ? 'dndigra-local-last-world-id' : 'last-world-id';
   let current = null, pending = null, inflight = null, timer = null, failed = false, conflict = false, leaving = false, lastSaved = "", serial = 0, atMenu = false;
+  let finishing = null;
   let practice = null;
+  const finishingCurrent = () => finishing?.epoch === serial && finishing.id === current?.id;
   function button(text, fn, cls = "") {
     const b = document.createElement("button");
     b.textContent = text;
@@ -190,7 +192,7 @@
     const body = $("modal-body");
     body.replaceChildren();
     const active = worlds.find((w) => w.status === "active"), p = document.createElement("p");
-    p.textContent = active ? "Продолжение загрузит тот же мир и сохранённый прогресс." : "Новый путь начинается на опушке. История, жители и находки будут связаны одной проблемой.";
+    p.textContent = active ? "Продолжение загрузит то же приключение и сохранённый прогресс." : "Новый путь начинается на опушке большого острова. Берег, биомы, жители и находки определяются случайно.";
     body.append(p);
     if (active) {
       const b = button("Продолжить · " + active.snapshot.world.title, async () => {
@@ -203,7 +205,7 @@
         }
       }, "gold");
       body.append(b, button("Удалить этот мир", () => removeWorld(h, active), "danger"));
-    } else body.append(button("Начать мир", () => newWorld(h, worlds, tutorialCompleted), "gold"));
+    } else body.append(button("Начать остров", () => newWorld(h, worlds, tutorialCompleted), "gold"));
     for (const w of worlds.filter((w2) => w2.status === "completed")) {
       const details = document.createElement("details"), summary = document.createElement("summary");
       summary.textContent = "Мир " + w.snapshot.world.chapter + " · " + w.snapshot.world.title + " · завершён";
@@ -238,7 +240,7 @@
         const record = current?.id === w.id ? current : w;
         await api("/" + record.id, "DELETE", { revision: record.revision });
         if (current?.id === w.id) {
-          const checkpoint = { ...g().active(), level: g().state.level, xp: g().state.xp, gold: g().state.gold };
+          const checkpoint = { ...g().active(), level: g().state.level, xp: g().state.xp, gold: g().state.gold, potions: g().state.potions };
           detach();
           g().loadHero(checkpoint);
         }
@@ -250,28 +252,16 @@
     }, "danger"));
   }
   function newWorld(h,worlds,tutorialCompleted=false){
-    const body=$('modal-body');body.replaceChildren();$('modal-title').textContent='Новый мир';
+    const body=$('modal-body');body.replaceChildren();$('modal-title').textContent='Новый остров';
     const form=document.createElement('div');form.className='world-gen-options';
-    const label=document.createElement('label');label.textContent='Зерно';const seed=document.createElement('input');seed.id='world-seed';seed.maxLength=128;seed.placeholder='Пусто — случайный мир';label.append(seed);
-    const sizeLabel=document.createElement('label');sizeLabel.textContent='Размер';const size=document.createElement('select');size.id='world-size';for(const [value,text]of [['auto','Авто'],['small','Малый'],['medium','Средний'],['large','Большой']])size.add(new Option(text,value));sizeLabel.append(size);
-    const note=document.createElement('p');note.textContent='Три возможные истории: тревожный туман, пропавшие путники или повреждённая печать. Зерно определяет историю и облик мест.';
-    const skipLabel=document.createElement('label'),skip=document.createElement('input');skip.type='checkbox';skip.id='skip-tutorial';
-    const canSkip=tutorialCompleted||!!window.Tutorial?.canSkip?.()||worlds.some(w=>w.snapshot?.tutorial?.completed);skip.disabled=!canSkip;
-    skipLabel.className='tutorial-skip';skipLabel.append(skip,document.createTextNode(canSkip?'Пропустить уже пройденное обучение':'Первое обучение обязательно; затем его можно пропускать'));
-    form.append(label,sizeLabel,skipLabel);const launch=button('Создать мир',async()=>{launch.disabled=true;try{await create(h,worlds,false,{seed:seed.value.trim(),size:size.value,skipTutorial:skip.checked});}finally{launch.disabled=false;}},'gold');body.append(note,form,launch);if(!$('modal').open)$('modal').showModal();
+    const label=document.createElement('label');label.textContent='Зерно';const seed=document.createElement('input');seed.id='world-seed';seed.maxLength=128;seed.placeholder='Пусто — случайный остров';label.append(seed);
+    const sizeLabel=document.createElement('label');sizeLabel.textContent='Размер суши';const size=document.createElement('select');size.id='world-size';for(const [value,text]of [['auto','Случайный · 600–1000'],['small','600 × 600'],['medium','800 × 800'],['large','1000 × 1000']])size.add(new Option(text,value));sizeLabel.append(size);
+    const note=document.createElement('p');note.textContent='Один остров с побережьем и плавными переходами между лесом, лугом, болотом, пустыней, горами и снегом. Дороги и ориентиры помогут найти поселение.';
+    form.append(label,sizeLabel);const launch=button('Создать остров',async()=>{launch.disabled=true;try{await create(h,worlds,{seed:seed.value.trim(),size:size.value,generatorVersion:4});}finally{launch.disabled=false;}},'gold');body.append(note,form,launch);if(!$('modal').open)$('modal').showModal();
   }
-  async function create(h, worlds, leaveGold = false, options = {}) {
-    const latest = worlds[0];
-    if (latest?.status === "completed" && latest.snapshot.gold > 0 && !leaveGold) {
-      const body = $("modal-body");
-      body.replaceChildren();
-      const p = document.createElement("p");
-      p.textContent = "В новый мир перейдут надетая экипировка и предметы в руках. Золото и содержимое рюкзака останутся в архиве завершённого мира.";
-      body.append(p, button("Начать без переноса золота", () => create(h, worlds, true, options), "gold"), button("Остаться пока здесь", () => paintChoice(h, worlds)));
-      return;
-    }
+  async function create(h, worlds, options = {}) {
     try {
-      const { world } = await api("", "POST", { heroId: h.id, leaveGold, ...options });
+      const { world } = await api("", "POST", { heroId: h.id, ...options });
       attach(world);
       $("modal").close();
     } catch (e) {
@@ -281,17 +271,26 @@
   async function finish() {
     if (practice) return;
     if (!current || current.status !== "active" || g().busy || g().state.combat) return;
-    capture();
-    if (!await flush()) return;
+    const ticket = {epoch: serial, id: current.id};
+    finishing = ticket;
+    g().render();
     try {
-      const { world } = await api("/" + current.id + "/finish", "POST", { revision: current.revision });
+      capture();
+      if (!await flush() || ticket.epoch !== serial || ticket.id !== current?.id) return;
+      const { world } = await api("/" + ticket.id + "/finish", "POST", { revision: current.revision });
+      if (ticket.epoch !== serial || ticket.id !== current?.id) return;
       current = world;
       pending = null;
       badge("Архив · мир завершён");
       g().render();
       message("История завершена. Мир сохранён в архиве, герой свободен для следующего приключения. Откройте «Мои герои» → «Миры».");
     } catch (e) {
-      message(e.message);
+      if (ticket.epoch === serial && ticket.id === current?.id) message(e.message);
+    } finally {
+      if (finishing === ticket && ticket.epoch === serial) {
+        finishing = null;
+        g().render();
+      }
     }
   }
   async function reload() {
@@ -330,7 +329,7 @@
         finish();
       }, "gold");
       b.disabled = !g().state.procedural && !g().state.world?.gen && g().state.episode?.stage !== "done" || g().state.world?.gen?.v===3&&!g().state.story?.reported || g().state.combat || g().busy;
-      body.append(b);
+      if(g().state.world?.gen?.v!==4)body.append(b);
     }
     if(g().state.world?.gen){const seed=document.createElement('p');seed.className='world-seed';seed.textContent='Зерно: '+g().state.world.gen.seed+' · Размер: '+g().state.world.gen.size;body.append(seed,button('Скопировать зерно',async()=>{try{await navigator.clipboard.writeText(g().state.world.gen.seed);}catch{g().tell('Зерно: '+g().state.world.gen.seed);}}));}
     if (failed || conflict) {
@@ -353,12 +352,12 @@
   }
   function render() {
     document.body.classList.toggle("playing-world", !!current || !!practice);
-    document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict));
+    document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict || finishingCurrent()));
     if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+(practice.kind==='region'?' · Находки не переносятся':' · Учебная практика');if($("world-save"))$("world-save").hidden=true;return;}
     if (!current) return;
     const s = g().state;
     if (s.world && !s.world.discovered.includes(s.scene)) s.world.discovered.push(s.scene);
-    if ($("scene-name")) $("scene-name").textContent = (s.procedural || s.world?.gen ? g().scene.name : s.scene === "hub" ? "Часовня" : "Крипта") + " · Мир " + s.world.chapter;
+    if ($("scene-name")) $("scene-name").textContent = (s.procedural || s.world?.gen ? g().scene.name : s.scene === "hub" ? "Часовня" : "Крипта") + (s.world.gen?.v===4 ? " · Остров " : " · Мир ") + s.world.chapter;
     const b = $("world-save");
     if (b) b.hidden = false;
   }
@@ -455,7 +454,7 @@
   }, get current() {
     return current;
   }, get locked() {
-    return atMenu || !practice && !!current && (current.status !== "active" || conflict);
+    return atMenu || !practice && !!current && (current.status !== "active" || conflict || finishingCurrent());
   }, get pending() {
     return pending;
   }, get saving() {

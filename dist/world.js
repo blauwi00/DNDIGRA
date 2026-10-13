@@ -21,8 +21,38 @@ hub.props.push(
 {id:'west-pot',x:1,y:9,type:'planter',kind:24,name:'Папоротник',description:'Небольшой папоротник тянется к свету. Хранительница заботится даже об этом уголке.'},
 {id:'chapel-banner',x:4,y:0,type:'banner',kind:24,name:'Знамя часовни',solid:false}
 );
-function tile(scene,x,y){return scene.tiles[y]?.[x]||'void'}
+function tile(scene,x,y){return scene.island?window.WorldGen?.tileAt?.(scene,x,y)||'void':scene.tiles?.[y]?.[x]||'void'}
 function faces(scene,x,y){return directions.reduce((m,[dx,dy],i)=>m|(tile(scene,x+dx,y+dy)==='floor'?1<<i:0),0)}
+
+// Sparse predecessor A*: storage follows the requested route, never W*H.
+// With a consistent Manhattan heuristic, reaching the destination proves the
+// shortest four-direction route. Exhausting the explicit budget returns null.
+// Legacy grids use the same predecessor queue in breadth-first order.
+function shortestPath(scene,from,to,passable,{maxVisited=16384,maxSteps=2048,breadthFirst=false}={}){
+ const valid=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.y>=0&&p.x<scene.W&&p.y<scene.H;
+ if(!valid(from)||!valid(to)||!Number.isInteger(maxVisited)||maxVisited<1||!Number.isInteger(maxSteps)||maxSteps<0)return null;
+ if(from.x===to.x&&from.y===to.y)return [];
+ if(!passable(to))return null;
+ const key=p=>p.y*scene.W+p.x,heuristic=p=>Math.abs(p.x-to.x)+Math.abs(p.y-to.y),start=key(from),target=key(to);
+ const seen=new Map(),heap=[];let sequence=0;
+ const before=(a,b)=>a.f<b.f||a.f===b.f&&(a.h<b.h||a.h===b.h&&a.order<b.order);
+ function push(n){let i=heap.length;heap.push(n);while(i){const parent=(i-1)>>1;if(!before(n,heap[parent]))break;heap[i]=heap[parent];i=parent;}heap[i]=n;}
+ function pop(){const first=heap[0],last=heap.pop();if(heap.length){let i=0;while(i*2+1<heap.length){let next=i*2+1;if(next+1<heap.length&&before(heap[next+1],heap[next]))next++;if(!before(heap[next],last))break;heap[i]=heap[next];i=next;}heap[i]=last;}return first;}
+ function add(p,g,parent){const h=breadthFirst?0:heuristic(p),n={x:p.x,y:p.y,g,h,f:g+h,parent,key:key(p),order:sequence++};seen.set(n.key,n);push(n);}
+ add(from,0,null);
+ while(heap.length){
+  const n=pop();if(seen.get(n.key)!==n)continue;
+  if(n.key===target){const route=[];for(let p=n;p.parent!==null;p=seen.get(p.parent))route.push({x:p.x,y:p.y});return route.reverse();}
+  for(const [dx,dy]of directions){
+   const next={x:n.x+dx,y:n.y+dy};if(!valid(next))continue;
+   const g=n.g+1;if(g+heuristic(next)>maxSteps)continue;
+   const id=key(next),previous=seen.get(id);if(previous&&previous.g<=g||!passable(next))continue;
+   if(!previous&&seen.size>=maxVisited)return null;
+   add(next,g,n.key);
+  }
+ }
+ return null;
+}
 
 hub.props.push({id:'novice',x:7,y:4,type:'npc',kind:20,name:'Лин · послушник'});
 hub.props.push({id:'episode-tracks',x:7,y:3,type:'clue',kind:24,solid:false,name:'Следы у лестницы'});crypt.props.push({id:'novice',x:10,y:5,type:'npc',kind:20,name:'Лин · послушник'});
@@ -54,9 +84,9 @@ function compileCollisions(scene){const occupied=new Map(),mounted=new Map(),ent
  for(const a of [...scene.spawns,...scene.trainingSpawn,...scene.enemySpawn,...scene.dummies.map(p=>[p.x,p.y])]){const key=a.join(',');if(occupied.has(key))throw new Error('Actor spawn overlaps '+occupied.get(key).owner.id);}
  scene.collisions=entries;scene.occupied=occupied;return entries;
 }
-function collisionAt(scene,x,y){return scene.occupied.get(x+','+y)||null;}
+function collisionAt(scene,x,y){return scene.occupied?.get(x+','+y)||null;}
 function validateDoors(scene){for(const p of scene.props.filter(p=>['door','portal'].includes(p.type))){const flanks=p.axis==='horizontal'?[[0,-1],[0,1]]:[[-1,0],[1,0]];if(!flanks.every(([dx,dy])=>tile(scene,p.x+dx,p.y+dy)==='wall'))throw Error('Door must join wall flanks: '+p.id);if(!directions.some(([dx,dy])=>tile(scene,p.x+dx,p.y+dy)==='floor'))throw Error('Inaccessible doorway: '+p.id);}}
 for(const scene of [hub,crypt]){validateDoors(scene);compileCollisions(scene);}
 
-window.World={scenes:{hub,crypt},tile,faces,directions,collisionAt,compileCollisions};
+window.World={scenes:{hub,crypt},tile,faces,directions,collisionAt,compileCollisions,shortestPath};
 })();
