@@ -80,13 +80,32 @@ test('water, coast and dry land have visible opaque geometry without collision-h
   disposeOwnedGroup(root,{sharedGeometries:new Set([geo])});geo.dispose();for(const mat of materials.values())mat.dispose();
 });
 
-test('nearby foliage is deterministic nonsolid decoration, bounded and avoids routes, props and arrival',()=>{
-  const S=scene(600),rect={x:200,y:200,w:10,h:10},rich=(S,x,y)=>({land:true,biome:'forest',surface:'grass',color:0x5f8a4a,decoration:1,height:.3});
-  const first=islandFoliage(S,rect,{sample:rich});assert.deepEqual(islandFoliage(S,rect,{sample:rich}),first);assert.ok(first.length>0&&first.length<=16);
-  assert.ok(first.every(p=>p.solid===false&&['tree','bush'].includes(p.model)));
+test('biomes generate dense but bounded foliage with clear tactical routes and landmarks',()=>{
+  const S=scene(600),rect={x:200,y:200,w:10,h:10};
+  const rich=(_S,x,y)=>({land:true,biome:'forest',surface:'grass',color:0x5f8a4a,decoration:1,height:.3,road:false});
+  const first=islandFoliage(S,rect,{sample:rich});
+  assert.deepEqual(islandFoliage(S,rect,{sample:rich}),first);
+  assert.ok(first.length>16&&first.length<=54,'forest must have dense yet bounded visual props');
+  assert.ok(first.every(p=>p.solid===false&&p.type==='decor'&&
+    ['tree','bush','grass-short','grass-mid','grass-tall','flowers','reeds'].includes(p.model)));
+  assert.ok(first.every(p=>p.x>=rect.x&&p.x<rect.x+10&&p.y>=rect.y&&p.y<rect.y+10));
   assert.deepEqual(islandFoliage(S,rect,{sample:()=>({...rich(),road:true})}),[]);
-  const occupied={...S,props:first.map(p=>({...p,type:'npc'}))};assert.deepEqual(islandFoliage(occupied,rect,{sample:rich}),[]);
-  const [x,y]=S.island.landmarks.arrival;assert.deepEqual(islandFoliage(S,{x:x-5,y:y-5,w:10,h:10},{sample:rich}),[]);
+
+  const anchor={x:205,y:205,type:'npc'},occupied={...S,props:[anchor]};
+  const away=islandFoliage(occupied,rect,{sample:rich});
+  assert.ok(away.every(p=>Math.abs(p.x-anchor.x)>1||Math.abs(p.y-anchor.y)>1));
+  const [x,y]=S.island.landmarks.arrival;
+  const nearArrival=islandFoliage(S,{x:x-5,y:y-5,w:10,h:10},{sample:rich});
+  assert.ok(nearArrival.every(p=>p.model!=='tree'||Math.hypot(x-p.x,y-p.y)>=4),
+    'tree crowns do not hide the start location');
+  assert.ok(nearArrival.some(p=>p.model.startsWith('grass')||p.model==='flowers'),
+    'safe walk-through grass is allowed near the arrival area');
+
+  const meadow=(_S,x,y)=>({...rich(_S,x,y),biome:'meadow',decoration:.28});
+  const clearing=islandFoliage(S,rect,{sample:meadow});
+  assert.ok(clearing.some(p=>p.model==='flowers'||p.model.startsWith('grass')),
+    'meadow receives a mixture of readable grass and flowers');
+  assert.ok(first.some(p=>p.model==='tree'),'forest contains 3D tree models');
 });
 
 test('failed shared-material lookup releases partially built instance buffers and retains shared owners',()=>{
