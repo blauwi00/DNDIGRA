@@ -1179,7 +1179,7 @@ function sync() {
   clearMarkers();
   const chosen=refreshSelectionMask();
   const a = g.active();
-  outline(a.x + 0.5, a.y + 0.5, 9481331, 0.74);
+  // The hero's base already identifies its cell; show ground borders only for a chosen action.
   if(g.state.world?.gen)for(const t of window.WorldGen.Runtime.knownTraps(window.GeneratedWorlds.host(),g.scene))outline(t.x+.5,t.y+.5,0xd87a38,.82);
   if (g.selected) {
     if (!chosen) outline(g.selected.x + 0.5, g.selected.y + 0.5, 14925430);
