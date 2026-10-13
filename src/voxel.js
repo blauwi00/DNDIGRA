@@ -214,6 +214,30 @@ function terrainMaterial(color, size = 8) {
   if (!terrainMaterials.has(key)) terrainMaterials.set(key, new T.MeshStandardMaterial({ color, map: terrainTextures.get(size), roughness: 1 }));
   return terrainMaterials.get(key);
 }
+// Single shared low-contrast pixel pattern for all outdoor island cells.
+// There is no dark per-tile border: the tactical outline appears only on selection.
+const islandSurfaceTextures=new Map(),islandSurfaceMaterials=new Map();
+function islandSurfaceMaterial(kind){
+  const type=kind==='water'?'water':kind==='foam'?'foam':'ground';
+  if(!islandSurfaceMaterials.has(type)){
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=16;
+    const context=canvas.getContext('2d');
+    for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+      const h=(Math.imul(x+3,73856093)^Math.imul(y+17,19349663))>>>0;
+      const grain=(h%5)-2;
+      const value=type==='water'?247+grain:type==='foam'?252:248+grain;
+      context.fillStyle='rgb('+value+','+value+','+value+')';
+      context.fillRect(x,y,1,1);
+    }
+    const texture=new T.CanvasTexture(canvas);
+    texture.colorSpace=T.SRGBColorSpace;
+    texture.magFilter=texture.minFilter=T.NearestFilter;
+    texture.generateMipmaps=false;
+    islandSurfaceTextures.set(type,texture);
+    islandSurfaceMaterials.set(type,new T.MeshStandardMaterial({color:0xffffff,map:texture,roughness:1}));
+  }
+  return islandSurfaceMaterials.get(type);
+}
 function noSourceShadow(group) {
   group.traverse((m) => {
     if (m.isMesh) {
@@ -805,7 +829,7 @@ function buildEnvironment(S,rect){
   if(S.island){
     resource.root.add(buildIslandTerrain(S,rect,{geometry:geo,materialFor:kind=>{
       if(kind.startsWith('stone:')){const mat=stoneMaterial(Number(kind.slice(6)));sharedStoneMaterials.add(mat);return mat;}
-      return terrainMaterial(0xffffff,kind==='water'?2:8);
+      return islandSurfaceMaterial(kind);
     }}));
   }else for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
     const type = World.tile(S, x, y), noise = (x * 113 + y * 71 + terrainSeed) % 11 / 100;
@@ -877,8 +901,10 @@ function buildEnvironment(S,rect){
   }
   if(S.island&&window.Props)for(const p of islandFoliage(S,rect)){
     const m=propModel(p);m.position.set(p.x+.5,0,p.y+.5);
-    // These current-model trees are appearance only. They never enter models,
-    // collision, fixture picking, saved props or the actor/interaction pin list.
+    // Foliage remains purely decorative: no selection, collision or save data.
+    // Model-face shading gives volume; tiny plants do not cast expensive shadows.
+    if(p.model==='tree'||p.model==='bush')contact(m,p.model==='tree'?.68:.48,p.model==='tree'?.57:.43);
+    m.traverse(piece=>{if(piece.isMesh&&piece.userData.contactShadow!==true)piece.castShadow=false;});
     m.userData.islandDecoration=true;resource.root.add(m);staticRoots.push(m);
   }
   resource.batches=batchStaticModels(staticRoots,resource.root);
@@ -1595,7 +1621,7 @@ function regionSnapshot(){
     built:stats.builtCount||0,released:stats.releasedCount||0,generation:regionGeneration,streamGeneration:stats.generation||0,errors:stats.errors||0,lastError:stats.lastError||null,lastBuildMs:stats.lastBuildDuration||0,
     resources,overview:regionOverviewInfo,actorResources:countGroupResources(actors),portableLights:torches.filter(t=>t.portable).length,
     groups:[...regionResources.values()].map(r=>({id:r.chunk.id,...countGroupResources(r.root)})),
-    shared:{materials:materials.size+terrainMaterials.size+sharedStoneMaterials.size,textures:terrainTextures.size+(rugMaterial?1:0)+1+[...sharedStoneMaterials].filter(material=>material.map).length,geometries:1},
+    shared:{materials:materials.size+terrainMaterials.size+sharedStoneMaterials.size,textures:terrainTextures.size+islandSurfaceTextures.size+(rugMaterial?1:0)+1+[...sharedStoneMaterials].filter(material=>material.map).length,geometries:1},
     gpu:{...renderer.info.memory,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},
     demand:{visibleKeys:regionPlan?.visibleKeys||[],pinnedKeys:regionPlan?.pinnedKeys||[],bounds:regionBounds},
     failedIds:[...regionFailures]};
