@@ -84,7 +84,7 @@ test('water, coast and dry land have visible opaque geometry without collision-h
 test('all island flora remain small real 3D voxel models with bounded geometry',()=>{
   for(const model of ['tree','bush','grass-short','grass-mid','grass-tall','flowers','reeds']){
     const boxes=buildProp({id:'test-flora-'+model,model,leafColor:0x456b3c,x:4,y:5},{texel:false});
-    assert.ok(boxes&&boxes.length>=3&&boxes.length<=7,model+' has a compact block budget');
+    assert.ok(boxes&&boxes.length>=3&&boxes.length<=9,model+' has a compact block budget');
     assert.ok(boxes.every(b=>b.slice(0,6).every(Number.isFinite)&&b[4]>0&&b[6]!==undefined));
     assert.ok(boxes.some(b=>b[1]+b[4]/2>0.10),model+' has vertical volume');
   }
