@@ -3,6 +3,7 @@ import test from 'node:test';
 import * as T from 'three';
 import {createIsland,isLand,sampleIsland} from '../src/islands/terrain.js';
 import {islandRenderConfig,prepareIslandOverview,buildIslandTerrain,islandFoliage} from '../src/islands/render.js';
+import {build as buildProp} from '../src/props.js';
 import {disposeOwnedGroup,countGroupResources,cameraGroundBounds,expandRegionBounds} from '../src/region-rendering.js';
 import {planRegionChunks} from '../src/region-streaming.js';
 
@@ -78,6 +79,15 @@ test('water, coast and dry land have visible opaque geometry without collision-h
   });
   assert.ok(kinds.has('water'));assert.ok(kinds.has('foam'));assert.ok(floors>0);
   disposeOwnedGroup(root,{sharedGeometries:new Set([geo])});geo.dispose();for(const mat of materials.values())mat.dispose();
+});
+
+test('all island flora remain small real 3D voxel models with bounded geometry',()=>{
+  for(const model of ['tree','bush','grass-short','grass-mid','grass-tall','flowers','reeds']){
+    const boxes=buildProp({id:'test-flora-'+model,model,leafColor:0x456b3c,x:4,y:5},{texel:false});
+    assert.ok(boxes&&boxes.length>=3&&boxes.length<=7,model+' has a compact block budget');
+    assert.ok(boxes.every(b=>b.slice(0,6).every(Number.isFinite)&&b[4]>0&&b[6]!==undefined));
+    assert.ok(boxes.some(b=>b[1]>0.09),model+' has vertical volume');
+  }
 });
 
 test('biomes generate dense but bounded foliage with clear tactical routes and landmarks',()=>{
