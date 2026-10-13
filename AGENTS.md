@@ -1,5 +1,8 @@
 # Mandatory project rules — read first
 
+## Active continuation · 2026-10-12
+Owner explicitly requested implementing island generation now and publishing the updated EXISTING game both to the existing Site and as native app builds. This supersedes the no-Site-publication note below, but does not authorize GitHub main changes, store publication or changing the Site audience. Preserve Site ID/audience/DB/migrations/title/local save key. Implement playable compact v4 island terrain and bounded rendering/UI in the current project; preserve v1/v2/v3 saves and current art/editor/camera/rules. Root owns integration, global builds, GPU/browser tests, Git, Site publication and native exports; workers own explicitly assigned files only. Read docs/superpowers/plans/2026-10-12-playable-island-integration.md for this batch's interface contract. No worker commits, pushes, builds bundles or publishes.
+
 ## Current owner correction · 2026-10-12
 Work continues from latest existing v64 (feat/region-streaming509fdf7), not a replacement game. Preserve current approved characters, pixel textures, full editor, rules, equipment, icons/theme and recognized orthographic top-down view. Do not promote archived cartoon sprites or invent new models. Latest instructions override historical portrait/world rules: all screens landscape, islands600–1000drycells/10cellchunks, paid ships, entire hero property retained, no automatic enemy/resource respawn. Use existing Capacitor/local API to test installed game; do not publish Site/stores or merge main. Read docs/superpowers/specs/2026-10-12-existing-game-mobile-islands.md and plan. Root owns builds/GPU/Git/artifacts; workers only assigned paths. Rejected /workspace/DNDIGRA-godot is not the implementation base.
 

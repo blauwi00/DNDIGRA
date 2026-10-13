@@ -19,6 +19,9 @@ import {stoneTile,createStoneMaterials} from '../src/stone-atlas.js';
 import {SURFACE_BY_CODE,surfaceColor,wallColor} from '../src/worldgen/surfaces.js';
 import * as regionHelpers from '../src/region-rendering.js';
 import * as Props from '../src/props.js';
+import * as islandRenderHelpers from '../src/islands/render.js';
+import {createIsland} from '../src/islands/terrain.js';
+import {tileAt} from '../src/islands/scene.js';
 const noop=()=>{},frames=new Map(),elements=new Map();let nextFrame=0,time=0,tapped='unset';
 // Keep the real atlas/material cache; stub only the browser image request.
 const stoneMaterials=new Map();let atlasLoaded,atlasFailed,atlasLoads=0;
@@ -28,8 +31,8 @@ function createTestStoneMaterials(){
  }});
  return tile=>{const material=lookup(tile);stoneMaterials.set(tile,material);return material;};
 }
-const context=new Proxy({createRadialGradient:()=>({addColorStop:noop})},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
-function element(){return {hidden:false,dataset:{},clientWidth:390,clientHeight:520,children:[],events:new Map(),classList:{add:noop,remove:noop,toggle:noop},setAttribute:noop,prepend(...nodes){this.children.unshift(...nodes);},append(...nodes){this.children.push(...nodes);},addEventListener(name,fn){this.events.set(name,fn);},replaceChildren(...nodes){this.children=nodes;},remove:noop,setPointerCapture:noop,getContext:()=>context,getBoundingClientRect:()=>({left:0,top:0,width:390,height:520,bottom:520,height:520}),insertAdjacentHTML:noop};}
+const context=new Proxy({createRadialGradient:()=>({addColorStop:noop}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)})},{get:(o,k)=>o[k]??noop,set:(o,k,v)=>(o[k]=v,true)});
+function element(){return {hidden:false,dataset:{},style:{},clientWidth:390,clientHeight:520,children:[],events:new Map(),classList:{add:noop,remove:noop,toggle:noop},setAttribute:noop,prepend(...nodes){this.children.unshift(...nodes);},append(...nodes){this.children.push(...nodes);},addEventListener(name,fn){this.events.set(name,fn);},replaceChildren(...nodes){this.children=nodes;},remove:noop,setPointerCapture:noop,getContext:()=>context,getBoundingClientRect:()=>({left:0,top:0,width:390,height:520,bottom:520,height:520}),insertAdjacentHTML:noop};}
 const document={body:element(),hidden:false,createElement:element,addEventListener:noop,getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);}};
 class Renderer{constructor(){this.shadowMap={};this.info={memory:{geometries:0,textures:0},render:{calls:0,triangles:0}};}setPixelRatio(){}setSize(){}setRenderTarget(){}render(scene){scene.updateMatrixWorld(true);}readRenderTargetPixels(_t,_x,_y,_w,_h,pixels){pixels.fill(0);}}
 const hero={id:'hero',kind:2,classId:'fighter',hp:10,x:8,y:8,hands:[],appearance:{}},hidden={id:'hidden',x:4,y:4,type:'chest',solid:true};
@@ -37,8 +40,8 @@ let departingNpc=null;
 let scene={id:'small',W:20,H:20,outdoor:false,props:[hidden],decor:[],lights:[],tiles:Array.from({length:20},()=>Array(20).fill('floor'))},showHidden=false;
 const state={scene:'small',party:[hero],active:'hero',seed:4,settings:{lights:false,animations:false,ambient:.5,intensity:1},loot:{},enemies:[],combat:false};
 const game={state,get scene(){return scene;},get props(){return scene.props.filter(p=>p.id!=='hidden'||showHidden).map(p=>p.id===departingNpc?.id?departingNpc:p);},get departingNpc(){return departingNpc;},active:()=>hero,all:()=>[hero,...state.enemies],animate:()=>false,render:noop,isOpen:p=>!!state.doors?.[p.id],selected:null,route:[],mapTap:p=>{tapped=p;},dismissMapActions:noop};
-const World={tile:(s,x,y)=>s.tiles[y]?.[x]||'void'};
-const env={T:{...Three,WebGLRenderer:Renderer},stoneTile,createStoneMaterials:createTestStoneMaterials,WorldGen:{SURFACE_BY_CODE,surfaceColor,wallColor},npcFacing,faceCell,batchStaticModels,createMenuStage,texelPass,TEXEL,fitPreviewCamera,fillSilhouette,characterParts,characterProfile,characterSpec,characterBuild,enemyModel,bindPromptInput,planRegionChunks,createChunkStream,...regionHelpers,
+const World={tile:tileAt};
+const env={T:{...Three,WebGLRenderer:Renderer},stoneTile,createStoneMaterials:createTestStoneMaterials,WorldGen:{SURFACE_BY_CODE,surfaceColor,wallColor},npcFacing,faceCell,batchStaticModels,createMenuStage,texelPass,TEXEL,fitPreviewCamera,fillSilhouette,characterParts,characterProfile,characterSpec,characterBuild,enemyModel,bindPromptInput,planRegionChunks,createChunkStream,...regionHelpers,...islandRenderHelpers,
  document,performance:{now:()=>time},requestAnimationFrame:fn=>{const id=++nextFrame;frames.set(id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id),ResizeObserver:class{observe(){}},setTimeout:noop,console,World,Props,devicePixelRatio:1,location:{search:'?qa=1'},gameDebug:game,Torches:{lightSources:()=>[],fixture:()=>({present:true})}};env.window=env;env.document.getElementById('dialogue').hidden=true;
 vm.createContext(env);vm.runInContext(readFileSync(new URL('../src/voxel.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,''),env);
 const voxel=env.voxel;
@@ -57,6 +60,53 @@ assert.equal(interiorFloor.material.transparent,false);assert.equal(interiorFloo
 atlasFailed();assert.equal(interiorFloor.material.map,null,'Image failure leaves the interior fallback opaque');
 showHidden=true;voxel.sync();
 assert.ok(voxel.models.has('prop:hidden'),'A story prop becoming visible in the same scene needs its existing source model');
+
+// Exercise the real frame placement and the existing dedicated-press handler.
+// Landscape HUD rectangles may sit beside the viewport rather than below it.
+const promptViewport=elements.get('viewport'),promptDock=document.getElementById('play-dock');
+const promptElement=promptViewport.children.find(node=>node.className==='object-prompt');
+const originalViewportRect=promptViewport.getBoundingClientRect,originalDockRect=promptDock.getBoundingClientRect;
+promptElement.offsetWidth=190;promptElement.offsetHeight=125;
+let promptActions=0;
+function promptFixture({width,height,left=0,top=0,dock,target={x:hero.x,y:hero.y}}){
+ promptViewport.clientWidth=width;promptViewport.clientHeight=height;
+ promptViewport.getBoundingClientRect=()=>({left,top,width,height,right:left+width,bottom:top+height});
+ promptDock.getBoundingClientRect=()=>({...dock,right:dock.left+dock.width,bottom:dock.top+dock.height});
+ env.objectPrompt={p:{...target,name:'Клетка'},actions:[{id:'move',label:'Идти сюда',enabled:true,run:()=>promptActions++}]};
+ env.camera.reset();env.tick(time+=40);
+ return {left:left+parseFloat(promptElement.style.left)-promptElement.offsetWidth/2,top:top+parseFloat(promptElement.style.top),width:promptElement.offsetWidth,height:promptElement.offsetHeight};
+}
+function assertPromptFits(rect,viewport,dock){
+ assert.equal(promptElement.hidden,false,'Visible target offers its prepared movement action');
+ assert.ok(rect.left>=viewport.left+6&&rect.left+rect.width<=viewport.left+viewport.width-6);
+ assert.ok(rect.top>=viewport.top+6&&rect.top+rect.height<=viewport.top+viewport.height-6);
+ assert.ok(rect.left+rect.width<=dock.left||rect.left>=dock.left+dock.width||rect.top+rect.height<=dock.top||rect.top>=dock.top+dock.height,'Whole popup remains outside the HUD hit region');
+ const button=promptElement.children.find(node=>node.dataset?.action==='move');assert.ok(button&&!button.disabled);
+ const buttonRect={left:rect.left+7,top:rect.top+31,width:rect.width-14,height:44};
+ assert.ok(buttonRect.width>=44&&buttonRect.height>=44&&buttonRect.top+buttonRect.height<=rect.top+rect.height);
+ const before=promptActions,target={closest:()=>button};
+ promptElement.onclick({detail:1,target,stopPropagation:noop});assert.equal(promptActions,before,'A map compatibility click still cannot trigger the action');
+ promptElement.events.get('pointerdown')({target,stopPropagation:noop});
+ promptElement.onclick({detail:1,target,stopPropagation:noop});assert.equal(promptActions,before+1,'Dedicated press reaches the actual prepared action');
+}
+{
+ const viewport={width:632,height:303,left:220,top:50},dock={left:4,top:50,width:210,height:303};
+ assertPromptFits(promptFixture({...viewport,dock}),viewport,dock);
+}
+{
+ const viewport={width:852,height:303,left:0,top:50},dock={left:0,top:50,width:176,height:303};
+ assertPromptFits(promptFixture({...viewport,dock}),viewport,dock);
+}
+{
+ const viewport={width:390,height:520,left:0,top:0},dock={left:0,top:420,width:390,height:100};
+ assertPromptFits(promptFixture({...viewport,dock}),viewport,dock);
+ promptFixture({...viewport,dock,target:{x:hero.x,y:hero.y+4}});assert.equal(promptElement.hidden,true,'A target behind the portrait bottom dock stays unavailable');
+}
+// Restore the original lifecycle fixture after bounded placement checks.
+env.objectPrompt=null;promptViewport.clientWidth=390;promptViewport.clientHeight=520;
+promptViewport.getBoundingClientRect=originalViewportRect;promptDock.getBoundingClientRect=originalDockRect;
+env.camera.reset();env.tick(time+=40);
+console.log('PASS real popup placement and press guards with landscape side HUD and portrait bottom HUD');
 
 function loadLarge(){
  scene={id:'large',W:96,H:64,outdoor:true,visualSeed:4,surface:Array.from({length:64},()=>Array(96).fill('c')),props:[{id:'keeper',type:'npc',x:9,y:28,name:'Хранитель'}, {id:'open-door',type:'door',x:18,y:30}, {id:'camp',x:18,y:28,type:'chest'},{id:'far',x:78,y:39,type:'chest'},...Array.from({length:60},(_,i)=>({id:'tree'+i,x:3+i%20*4,y:3+Math.floor(i/20)*18,model:'tree',type:'decor',solid:false}))],decor:[],lights:[],tiles:Array.from({length:64},()=>Array(96).fill('floor'))};
@@ -127,3 +177,39 @@ assert.equal(voxel.regionStats.mode,'full');assert.ok(![...voxel.models.keys()].
 assert.equal(floorMesh(environment('full'),4,4).material,stoneMaterials.get(stoneTile({},4,4)),'A later small interior retains the common material cache');
 assert.equal(stoneMaterialDisposed,0);assert.equal(stoneMapDisposed,0);assert.equal(atlasLoads,1);
 console.log('PASS source renderer full-scene compatibility, opaque interior fallback, shared stone material/map retention, one-group first build, actor independence, stateful remount, live resource plateau, combat pins, overview picking and stale callback cancellation');
+
+// Run the same source renderer against compact metadata, without any cell grids.
+const island=createIsland('renderer-lifecycle',1000),[portX,portY]=island.landmarks.port;
+scene={id:'island',layoutKey:'renderer-island-v1',W:island.W,H:island.H,island,outdoor:true,regionStreaming:{chunkSize:10,maxChunks:32},
+ props:[{id:'island-chest',x:portX+8,y:portY+4,type:'chest'}],landmarks:[],decor:[],lights:[]};
+state.scene=scene.id;state.loot={};hero.x=island.landmarks.arrival[0];hero.y=island.landmarks.arrival[1];
+env.location.search='?qa=1&regionFull=1';voxel.sync();env.camera.center(hero);drain();
+assert.equal(voxel.regionStats.enabled,true,'Compact islands never allocate a full-scene mesh, even with QA full override');
+assert.equal(voxel.regionStats.chunkSize,10);
+assert.deepEqual({...voxel.regionStats.overview},{width:256,height:256,samples:65536});
+const islandOverview=voxel.scene.children[0].children.find(node=>node.name==='region-overview').children[0];
+assert.ok(islandOverview.position.y<-.045,'Overview is below detailed ocean so it cannot cover shoreline foam');
+assert.equal(islandOverview.material.transparent,false,'Island overview ocean remains visible');
+const islandActor=voxel.models.get('hero');
+visit(portX+3,portY);
+let waterMeshes=0,foamMeshes=0;
+for(const resource of voxel.scene.children[0].children)resource.traverse(mesh=>{
+ if(mesh.userData.islandMaterial==='water')waterMeshes++;
+ if(mesh.userData.islandMaterial==='foam')foamMeshes++;
+});
+assert.ok(waterMeshes>0&&foamMeshes>0,'Coast demand mounts current-style sea and shoreline');
+tapCell(portX-1,portY);assert.equal(tapped,null,'Visible ready ocean is not a walkable map selection');
+tapCell(portX+1,portY);assert.equal(tapped.x,portX+1);assert.equal(tapped.y,portY,'Ready dry coast remains selectable');
+for(const center of island.biomes)visit(Math.round(center.x),Math.round(center.y));
+visit(portX+3,portY);const islandShared={...voxel.regionStats.shared},islandLive={...voxel.regionStats.resources};
+for(let lap=0;lap<3;lap++){
+ for(const center of island.biomes)visit(Math.round(center.x),Math.round(center.y));
+ visit(portX+3,portY);assert.deepEqual({...voxel.regionStats.shared},islandShared,'Continuous sampler colors cannot grow shared cache across remounts');
+ assert.deepEqual({...voxel.regionStats.resources},islandLive,'Repeated visits return to the same owned resource count');
+ assert.ok(voxel.regionStats.ready<=32);
+ assert.equal(voxel.models.get('hero'),islandActor,'Island chunk eviction retains the live actor');
+}
+assert.ok([...voxel.models.keys()].every(id=>!id.startsWith('prop:')||id==='prop:island-chest'),'Visual foliage never becomes an interactive/collision prop');
+voxel.fit();drain();assert.equal(voxel.regionStats.mode,'overview');assert.deepEqual({...voxel.regionStats.overview},{width:256,height:256,samples:65536});
+tapCell(portX+8,portY+4);assert.equal(tapped,null,'Island overview cannot select an unloaded logical chest');
+console.log('PASS compact island source renderer: bounded ten-cell groups/256² overview, opaque sea/foam, dry-only ready picking, actor ownership and shared material/live resource plateau');

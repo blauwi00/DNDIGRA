@@ -75,3 +75,62 @@ choices().children.find(n=>n.textContent.startsWith('Атаковать:')).oncl
 toggle().onclick();game.state.encounter={id:'tutorial-loss',tutorial:true};env.Adventure.render();assert.equal(choices().hidden,true,'New encounters reset expanded choices');
 toggle().onclick();env.Adventure.restore(game.state);assert.equal(choices().hidden,true,'Reload resets expanded choices');
 console.log('PASS adventure client: cinematic checkpoints, own appearance, departed NPC, once-only rewards, safe tutorial unconsciousness and compact prepared combat choices');
+
+// The same real controls and story host serve the new compact island; this
+// assertion is red on the original v3-only controller.
+game.state=initial();game.state.world.gen.v=4;game.state.scene='island';
+game.scene={id:'island',W:640,H:640,island:{v:1},props:[],encounters:[],landmarks:[{id:'settlement',x:35,y:40,radius:8}]};
+env.Adventure.restore(game.state);
+assert.equal(env.Adventure.active,true,'New island scenes use the existing adventure controller');
+assert.equal(env.Adventure.introActive,true,'The island begins with the appearance-bound introduction');
+assert.equal(env.Adventure.visibleProp({storyRole:'healer'}),true,'Island healer does not depend on a nonexistent legacy tutorial');
+Object.assign(game.state.story,{intro:3,npcWarned:true,npcDeparted:true});
+env.Adventure.step(game.scene,4,4);
+assert.equal(game.state.story.reachedSettlement,false,'Distant island cells do not count as reaching the settlement');
+Object.assign(game.active(),{x:35,y:40});env.Adventure.step(game.scene,35,40);
+assert.equal(game.state.story.reachedSettlement,true,'Walking into the island settlement advances saved story progress');
+env.Adventure.restore(game.state);
+assert.equal(env.Adventure.visibleProp({storyRole:'messenger'}),false,'Island reload keeps the messenger departed');
+game.scene.encounters=[{...encounter,scene:'island',x:35,y:40,radius:2}];
+game.state.encounter={...game.scene.encounters[0]};
+env.Adventure.victory(game.state.encounter);env.Adventure.victory(game.scene.encounters[0]);
+assert.equal(game.state.xp,25,'Island encounter rewards remain once-only');
+assert.equal(game.state.gold,5,'Island encounter gold remains once-only');
+console.log('PASS island adventure: current controller/appearance, geometric settlement, permanent messenger and once-only encounter');
+
+let dialogue,flushWorks=false,flushes=0;
+game.report=text=>game.state.logs.push(text);
+env.openGeneratedDialogue=(p,text,options)=>{dialogue={p,text,options};};
+env.closeDialogue=()=>{};env.Worlds.flush=async()=>{flushes++;return flushWorks;};
+const clueProp={id:'story-clue',name:'Дорожная запись',type:'chest',x:35,y:41};
+game.scene.props=[clueProp];
+assert.equal(env.Adventure.interact(clueProp),true);
+await dialogue.options.find(o=>o.label.startsWith('Изучить находку')).fn();
+assert.equal(game.state.story.clues.length,1);
+assert.ok(dialogue.options.some(o=>o.label==='Повторить сохранение'),'Failed clue checkpoint offers retry before continuing');
+assert.ok(!dialogue.options.some(o=>o.label==='Записать и продолжить путь'),'Failed checkpoint does not claim the clue was saved');
+flushWorks=true;await dialogue.options.find(o=>o.label==='Повторить сохранение').fn();
+assert.ok(dialogue.options.some(o=>o.label==='Записать и продолжить путь'));
+assert.equal(game.state.story.clues.length,1,'Retry does not acquire the clue again');
+const elder={id:'elder',storyRole:'elder',name:'Староста',type:'npc',x:36,y:40};
+game.scene.props.push(elder);flushWorks=false;env.Adventure.interact(elder);
+await dialogue.options.find(o=>o.label==='Передать найденные сведения').fn();
+assert.ok(dialogue.options.some(o=>o.label==='Повторить сохранение'),'Failed report retains its checkpoint and retry');
+flushWorks=true;await dialogue.options.find(o=>o.label==='Повторить сохранение').fn();
+assert.ok(dialogue.options.some(o=>o.label==='Завершить разговор'));
+assert.equal(game.state.story.reported,true);assert.equal(flushes,4);
+console.log('PASS island interaction checkpoints: failed clue/report saves retry before dependent departure');
+
+game.state=initial();game.state.world.gen.v=4;game.state.scene='island';
+Object.assign(game.state.story,{intro:3,npcWarned:true,npcDeparted:true});
+let finishHud;env.HUD.check=()=>new Promise(resolve=>{finishHud=resolve;});
+env.Adventure.interact(clueProp);
+const startedState=game.state,waiting=dialogue.options.find(o=>o.label.startsWith('Изучить находку')).fn();
+game.state=structuredClone(game.state);game.state.logs=['Загружено сохранение'];
+const currentDialogue=dialogue;
+finishHud();await waiting;
+assert.deepEqual([...startedState.story.clues],[],'A cancelled investigation does not mutate the unloaded story');
+assert.deepEqual([...game.state.story.clues],[],'Reloaded story cannot acquire a stale clue');
+assert.deepEqual([...game.state.logs],['Загружено сохранение'],'A late HUD result cannot write into the loaded world');
+assert.equal(dialogue,currentDialogue,'A cancelled investigation cannot show a success dialogue');
+console.log('PASS island investigation lifecycle: reloading during HUD cancels the old result');

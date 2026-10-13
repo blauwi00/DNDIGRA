@@ -9,9 +9,9 @@ var WorldGen = (() => {
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key10 of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key10) && key10 !== except)
-          __defProp(to, key10, { get: () => from[key10], enumerable: !(desc = __getOwnPropDesc(from, key10)) || desc.enumerable });
+      for (let key12 of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key12) && key12 !== except)
+          __defProp(to, key12, { get: () => from[key12], enumerable: !(desc = __getOwnPropDesc(from, key12)) || desc.enumerable });
     }
     return to;
   };
@@ -21,30 +21,32 @@ var WorldGen = (() => {
   var index_exports = {};
   __export(index_exports, {
     CATALOG: () => CATALOG,
-    GEN_VERSION: () => GEN_VERSION4,
+    GEN_VERSION: () => GEN_VERSION5,
     Runtime: () => runtime_exports,
-    SIZES: () => SIZES12,
+    SIZES: () => SIZES13,
     STORY_IDS: () => STORY_IDS,
     SUPPORTED_VERSIONS: () => SUPPORTED_VERSIONS,
     SURFACES: () => SURFACES,
     SURFACE_BY_CODE: () => SURFACE_BY_CODE,
     TOWN_SIZES: () => TOWN_SIZES3,
     WALL_STYLES: () => WALL_STYLES,
-    createWorld: () => createWorld4,
-    exits: () => exits4,
-    generateScene: () => generateScene4,
-    gmBrief: () => gmBrief3,
-    isGeneratedId: () => isGeneratedId4,
+    createWorld: () => createWorld5,
+    exits: () => exits5,
+    generateScene: () => generateScene5,
+    gmBrief: () => gmBrief4,
+    isGeneratedId: () => isGeneratedId5,
     lootSentence: () => lootSentence,
     lootText: () => lootText2,
-    normalizeGen: () => normalizeGen4,
-    npcBrief: () => npcBrief3,
+    normalizeGen: () => normalizeGen5,
+    npcBrief: () => npcBrief4,
     plural: () => plural,
     randomSeed: () => randomSeed3,
     rollLoot: () => rollLoot2,
-    sceneIds: () => sceneIds4,
+    sampleScene: () => sampleScene,
+    sceneIds: () => sceneIds5,
     surfaceColor: () => surfaceColor,
-    validateScene: () => validateScene4,
+    tileAt: () => tileAt,
+    validateScene: () => validateScene5,
     wallColor: () => wallColor
   });
 
@@ -177,19 +179,19 @@ var WorldGen = (() => {
     warehouse: { label: "\u0421\u043A\u043B\u0430\u0434", role: ["\u043A\u043B\u0430\u0434\u043E\u0432\u0449\u0438\u043A", "\u043A\u043B\u0430\u0434\u043E\u0432\u0449\u0438\u0446\u0430"], cls: "fighter" },
     library: { label: "\u041A\u043D\u0438\u0436\u043D\u0430\u044F \u043B\u0430\u0432\u043A\u0430", role: ["\u043F\u0438\u0441\u0430\u0440\u044C", "\u043F\u0438\u0441\u0430\u0440\u044C"], cls: "wizard" }
   };
-  function buildingName(rng, type, owner2) {
+  function buildingName(rng, type, owner3) {
     const t = BUILDING_TYPES[type];
     switch (type) {
       case "tavern":
         return `\u0422\u0430\u0432\u0435\u0440\u043D\u0430 \xAB${tavernName(rng)}\xBB`;
       case "smithy":
-        return `\u041A\u0443\u0437\u043D\u0438\u0446\u0430 ${owner2.genitive}`;
+        return `\u041A\u0443\u0437\u043D\u0438\u0446\u0430 ${owner3.genitive}`;
       case "alchemist":
-        return `\u0417\u0435\u043B\u044C\u044F ${owner2.genitive}`;
+        return `\u0417\u0435\u043B\u044C\u044F ${owner3.genitive}`;
       case "shop":
-        return `\u041B\u0430\u0432\u043A\u0430 ${owner2.genitive}`;
+        return `\u041B\u0430\u0432\u043A\u0430 ${owner3.genitive}`;
       case "library":
-        return `\u041A\u043D\u0438\u0433\u0438 ${owner2.genitive}`;
+        return `\u041A\u043D\u0438\u0433\u0438 ${owner3.genitive}`;
       case "chapel":
         return rng.pick(["\u0427\u0430\u0441\u043E\u0432\u043D\u044F \u0442\u0438\u0445\u0438\u0445 \u0441\u0432\u0435\u0447\u0435\u0439", "\u0427\u0430\u0441\u043E\u0432\u043D\u044F \u0443 \u0434\u043E\u0440\u043E\u0433\u0438", "\u0421\u0442\u0430\u0440\u0430\u044F \u0447\u0430\u0441\u043E\u0432\u043D\u044F", "\u0427\u0430\u0441\u043E\u0432\u043D\u044F \u0441\u0442\u0440\u0430\u043D\u043D\u0438\u043A\u043E\u0432", "\u0427\u0430\u0441\u043E\u0432\u043D\u044F \u0441\u0435\u043C\u0438 \u043E\u0433\u043D\u0435\u0439"]);
       case "guard":
@@ -197,9 +199,9 @@ var WorldGen = (() => {
       case "warehouse":
         return rng.pick(["\u0421\u043A\u043B\u0430\u0434 \u043A\u0443\u043F\u0446\u043E\u0432", "\u041E\u0431\u0449\u0438\u043D\u043D\u044B\u0439 \u0441\u043A\u043B\u0430\u0434", "\u0421\u0442\u0430\u0440\u044B\u0439 \u0430\u043C\u0431\u0430\u0440", "\u041F\u043E\u0440\u0442\u043E\u0432\u044B\u0439 \u0441\u043A\u043B\u0430\u0434"]);
       case "cottage":
-        return `\u0425\u0438\u0436\u0438\u043D\u0430 ${owner2.genitive}`;
+        return `\u0425\u0438\u0436\u0438\u043D\u0430 ${owner3.genitive}`;
       default:
-        return `\u0414\u043E\u043C ${owner2.genitive}`;
+        return `\u0414\u043E\u043C ${owner3.genitive}`;
     }
   }
   var GREET = {
@@ -251,7 +253,7 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function dialogueFor(rng, building, owner2, facts, extraTopic) {
+  function dialogueFor(rng, building, owner3, facts, extraTopic) {
     const kind = GREET[building] ? building : "house", lines = [rng.pick(GREET[kind])];
     const rumors = rumorLines(rng, facts);
     lines.push(...rumors);
@@ -639,15 +641,15 @@ var WorldGen = (() => {
     altar: { type: "altar", name: "\u0410\u043B\u0442\u0430\u0440\u044C", d: ["\u0410\u043B\u0442\u0430\u0440\u044C \u0442\u0451\u043F\u043B\u044B\u0439 \u043D\u0430 \u043E\u0449\u0443\u043F\u044C, \u0441\u0432\u0435\u0447\u0438 \u0433\u043E\u0440\u044F\u0442 \u0440\u043E\u0432\u043D\u043E."] }
   };
   var dirRot = (dx, dy) => dy === 1 ? 0 : dx === -1 ? 3 : dy === -1 ? 2 : 1;
-  function mk(sb, key10, extra = {}) {
-    const c = CAT[key10], p = { type: c.type, kind: 24, name: c.name, description: sb.rng.pick(c.d), ...extra };
+  function mk(sb, key12, extra = {}) {
+    const c = CAT[key12], p = { type: c.type, kind: 24, name: c.name, description: sb.rng.pick(c.d), ...extra };
     if (c.model) p.model = c.model;
     if (c.solid === false) p.solid = false;
     if (c.type === "chest") p.kind = 17;
     if (c.type === "altar") p.kind = 18;
     if (c.type === "books") p.kind = 21;
     if (c.type === "cover") p.kind = 19;
-    p.cat = key10;
+    p.cat = key12;
     return p;
   }
   var inRoom = (r, x, y) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
@@ -667,12 +669,12 @@ var WorldGen = (() => {
   function interior(sb, r) {
     return sb.rng.shuffle(roomCells(sb, r).filter(([x, y]) => DIRS.every(([dx, dy]) => sb.isFloor(x + dx, y + dy))));
   }
-  function atWall(sb, r, key10, n = 1, extra = () => ({})) {
+  function atWall(sb, r, key12, n = 1, extra = () => ({})) {
     let placed = 0;
     const out = [];
     for (const c of wallCandidates(sb, r)) {
       if (placed >= n) break;
-      const p = sb.put(mk(sb, key10, { rot: c.rot, ...extra(placed) }), c.x, c.y);
+      const p = sb.put(mk(sb, key12, { rot: c.rot, ...extra(placed) }), c.x, c.y);
       if (p) {
         placed++;
         out.push(p);
@@ -680,7 +682,7 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function wallMount(sb, r, key10, n = 1) {
+  function wallMount(sb, r, key12, n = 1) {
     const out = [], cand = [];
     for (let y = r.y - 1; y <= r.y + r.h; y++) for (let x = r.x - 1; x <= r.x + r.w; x++) {
       if (!sb.isWall(x, y) || sb.isFloor(x, y)) continue;
@@ -690,7 +692,7 @@ var WorldGen = (() => {
     for (const [x, y] of sb.rng.shuffle(cand)) {
       if (out.length >= n) break;
       if (sb.props.some((p2) => Math.abs(p2.x - x) + Math.abs(p2.y - y) < 2 && (p2.solid === false || p2.type === "portal" || p2.type === "door"))) continue;
-      const p = mk(sb, key10);
+      const p = mk(sb, key12);
       p.x = x;
       p.y = y;
       p.id = sb.nid("wall");
@@ -699,12 +701,12 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function inside(sb, r, key10, n = 1, extra = () => ({})) {
+  function inside(sb, r, key12, n = 1, extra = () => ({})) {
     let placed = 0;
     const out = [];
     for (const [x, y] of interior(sb, r)) {
       if (placed >= n) break;
-      const p = sb.put(mk(sb, key10, extra(placed)), x, y);
+      const p = sb.put(mk(sb, key12, extra(placed)), x, y);
       if (p) {
         placed++;
         out.push(p);
@@ -712,12 +714,12 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function anywhere(sb, r, key10, n = 1, extra = () => ({})) {
+  function anywhere(sb, r, key12, n = 1, extra = () => ({})) {
     let placed = 0;
     const out = [];
     for (const [x, y] of sb.rng.shuffle(roomCells(sb, r))) {
       if (placed >= n) break;
-      const p = sb.put(mk(sb, key10, extra(placed)), x, y);
+      const p = sb.put(mk(sb, key12, extra(placed)), x, y);
       if (p) {
         placed++;
         out.push(p);
@@ -983,7 +985,7 @@ var WorldGen = (() => {
     paint: P([["#b02f3d", "\u0410\u043B\u044B\u0439"], ["#f0ece0", "\u0411\u0435\u043B\u044B\u0439"], ["#3d8be8", "\u041B\u0430\u0437\u0443\u0440\u043D\u044B\u0439"], ["#1a1a1f", "\u0427\u0451\u0440\u043D\u044B\u0439"], ["#3f9a5a", "\u0417\u0435\u043B\u0451\u043D\u044B\u0439"], ["#d0a94a", "\u0417\u043E\u043B\u043E\u0442\u043E\u0439"], ["#7a3fa8", "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439"], ["#e07a2f", "\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439"]]),
     gem: P([["#4aa8f0", "\u0421\u0430\u043F\u0444\u0438\u0440"], ["#e0475a", "\u0420\u0443\u0431\u0438\u043D"], ["#4fd08a", "\u0418\u0437\u0443\u043C\u0440\u0443\u0434"], ["#a86bf0", "\u0410\u043C\u0435\u0442\u0438\u0441\u0442"], ["#f0c040", "\u0422\u043E\u043F\u0430\u0437"], ["#40e0d0", "\u0411\u0438\u0440\u044E\u0437\u0430"], ["#f0f0ff", "\u0410\u043B\u043C\u0430\u0437"], ["#f07ac0", "\u0420\u043E\u0437\u043E\u0432\u044B\u0439 \u043A\u0432\u0430\u0440\u0446"]])
   };
-  var hexes = (key10) => PALETTES[key10].map((c) => c.hex);
+  var hexes = (key12) => PALETTES[key12].map((c) => c.hex);
   var L = (list) => list.map(([id, name]) => ({ id, name }));
   var OPTIONS = {
     gender: L([["male", "\u041C\u0443\u0436\u0441\u043A\u043E\u0439"], ["female", "\u0416\u0435\u043D\u0441\u043A\u0438\u0439"]]),
@@ -1050,16 +1052,16 @@ var WorldGen = (() => {
   }
 
   // src/worldgen-v1/npc.js
-  function makeNpc(sb, owner2, buildingType, lines, extra = {}) {
+  function makeNpc(sb, owner3, buildingType, lines, extra = {}) {
     const rng = sb.rng, t = BUILDING_TYPES[buildingType] || BUILDING_TYPES.house, classId = extra.classId || t.cls;
-    const look = randomLook(classId, owner2.gender, () => rng.next());
-    look.beard = owner2.gender === "male" && look.beard !== "none" && rng.chance(0.5) ? look.beard : "none";
+    const look = randomLook(classId, owner3.gender, () => rng.next());
+    look.beard = owner3.gender === "male" && look.beard !== "none" && rng.chance(0.5) ? look.beard : "none";
     look.marks = look.marks.filter((m) => m !== "warpaint");
     look.accessories = look.accessories.filter((a) => a !== "eyepatch" || rng.chance(0.3));
     look.markColor = null;
-    const role = extra.role || t.role[owner2.gender === "female" ? 1 : 0];
+    const role = extra.role || t.role[owner3.gender === "female" ? 1 : 0];
     const hands = buildingType === "guard" || classId === "fighter" && rng.chance(0.5) ? ["sword", "empty"] : ["empty", "empty"];
-    return { type: "npc", kind: 20, gen: true, name: `${owner2.full} \xB7 ${role}`, npc: { classId, gender: owner2.gender, look, hands, lines } };
+    return { type: "npc", kind: 20, gen: true, name: `${owner3.full} \xB7 ${role}`, npc: { classId, gender: owner3.gender, look, hands, lines } };
   }
 
   // src/worldgen-v1/town.js
@@ -1386,21 +1388,21 @@ var WorldGen = (() => {
         const g = rng.pick(["male", "female"]), p = { first: "\u0413\u043E\u0441\u0442\u044C", genitive: "\u0413\u043E\u0441\u0442\u044F", full: spec.guestNames?.[i] || "\u0413\u043E\u0441\u0442\u044C", gender: g }, n = makeNpc(sb, p, "house", dialogueFor(rng.fork("g" + i), "house", p, spec.facts || []), { role: "\u043F\u043E\u0441\u0435\u0442\u0438\u0442\u0435\u043B\u044C" });
         for (const [x, y] of rng.shuffle(cells)) if (sb.put({ ...n, id: "guest" + i }, x, y)) break;
       }
-      for (const key10 of spec.keysHere || []) hideKey(sb, key10);
+      for (const key12 of spec.keysHere || []) hideKey(sb, key12);
       addWindows(sb, rng, Math.max(1, Math.floor((w + h) / 6)));
       return sb.finish([entry.front[0], entry.front[1]]);
     }
     throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0437\u0434\u0430\u043D\u0438\u0435 " + spec.id);
   }
-  function hideKey(sb, key10) {
+  function hideKey(sb, key12) {
     const cs = sb.props.filter((p) => p.container && p.loot && !p.lock);
     const c = sb.rng.pick(cs.length ? cs : [null]);
     if (c) {
-      c.loot.gear.push(key10);
+      c.loot.gear.push(key12);
       return true;
     }
     for (const [x, y] of sb.rng.shuffle(sb.floorCells())) {
-      const p = sb.put({ type: "crate", kind: 24, name: "\u042F\u0449\u0438\u043A", cat: "crate", description: "\u042F\u0449\u0438\u043A \u0441 \u043E\u0442\u043C\u0435\u0442\u043A\u0430\u043C\u0438 \u043C\u0435\u043B\u043E\u043C.", gen: true, container: true, loot: { gold: 0, potions: 0, torches: 0, gear: [key10] } }, x, y);
+      const p = sb.put({ type: "crate", kind: 24, name: "\u042F\u0449\u0438\u043A", cat: "crate", description: "\u042F\u0449\u0438\u043A \u0441 \u043E\u0442\u043C\u0435\u0442\u043A\u0430\u043C\u0438 \u043C\u0435\u043B\u043E\u043C.", gen: true, container: true, loot: { gold: 0, potions: 0, torches: 0, gear: [key12] } }, x, y);
       if (p) return true;
     }
     return false;
@@ -1448,7 +1450,7 @@ var WorldGen = (() => {
         }
       }
       lightRooms(sb, leaves);
-      for (const key10 of spec.keysHere || []) hideKey(sb, key10);
+      for (const key12 of spec.keysHere || []) hideKey(sb, key12);
       return sb.finish(spot.front);
     }
     throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u043F\u043E\u0434\u0432\u0430\u043B " + spec.id);
@@ -1501,7 +1503,7 @@ var WorldGen = (() => {
         d.lock = { pickDc: 12, forceDc: 14, key: null, gen: true };
         d.name = "\u0417\u0430\u043F\u0435\u0440\u0442\u0430\u044F \u0434\u0432\u0435\u0440\u044C";
       }
-      for (const key10 of spec.keysHere || []) hideKey(sb, key10);
+      for (const key12 of spec.keysHere || []) hideKey(sb, key12);
       return sb.finish(spot.front);
     }
     throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u044D\u0442\u0430\u0436 " + spec.id);
@@ -1809,12 +1811,12 @@ var WorldGen = (() => {
     const tavernNames = /* @__PURE__ */ new Set();
     let idx = 0;
     for (const type of list) {
-      const owner2 = person(rng.fork("owner" + idx)), id = "b" + ++idx;
-      let name = buildingName(rng.fork("name" + idx), type, owner2);
-      while (type === "tavern" && tavernNames.has(name)) name = buildingName(rng.fork("nm" + idx + tavernNames.size), type, owner2);
+      const owner3 = person(rng.fork("owner" + idx)), id = "b" + ++idx;
+      let name = buildingName(rng.fork("name" + idx), type, owner3);
+      while (type === "tavern" && tavernNames.has(name)) name = buildingName(rng.fork("nm" + idx + tavernNames.size), type, owner3);
       tavernNames.add(name);
       const cellar = rng.chance(CELLAR_P[type] ?? 0.2) ? id + ":c" : null, up = type === "tavern" ? id + ":u" : ["house", "shop", "alchemist"].includes(type) && sizeResolved !== "small" && rng.chance(0.25) ? id + ":u" : null;
-      plan.buildings.push({ id, type, name, owner: owner2, cellar, up, lockRoom: rng.chance(0.3), extraNpcs: type === "tavern" ? rng.int(1, 3) : 0, guestNames: [person(rng.fork("gn" + idx)).full, person(rng.fork("gm" + idx)).full, person(rng.fork("gk" + idx)).full] });
+      plan.buildings.push({ id, type, name, owner: owner3, cellar, up, lockRoom: rng.chance(0.3), extraNpcs: type === "tavern" ? rng.int(1, 3) : 0, guestNames: [person(rng.fork("gn" + idx)).full, person(rng.fork("gm" + idx)).full, person(rng.fork("gk" + idx)).full] });
     }
     let town = null, tryIndex = 0;
     for (; tryIndex < 12; tryIndex++) {
@@ -2064,18 +2066,18 @@ var WorldGen = (() => {
     const rest = name.slice(f.word.length).trim(), j = (s) => rest ? s + " " + rest : s;
     return { title: name, nom: j(f.nom), gen: j(f.gen), loc: j(f.loc) };
   }
-  function buildingName2(rng, type, owner2) {
+  function buildingName2(rng, type, owner3) {
     switch (type) {
       case "tavern":
         return `\u0422\u0430\u0432\u0435\u0440\u043D\u0430 \xAB${tavernName2(rng)}\xBB`;
       case "smithy":
-        return `\u041A\u0443\u0437\u043D\u0438\u0446\u0430 ${owner2.genitive}`;
+        return `\u041A\u0443\u0437\u043D\u0438\u0446\u0430 ${owner3.genitive}`;
       case "alchemist":
-        return `\u041B\u0430\u0432\u043A\u0430 \u0437\u0435\u043B\u0438\u0439 ${owner2.genitive}`;
+        return `\u041B\u0430\u0432\u043A\u0430 \u0437\u0435\u043B\u0438\u0439 ${owner3.genitive}`;
       case "shop":
-        return `\u041B\u0430\u0432\u043A\u0430 ${owner2.genitive}`;
+        return `\u041B\u0430\u0432\u043A\u0430 ${owner3.genitive}`;
       case "library":
-        return `\u041A\u043D\u0438\u0436\u043D\u0430\u044F \u043B\u0430\u0432\u043A\u0430 ${owner2.genitive}`;
+        return `\u041A\u043D\u0438\u0436\u043D\u0430\u044F \u043B\u0430\u0432\u043A\u0430 ${owner3.genitive}`;
       case "chapel":
         return "\u0427\u0430\u0441\u043E\u0432\u043D\u044F " + rng.pick(["\u0442\u0438\u0445\u0438\u0445 \u0441\u0432\u0435\u0447\u0435\u0439", "\u0443 \u0434\u043E\u0440\u043E\u0433\u0438", "\u0441\u0442\u0440\u0430\u043D\u043D\u0438\u043A\u043E\u0432", "\u0441\u0435\u043C\u0438 \u043E\u0433\u043D\u0435\u0439", "\u0441\u0442\u0430\u0440\u043E\u0433\u043E \u043A\u043E\u043B\u043E\u0434\u0446\u0430"]);
       case "guard":
@@ -2083,9 +2085,9 @@ var WorldGen = (() => {
       case "warehouse":
         return "\u0421\u043A\u043B\u0430\u0434 " + rng.pick(["\u043A\u0443\u043F\u0446\u043E\u0432", "\u043E\u0431\u0449\u0438\u043D\u044B", "\u0437\u0435\u0440\u043D\u0430", "\u0440\u0435\u0447\u043D\u043E\u0433\u043E \u0442\u043E\u0440\u0433\u0430"]);
       case "cottage":
-        return `\u0425\u0438\u0436\u0438\u043D\u0430 ${owner2.genitive}`;
+        return `\u0425\u0438\u0436\u0438\u043D\u0430 ${owner3.genitive}`;
       default:
-        return `\u0414\u043E\u043C ${owner2.genitive}`;
+        return `\u0414\u043E\u043C ${owner3.genitive}`;
     }
   }
   var D = (nom, gen, loc) => ({ title: nom, nom, gen, loc });
@@ -2172,7 +2174,7 @@ var WorldGen = (() => {
     fortress: ["\u041A\u0440\u0435\u043F\u043E\u0441\u0442\u044C \u0441\u0442\u0430\u0440\u0430\u044F, \u043D\u043E \u0441\u0442\u0435\u043D\u044B \u0435\u0449\u0451 \u0434\u0435\u0440\u0436\u0430\u0442.", "\u041B\u043E\u0440\u0434\u0430 \u0434\u0430\u0432\u043D\u043E \u043D\u0435 \u0432\u0438\u0434\u0435\u043B\u0438, \u043F\u0440\u0438\u043A\u0430\u0437\u044B \u0438\u0434\u0443\u0442 \u043E\u0442 \u043A\u0430\u043F\u0438\u0442\u0430\u043D\u0430."],
     keep: ["\u0412 \u0437\u0430\u043B\u0430\u0445 \u0441\u043A\u0432\u043E\u0437\u043D\u044F\u043A, \u0431\u0443\u0434\u0442\u043E \u0441\u0442\u0435\u043D\u044B \u0434\u044B\u0448\u0430\u0442.", "\u0415\u0441\u043B\u0438 \u0447\u0442\u043E-\u0442\u043E \u043D\u0443\u0436\u043D\u043E, \u043E\u0431\u0440\u0430\u0449\u0430\u0439\u0442\u0435\u0441\u044C \u043A \u043A\u043E\u043C\u0435\u043D\u0434\u0430\u043D\u0442\u0443."]
   };
-  function talkFor(rng, building, owner2, facts, extraTopic) {
+  function talkFor(rng, building, owner3, facts, extraTopic) {
     const kind = GREET2[building] ? building : "house", lines = [rng.pick(GREET2[kind])];
     const byKind = /* @__PURE__ */ new Map();
     for (const f of rng.shuffle(facts)) if (!byKind.has(f.kind)) byKind.set(f.kind, f);
@@ -2706,8 +2708,8 @@ var WorldGen = (() => {
   };
   var CATALOG = CAT2;
   var dirRot2 = (dx, dy) => dy === 1 ? 0 : dx === -1 ? 3 : dy === -1 ? 2 : 1;
-  function mk2(sb, key10, extra = {}) {
-    const c = CAT2[key10], p = { type: c.type, kind: 24, name: c.name, description: sb.rng.pick(c.d), ...extra };
+  function mk2(sb, key12, extra = {}) {
+    const c = CAT2[key12], p = { type: c.type, kind: 24, name: c.name, description: sb.rng.pick(c.d), ...extra };
     if (c.model) p.model = c.model;
     if (c.solid === false) p.solid = false;
     if (c.wall) {
@@ -2718,7 +2720,7 @@ var WorldGen = (() => {
     if (c.type === "altar") p.kind = 18;
     if (c.type === "books") p.kind = 21;
     if (c.type === "cover") p.kind = 19;
-    p.cat = key10;
+    p.cat = key12;
     return p;
   }
   var inRoom2 = (r, x, y) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
@@ -2738,12 +2740,12 @@ var WorldGen = (() => {
   function interior2(sb, r) {
     return sb.rng.shuffle(roomCells2(sb, r).filter(([x, y]) => DIRS2.every(([dx, dy]) => sb.isFloor(x + dx, y + dy))));
   }
-  function atWall2(sb, r, key10, n = 1, extra = () => ({})) {
+  function atWall2(sb, r, key12, n = 1, extra = () => ({})) {
     let placed = 0;
     const out = [];
     for (const c of wallCandidates2(sb, r)) {
       if (placed >= n) break;
-      const p = sb.put(mk2(sb, key10, { rot: c.rot, ...extra(placed) }), c.x, c.y);
+      const p = sb.put(mk2(sb, key12, { rot: c.rot, ...extra(placed) }), c.x, c.y);
       if (p) {
         placed++;
         out.push(p);
@@ -2751,7 +2753,7 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function wallMount2(sb, r, key10, n = 1) {
+  function wallMount2(sb, r, key12, n = 1) {
     const out = [], cand = [];
     for (let y = r.y - 1; y <= r.y + r.h; y++) for (let x = r.x - 1; x <= r.x + r.w; x++) {
       if (!sb.isWall(x, y) || sb.isFloor(x, y)) continue;
@@ -2761,7 +2763,7 @@ var WorldGen = (() => {
     for (const [x, y, [dx, dy]] of sb.rng.shuffle(cand)) {
       if (out.length >= n) break;
       if (sb.props.some((p2) => Math.abs(p2.x - x) + Math.abs(p2.y - y) < 2 && (p2.solid === false || p2.type === "portal" || p2.type === "door"))) continue;
-      const p = mk2(sb, key10);
+      const p = mk2(sb, key12);
       p.x = x;
       p.y = y;
       p.id = sb.nid("wall");
@@ -2772,12 +2774,12 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function inside2(sb, r, key10, n = 1, extra = () => ({})) {
+  function inside2(sb, r, key12, n = 1, extra = () => ({})) {
     let placed = 0;
     const out = [];
     for (const [x, y] of interior2(sb, r)) {
       if (placed >= n) break;
-      const p = sb.put(mk2(sb, key10, extra(placed)), x, y);
+      const p = sb.put(mk2(sb, key12, extra(placed)), x, y);
       if (p) {
         placed++;
         out.push(p);
@@ -2785,12 +2787,12 @@ var WorldGen = (() => {
     }
     return out;
   }
-  function anywhere2(sb, r, key10, n = 1, extra = () => ({})) {
+  function anywhere2(sb, r, key12, n = 1, extra = () => ({})) {
     let placed = 0;
     const out = [];
     for (const [x, y] of sb.rng.shuffle(roomCells2(sb, r))) {
       if (placed >= n) break;
-      const p = sb.put(mk2(sb, key10, extra(placed)), x, y);
+      const p = sb.put(mk2(sb, key12, extra(placed)), x, y);
       if (p) {
         placed++;
         out.push(p);
@@ -3118,7 +3120,7 @@ var WorldGen = (() => {
   function deco(sb, role, r) {
     const rng = sb.rng, area = r.w * r.h, place2 = { atWall: atWall2, inside: inside2, anywhere: anywhere2 };
     for (const p of sb.props) if (!p.flavor && (p.cat === "table" || p.cat === "counter") && p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h) p.flavor = FLAVOR[role] || "default";
-    for (const [key10, how, chance] of SOLID_POOLS[role] || []) if (rng.chance(chance)) place2[how](sb, r, key10, 1);
+    for (const [key12, how, chance] of SOLID_POOLS[role] || []) if (rng.chance(chance)) place2[how](sb, r, key12, 1);
     const wp = WALL_POOLS[role];
     if (wp) {
       const n = Math.min(5, Math.max(1, Math.floor((r.w + r.h) / 5)));
@@ -3164,7 +3166,7 @@ var WorldGen = (() => {
     paint: P2([["#b02f3d", "\u0410\u043B\u044B\u0439"], ["#f0ece0", "\u0411\u0435\u043B\u044B\u0439"], ["#3d8be8", "\u041B\u0430\u0437\u0443\u0440\u043D\u044B\u0439"], ["#1a1a1f", "\u0427\u0451\u0440\u043D\u044B\u0439"], ["#3f9a5a", "\u0417\u0435\u043B\u0451\u043D\u044B\u0439"], ["#d0a94a", "\u0417\u043E\u043B\u043E\u0442\u043E\u0439"], ["#7a3fa8", "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439"], ["#e07a2f", "\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439"]]),
     gem: P2([["#4aa8f0", "\u0421\u0430\u043F\u0444\u0438\u0440"], ["#e0475a", "\u0420\u0443\u0431\u0438\u043D"], ["#4fd08a", "\u0418\u0437\u0443\u043C\u0440\u0443\u0434"], ["#a86bf0", "\u0410\u043C\u0435\u0442\u0438\u0441\u0442"], ["#f0c040", "\u0422\u043E\u043F\u0430\u0437"], ["#40e0d0", "\u0411\u0438\u0440\u044E\u0437\u0430"], ["#f0f0ff", "\u0410\u043B\u043C\u0430\u0437"], ["#f07ac0", "\u0420\u043E\u0437\u043E\u0432\u044B\u0439 \u043A\u0432\u0430\u0440\u0446"]])
   };
-  var hexes2 = (key10) => PALETTES2[key10].map((c) => c.hex);
+  var hexes2 = (key12) => PALETTES2[key12].map((c) => c.hex);
   var L2 = (list) => list.map(([id, name]) => ({ id, name }));
   var OPTIONS2 = {
     gender: L2([["male", "\u041C\u0443\u0436\u0441\u043A\u043E\u0439"], ["female", "\u0416\u0435\u043D\u0441\u043A\u0438\u0439"]]),
@@ -3238,16 +3240,16 @@ var WorldGen = (() => {
     const traits = rng.shuffle(TRAITS).slice(0, 2).map((t) => t[gender === "female" ? 1 : 0]);
     return { traits, speech: rng.pick(SPEECH), wants: rng.pick(WANTS), fears: rng.pick(FEARS), mood: rng.pick(["\u0441\u043F\u043E\u043A\u043E\u0439\u043D\u043E", "\u0442\u0440\u0435\u0432\u043E\u0436\u043D\u043E", "\u043F\u0440\u0438\u043F\u043E\u0434\u043D\u044F\u0442\u043E", "\u0443\u0441\u0442\u0430\u043B\u043E", "\u043D\u0430\u0441\u0442\u043E\u0440\u043E\u0436\u0435\u043D\u043D\u043E"]), knows, ...extra };
   }
-  function makeNpc2(sb, owner2, buildingType, lines, extra = {}) {
+  function makeNpc2(sb, owner3, buildingType, lines, extra = {}) {
     const L3 = Array.isArray(lines) ? { lines, knows: [] } : lines, rng = sb.rng, t = BUILDING_TYPES2[buildingType] || BUILDING_TYPES2.house, classId = extra.classId || t.cls;
-    const look = randomLook2(classId, owner2.gender, () => rng.next());
-    look.beard = owner2.gender === "male" && look.beard !== "none" && rng.chance(0.5) ? look.beard : "none";
+    const look = randomLook2(classId, owner3.gender, () => rng.next());
+    look.beard = owner3.gender === "male" && look.beard !== "none" && rng.chance(0.5) ? look.beard : "none";
     look.marks = look.marks.filter((m) => m !== "warpaint");
     look.accessories = look.accessories.filter((a) => a !== "eyepatch" || rng.chance(0.3));
     look.markColor = null;
-    const role = extra.role || t.role[owner2.gender === "female" ? 1 : 0];
+    const role = extra.role || t.role[owner3.gender === "female" ? 1 : 0];
     const hands = buildingType === "guard" || classId === "fighter" && rng.chance(0.5) ? ["sword", "empty"] : ["empty", "empty"];
-    return { type: "npc", kind: 20, gen: true, name: `${owner2.full} \xB7 ${role}`, npc: { classId, gender: owner2.gender, look, hands, lines: L3.lines, role, persona: makePersona(rng.fork("persona"), owner2.gender, L3.knows, { where: sb.name }) } };
+    return { type: "npc", kind: 20, gen: true, name: `${owner3.full} \xB7 ${role}`, npc: { classId, gender: owner3.gender, look, hands, lines: L3.lines, role, persona: makePersona(rng.fork("persona"), owner3.gender, L3.knows, { where: sb.name }) } };
   }
 
   // src/worldgen/town.js
@@ -3578,21 +3580,21 @@ var WorldGen = (() => {
         const p = spec.guests[i], n = makeNpc2(sb, p, "house", talkFor(rng.fork("g" + i), "guest", p, spec.facts || []), { role: roleFor("guest", p.gender) });
         for (const [x, y] of rng.shuffle(cells)) if (sb.put({ ...n, id: "guest" + i }, x, y)) break;
       }
-      for (const key10 of spec.keysHere || []) hideKey2(sb, key10);
+      for (const key12 of spec.keysHere || []) hideKey2(sb, key12);
       addWindows2(sb, rng, Math.max(1, Math.floor((w + h) / 6)));
       return sb.finish([entry.front[0], entry.front[1]]);
     }
     throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0437\u0434\u0430\u043D\u0438\u0435 " + spec.id);
   }
-  function hideKey2(sb, key10) {
+  function hideKey2(sb, key12) {
     const cs = sb.props.filter((p) => p.container && p.loot && !p.lock);
     const c = sb.rng.pick(cs.length ? cs : [null]);
     if (c) {
-      c.loot.gear.push(key10);
+      c.loot.gear.push(key12);
       return true;
     }
     for (const [x, y] of sb.rng.shuffle(sb.floorCells())) {
-      const p = sb.put({ type: "crate", kind: 24, name: "\u042F\u0449\u0438\u043A", cat: "crate", description: "\u042F\u0449\u0438\u043A \u0441 \u043E\u0442\u043C\u0435\u0442\u043A\u0430\u043C\u0438 \u043C\u0435\u043B\u043E\u043C.", gen: true, container: true, loot: { gold: 0, potions: 0, torches: 0, gear: [key10] } }, x, y);
+      const p = sb.put({ type: "crate", kind: 24, name: "\u042F\u0449\u0438\u043A", cat: "crate", description: "\u042F\u0449\u0438\u043A \u0441 \u043E\u0442\u043C\u0435\u0442\u043A\u0430\u043C\u0438 \u043C\u0435\u043B\u043E\u043C.", gen: true, container: true, loot: { gold: 0, potions: 0, torches: 0, gear: [key12] } }, x, y);
       if (p) return true;
     }
     return false;
@@ -3643,7 +3645,7 @@ var WorldGen = (() => {
         }
       }
       lightRooms2(sb, leaves);
-      for (const key10 of spec.keysHere || []) hideKey2(sb, key10);
+      for (const key12 of spec.keysHere || []) hideKey2(sb, key12);
       return sb.finish(spot.front);
     }
     throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u043F\u043E\u0434\u0432\u0430\u043B " + spec.id);
@@ -3696,7 +3698,7 @@ var WorldGen = (() => {
         d.lock = { pickDc: 12, forceDc: 14, key: null, gen: true };
         d.name = "\u0417\u0430\u043F\u0435\u0440\u0442\u0430\u044F \u0434\u0432\u0435\u0440\u044C";
       }
-      for (const key10 of spec.keysHere || []) hideKey2(sb, key10);
+      for (const key12 of spec.keysHere || []) hideKey2(sb, key12);
       return sb.finish(spot.front);
     }
     throw new Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u044D\u0442\u0430\u0436 " + spec.id);
@@ -4013,15 +4015,15 @@ var WorldGen = (() => {
     let idx = 0;
     for (const type of list) {
       const id = "b" + ++idx;
-      let owner2, name;
+      let owner3, name;
       for (let t = 0; t < 40; t++) {
-        owner2 = person2(rng.fork("owner" + idx + "_" + t));
-        name = buildingName2(rng.fork("name" + idx + "_" + t), type, owner2);
+        owner3 = person2(rng.fork("owner" + idx + "_" + t));
+        name = buildingName2(rng.fork("name" + idx + "_" + t), type, owner3);
         if (!usedNames.has(name)) break;
       }
       usedNames.add(name);
       const cellar = rng.chance(CELLAR_P2[type] ?? 0.2) ? id + ":c" : null, up = type === "tavern" ? id + ":u" : ["house", "shop", "alchemist"].includes(type) && sizeResolved !== "small" && rng.chance(0.25) ? id + ":u" : null;
-      plan.buildings.push({ id, type, name, owner: owner2, cellar, up, lockRoom: rng.chance(0.3), extraNpcs: type === "tavern" ? rng.int(1, 3) : 0, guests: [person2(rng.fork("gn" + idx)), person2(rng.fork("gm" + idx)), person2(rng.fork("gk" + idx))] });
+      plan.buildings.push({ id, type, name, owner: owner3, cellar, up, lockRoom: rng.chance(0.3), extraNpcs: type === "tavern" ? rng.int(1, 3) : 0, guests: [person2(rng.fork("gn" + idx)), person2(rng.fork("gm" + idx)), person2(rng.fork("gk" + idx))] });
     }
     let town = null, tryIndex = 0;
     for (; tryIndex < 12; tryIndex++) {
@@ -4453,8 +4455,8 @@ var WorldGen = (() => {
   var exits3 = (scene) => [...new Set(scene.props.filter((p) => p.type === "portal").map((p) => p.destination))];
   function validateScene3(scene) {
     const errors = validateScene2(scene);
-    const blocked = new Set(scene.props.filter((p) => p.solid !== false && !["door", "portal", "torch", "chandelier", "clue", "trap"].includes(p.type)).map((p) => cellKey(p.x, p.y)));
-    const free = (x, y) => scene.tiles[y]?.[x] === "floor" && !blocked.has(cellKey(x, y));
+    const blocked2 = new Set(scene.props.filter((p) => p.solid !== false && !["door", "portal", "torch", "chandelier", "clue", "trap"].includes(p.type)).map((p) => cellKey(p.x, p.y)));
+    const free = (x, y) => scene.tiles[y]?.[x] === "floor" && !blocked2.has(cellKey(x, y));
     for (const [id, arrivals] of Object.entries(scene.arrivals || {})) {
       if (!scene.props.some((p) => p.id === id && p.type === "portal")) errors.push("\u041F\u0440\u0438\u0431\u044B\u0442\u0438\u0435 \u0431\u0435\u0437 \u0432\u044B\u0445\u043E\u0434\u0430: " + id);
       for (const cell of arrivals) if (!Array.isArray(cell) || cell.length !== 2 || !cell.every(Number.isInteger) || !free(...cell)) errors.push("\u0417\u0430\u043D\u044F\u0442\u0430\u044F \u0442\u043E\u0447\u043A\u0430 \u043F\u0440\u0438\u0431\u044B\u0442\u0438\u044F: " + id);
@@ -4473,28 +4475,689 @@ var WorldGen = (() => {
     return { id: prop.id, scene: scene.id, place: scene.name, name: prop.name, role: n.role, gender: n.gender, class: n.classId, persona: n.persona, fallbackLines: n.lines };
   }
 
+  // src/worldgen/world-v4.js
+  var world_v4_exports = {};
+  __export(world_v4_exports, {
+    GEN_VERSION: () => GEN_VERSION4,
+    SIZES: () => SIZES12,
+    createWorld: () => createWorld4,
+    exits: () => exits4,
+    generateScene: () => generateScene4,
+    gmBrief: () => gmBrief3,
+    isGeneratedId: () => isGeneratedId4,
+    normalizeGen: () => normalizeGen4,
+    npcBrief: () => npcBrief3,
+    randomSeed: () => randomSeed2,
+    sceneIds: () => sceneIds4,
+    validateScene: () => validateScene4
+  });
+
+  // src/islands/terrain.js
+  var MIN_SIZE = 600;
+  var MAX_SIZE = 1e3;
+  var MARGIN = 20;
+  var TAU = Math.PI * 2;
+  var BIOME_IDS = ["meadow", "forest", "desert", "mountain", "snow", "swamp"];
+  var LANDMARK_IDS = ["arrival", "port", "settlement", "clue", "ruins", "herbs"];
+  var DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  var clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+  var smooth = (low, high, value) => {
+    const t = clamp((value - low) / (high - low), 0, 1);
+    return t * t * (3 - 2 * t);
+  };
+  var channels = (color) => [color >>> 16 & 255, color >>> 8 & 255, color & 255];
+  var pack = (red, green, blue) => clamp(Math.round(red), 0, 255) << 16 | clamp(Math.round(green), 0, 255) << 8 | clamp(Math.round(blue), 0, 255);
+  var PALETTES3 = {
+    meadow: channels(SURFACES.grass.colors[0]),
+    forest: channels(SURFACES.moss.colors[1]),
+    desert: channels(SURFACES.sand.colors[0]),
+    mountain: channels(SURFACES.stone.colors[0]),
+    snow: channels(14080722),
+    swamp: channels(SURFACES.moss.colors[0])
+  };
+  var SURFACE = { meadow: "grass", forest: "grass", desert: "sand", mountain: "stone", snow: "gravel", swamp: "moss" };
+  var HEIGHT = { meadow: 0.12, forest: 0.19, desert: 0.16, mountain: 0.78, snow: 0.53, swamp: 0.07 };
+  var FOLIAGE = { meadow: 0.25, forest: 0.9, desert: 0.08, mountain: 0.12, snow: 0.05, swamp: 0.72 };
+  var BEACH = channels(SURFACES.sand.colors[0]);
+  function isJsonDescriptor(value) {
+    const parents = /* @__PURE__ */ new Set();
+    let budget = 4096;
+    const visit = (item, depth = 0) => {
+      if (--budget < 0 || depth > 32) return false;
+      if (item === null || typeof item === "string" || typeof item === "boolean") return true;
+      if (typeof item === "number") return Number.isFinite(item);
+      if (typeof item !== "object" || parents.has(item)) return false;
+      const prototype = Object.getPrototypeOf(item);
+      if (!Array.isArray(item) && prototype !== Object.prototype && prototype !== null) return false;
+      if (Array.isArray(item) && Object.keys(item).some((key12) => !/^(0|[1-9]\d*)$/.test(key12) || Number(key12) >= item.length)) return false;
+      parents.add(item);
+      const ok = Object.values(item).every((child) => visit(child, depth + 1));
+      parents.delete(item);
+      return ok;
+    };
+    return visit(value);
+  }
+  function normalizeSeed(seed) {
+    if (typeof seed !== "string" && (typeof seed !== "number" || !Number.isFinite(seed))) throw new TypeError("Island seed must be a string or finite number");
+    const result = String(seed);
+    if (result.length > 512) throw new RangeError("Island seed must contain at most 512 characters");
+    return result;
+  }
+  function sideProfile(waves, row, size) {
+    const position = row / (size - 1), q = position * 2 - 1;
+    let variation = 1;
+    for (const [frequency, amplitude, phase] of waves) variation += amplitude * Math.sin(TAU * frequency * position + phase);
+    return Math.sqrt(Math.max(0, 1 - q * q)) * variation;
+  }
+  function rowSpan(meta, worldY) {
+    const { landSize: size, margin, shape } = meta, row = worldY - margin;
+    const left = shape.centerX - sideProfile(shape.left, row, size) * shape.leftScale;
+    const right = shape.centerX + sideProfile(shape.right, row, size) * shape.rightScale;
+    return [margin + clamp(Math.floor(left + 1e-9), 0, size - 1), margin + clamp(Math.ceil(right - 1e-9), 0, size - 1)];
+  }
+  function createIsland(seed, size = "auto") {
+    seed = normalizeSeed(seed);
+    const rng = new Rng2(seed).fork("island-terrain-v1");
+    if (size === "auto") size = rng.fork("size").int(MIN_SIZE, MAX_SIZE);
+    else if (size === "small" || size === "medium" || size === "large") size = { small: 600, medium: 800, large: 1e3 }[size];
+    if (!Number.isInteger(size) || size < MIN_SIZE || size > MAX_SIZE) throw new RangeError("Island size must be an integer from 600 to 1000, or auto");
+    const shore = rng.fork("shore"), waves = () => [
+      [2, 0.09 + shore.next() * 0.05, shore.next() * TAU],
+      [4, 0.035 + shore.next() * 0.03, shore.next() * TAU],
+      [7, 0.01 + shore.next() * 0.025, shore.next() * TAU]
+    ];
+    const shape = { kind: "row-envelope", centerX: Math.floor((size - 1) / 2), left: waves(), right: waves(), leftScale: 0, rightScale: 0 };
+    let maxLeft = 0, maxRight = 0;
+    for (let row = 0; row < size; row++) {
+      maxLeft = Math.max(maxLeft, sideProfile(shape.left, row, size));
+      maxRight = Math.max(maxRight, sideProfile(shape.right, row, size));
+    }
+    shape.leftScale = shape.centerX / maxLeft;
+    shape.rightScale = (size - 1 - shape.centerX) / maxRight;
+    const meta = {
+      v: 1,
+      seed,
+      landSize: size,
+      W: size + MARGIN * 2,
+      H: size + MARGIN * 2,
+      margin: MARGIN,
+      chunkSize: 10,
+      shape,
+      detailSeed: hash322(seed + "/island-detail-v1"),
+      biomes: [],
+      clearing: null,
+      landmarks: {}
+    };
+    const biomeRng = rng.fork("biomes"), labels = biomeRng.shuffle(BIOME_IDS), rotation = biomeRng.next() * TAU, center = MARGIN + (size - 1) / 2;
+    meta.biomes = labels.map((id, index) => {
+      const angle = rotation + TAU * (index + 0.08 * (biomeRng.next() - 0.5)) / 6, radius = size * (0.275 + biomeRng.next() * 0.025);
+      return { id, x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius, radius: size * (0.145 + biomeRng.next() * 0.025) };
+    });
+    const anchorRng = rng.fork("anchors"), portY = MARGIN + Math.floor(size * (0.46 + anchorRng.next() * 0.08));
+    const portX = rowSpan(meta, portY)[0];
+    let safeX = portX + 16;
+    for (let y = portY - 24; y <= portY + 36; y++) safeX = Math.max(safeX, rowSpan(meta, y)[0] + 16);
+    meta.landmarks = {
+      port: [portX, portY],
+      arrival: [portX + 24, portY],
+      settlement: [safeX + 22, portY],
+      clue: [safeX + 36, portY - 20],
+      ruins: [safeX + 66, portY + 35],
+      herbs: [safeX + 42, portY + 20]
+    };
+    meta.clearing = { x: (meta.landmarks.arrival[0] + meta.landmarks.settlement[0]) / 2, y: portY, radius: 58, blend: 30 };
+    return meta;
+  }
+  function isLand(meta, x, y) {
+    if (!meta?.shape || !Number.isInteger(x) || !Number.isInteger(y)) return false;
+    const low = meta.margin, high = low + meta.landSize - 1;
+    if (x < low || y < low || x > high || y > high) return false;
+    const [left, right] = rowSpan(meta, y);
+    return x >= left && x <= right;
+  }
+  function ocean(meta, x, y) {
+    const valid = Number.isFinite(x) && Number.isFinite(y), phase = (meta?.detailSeed || 0) / 4294967296 * TAU;
+    const ripple = valid ? Math.sin(x / 47 + phase) * Math.sin(y / 61 - phase) * 3 : 0;
+    return { land: false, biome: "ocean", color: pack(49 + ripple, 86 + ripple, 106 + ripple), height: 0, decoration: 0, surface: "water" };
+  }
+  function sampleIsland(meta, x, y) {
+    if (!isLand(meta, x, y)) return ocean(meta, x, y);
+    let total = 0, red = 0, green = 0, blue = 0, height = 0, decoration = 0, best = -1, biome = "meadow";
+    for (const region of meta.biomes) {
+      const distance = ((x - region.x) ** 2 + (y - region.y) ** 2) / region.radius ** 2;
+      const weight = Math.exp(-distance / 2), color = PALETTES3[region.id];
+      total += weight;
+      red += color[0] * weight;
+      green += color[1] * weight;
+      blue += color[2] * weight;
+      height += HEIGHT[region.id] * weight;
+      decoration += FOLIAGE[region.id] * weight;
+      if (weight > best) {
+        best = weight;
+        biome = region.id;
+      }
+    }
+    red /= total;
+    green /= total;
+    blue /= total;
+    height /= total;
+    decoration /= total;
+    const clearing2 = meta.clearing, field = 1 - smooth(clearing2.radius, clearing2.radius + clearing2.blend, Math.hypot(x - clearing2.x, y - clearing2.y));
+    red += (PALETTES3.meadow[0] - red) * field;
+    green += (PALETTES3.meadow[1] - green) * field;
+    blue += (PALETTES3.meadow[2] - blue) * field;
+    height += (HEIGHT.meadow - height) * field;
+    decoration += (FOLIAGE.meadow - decoration) * field;
+    if (field > 0.5) biome = "meadow";
+    const [left, right] = rowSpan(meta, y), depth = Math.min(x - left, right - x, y - meta.margin, meta.margin + meta.landSize - 1 - y);
+    const inland = smooth(0, 16, depth);
+    red = BEACH[0] + (red - BEACH[0]) * inland;
+    green = BEACH[1] + (green - BEACH[1]) * inland;
+    blue = BEACH[2] + (blue - BEACH[2]) * inland;
+    const phase = meta.detailSeed / 4294967296 * TAU;
+    const tone = Math.sin(x / 37 + phase) * Math.cos(y / 43 - phase) * 3;
+    return {
+      land: true,
+      biome,
+      color: pack(red + tone, green + tone, blue + tone),
+      height: clamp(0.015 + height * inland, 0, 1),
+      decoration: clamp(decoration * inland, 0, 1),
+      surface: depth < 6 ? "sand" : SURFACE[biome]
+    };
+  }
+  function findPath(meta, from, to, maxSteps = 1500) {
+    if (!Array.isArray(from) || !Array.isArray(to) || from.length !== 2 || to.length !== 2 || !Number.isInteger(maxSteps) || maxSteps < 0 || !isLand(meta, ...from) || !isLand(meta, ...to)) return [];
+    const path = [[from[0], from[1]]];
+    let [x, y] = from;
+    const moveX = (target) => {
+      while (x !== target) {
+        if (path.length > maxSteps) return false;
+        x += Math.sign(target - x);
+        path.push([x, y]);
+      }
+      return true;
+    };
+    const dy = Math.sign(to[1] - y);
+    while (y !== to[1]) {
+      const current = rowSpan(meta, y), next = rowSpan(meta, y + dy);
+      const target = clamp(x, Math.max(current[0], next[0]), Math.min(current[1], next[1]));
+      if (!moveX(target) || path.length > maxSteps) return [];
+      y += dy;
+      path.push([x, y]);
+    }
+    return moveX(to[0]) ? path : [];
+  }
+  function validateIsland(meta) {
+    const fail = (error) => ({ ok: false, error });
+    if (!meta || typeof meta !== "object" || meta.v !== 1) return fail("Unsupported island descriptor version");
+    if (!isJsonDescriptor(meta)) return fail("Island metadata must contain only bounded JSON values");
+    try {
+      normalizeSeed(meta.seed);
+    } catch {
+      return fail("Invalid island seed");
+    }
+    const size = meta.landSize;
+    if (!Number.isInteger(size) || size < MIN_SIZE || size > MAX_SIZE) return fail("Island dry size must be 600..1000 cells");
+    if (meta.margin !== MARGIN || meta.W !== size + MARGIN * 2 || meta.H !== size + MARGIN * 2 || meta.chunkSize !== 10) return fail("Invalid island bounds, ocean margin or chunk size");
+    const shape = meta.shape;
+    if (!shape || shape.kind !== "row-envelope" || shape.centerX !== Math.floor((size - 1) / 2)) return fail("Invalid island shoreline");
+    for (const waves of [shape.left, shape.right]) {
+      if (!Array.isArray(waves) || waves.length !== 3) return fail("Invalid shoreline harmonics");
+      for (let i = 0; i < waves.length; i++) {
+        const wave = waves[i];
+        if (!Array.isArray(wave) || wave.length !== 3 || wave[0] !== [2, 4, 7][i] || !Number.isFinite(wave[1]) || wave[1] < 0 || wave[1] > 0.15 || !Number.isFinite(wave[2])) return fail("Invalid shoreline harmonics");
+      }
+    }
+    if (!Number.isFinite(shape.leftScale) || !Number.isFinite(shape.rightScale) || shape.leftScale <= 0 || shape.rightScale <= 0) return fail("Invalid shoreline scale");
+    let maxLeft = 0, maxRight = 0, minX = Infinity, maxX = -1;
+    for (let row = 0; row < size; row++) {
+      maxLeft = Math.max(maxLeft, sideProfile(shape.left, row, size));
+      maxRight = Math.max(maxRight, sideProfile(shape.right, row, size));
+      const [left, right] = rowSpan(meta, row + MARGIN);
+      minX = Math.min(minX, left);
+      maxX = Math.max(maxX, right);
+      if (left > MARGIN + shape.centerX || right < MARGIN + shape.centerX) return fail("Disconnected island shoreline");
+    }
+    if (minX !== MARGIN || maxX !== MARGIN + size - 1 || Math.abs(shape.leftScale - shape.centerX / maxLeft) > 1e-8 || Math.abs(shape.rightScale - (size - 1 - shape.centerX) / maxRight) > 1e-8) return fail("Island dry bounds are not exact");
+    if (!Number.isInteger(meta.detailSeed) || meta.detailSeed < 0 || meta.detailSeed > 4294967295) return fail("Invalid island detail seed");
+    if (!Array.isArray(meta.biomes) || meta.biomes.length !== 6 || new Set(meta.biomes.map((region) => region?.id)).size !== 6) return fail("Island needs six distinct biome regions");
+    for (const region of meta.biomes) if (!BIOME_IDS.includes(region?.id) || !Number.isFinite(region.x) || !Number.isFinite(region.y) || region.x < MARGIN || region.y < MARGIN || region.x > MARGIN + size - 1 || region.y > MARGIN + size - 1 || !Number.isFinite(region.radius) || region.radius < size * 0.1 || region.radius > size * 0.3) return fail("Invalid island biome region");
+    const clearing2 = meta.clearing;
+    if (!clearing2 || ![clearing2.x, clearing2.y, clearing2.radius, clearing2.blend].every(Number.isFinite) || !isLand(meta, Math.round(clearing2.x), Math.round(clearing2.y)) || clearing2.radius < 4 || clearing2.radius > size / 4 || clearing2.blend < 1 || clearing2.blend > size / 4) return fail("Invalid arrival clearing");
+    for (const id of LANDMARK_IDS) {
+      const point = meta.landmarks?.[id];
+      if (!Array.isArray(point) || point.length !== 2 || !isLand(meta, ...point)) return fail("Mandatory island landmark is not dry: " + id);
+    }
+    const port = meta.landmarks.port;
+    if (!DIRECTIONS.some(([dx, dy]) => !isLand(meta, port[0] + dx, port[1] + dy))) return fail("Island port is not coastal");
+    const arrival = sampleIsland(meta, ...meta.landmarks.arrival), settlement2 = sampleIsland(meta, ...meta.landmarks.settlement);
+    if (arrival.biome !== "meadow" || arrival.surface !== "grass" || settlement2.biome !== "meadow") return fail("Arrival and healer settlement need a clear meadow");
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (!isLand(meta, meta.landmarks.arrival[0] + dx, meta.landmarks.arrival[1] + dy)) return fail("Island arrival needs a usable dry clearing");
+    for (const id of LANDMARK_IDS) if (!findPath(meta, meta.landmarks.arrival, meta.landmarks[id]).length) return fail("Mandatory island landmark is unreachable: " + id);
+    const visibleBiomes = /* @__PURE__ */ new Set();
+    for (let gy = 0; gy < 24 && visibleBiomes.size < 6; gy++) for (let gx = 0; gx < 24; gx++) {
+      const x = MARGIN + Math.round((size - 1) * (gx + 0.5) / 24), y = MARGIN + Math.round((size - 1) * (gy + 0.5) / 24);
+      const cell = sampleIsland(meta, x, y);
+      if (cell.land) visibleBiomes.add(cell.biome);
+    }
+    if (visibleBiomes.size !== 6) return fail("Island biome regions do not have six usable areas");
+    try {
+      if (new TextEncoder().encode(JSON.stringify(meta)).byteLength >= 2e4) return fail("Island metadata exceeds its storage budget");
+    } catch {
+      return fail("Island metadata is not JSON serializable");
+    }
+    return { ok: true, error: null };
+  }
+
+  // src/islands/scene.js
+  var roads = /* @__PURE__ */ new WeakMap();
+  var key9 = (x, y) => `${x},${y}`;
+  var inBounds = (scene, x, y) => !!scene && Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < scene.W && y < scene.H;
+  function tileAt(scene, x, y) {
+    if (!inBounds(scene, x, y)) return "void";
+    if (scene.island) return isLand(scene.island, x, y) ? "floor" : "water";
+    return scene.tiles?.[y]?.[x] || "void";
+  }
+  function roadSurface(scene, x, y) {
+    let cells = roads.get(scene);
+    if (!cells) {
+      cells = /* @__PURE__ */ new Map();
+      for (const route2 of scene.mainRoute || []) {
+        const radius = Math.floor((route2.width || 1) / 2);
+        for (const [x2, y2] of route2.cells || []) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+          if (isLand(scene.island, x2 + dx, y2 + dy)) cells.set(key9(x2 + dx, y2 + dy), route2.surface || "dirt");
+        }
+      }
+      roads.set(scene, cells);
+    }
+    return cells.get(key9(x, y));
+  }
+  function sampleScene(scene, x, y) {
+    const tile = tileAt(scene, x, y);
+    if (tile === "void") return { tile, land: false, biome: "void", surface: "void", color: 0, height: 0, decoration: 0, road: false };
+    if (scene.island) {
+      const cell = sampleIsland(scene.island, x, y);
+      if (!cell.land) return { ...cell, tile, road: false };
+      let surface2 = null;
+      for (const region of scene.regions || []) if (region.surface && x >= region.x && y >= region.y && x < region.x + region.w && y < region.y + region.h) surface2 = region.surface;
+      const road2 = roadSurface(scene, x, y);
+      surface2 = road2 || surface2;
+      const arrival = scene.island.landmarks.arrival, clearing2 = Math.hypot(x - arrival[0], y - arrival[1]) <= 8;
+      return {
+        ...cell,
+        tile,
+        road: !!road2,
+        ...surface2 ? { surface: surface2, color: surfaceColor(surface2, x, y) } : {},
+        decoration: surface2 || clearing2 ? 0 : cell.decoration
+      };
+    }
+    const surface = SURFACE_BY_CODE[scene.surface?.[y]?.[x]] || "stone";
+    return {
+      tile,
+      land: tile === "floor",
+      biome: null,
+      surface: tile === "floor" ? surface : tile,
+      color: tile === "wall" ? wallColor(scene.wallStyle, x, y) : surfaceColor(surface, x, y),
+      height: 0,
+      decoration: 0,
+      road: false
+    };
+  }
+
+  // src/worldgen/world-v4.js
+  var GEN_VERSION4 = 4;
+  var SIZES12 = ["small", "medium", "large"];
+  var DIRS3 = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  var key10 = (x, y) => `${x},${y}`;
+  var blocked = (p) => p.solid !== false && !["door", "portal", "torch", "chandelier", "clue", "trap"].includes(p.type);
+  function normalizeGen4(gen = {}) {
+    return { v: GEN_VERSION4, seed: String(gen.seed ?? "0"), size: SIZES12.includes(gen.size) ? gen.size : "auto" };
+  }
+  var owner2 = (rng) => {
+    const p = person2(rng);
+    return { name: p.full, full: p.full, gender: p.gender };
+  };
+  function islandStory(id, settlement2, people) {
+    const story = storyContent(id, settlement2, people);
+    delete story.tutorial;
+    const common = {
+      arrival: `\u041A\u043E\u0440\u0430\u0431\u043B\u044C \u043E\u0441\u0442\u0430\u0432\u0438\u043B \u0432\u0430\u0441 \u0443 \u0431\u0435\u0440\u0435\u0433\u0430 \u043E\u0441\u0442\u0440\u043E\u0432\u0430. \u0412\u044B \u043F\u043E\u0434\u043D\u0438\u043C\u0430\u0435\u0442\u0435\u0441\u044C \u043D\u0430 \u0441\u0432\u0435\u0442\u043B\u0443\u044E \u043E\u043F\u0443\u0448\u043A\u0443: \u0441\u043B\u0435\u0432\u0430 \u0441\u043B\u044B\u0448\u0435\u043D \u043F\u0440\u0438\u0431\u043E\u0439, \u0432\u043F\u0435\u0440\u0435\u0434\u0438 \u0432\u0438\u0434\u0435\u043D \u0443\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u044C \u043A \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044E \xAB${settlement2}\xBB.`,
+      clueScene: "island",
+      reportNpc: "elder",
+      settlementLandmark: "settlement",
+      requiredEncounterIds: ["road-threat"],
+      rescue: `${people.healer.full} \u043F\u043E\u043C\u043E\u0433\u0430\u0435\u0442 \u043F\u0443\u0442\u043D\u0438\u043A\u0430\u043C \u043D\u0430 \u043E\u043F\u0443\u0448\u043A\u0435 \u0443 \u0431\u0435\u0440\u0435\u0433\u0430.`
+    };
+    const texts = {
+      mist: {
+        title: `\u0422\u0443\u043C\u0430\u043D \u043D\u0430\u0434 \u043E\u0441\u0442\u0440\u043E\u0432\u043E\u043C \xB7 ${settlement2}`,
+        problem: "\u0423 \u043B\u0435\u0441\u043D\u043E\u0439 \u043F\u043E\u0432\u043E\u0437\u043A\u0438 \u043B\u043E\u043F\u043D\u0443\u043B\u0438 \u0431\u043E\u0447\u043A\u0438 \u0441 \u0435\u0434\u043A\u043E\u0439 \u043D\u0430\u0441\u0442\u043E\u0439\u043A\u043E\u0439. \u0422\u0443\u043C\u0430\u043D \u043F\u043E\u0434\u043D\u044F\u043B\u0441\u044F \u043D\u0430\u0434 \u0442\u0440\u043E\u043F\u0430\u043C\u0438 \u043E\u0441\u0442\u0440\u043E\u0432\u0430, \u0430 \u0438\u0441\u043F\u0443\u0433\u0430\u043D\u043D\u044B\u0435 \u0437\u0432\u0435\u0440\u0438 \u0432\u044B\u0448\u043B\u0438 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0443 \u043A \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044E.",
+        warning: "\u041D\u0435 \u0441\u043F\u0443\u0441\u043A\u0430\u0439\u0442\u0435\u0441\u044C \u043A \u043F\u043E\u0432\u043E\u0437\u043A\u0435 \u0431\u0435\u0437 \u043E\u0441\u0442\u043E\u0440\u043E\u0436\u043D\u043E\u0441\u0442\u0438! \u0422\u0430\u043C \u043B\u043E\u043F\u043D\u0443\u043B\u0438 \u0431\u043E\u0447\u043A\u0438, \u0442\u0443\u043C\u0430\u043D \u0449\u0438\u043F\u043B\u0435\u0442 \u0433\u043B\u0430\u0437\u0430, \u0430 \u0437\u0432\u0435\u0440\u0438 \u0432\u044B\u0448\u043B\u0438 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0443. \u042F \u0431\u0435\u0433\u0443 \u043F\u0440\u0435\u0434\u0443\u043F\u0440\u0435\u0434\u0438\u0442\u044C \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u0435!",
+        objective: "\u041E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 \u043F\u043E\u0432\u043E\u0437\u043A\u0443 \u043F\u043E \u0441\u0435\u0432\u0435\u0440\u043D\u043E\u0439 \u0442\u0440\u043E\u043F\u0435, \u043D\u0430\u0439\u0434\u0438\u0442\u0435 \u0437\u0430\u043F\u0438\u0441\u044C \u043E \u0433\u0440\u0443\u0437\u0435 \u0438 \u0443\u0431\u0435\u0440\u0438\u0442\u0435 \u0443\u0433\u0440\u043E\u0437\u0443 \u0441 \u0434\u043E\u0440\u043E\u0433\u0438. \u041F\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u0441\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u0441\u0442\u0430\u0440\u043E\u0441\u0442\u0435 \u0443 \u043A\u043E\u043B\u043E\u0434\u0446\u0430.",
+        report: "\u0422\u0435\u043F\u0435\u0440\u044C \u043C\u044B \u0437\u043D\u0430\u0435\u043C, \u0447\u0435\u043C \u0437\u0430\u0441\u044B\u043F\u0430\u0442\u044C \u0440\u0430\u0437\u043B\u0438\u0442\u0443\u044E \u043D\u0430\u0441\u0442\u043E\u0439\u043A\u0443. \u0414\u043E\u0440\u043E\u0433\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0430, \u0438 \u0436\u0438\u0442\u0435\u043B\u0438 \u0441\u043C\u043E\u0433\u0443\u0442 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E \u0434\u043E\u0431\u0440\u0430\u0442\u044C\u0441\u044F \u0434\u043E \u043F\u043E\u0432\u043E\u0437\u043A\u0438. \u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u043F\u043E\u043C\u043E\u0449\u044C \u043E\u0441\u0442\u0440\u043E\u0432\u0443."
+      },
+      missing: {
+        title: `\u041F\u0440\u043E\u043F\u0430\u0432\u0448\u0438\u0439 \u043E\u0431\u043E\u0437 \xB7 ${settlement2}`,
+        problem: "\u041E\u0431\u043E\u0437 \u0441 \u043F\u0440\u0438\u043F\u0430\u0441\u0430\u043C\u0438 \u043D\u0435 \u0434\u043E\u0448\u0451\u043B \u0434\u043E \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044F. \u041F\u043E\u0432\u043E\u0437\u043A\u0443 \u0431\u0440\u043E\u0441\u0438\u043B\u0438 \u0443 \u0441\u0435\u0432\u0435\u0440\u043D\u043E\u0439 \u0442\u0440\u043E\u043F\u044B, \u043D\u0430\u043B\u0451\u0442\u0447\u0438\u043A\u0438 \u0437\u0430\u043D\u044F\u043B\u0438 \u0434\u043E\u0440\u043E\u0433\u0443, \u0430 \u043F\u0443\u0442\u043D\u0438\u043A\u0438 \u0441\u043A\u0440\u044B\u0432\u0430\u044E\u0442\u0441\u044F \u0432\u043E\u0437\u043B\u0435 \u0441\u0442\u0430\u0440\u043E\u0439 \u0431\u0430\u0448\u043D\u0438.",
+        warning: "\u041E\u0431\u043E\u0437 \u043F\u0440\u043E\u043F\u0430\u043B! \u0423 \u043F\u043E\u0432\u043E\u0437\u043A\u0438 \u043F\u043E\u0440\u0432\u0430\u043D\u043D\u044B\u0435 \u0440\u0435\u043C\u043D\u0438, \u0430 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0435 \u0432\u043E\u043E\u0440\u0443\u0436\u0451\u043D\u043D\u044B\u0435 \u043B\u044E\u0434\u0438. \u042F \u0435\u043B\u0435 \u0443\u0448\u0451\u043B. \u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u0430\u0439\u0434\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u044B \u2014 \u044F \u043F\u043E\u0437\u043E\u0432\u0443 \u0434\u043E\u0437\u043E\u0440 \u0438\u0437 \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044F!",
+        objective: "\u041D\u0430\u0439\u0434\u0438\u0442\u0435 \u0434\u043E\u0440\u043E\u0436\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C \u0443 \u043F\u043E\u0432\u043E\u0437\u043A\u0438 \u043F\u043E \u0441\u0435\u0432\u0435\u0440\u043D\u043E\u0439 \u0442\u0440\u043E\u043F\u0435, \u043F\u0440\u043E\u0433\u043E\u043D\u0438\u0442\u0435 \u043D\u0430\u043B\u0451\u0442\u0447\u0438\u043A\u0430 \u0441 \u0434\u043E\u0440\u043E\u0433\u0438 \u0438 \u043F\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u0441\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u0441\u0442\u0430\u0440\u043E\u0441\u0442\u0435 \u0443 \u043A\u043E\u043B\u043E\u0434\u0446\u0430.",
+        report: "\u0417\u0430\u043F\u0438\u0441\u044C \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0435\u0442: \u043F\u0443\u0442\u043D\u0438\u043A\u0438 \u0443\u043A\u0440\u044B\u043B\u0438\u0441\u044C \u0432\u043E\u0437\u043B\u0435 \u0431\u0430\u0448\u043D\u0438. \u0414\u043E\u0440\u043E\u0433\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u0430, \u0438 \u0434\u043E\u0437\u043E\u0440 \u0441\u043C\u043E\u0436\u0435\u0442 \u0432\u044B\u0432\u0435\u0441\u0442\u0438 \u0440\u0430\u043D\u0435\u043D\u043E\u0433\u043E \u0432\u043E\u0437\u043D\u0438\u0446\u0443. \u041F\u0440\u0438\u043F\u0430\u0441\u044B \u043E\u0441\u0442\u0440\u043E\u0432\u0430 \u0431\u0443\u0434\u0443\u0442 \u0441\u043F\u0430\u0441\u0435\u043D\u044B."
+      },
+      seal: {
+        title: `\u0420\u0430\u0437\u0431\u0438\u0442\u0430\u044F \u043F\u0435\u0447\u0430\u0442\u044C \u043E\u0441\u0442\u0440\u043E\u0432\u0430 \xB7 ${settlement2}`,
+        problem: "\u041A\u043B\u0430\u0434\u043E\u0438\u0441\u043A\u0430\u0442\u0435\u043B\u0438 \u0440\u0430\u0437\u0431\u0438\u043B\u0438 \u043E\u0445\u0440\u0430\u043D\u043D\u0443\u044E \u043F\u0435\u0447\u0430\u0442\u044C \u0443 \u0441\u0442\u0430\u0440\u043E\u0439 \u0431\u0430\u0448\u043D\u0438. \u041A\u043E\u0441\u0442\u044F\u043D\u044B\u0435 \u0441\u0442\u0440\u0430\u0436\u0438 \u043F\u0440\u043E\u0441\u043D\u0443\u043B\u0438\u0441\u044C, \u0438 \u043E\u0434\u0438\u043D \u0432\u044B\u0448\u0435\u043B \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0443 \u043A \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044E.",
+        warning: "\u041F\u0435\u0447\u0430\u0442\u044C \u0443 \u0431\u0430\u0448\u043D\u0438 \u0440\u0430\u0437\u0431\u0438\u0442\u0430! \u041A\u0430\u043C\u043D\u0438 \u0441\u0432\u0435\u0442\u044F\u0442\u0441\u044F, \u0438 \u043A\u043E\u0441\u0442\u0438 \u043F\u043E\u0434\u043D\u0438\u043C\u0430\u044E\u0442\u0441\u044F \u0441 \u0437\u0435\u043C\u043B\u0438. \u041E\u0434\u0438\u043D \u0441\u0442\u0440\u0430\u0436 \u0432\u044B\u0448\u0435\u043B \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0443. \u042F \u0431\u0435\u0433\u0443 \u0437\u0430 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u2014 \u043D\u0435 \u0442\u0440\u043E\u0433\u0430\u0439\u0442\u0435 \u043E\u0441\u043A\u043E\u043B\u043A\u0438!",
+        objective: "\u041F\u0440\u043E\u0439\u0434\u0438\u0442\u0435 \u043F\u043E \u044E\u0436\u043D\u043E\u0439 \u0442\u0440\u043E\u043F\u0435 \u043A \u0440\u0443\u0438\u043D\u0430\u043C, \u043F\u0440\u043E\u0447\u0442\u0438\u0442\u0435 \u043D\u0430\u0434\u043F\u0438\u0441\u044C \u043D\u0430 \u043F\u0435\u0447\u0430\u0442\u0438 \u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u0442\u0440\u0430\u0436\u0430 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0435. \u041F\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u0441\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u0441\u0442\u0430\u0440\u043E\u0441\u0442\u0435 \u0443 \u043A\u043E\u043B\u043E\u0434\u0446\u0430.",
+        report: "\u0412\u044B \u043D\u0430\u0448\u043B\u0438 \u0441\u043F\u043E\u0441\u043E\u0431 \u0437\u0430\u043C\u043A\u043D\u0443\u0442\u044C \u043F\u0435\u0447\u0430\u0442\u044C \u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u043B\u0438 \u0441\u0442\u0440\u0430\u0436\u0430 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0435. \u0425\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u044C \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u0441\u044F \u043A \u0431\u0430\u0448\u043D\u0435 \u0441 \u0441\u043E\u043B\u044C\u044E, \u0430 \u043F\u043E\u0438\u0441\u043A\u0438 \u043A\u043B\u0430\u0434\u0430 \u043F\u0440\u0435\u043A\u0440\u0430\u0449\u0435\u043D\u044B."
+      }
+    };
+    return { ...story, ...common, ...texts[id] };
+  }
+  function createWorld4(seed, size) {
+    const gen = normalizeGen4({ seed, size }), rng = new Rng2(`${gen.seed}/v4/plan`), island = createIsland(gen.seed, gen.size);
+    const settlement2 = settlementName2(rng.fork("settlement"));
+    const people = Object.fromEntries(["messenger", "healer", "elder", "captain"].map((role) => [role, owner2(rng.fork(role))]));
+    const story = islandStory(rng.fork("story").pick(STORY_IDS), settlement2, people), name = `\u041E\u0441\u0442\u0440\u043E\u0432 \xAB${settlement2}\xBB`;
+    const plan = {
+      v: GEN_VERSION4,
+      seed: gen.seed,
+      size: gen.size,
+      name,
+      settlementName: settlement2,
+      start: "island",
+      island,
+      story,
+      captain: people.captain,
+      scenes: { island: { kind: "island", name, W: island.W, H: island.H } },
+      links: []
+    };
+    Object.defineProperty(plan, "cache", { value: /* @__PURE__ */ new Map(), enumerable: false });
+    return plan;
+  }
+  function enemy2(seed, id, name, x, y, max, ac, visual) {
+    const foe = { id, name, kind: 3, x, y, max, ac, visual };
+    if (visual === "bandit") {
+      const npc2 = makeNpc2({ rng: new Rng2(`${seed}/v4/enemies/${id}`), name: "\u0414\u043E\u0440\u043E\u0433\u0430" }, { full: name, gender: "male" }, "guard", [], { classId: "rogue", role: "\u043D\u0430\u043B\u0451\u0442\u0447\u0438\u043A" }).npc;
+      foe.gen = { classId: npc2.classId, gender: npc2.gender, look: npc2.look, hands: ["sword", "empty"] };
+    }
+    return foe;
+  }
+  function buildScene(plan) {
+    const meta = plan.island, rng = new Rng2(`${plan.seed}/v4/scene/island`), reserved = /* @__PURE__ */ new Set(), occupied = /* @__PURE__ */ new Set();
+    const scene = {
+      id: "island",
+      name: plan.name,
+      W: meta.W,
+      H: meta.H,
+      island: meta,
+      outdoor: true,
+      gen: { type: "island", seed: plan.seed, planVersion: GEN_VERSION4, base: "grass", wall: "rough", storyId: plan.story.id },
+      props: [],
+      decor: [],
+      dummies: [],
+      lights: [],
+      spawns: [],
+      trainingSpawn: [],
+      enemySpawn: [],
+      encounters: [],
+      arrivals: {},
+      regions: [],
+      landmarks: [],
+      mainRoute: [],
+      regionStreaming: { chunkSize: 10, maxChunks: 32 }
+    };
+    const reserve = (x, y) => {
+      if (isLand(meta, x, y)) reserved.add(key10(x, y));
+    };
+    const reserveArea = ([x, y], radius) => {
+      for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) reserve(x + dx, y + dy);
+    };
+    function route2(id, from, to, surface = "dirt") {
+      const cells = findPath(meta, from, to, 1500);
+      if (!cells.length) throw Error("\u041D\u0435\u0442 \u0441\u0443\u0445\u043E\u0433\u043E \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430: " + id);
+      for (const cell of cells) reserveArea(cell, 1);
+      scene.mainRoute.push({ id, width: 3, cells, surface });
+    }
+    const labels = { arrival: "\u041E\u043F\u0443\u0448\u043A\u0430 \u0443 \u0431\u0435\u0440\u0435\u0433\u0430", port: "\u0411\u0435\u0440\u0435\u0433\u043E\u0432\u0430\u044F \u043F\u0440\u0438\u0441\u0442\u0430\u043D\u044C", settlement: `\u041F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u0435 \xAB${plan.settlementName}\xBB`, clue: "\u0421\u0442\u043E\u044F\u043D\u043A\u0430 \u043B\u0435\u0441\u043D\u043E\u0433\u043E \u043E\u0431\u043E\u0437\u0430", ruins: "\u0421\u0442\u0430\u0440\u0430\u044F \u0431\u0430\u0448\u043D\u044F", herbs: "\u0422\u0440\u0430\u0432\u044F\u043D\u0430\u044F \u043F\u043E\u043B\u044F\u043D\u0430" };
+    const radii = { arrival: 8, port: 4, settlement: 10, clue: 5, ruins: 8, herbs: 5 };
+    for (const [id, [x, y]] of Object.entries(meta.landmarks)) {
+      scene.landmarks.push({ id, name: labels[id], x, y, radius: radii[id] });
+      reserveArea([x, y], id === "port" ? 1 : 2);
+    }
+    const { arrival, port, settlement: settlement2, clue, ruins, herbs } = meta.landmarks;
+    route2("arrival-settlement", arrival, settlement2);
+    route2("arrival-port", arrival, port, "cobble");
+    route2("settlement-clue", settlement2, clue);
+    route2("settlement-ruins", settlement2, ruins, "gravel");
+    route2("settlement-herbs", settlement2, herbs);
+    const biomeNames = { meadow: "\u041B\u0443\u0433\u043E\u0432\u043E\u0439 \u043F\u0440\u0438\u0432\u0430\u043B", forest: "\u041B\u0435\u0441\u043D\u043E\u0439 \u0434\u043E\u0437\u043E\u0440", desert: "\u041F\u0435\u0441\u0447\u0430\u043D\u0430\u044F \u0441\u0442\u043E\u044F\u043D\u043A\u0430", mountain: "\u0413\u043E\u0440\u043D\u044B\u0439 \u0437\u043D\u0430\u043A", snow: "\u0421\u043D\u0435\u0436\u043D\u044B\u0439 \u043F\u0440\u0438\u044E\u0442", swamp: "\u0411\u043E\u043B\u043E\u0442\u043D\u0430\u044F \u0432\u0435\u0445\u0430" };
+    const biomePlaces = meta.biomes.map((biome) => {
+      let point = [Math.round(biome.x), Math.round(biome.y)];
+      if (!isLand(meta, ...point)) point = [meta.margin + meta.shape.centerX, point[1]];
+      const id = "biome-" + biome.id;
+      reserveArea(point, 1);
+      route2(id + "-path", settlement2, point, "gravel");
+      scene.landmarks.push({ id, name: biomeNames[biome.id], x: point[0], y: point[1], radius: 5 });
+      return { id, point, biome };
+    });
+    scene.spawns = [arrival, [arrival[0] + 1, arrival[1]], [arrival[0], arrival[1] + 1]].map((cell) => cell.slice());
+    scene.arrivals = {
+      arrival: scene.spawns.map((cell) => cell.slice()),
+      port: [[port[0] + 1, port[1]], [port[0] + 2, port[1]], [port[0] + 2, port[1] + 1]],
+      settlement: [settlement2, [settlement2[0] + 1, settlement2[1]], [settlement2[0], settlement2[1] + 1]].map((cell) => cell.slice())
+    };
+    for (const cells of Object.values(scene.arrivals)) for (const cell of cells) reserveArea(cell, 1);
+    scene.regions.push({ id: "square", name: "\u041F\u043B\u043E\u0449\u0430\u0434\u044C \u0443 \u043A\u043E\u043B\u043E\u0434\u0446\u0430", x: settlement2[0] - 5, y: settlement2[1] - 5, w: 11, h: 11, surface: "flagstone" });
+    function place2(prop2, target, maxRadius = 12) {
+      for (let radius = 0; radius <= maxRadius; radius++) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+        const x = target[0] + dx, y = target[1] + dy, k = key10(x, y);
+        if (!isLand(meta, x, y) || occupied.has(k) || reserved.has(k)) continue;
+        let neighbor = null, path = null;
+        for (const [a, b] of DIRS3) {
+          const candidate = [x + a, y + b];
+          if (!isLand(meta, ...candidate) || occupied.has(key10(...candidate))) continue;
+          const cells = findPath(meta, arrival, candidate, 1500);
+          if (!cells.length || cells.some(([a2, b2]) => key10(a2, b2) === k || occupied.has(key10(a2, b2)))) continue;
+          neighbor = candidate;
+          path = cells;
+          break;
+        }
+        if (!neighbor) continue;
+        const p = { ...prop2, x, y, access: { x: neighbor[0], y: neighbor[1] } };
+        scene.props.push(p);
+        occupied.add(k);
+        for (const [a, b] of path) reserve(a, b);
+        return p;
+      }
+      throw Error("\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0440\u0430\u0437\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0440\u0435\u0434\u043C\u0435\u0442: " + prop2.id);
+    }
+    const offset = (point, dx, dy) => [point[0] + dx, point[1] + dy];
+    function prop(cat, id, target, extra = {}) {
+      return place2(mk2({ rng: rng.fork("props/" + id) }, cat, { id, ...extra }), target);
+    }
+    function container2(cat, id, target, description, loot, extra = {}) {
+      return prop(cat, id, target, { gen: true, container: true, description, loot: { gold: 0, potions: 0, torches: 0, gear: [], ...loot }, ...extra });
+    }
+    function npc2(who, id, target, lines, role, classId, extra = {}) {
+      return place2({ ...makeNpc2({ rng: rng.fork("npc/" + id), name: scene.name }, who, classId === "cleric" ? "chapel" : "house", lines, { role, classId }), id, storyRole: id, ...extra }, target);
+    }
+    const messengerTarget = offset(arrival, 4, -3);
+    const messenger = npc2(plan.story.messenger, "messenger", messengerTarget, [plan.story.warning, plan.story.objective], plan.story.messenger.gender === "female" ? "\u0432\u0435\u0441\u0442\u043D\u0438\u0446\u0430" : "\u0432\u0435\u0441\u0442\u043D\u0438\u043A", "rogue");
+    messenger.departure = [messenger.x + 6, messenger.y];
+    for (let i = 1; i <= 6; i++) reserve(messenger.x + i, messenger.y);
+    npc2(plan.story.healer, "healer", offset(arrival, 5, 4), ["\u042F \u0441\u043E\u0431\u0438\u0440\u0430\u044E \u0442\u0440\u0430\u0432\u044B \u0432\u043E\u0437\u043B\u0435 \u0431\u0435\u0440\u0435\u0433\u0430. \u041D\u0430 \u043F\u043E\u043B\u044F\u043D\u0435 \u044E\u0436\u043D\u0435\u0435 \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044F \u043E\u0441\u0442\u0430\u043B\u0441\u044F \u043C\u043E\u0439 \u0437\u0430\u043F\u0430\u0441 \u0434\u043B\u044F \u043F\u0443\u0442\u043D\u0438\u043A\u043E\u0432.", "\u0411\u0435\u0440\u0435\u0433\u0438\u0442\u0435 \u0441\u0435\u0431\u044F: \u043E\u0431\u0441\u043B\u0435\u0434\u0443\u0439\u0442\u0435 \u0434\u043E\u0440\u043E\u0433\u0443 \u0438 \u043F\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u0441\u0442\u0430\u0440\u043E\u0441\u0442\u0435 \u0442\u043E, \u0447\u0442\u043E \u0443\u0437\u043D\u0430\u0435\u0442\u0435."], plan.story.healer.gender === "female" ? "\u0446\u0435\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u0438\u0446\u0430" : "\u0446\u0435\u043B\u0438\u0442\u0435\u043B\u044C", "cleric");
+    container2("chest", "starter-cache", offset(arrival, 3, 4), "\u0414\u043E\u0440\u043E\u0436\u043D\u044B\u0439 \u0437\u0430\u043F\u0430\u0441 \u0446\u0435\u043B\u0438\u0442\u0435\u043B\u044F: \u0437\u0435\u043B\u044C\u0435 \u0438 \u0444\u0430\u043A\u0435\u043B \u0434\u043B\u044F \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u043F\u0443\u0442\u0438.", { potions: 1, torches: 1 }, { name: "\u0414\u043E\u0440\u043E\u0436\u043D\u044B\u0439 \u0437\u0430\u043F\u0430\u0441" });
+    prop("signpost", "arrival-sign", offset(arrival, 8, 4), { name: "\u0423\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u044C \u0443 \u043E\u043F\u0443\u0448\u043A\u0438", description: "\u041D\u0430 \u0432\u043E\u0441\u0442\u043E\u043A \u2014 \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u0435. \u041D\u0430 \u0437\u0430\u043F\u0430\u0434 \u2014 \u043F\u0440\u0438\u0441\u0442\u0430\u043D\u044C. \u0421\u0435\u0432\u0435\u0440\u043D\u0430\u044F \u0442\u0440\u043E\u043F\u0430 \u0432\u0435\u0434\u0451\u0442 \u043A \u043F\u043E\u0432\u043E\u0437\u043A\u0435, \u044E\u0436\u043D\u0430\u044F \u2014 \u043A \u0441\u0442\u0430\u0440\u043E\u0439 \u0431\u0430\u0448\u043D\u0435." });
+    prop("tree", "arrival-pine", offset(arrival, -4, -5), { name: "\u0421\u043E\u0441\u043D\u0430 \u0443 \u0431\u0435\u0440\u0435\u0433\u0430", description: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F \u0441\u043E\u0441\u043D\u0430 \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u0442 \u043E\u043F\u0443\u0448\u043A\u0443 \u043D\u0430\u0434 \u043F\u0440\u0438\u0441\u0442\u0430\u043D\u044C\u044E.", interactive: false });
+    npc2(plan.captain, "captain", offset(port, 4, -3), ["\u041C\u043E\u0440\u0441\u043A\u043E\u0439 \u043F\u0435\u0440\u0435\u0445\u043E\u0434 \u043E\u043F\u043B\u0430\u0447\u0438\u0432\u0430\u044E\u0442 \u0437\u043E\u043B\u043E\u0442\u043E\u043C. \u041D\u043E \u0441\u0435\u0439\u0447\u0430\u0441 \u043A\u043E\u0440\u0430\u0431\u043B\u044C \u0441\u0442\u043E\u0438\u0442 \u0443 \u043F\u0440\u0438\u0447\u0430\u043B\u0430: \u043D\u0443\u0436\u043D\u043E \u043F\u0440\u0438\u0432\u0435\u0441\u0442\u0438 \u0432 \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0442\u0430\u043A\u0435\u043B\u0430\u0436.", "\u042F \u043F\u043E\u043A\u0430 \u043D\u0435 \u043F\u0440\u0438\u043D\u0438\u043C\u0430\u044E \u043F\u043B\u0430\u0442\u0443 \u0437\u0430 \u043F\u0435\u0440\u0435\u0445\u043E\u0434. \u041E\u0441\u0442\u0430\u043D\u0443\u0441\u044C \u043D\u0430 \u043F\u0440\u0438\u0441\u0442\u0430\u043D\u0438; \u0434\u043E\u0440\u043E\u0433\u0430 \u043E\u0442 \u0431\u0435\u0440\u0435\u0433\u0430 \u0432\u0435\u0434\u0451\u0442 \u043A \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044E."], "\u043A\u0430\u043F\u0438\u0442\u0430\u043D", "fighter");
+    prop("cart", "port-cart", offset(port, 6, 4), { name: "\u041F\u0440\u0438\u0441\u0442\u0430\u043D\u0441\u043A\u0430\u044F \u0442\u0435\u043B\u0435\u0433\u0430", description: "\u0422\u0435\u043B\u0435\u0433\u0430 \u0434\u043B\u044F \u0433\u0440\u0443\u0437\u0430, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043F\u0440\u0438\u0431\u044B\u0432\u0430\u0435\u0442 \u043D\u0430 \u043E\u0441\u0442\u0440\u043E\u0432 \u043C\u043E\u0440\u0435\u043C." });
+    prop("barrel", "port-water", offset(port, 5, 6), { container: false, name: "\u0417\u0430\u043F\u0430\u0441 \u0432\u043E\u0434\u044B \u0443 \u043F\u0440\u0438\u0441\u0442\u0430\u043D\u0438" });
+    prop("signpost", "port-sign", offset(port, 7, -5), { name: "\u0414\u043E\u0441\u043A\u0430 \u043F\u0440\u0438\u0441\u0442\u0430\u043D\u0438", description: "\u041A\u043E\u0440\u0430\u0431\u043B\u044C \u043D\u0430 \u0440\u0435\u043C\u043E\u043D\u0442\u0435. \u0414\u043E\u0440\u043E\u0433\u0430 \u0432 \u0433\u043B\u0443\u0431\u044C \u043E\u0441\u0442\u0440\u043E\u0432\u0430 \u0432\u0435\u0434\u0451\u0442 \u043A \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044E." });
+    prop("well", "village-well", offset(settlement2, 0, -4), { name: "\u041A\u043E\u043B\u043E\u0434\u0435\u0446 \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044F", description: "\u0423 \u043A\u043E\u043B\u043E\u0434\u0446\u0430 \u0436\u0438\u0442\u0435\u043B\u0438 \u043E\u0431\u0441\u0443\u0436\u0434\u0430\u044E\u0442 \u0432\u0435\u0441\u0442\u0438 \u0441 \u0434\u043E\u0440\u043E\u0433\u0438." });
+    npc2(plan.story.elder, "elder", offset(settlement2, 3, -4), [plan.story.problem, plan.story.objective, plan.story.report], "\u0441\u0442\u0430\u0440\u043E\u0441\u0442\u0430", "fighter");
+    prop("stall", "village-market", offset(settlement2, -5, -6), { name: "\u041E\u0441\u0442\u0440\u043E\u0432\u043D\u043E\u0439 \u0442\u043E\u0440\u0433", description: "\u0422\u043E\u0440\u0433\u043E\u0432\u044B\u0439 \u043D\u0430\u0432\u0435\u0441 \u0432\u043E\u0437\u043B\u0435 \u043F\u043B\u043E\u0449\u0430\u0434\u0438. \u0417\u0430\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043F\u0440\u0438\u043B\u0430\u0432\u043A\u0435: \xAB\u0422\u043E\u0440\u0433 \u0437\u0430\u043A\u0440\u044B\u0442 \u0434\u043E \u043F\u0440\u0438\u0431\u044B\u0442\u0438\u044F \u043D\u043E\u0432\u043E\u0433\u043E \u0433\u0440\u0443\u0437\u0430\xBB." });
+    prop("bench", "village-bench", offset(settlement2, -3, 4));
+    prop("hearth", "village-hearth", offset(settlement2, 5, 4), { name: "\u041E\u0447\u0430\u0433 \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044F" });
+    prop("signpost", "village-sign", offset(settlement2, -5, 4), { name: "\u0414\u043E\u0441\u043A\u0430 \u0434\u043E\u0440\u043E\u0436\u043D\u043E\u0433\u043E \u0434\u043E\u0437\u043E\u0440\u0430", description: plan.story.objective });
+    prop("anvil", "village-anvil", offset(settlement2, 9, -3));
+    prop("forge", "village-forge", offset(settlement2, 10, -6), { name: "\u041A\u0443\u0437\u043D\u0438\u0446\u0430 \u043F\u043E\u0434 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u043C \u043D\u0430\u0432\u0435\u0441\u043E\u043C" });
+    prop("table", "village-table", offset(settlement2, 7, 7), { name: "\u0421\u0442\u043E\u043B \u0434\u043E\u0440\u043E\u0436\u043D\u043E\u0433\u043E \u0434\u043E\u0437\u043E\u0440\u0430" });
+    prop("barrel", "village-barrel", offset(settlement2, 10, 5), { container: false });
+    prop("haystack", "village-hay", offset(settlement2, -9, 6));
+    container2("crate", "road-supplies", offset(settlement2, -12, 4), "\u0417\u0430\u043F\u0430\u0441 \u0434\u043E\u0440\u043E\u0436\u043D\u043E\u0433\u043E \u0434\u043E\u0437\u043E\u0440\u0430 \u0434\u043B\u044F \u043F\u0443\u0442\u043D\u0438\u043A\u043E\u0432.", { gold: rng.fork("loot/road").int(1, 3), torches: 1 });
+    prop("cart", "abandoned-cart", offset(clue, -4, 0), { name: "\u0411\u0440\u043E\u0448\u0435\u043D\u043D\u0430\u044F \u043F\u043E\u0432\u043E\u0437\u043A\u0430", description: plan.story.cartDescription });
+    prop("haystack", "cart-hay", offset(clue, 4, -4));
+    prop("barrel", "cart-barrel", offset(clue, -5, -4), { container: false, name: "\u0411\u043E\u0447\u043A\u0430 \u0443 \u043F\u043E\u0432\u043E\u0437\u043A\u0438" });
+    const cluePoint = plan.story.id === "seal" ? ruins : clue;
+    container2("chest", "story-clue", offset(cluePoint, 4, 1), plan.story.clue, {}, { name: plan.story.clueName, storyRole: "clue", storyId: plan.story.id });
+    prop("statue", "ruins-marker", offset(ruins, -4, 0), { name: "\u0421\u0442\u0430\u0442\u0443\u044F \u0443 \u0441\u0442\u0430\u0440\u043E\u0439 \u0431\u0430\u0448\u043D\u0438", description: plan.story.ruinsDescription });
+    prop("altar", "broken-seal", offset(ruins, 4, -3), { type: "furniture", name: plan.story.id === "seal" ? "\u0420\u0430\u0437\u0431\u0438\u0442\u0430\u044F \u043F\u0435\u0447\u0430\u0442\u044C" : "\u0421\u0442\u0430\u0440\u0430\u044F \u043A\u0430\u043C\u0435\u043D\u043D\u0430\u044F \u0447\u0430\u0448\u0430", description: plan.story.ruinsDescription });
+    prop("pillar", "ruins-pillar", offset(ruins, -5, -4), { name: "\u0423\u0446\u0435\u043B\u0435\u0432\u0448\u0430\u044F \u043A\u043E\u043B\u043E\u043D\u043D\u0430" });
+    prop("bones", "ruins-bones", offset(ruins, 5, 5), { interactive: false });
+    container2("chest", "ruins-cache", offset(ruins, 5, 3), "\u0417\u0430\u043F\u0430\u0441, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u0434\u043E\u0437\u043E\u0440 \u043E\u0441\u0442\u0430\u0432\u0438\u043B \u0443 \u0431\u0430\u0448\u043D\u0438.", { gold: rng.fork("loot/ruins").int(2, 6), potions: 1 });
+    container2("planter", "herb-cache", offset(herbs, 4, 3), "\u0426\u0435\u043B\u0438\u0442\u0435\u043B\u044C \u043E\u0441\u0442\u0430\u0432\u0438\u043B \u043D\u0430 \u0442\u0440\u0430\u0432\u044F\u043D\u043E\u0439 \u043F\u043E\u043B\u044F\u043D\u0435 \u0433\u043E\u0442\u043E\u0432\u043E\u0435 \u043B\u0435\u0447\u0435\u0431\u043D\u043E\u0435 \u0437\u0435\u043B\u044C\u0435 \u0434\u043B\u044F \u043F\u0443\u0442\u043D\u0438\u043A\u0430.", { potions: 1 }, { name: "\u0422\u0440\u0430\u0432\u044F\u043D\u043E\u0439 \u0437\u0430\u043F\u0430\u0441" });
+    prop("bush", "herb-bush", offset(herbs, -4, 0), { name: "\u0414\u0443\u0448\u0438\u0441\u0442\u044B\u0435 \u0442\u0440\u0430\u0432\u044B", description: "\u0426\u0432\u0435\u0442\u0443\u0449\u0438\u0439 \u043A\u0443\u0441\u0442 \u043E\u0442\u043C\u0435\u0447\u0430\u0435\u0442 \u0442\u0440\u0430\u0432\u044F\u043D\u0443\u044E \u043F\u043E\u043B\u044F\u043D\u0443." });
+    const road2 = scene.mainRoute.find((r) => r.id === "arrival-settlement"), roadPoint = road2.cells[Math.floor(road2.cells.length * 0.65)];
+    const visual = { mist: "beast", missing: "bandit", seal: "skeleton" }[plan.story.id];
+    const encounter = (id, name, point, foeId, foeName, max, ac, reward) => ({
+      id,
+      scene: "island",
+      name,
+      x: point[0],
+      y: point[1],
+      radius: 3,
+      trigger: "approach",
+      tutorial: false,
+      scriptedLoss: false,
+      enemies: [enemy2(plan.seed, foeId, foeName, ...point, max, ac, visual)],
+      reward
+    });
+    scene.encounters.push(encounter("road-threat", plan.story.roadThreat, roadPoint, "road-foe", plan.story.roadEnemy, 8, 11, { xp: 25, gold: 5 }));
+    scene.encounters.push(encounter("ruins-threat", plan.story.ruinsThreat, ruins, "ruins-foe", plan.story.ruinsEnemy, 6, 10, { xp: 15, gold: 3 }));
+    for (const e of scene.encounters) for (const f of e.enemies) reserveArea([f.x, f.y], 1);
+    for (const { id, point, biome } of biomePlaces) {
+      prop("signpost", id + "-sign", offset(point, 4, -3), { name: biomeNames[biome.id], description: "\u0412\u0435\u0445\u0430 \u043C\u0435\u0441\u0442\u043D\u043E\u0433\u043E \u0434\u043E\u0437\u043E\u0440\u0430. \u041E\u0442\u0441\u044E\u0434\u0430 \u0442\u0440\u043E\u043F\u0430 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442\u0441\u044F \u043A \u043F\u043E\u0441\u0435\u043B\u0435\u043D\u0438\u044E." });
+      container2("crate", id + "-cache", offset(point, 4, 3), "\u041D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0434\u043E\u0440\u043E\u0436\u043D\u044B\u0439 \u0437\u0430\u043F\u0430\u0441. \u041F\u043E\u0441\u043B\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u0438\u044F \u043E\u043D \u043D\u0435 \u043F\u043E\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F.", { gold: rng.fork("loot/" + id).int(1, 4), torches: biome.id === "forest" ? 1 : 0 });
+    }
+    return scene;
+  }
+  function generateScene4(plan, id) {
+    if (!isGeneratedId4(plan, id)) throw Error("\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u0441\u0446\u0435\u043D\u0430 " + id);
+    if (plan.cache?.has(id)) return plan.cache.get(id);
+    const scene = buildScene(plan), errors = validateScene4(scene);
+    if (errors.length) throw Error("\u041E\u0441\u0442\u0440\u043E\u0432 \u043D\u0435 \u043F\u0440\u043E\u0448\u0451\u043B \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0443: " + errors.join("; "));
+    plan.cache?.set(id, scene);
+    return scene;
+  }
+  var sceneIds4 = (plan) => Object.keys(plan.scenes);
+  var isGeneratedId4 = (plan, id) => id === "island" && Object.hasOwn(plan.scenes, id);
+  var exits4 = () => [];
+  function validateScene4(scene) {
+    const errors = [];
+    if (!scene || scene.id !== "island" || scene.gen?.planVersion !== 4 || scene.outdoor !== true) return ["\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0430\u044F \u043E\u0441\u0442\u0440\u043E\u0432\u043D\u0430\u044F \u0441\u0446\u0435\u043D\u0430."];
+    const descriptor = validateIsland(scene.island);
+    if (!descriptor.ok) return [descriptor.error];
+    if (scene.W !== scene.island.W || scene.H !== scene.island.H || ["tiles", "surface", "floor", "materials"].some((field) => Object.hasOwn(scene, field))) errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0435 \u0440\u0430\u0437\u043C\u0435\u0440\u044B \u0438\u043B\u0438 \u043F\u043E\u043B\u043D\u0430\u044F \u0441\u0435\u0442\u043A\u0430 \u043E\u0441\u0442\u0440\u043E\u0432\u0430.");
+    for (const field of ["props", "decor", "dummies", "lights", "spawns", "trainingSpawn", "enemySpawn", "encounters", "landmarks", "mainRoute"]) if (!Array.isArray(scene[field])) errors.push("\u041D\u0435\u0442 \u0441\u043F\u0438\u0441\u043A\u0430: " + field);
+    if (errors.length) return errors;
+    if (scene.props.length > 120 || scene.encounters.length > 12 || scene.landmarks.length > 32 || scene.mainRoute.length > 32) errors.push("\u041F\u0440\u0435\u0432\u044B\u0448\u0435\u043D \u0431\u044E\u0434\u0436\u0435\u0442 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u043E\u0441\u0442\u0440\u043E\u0432\u0430.");
+    const ids = /* @__PURE__ */ new Set(), occupied = /* @__PURE__ */ new Set(), dry = (cell) => Array.isArray(cell) && cell.length === 2 && tileAt(scene, ...cell) === "floor";
+    for (const p of scene.props) {
+      if (!p || typeof p !== "object") {
+        errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0440\u0435\u0434\u043C\u0435\u0442.");
+        continue;
+      }
+      if (typeof p.id !== "string" || ids.has(p.id)) errors.push("\u041F\u043E\u0432\u0442\u043E\u0440 \u0438\u043B\u0438 \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 id \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u0430.");
+      ids.add(p.id);
+      if (tileAt(scene, p.x, p.y) !== "floor") errors.push("\u041F\u0440\u0435\u0434\u043C\u0435\u0442 \u0432\u043D\u0435 \u0441\u0443\u0448\u0438: " + p.id);
+      if (blocked(p)) {
+        const k = key10(p.x, p.y);
+        if (occupied.has(k)) errors.push("\u041D\u0430\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u043E\u0432: " + p.id);
+        occupied.add(k);
+      }
+    }
+    if (errors.length) return errors;
+    const free = (cell) => dry(cell) && !occupied.has(key10(...cell));
+    if (scene.spawns.length !== 3 || scene.spawns.some((cell) => !free(cell))) errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0435 \u0442\u043E\u0447\u043A\u0438 \u043F\u043E\u044F\u0432\u043B\u0435\u043D\u0438\u044F.");
+    if ([...scene.trainingSpawn, ...scene.enemySpawn].some((cell) => !free(cell))) errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u044B\u0435 \u0442\u043E\u0447\u043A\u0438 \u043F\u043E\u044F\u0432\u043B\u0435\u043D\u0438\u044F.");
+    if (!scene.arrivals || typeof scene.arrivals !== "object" || Array.isArray(scene.arrivals)) errors.push("\u041D\u0435\u0442 \u0442\u043E\u0447\u0435\u043A \u043F\u0440\u0438\u0431\u044B\u0442\u0438\u044F \u043E\u0441\u0442\u0440\u043E\u0432\u0430.");
+    for (const cells of Object.values(scene.arrivals || {})) if (!Array.isArray(cells) || cells.length !== 3 || cells.some((cell) => !free(cell))) errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0435 \u0442\u043E\u0447\u043A\u0438 \u043F\u0440\u0438\u0431\u044B\u0442\u0438\u044F.");
+    for (const route2 of scene.mainRoute) {
+      if (!route2 || !Array.isArray(route2.cells) || !route2.cells.length || route2.cells.length > 1501 || route2.width !== 3) {
+        errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043C\u0430\u0440\u0448\u0440\u0443\u0442.");
+        continue;
+      }
+      for (let i = 0; i < route2.cells.length; i++) {
+        const cell = route2.cells[i];
+        if (!free(cell)) {
+          errors.push("\u041F\u0435\u0440\u0435\u043A\u0440\u044B\u0442\u044B\u0439 \u0438\u043B\u0438 \u043C\u043E\u043A\u0440\u044B\u0439 \u043C\u0430\u0440\u0448\u0440\u0443\u0442: " + route2.id);
+          break;
+        }
+        if (i && Math.abs(cell[0] - route2.cells[i - 1][0]) + Math.abs(cell[1] - route2.cells[i - 1][1]) !== 1) {
+          errors.push("\u0420\u0430\u0437\u0440\u044B\u0432 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430: " + route2.id);
+          break;
+        }
+      }
+    }
+    for (const p of scene.props) {
+      if (!DIRS3.some(([dx, dy]) => free([p.x + dx, p.y + dy]))) errors.push("\u041D\u0435\u0442 \u043F\u043E\u0434\u0445\u043E\u0434\u0430 \u043A \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u0443: " + p.id);
+      if (p.access && !free([p.access.x, p.access.y])) errors.push("\u041F\u0435\u0440\u0435\u043A\u0440\u044B\u0442 \u043F\u043E\u0434\u0445\u043E\u0434: " + p.id);
+      else if (p.access) {
+        const path = findPath(scene.island, scene.spawns[0], [p.access.x, p.access.y], 1500);
+        if (!path.length || path.some((cell) => !free(cell))) errors.push("\u041D\u0435\u0442 \u0441\u0443\u0445\u043E\u0433\u043E \u043F\u0443\u0442\u0438 \u043A \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u0443: " + p.id);
+      }
+      if (p.departure && !free(p.departure)) errors.push("\u041F\u0435\u0440\u0435\u043A\u0440\u044B\u0442 \u0443\u0445\u043E\u0434 NPC: " + p.id);
+    }
+    for (const landmark of scene.landmarks) if (!landmark || !dry([landmark.x, landmark.y]) || !Number.isInteger(landmark.radius) || landmark.radius < 1) errors.push("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043E\u0440\u0438\u0435\u043D\u0442\u0438\u0440: " + landmark?.id);
+    for (const encounter of scene.encounters) {
+      if (!encounter || !free([encounter.x, encounter.y]) || !Array.isArray(encounter.enemies) || !encounter.enemies.length || encounter.enemies.some((f) => !f || !free([f.x, f.y]))) {
+        errors.push("\u0412\u0441\u0442\u0440\u0435\u0447\u0430 \u0432\u043D\u0435 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0439 \u0441\u0443\u0448\u0438: " + encounter?.id);
+        continue;
+      }
+      if (encounter.tutorial !== false || encounter.scriptedLoss !== false) errors.push("\u041D\u0435\u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u0430\u044F \u0443\u0447\u0435\u0431\u043D\u0430\u044F \u0432\u0441\u0442\u0440\u0435\u0447\u0430.");
+      for (const cell of scene.spawns) if (Math.abs(cell[0] - encounter.x) + Math.abs(cell[1] - encounter.y) <= encounter.radius) errors.push("\u0412\u0441\u0442\u0440\u0435\u0447\u0430 \u043D\u0430 \u0442\u043E\u0447\u043A\u0435 \u043F\u043E\u044F\u0432\u043B\u0435\u043D\u0438\u044F.");
+    }
+    return errors;
+  }
+  function gmBrief3(plan) {
+    return {
+      version: plan.v,
+      settlement: plan.settlementName,
+      size: plan.size,
+      places: sceneIds4(plan).map((id) => ({ id, type: "island", name: plan.scenes[id].name })),
+      outside: { road: "island", dungeon: null, fortress: null },
+      publicFacts: [plan.story.problem, plan.story.objective]
+    };
+  }
+  function npcBrief3(scene, prop) {
+    const n = prop.npc;
+    return { id: prop.id, scene: scene.id, place: scene.name, name: prop.name, role: n.role, gender: n.gender, class: n.classId, persona: n.persona, fallbackLines: n.lines };
+  }
+
   // src/worldgen/world.js
-  var GEN_VERSION4 = 3;
-  var SUPPORTED_VERSIONS = [1, 2, 3];
-  var { randomSeed: randomSeed3, SIZES: SIZES12, TOWN_SIZES: TOWN_SIZES3 } = world_v2_exports;
+  var GEN_VERSION5 = 3;
+  var SUPPORTED_VERSIONS = [1, 2, 3, 4];
+  var { randomSeed: randomSeed3, SIZES: SIZES13, TOWN_SIZES: TOWN_SIZES3 } = world_v2_exports;
   var engine = (v) => {
     if (v === 1) return world_exports;
     if (v === 2) return world_v2_exports;
     if (v === 3) return world_v3_exports;
+    if (v === 4) return world_v4_exports;
     throw Error("\u0412\u0435\u0440\u0441\u0438\u044F \u0433\u0435\u043D\u0435\u0440\u0430\u0442\u043E\u0440\u0430 \u044D\u0442\u043E\u0433\u043E \u043C\u0438\u0440\u0430 \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F.");
   };
-  function normalizeGen4(gen = {}) {
-    const v = gen.v ?? GEN_VERSION4;
+  function normalizeGen5(gen = {}) {
+    const v = gen.v ?? GEN_VERSION5;
     return { ...engine(v).normalizeGen(gen), v };
   }
-  var createWorld4 = (seed, size, v = GEN_VERSION4) => engine(v).createWorld(seed, size);
-  var generateScene4 = (plan, id) => engine(plan.v).generateScene(plan, id);
-  var sceneIds4 = (plan) => engine(plan.v).sceneIds(plan);
-  var isGeneratedId4 = (plan, id) => engine(plan.v).isGeneratedId(plan, id);
-  var exits4 = (scene) => engine(scene.gen?.planVersion ?? GEN_VERSION4).exits(scene);
-  var validateScene4 = (scene) => engine(scene.gen?.planVersion ?? GEN_VERSION4).validateScene(scene);
-  var gmBrief3 = (plan) => (plan.v === 3 ? world_v3_exports : world_v2_exports).gmBrief(plan);
-  var npcBrief3 = (scene, prop) => (scene.gen?.planVersion === 3 ? world_v3_exports : world_v2_exports).npcBrief(scene, prop);
+  var createWorld5 = (seed, size, v = GEN_VERSION5) => engine(v).createWorld(seed, size);
+  var generateScene5 = (plan, id) => engine(plan.v).generateScene(plan, id);
+  var sceneIds5 = (plan) => engine(plan.v).sceneIds(plan);
+  var isGeneratedId5 = (plan, id) => engine(plan.v).isGeneratedId(plan, id);
+  var exits5 = (scene) => engine(scene.gen?.planVersion ?? GEN_VERSION5).exits(scene);
+  var validateScene5 = (scene) => engine(scene.gen?.planVersion ?? GEN_VERSION5).validateScene(scene);
+  var gmBrief4 = (plan) => (plan.v === 4 ? world_v4_exports : plan.v === 3 ? world_v3_exports : world_v2_exports).gmBrief(plan);
+  var npcBrief4 = (scene, prop) => (scene.gen?.planVersion === 4 ? world_v4_exports : scene.gen?.planVersion === 3 ? world_v3_exports : world_v2_exports).npcBrief(scene, prop);
 
   // src/worldgen/runtime.js
   var runtime_exports = {};
@@ -4509,7 +5172,7 @@ var WorldGen = (() => {
     step: () => step
   });
   var ABILITY = { dex: "\u041B\u043E\u0432\u043A\u043E\u0441\u0442\u044C", con: "\u0422\u0435\u043B\u043E\u0441\u043B\u043E\u0436\u0435\u043D\u0438\u0435", str: "\u0421\u0438\u043B\u0430", wis: "\u041C\u0443\u0434\u0440\u043E\u0441\u0442\u044C", int: "\u0418\u043D\u0442\u0435\u043B\u043B\u0435\u043A\u0442" };
-  var key9 = (sceneId, id) => sceneId + ":" + id;
+  var key11 = (sceneId, id) => sceneId + ":" + id;
   var gstate = (host) => {
     const g = host.state.gen || (host.state.gen = {});
     for (const k of ["opened", "unlocked", "known", "disarmed", "fired", "jammed", "talk"]) g[k] = g[k] || {};
@@ -4546,7 +5209,7 @@ var WorldGen = (() => {
     return o;
   }
   function begin(host, sceneId, p) {
-    const g = gstate(host), k = key9(sceneId, p.id);
+    const g = gstate(host), k = key11(sceneId, p.id);
     if (p.type === "npc" && p.npc) {
       g.talk[k] = 0;
       return { kind: "npc", title: p.name, text: p.npc.lines[0], options: p.npc.lines.length > 1 ? [{ id: "next", label: "\u0414\u0430\u043B\u044C\u0448\u0435" }, { id: "leave", label: "\u041F\u043E\u043F\u0440\u043E\u0449\u0430\u0442\u044C\u0441\u044F" }] : [{ id: "leave", label: "\u041F\u043E\u043F\u0440\u043E\u0449\u0430\u0442\u044C\u0441\u044F" }], npc: p.npc };
@@ -4588,7 +5251,7 @@ var WorldGen = (() => {
     return { ok, text };
   };
   function choose(host, sceneId, p, optionId) {
-    const g = gstate(host), k = key9(sceneId, p.id);
+    const g = gstate(host), k = key11(sceneId, p.id);
     if (optionId === "leave") return { done: true, text: "" };
     if (p.type === "npc" && optionId === "next") {
       const i = (g.talk[k] || 0) + 1;
@@ -4637,7 +5300,7 @@ var WorldGen = (() => {
   function step(host, scene, x, y) {
     const g = gstate(host), events = [];
     for (const t of scene.traps || []) {
-      const k = key9(scene.id, t.id), dist = Math.abs(t.x - x) + Math.abs(t.y - y);
+      const k = key11(scene.id, t.id), dist = Math.abs(t.x - x) + Math.abs(t.y - y);
       if (g.disarmed[k] || g.fired[k]) continue;
       if (dist === 0) {
         g.fired[k] = true;
@@ -4654,10 +5317,10 @@ var WorldGen = (() => {
   }
   function knownTraps(host, scene) {
     const g = gstate(host);
-    return (scene.traps || []).filter((t) => g.known[key9(scene.id, t.id)] && !g.fired[key9(scene.id, t.id)] && !g.disarmed[key9(scene.id, t.id)]);
+    return (scene.traps || []).filter((t) => g.known[key11(scene.id, t.id)] && !g.fired[key11(scene.id, t.id)] && !g.disarmed[key11(scene.id, t.id)]);
   }
   function isOpened(host, sceneId, p) {
-    const g = gstate(host), k = key9(sceneId, p.id);
+    const g = gstate(host), k = key11(sceneId, p.id);
     return !!(g.opened[k] || g.unlocked[k]);
   }
   return __toCommonJS(index_exports);

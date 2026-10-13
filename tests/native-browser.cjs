@@ -121,16 +121,16 @@ function verifyNativeProject() {
       return data.hero;
     });
     await page.evaluate(async hero => { document.querySelectorAll('dialog').forEach(dialog => dialog.close()); await Worlds.choose(hero); }, hero);
-    await page.getByRole('button', {name: 'Начать мир', exact: true}).click();
+    await page.getByRole('button', {name: 'Начать остров', exact: true}).click();
     await page.locator('#world-seed').fill('native-browser-smoke');
     await page.locator('#world-size').selectOption('small');
-    assert.equal(await page.locator('#skip-tutorial').isEnabled(), false);
-    await page.getByRole('button', {name: 'Создать мир', exact: true}).click();
-    await page.waitForFunction(() => Worlds.current && gameDebug.state.scene === 'glade', null, {timeout: 120000});
+    assert.equal(await page.locator('#skip-tutorial').count(), 0);
+    await page.getByRole('button', {name: 'Создать остров', exact: true}).click();
+    await page.waitForFunction(() => Worlds.current && gameDebug.state.scene === 'island', null, {timeout: 120000});
     assert.equal(await page.locator('#adventure-cinematic [data-portrait-source="character-boxes"]').count(), 1);
     assert.deepEqual(await page.evaluate(() => gameDebug.active().appearance), hero.appearance);
     assert.equal(await page.evaluate(() => gameDebug.state.party.length), 1);
-    assert.equal(await page.evaluate(() => gameDebug.state.world.gen.v), 3);
+    assert.equal(await page.evaluate(() => gameDebug.state.world.gen.v), 4);
     await page.locator('#adventure-cinematic .adventure-choices button').click();
     await page.waitForFunction(() => gameDebug.state.story.intro === 1);
     const before = await page.evaluate(async () => {

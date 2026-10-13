@@ -3,6 +3,7 @@ import {heroFromSnapshot} from './world-carry.js';
 import {generate} from './location-generator.js';
 import {createWorld,generateScene,isGeneratedId,normalizeGen,SUPPORTED_VERSIONS,randomSeed,validateScene} from './worldgen/world.js';
 import {createTutorial,validateTutorial} from './tutorial-rules.js';
+import {tileAt} from './islands/scene.js';
 const plans=new Map(),checkedScenes=new WeakSet();
 function genMeta(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw)||![undefined,...SUPPORTED_VERSIONS].includes(raw.v)||!['string','number'].includes(typeof raw.seed)||!String(raw.seed).length||String(raw.seed).length>128||!['auto','small','medium','large'].includes(raw.size))throw Error('Некорректное зерно, размер или версия генератора.');return normalizeGen(raw);}
 function planFor(meta){const key=JSON.stringify(meta);if(!plans.has(key)){if(plans.size>=16)plans.delete(plans.keys().next().value);plans.set(key,createWorld(meta.seed,meta.size,meta.v));}return plans.get(key);}
@@ -38,9 +39,9 @@ export function initialWorld(hero, id, chapter, options = {}) {
   Object.assign(a,{x:startScene.spawns[0][0],y:startScene.spawns[0][1]});
   const title=plan.name;
   const snapshot = { world: { id, heroId: a.id, title, chapter, discovered: [plan.start], gen }, gen:{}, scene: plan.start, round: 1, combat: false, active: a.id, gold: a.gold ?? 0, xp: a.xp, level: a.level, potions: a.potions ?? 0, chest: false, relic: false, seed: seed[0], doors: {}, loot: {}, altarClaims: {}, lightFixtures: {}, settings: { lights: true, animations: true, grid: true, ambient: 0.28, intensity: 1 }, party: [a], enemies: [], rolls: [], advantage: 0, order: [], cursor: 0, autoShield: false, rulesStage: 3, logs: ['Новый мир: '+plan.name+'. Зерно: '+gen.seed+'.'] };
-  if (gen.v === 3) {
+  if (gen.v === 3 || gen.v === 4) {
     snapshot.story = {v:1,intro:0,npcWarned:false,npcDeparted:false,clues:[],cleared:[],reachedSettlement:false,reported:false};
-    snapshot.tutorial = createTutorial({classId:a.classId,skip:options.skipTutorial,canSkip:!!options.tutorialCompleted});
+    if (gen.v === 3) snapshot.tutorial = createTutorial({classId:a.classId,skip:options.skipTutorial,canSkip:!!options.tutorialCompleted});
     snapshot.encounter = null;
   }
   return snapshot;
@@ -58,7 +59,7 @@ function validateEnemies(enemies, scene) {
     if(!plain(enemy)||typeof enemy.id!=='string'||!enemy.id.length||enemy.id.length>80||ids.has(enemy.id)||typeof enemy.name!=='string'||!enemy.name.length||enemy.name.length>200||![3,4].includes(enemy.kind))throw Error('Некорректный противник.');
     ids.add(enemy.id);
     for(const key of ['x','y','hp','max','ac'])if(!Number.isSafeInteger(enemy[key])||enemy[key]<0)throw Error('Некорректные ресурсы противника.');
-    if(enemy.max<1||enemy.hp>enemy.max||enemy.x>=scene.W||enemy.y>=scene.H||scene.tiles&&scene.tiles[enemy.y]?.[enemy.x]!=='floor')throw Error('Некорректное положение или здоровье противника.');
+    if(enemy.max<1||enemy.hp>enemy.max||enemy.x>=scene.W||enemy.y>=scene.H||(scene.tiles||scene.island)&&tileAt(scene,enemy.x,enemy.y)!=='floor')throw Error('Некорректное положение или здоровье противника.');
     for(const key of ['facing','move','slots','maxSlots','hitDice','maxHitDice'])if(enemy[key]!==undefined&&(!Number.isSafeInteger(enemy[key])||enemy[key]<0))throw Error('Некорректный лист противника.');
     if(enemy.facing!==undefined&&enemy.facing>3||enemy.conditions!==undefined&&(!Array.isArray(enemy.conditions)||enemy.conditions.length>20||enemy.conditions.some(c=>typeof c!=='string'||c.length>80)))throw Error('Некорректное состояние противника.');
     for(const key of ['dead','acted','bonusUsed','reactionUsed'])if(enemy[key]!==undefined&&typeof enemy[key]!=='boolean')throw Error('Некорректное состояние противника.');
@@ -98,8 +99,48 @@ function validateAdventure(s, old, plan, sceneFor) {
   for(const [key,opened] of Object.entries(s.gen.opened||{}))if(opened&&!old.gen?.opened?.[key]){const i=key.lastIndexOf(':'),scene=sceneFor(key.slice(0,i)),prop=scene?.props.find(p=>p.id===key.slice(i+1));allowedGold+=prop?.loot?.gold||0;}
   if(s.xp-old.xp>allowedXP||s.gold-old.gold>allowedGold)throw Error('Награду приключения нельзя получить повторно.');
 }
+function validateIslandAdventure(s, old, plan, sceneFor) {
+  const story=s.story,before=old.story,fields=['v','intro','npcWarned','npcDeparted','clues','cleared','reachedSettlement','reported'];
+  if(!plain(story)||!plain(before)||Object.keys(story).length!==fields.length||Object.keys(story).some(k=>!fields.includes(k))||story.v!==1||!Number.isInteger(story.intro)||story.intro<0||story.intro>3||story.intro<before.intro)throw Error('Некорректное вступление истории острова.');
+  for(const key of ['npcWarned','npcDeparted','reachedSettlement','reported'])if(typeof story[key]!=='boolean'||before[key]&&!story[key])throw Error('Нельзя сбросить историю острова.');
+  const scene=sceneFor(s.scene),encounters=new Map();
+  for(const id of Object.keys(plan.scenes))for(const encounter of generateScene(plan,id).encounters||[])encounters.set(encounter.id,{...encounter,scene:id});
+  if(!uniqueKnown(story.clues,new Set([plan.story.clueProp]))||!uniqueKnown(story.cleared,new Set(encounters.keys()))||before.clues.some(id=>!story.clues.includes(id))||before.cleared.some(id=>!story.cleared.includes(id)))throw Error('Некорректные находки или завершённые встречи острова.');
+  if(story.npcWarned&&story.intro!==3||story.npcDeparted&&!story.npcWarned||(story.clues.length||story.cleared.length||story.reachedSettlement||story.reported)&&!story.npcDeparted)throw Error('Сначала выслушайте путника на опушке.');
+  // A save may include an interaction followed by movement. Either endpoint
+  // can prove the bounded canonical location; the client checkpoints before
+  // leaving a clue or reporting to avoid losing that proof to debounce.
+  const near=(point,radius)=>!!point&&[s,old].some(state=>state.scene===scene.id&&Math.abs(state.party[0].x-point.x)+Math.abs(state.party[0].y-point.y)<=radius);
+  for(const id of story.clues)if(!before.clues.includes(id)&&!near(scene.props.find(p=>p.id===id),2))throw Error('Находка находится в другом месте острова.');
+  if(story.reachedSettlement&&!before.reachedSettlement){const settlement=scene.landmarks?.find(p=>p.id===plan.story.settlementLandmark);if(!near(settlement,settlement?.radius??10))throw Error('Сначала доберитесь до поселения.');}
+  if(story.reported){
+    const requires=plan.story.reportRequires||{clues:[plan.story.clueProp],cleared:plan.story.requiredEncounterIds||[]};
+    if(!story.reachedSettlement||requires.clues.some(id=>!story.clues.includes(id))||requires.cleared.some(id=>!story.cleared.includes(id)))throw Error('Сначала соберите сведения и устраните угрозу острову.');
+    if(!before.reported&&!near(scene.props.find(p=>p.id===plan.story.reportNpc),2))throw Error('Передайте сведения старосте поселения.');
+  }
+  if(s.tutorial!==undefined)throw Error('Старое обучение не относится к этому острову.');
+  if(typeof s.combat!=='boolean')throw Error('Некорректное состояние боя острова.');
+  const completesEncounter=old.encounter&&encounters.has(old.encounter.id)&&!before.cleared.includes(old.encounter.id)&&story.cleared.includes(old.encounter.id);
+  if(old.encounter&&!completesEncounter&&s.encounter?.id!==old.encounter.id)throw Error('Сначала завершите текущую встречу.');
+  if(old.combat&&s.scene!==old.scene&&!completesEncounter)throw Error('Нельзя покинуть место незавершённого боя.');
+  if(s.encounter!==null){
+    const active=s.encounter,keys=['id','scene','name','tutorial','scriptedLoss','reward'];
+    const defeat=plain(active)&&s.party[0].hp===0&&s.enemies.some(e=>e.hp>0);
+    if(!plain(active)||Object.keys(active).length!==keys.length||Object.keys(active).some(k=>!keys.includes(k))||active.scene!==s.scene||active.tutorial!==false||active.scriptedLoss!==false||!s.combat&&!defeat)throw Error('Некорректная встреча острова.');
+    const canonical=encounters.get(active.id);
+    if(!canonical||canonical.scene!==active.scene||canonical.name!==active.name||story.cleared.includes(active.id)||!plain(active.reward)||Object.keys(active.reward).sort().join()!=='gold,xp'||active.reward.xp!==canonical.reward.xp||active.reward.gold!==canonical.reward.gold)throw Error('Некорректный противник или награда встречи острова.');
+    const allowed=new Set(canonical.enemies.map(e=>e.id));
+    if(s.enemies.some(e=>!allowed.has(e.id))||s.order.some(id=>id!==s.active&&!allowed.has(id)))throw Error('Неизвестный участник боя острова.');
+    for(const enemy of s.enemies){const original=canonical.enemies.find(e=>e.id===enemy.id);if(enemy.visual!==original.visual||JSON.stringify(enemy.gen)!==JSON.stringify(original.gen))throw Error('Нельзя менять облик противника встречи.');}
+  }else if(s.combat||s.enemies.length)throw Error('Бой не связан с текущей встречей острова.');
+  let allowedXP=0,allowedGold=0;
+  for(const id of story.cleared)if(!before.cleared.includes(id)){const reward=encounters.get(id).reward;allowedXP+=reward.xp;allowedGold+=reward.gold;}
+  for(const [key,opened]of Object.entries(s.gen.opened||{}))if(opened&&!old.gen?.opened?.[key]){const split=key.lastIndexOf(':'),prop=sceneFor(key.slice(0,split))?.props.find(p=>p.id===key.slice(split+1));allowedGold+=prop?.loot?.gold||0;}
+  if(s.xp-old.xp>allowedXP||s.gold-old.gold>allowedGold)throw Error('Награду острова нельзя получить повторно.');
+}
 export function canFinishWorld(snapshot) {
   if(snapshot.combat||snapshot.party?.[0]?.dead||!(snapshot.party?.[0]?.hp>0))return false;
+  if(snapshot.world?.gen?.v===4)return false;
   if(snapshot.world?.gen?.v===3)return snapshot.story?.reported===true&&snapshot.tutorial?.completed===true&&validateTutorial(snapshot.tutorial,snapshot.tutorial);
   return !!snapshot.procedural||!!snapshot.world?.gen||snapshot.episode?.stage==='done';
 }
@@ -130,7 +171,7 @@ export function validateWorldSnapshot(s, old) {
   if (s.level < old.level || s.level > Math.min(20, old.level + 1) || s.level < 1 || s.xp < old.xp || s.level > 1 && s.xp < xp[s.level - 1]) throw Error("Некорректная прокачка.");
   for (const k of ["hp", "max", "slots", "maxSlots", "secondWind", "maxSecondWind", "hitDice", "maxHitDice", "torches", "armorAC", "ac", "baseAC", "x", "y", "facing", "move"]) if (!Number.isInteger(a[k]) || a[k] < 0) throw Error("Некорректный лист героя.");
   if (a.hp > a.max || a.max < 1 || a.slots > a.maxSlots || a.hitDice > a.maxHitDice || a.secondWind > a.maxSecondWind || a.x >= scene.W || a.y >= scene.H || a.facing > 3 || a.move > a.speed * 2) throw Error("Некорректное положение или ресурсы героя.");
-  if (scene.tiles && (scene.tiles[a.y]?.[a.x] !== 'floor' || scene.props.some(p=>p.x===a.x&&p.y===a.y&&p.solid!==false&&!(p.type==='door'&&(s.doors?.[scene.id+':'+p.id]||s.gen?.unlocked?.[scene.id+':'+p.id]))&&!(p.type==='chest'&&s.loot?.[scene.id+':'+p.id])))) throw Error('Герой не может находиться внутри стены или мебели.');
+  if ((scene.tiles || scene.island) && (tileAt(scene,a.x,a.y) !== 'floor' || scene.props.some(p=>p.x===a.x&&p.y===a.y&&p.solid!==false&&!(plan?.v===4&&p.storyRole==='messenger'&&s.story?.npcDeparted)&&!(p.type==='door'&&(s.doors?.[scene.id+':'+p.id]||s.gen?.unlocked?.[scene.id+':'+p.id]))&&!(p.type==='chest'&&s.loot?.[scene.id+':'+p.id])))) throw Error('Герой не может находиться в воде, стене или мебели.');
   if (Object.keys(a.stats || {}).sort().join() !== Object.keys(prev.stats).sort().join() || Object.values(a.stats).some((v) => !Number.isInteger(v) || v < 3 || v > 20)) throw Error("Некорректные характеристики.");
   if (!Array.isArray(a.inventory) || a.inventory.length > 100 || a.inventory.some((v) => typeof v !== "string" || v.length > 200) || !Array.isArray(a.hands) || a.hands.length !== 2 || a.hands.some((v) => !["sword", "shield", "staff", "bow", "torch", "empty"].includes(v))) throw Error("Некорректный инвентарь.");
   if (a.armorEquipped !== void 0 && typeof a.armorEquipped !== "boolean") throw Error("Некорректное состояние брони.");
@@ -155,7 +196,8 @@ export function validateWorldSnapshot(s, old) {
   if (!Array.isArray(s.logs) || s.logs.length > 120 || s.logs.some((v) => typeof v !== "string" || v.length > 6e3) || !Array.isArray(s.rolls) || s.rolls.length > 40 || !Array.isArray(s.enemies) || s.enemies.length > 10 || !Array.isArray(s.order) || s.order.length > 12) throw Error("Некорректная хроника или бой.");
   validateEnemies(s.enemies,scene);
   if(plan?.v===3)validateAdventure(s,old,plan,sceneFor);
-  if (s.drops !== void 0 && (!Array.isArray(s.drops) || s.drops.length > 100 || s.drops.some(d=>{const z=sceneFor(d?.scene);return !d||typeof d.id!=='string'||d.id.length>80||typeof d.name!=='string'||d.name.length>200||!['gear','torch','potion'].includes(d.itemType)||!z||!Number.isInteger(d.x)||!Number.isInteger(d.y)||d.x<0||d.y<0||d.x>=z.W||d.y>=z.H||z.tiles&&z.tiles[d.y]?.[d.x]!=='floor';}))) throw Error("Некорректная добыча на полу.");
+  if(plan?.v===4)validateIslandAdventure(s,old,plan,sceneFor);
+  if (s.drops !== void 0 && (!Array.isArray(s.drops) || s.drops.length > 100 || s.drops.some(d=>{const z=sceneFor(d?.scene);return !d||typeof d.id!=='string'||d.id.length>80||typeof d.name!=='string'||d.name.length>200||!['gear','torch','potion'].includes(d.itemType)||!z||!Number.isInteger(d.x)||!Number.isInteger(d.y)||d.x<0||d.y<0||d.x>=z.W||d.y>=z.H||(z.tiles||z.island)&&tileAt(z,d.x,d.y)!=='floor';}))) throw Error("Некорректная добыча на полу.");
   if (s.npcGifts !== void 0 && (!Array.isArray(s.npcGifts) || s.npcGifts.length > 200 || s.npcGifts.some((v) => typeof v !== "string" || v.length > 300))) throw Error("Некорректные передачи вещей.");
   s.world = { ...old.world, discovered: [.../* @__PURE__ */ new Set([...old.world.discovered, s.scene])] };
   delete s.heroTestId;

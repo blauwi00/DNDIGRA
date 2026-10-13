@@ -2,7 +2,7 @@
   'use strict';
   const game=()=>window.gameDebug;
   const plan=()=>window.GeneratedWorlds?.plan?.story;
-  const enabled=()=>game()?.state.world?.gen?.v===3&&!!plan();
+  const enabled=()=>[3,4].includes(game()?.state.world?.gen?.v)&&!!plan();
   let panel=null,battle=null,frameKey='',departing=false,arriving=false,arrivalKey='',rescueFrame=0,rescueOpen=false,pendingEncounter=null,starting=false,combatExpanded=false,combatKey='';
   const emit=(type,detail={})=>window.dispatchEvent(new CustomEvent('game-action',{detail:{type,...detail}}));
   const story=()=>game()?.state.story;
@@ -33,9 +33,9 @@
   function nextIntro(){if(!enabled()||story().intro>=3)return;story().intro++;game().save();frameKey='';render();}
   function actorFor(p){return p?.npc?{name:p.name,kind:5,gen:p.npc}:game().active();}
   function visibleProp(p,state=game()?.state){
-    if(state?.world?.gen?.v!==3||!state.story)return true;
+    if(![3,4].includes(state?.world?.gen?.v)||!state.story)return true;
     if(p.storyRole==='messenger')return state.story.intro>=3&&!state.story.npcDeparted;
-    if(p.storyRole==='healer')return state.tutorial?.phase==='rescue'||state.tutorial?.completed;
+    if(p.storyRole==='healer')return state.world.gen.v===4||state.tutorial?.phase==='rescue'||state.tutorial?.completed;
     return true;
   }
   async function departMessenger(p){
@@ -63,9 +63,24 @@
     if(!enabled())return false;
     const s=story(),p=plan(),d=document.getElementById('modal'),body=document.getElementById('modal-body');
     document.getElementById('modal-title').textContent=p.title;body.replaceChildren();
-    const goal=document.createElement('p');goal.textContent=s.reported?'Путешествие завершено. '+p.report:!s.npcDeparted?'Выслушай путника на опушке.':!s.clues.includes(p.clueProp)?p.objective:!s.cleared.includes('road-threat')?'Дорогу перекрыла угроза. Доберись до поселения и предупреди старосту.':!s.reachedSettlement?'Сведения собраны. Доберись до поселения.':'Поговори со старостой и передай найденные сведения.';body.append(goal);
+    const goal=document.createElement('p');goal.textContent=s.reported?(game().state.world.gen.v===4?'Сведения переданы поселению. ':'Путешествие завершено. ')+p.report:!s.npcDeparted?'Выслушай путника на опушке.':!s.clues.includes(p.clueProp)?p.objective:!s.cleared.includes('road-threat')?'Дорогу перекрыла угроза. Доберись до поселения и предупреди старосту.':!s.reachedSettlement?'Сведения собраны. Доберись до поселения.':'Поговори со старостой и передай найденные сведения.';body.append(goal);
     if(s.clues.includes(p.clueProp)){const clue=document.createElement('p');clue.className='adventure-clue';clue.textContent='Найдено: '+p.clue;body.append(clue);}
     const recent=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Последние события';recent.append(summary);for(const line of game().state.logs.slice(-12)){const copy=document.createElement('p');copy.textContent=line;recent.append(copy);}body.append(recent);d.showModal();emit('journal',{success:true});return true;
+  }
+  async function checkpointInteraction(p,present){
+    const current=game().state;
+    if(current.world?.gen?.v===4&&typeof window.Worlds?.flush==='function'){
+      const saved=await window.Worlds.flush();
+      if(game().state!==current)return false;
+      if(!saved){
+        window.openGeneratedDialogue(p,'Не удалось сохранить открытие. Повтори сохранение, прежде чем продолжать путь.',[
+          {label:'Повторить сохранение',fn:()=>{game().save();return checkpointInteraction(p,present);}}
+        ]);
+        return false;
+      }
+    }
+    if(game().state!==current)return false;
+    present();return true;
   }
   function interact(p){
     if(!enabled())return false;
@@ -74,16 +89,18 @@
     if(p.id===info.clueProp){
       window.openGeneratedDialogue(p,s.clues.includes(p.id)?info.clue:'Следы связаны с бедой, о которой рассказал путник.',[
         ...(s.clues.includes(p.id)?[]:[{label:'Изучить находку · Расследование СЛ 10',fn:async()=>{
-          const g=game(),check=DND.skill(g.active(),'investigation',10,g.state.level,g.state.advantage||0);g.report(check.text);await window.HUD?.check(check,'Изучить находку');
-          if(!s.clues.includes(p.id)){s.clues.push(p.id);g.tell((check.success?'Ты сразу замечаешь важную деталь. ':'Осмотр занимает время, но находка становится понятна. ')+info.clue);g.save();emit('loot',{success:true,propId:p.id,scene:g.state.scene,clue:true});}
-          window.openGeneratedDialogue(p,info.clue,[{label:'Записать и продолжить путь',fn:()=>{window.closeDialogue();g.render();}}]);
+          const g=game(),current=g.state;if(current.story!==s)return;
+          const check=DND.skill(g.active(),'investigation',10,current.level,current.advantage||0);g.report(check.text);await window.HUD?.check(check,'Изучить находку');
+          if(g.state!==current)return;
+          if(!s.clues.includes(p.id)){s.clues.push(p.id);g.tell((check.success?'Ты сразу замечаешь важную деталь. ':'Осмотр занимает время, но находка становится понятна. ')+info.clue);g.save();}
+          await checkpointInteraction(p,()=>{emit('loot',{success:true,propId:p.id,scene:g.state.scene,clue:true});window.openGeneratedDialogue(p,info.clue,[{label:'Записать и продолжить путь',fn:()=>{window.closeDialogue();g.render();}}]);});
         }}]),{label:'Вернуться к дороге',fn:window.closeDialogue}
       ]);return true;
     }
     if(p.storyRole==='elder'){
       const ready=s.clues.includes(info.clueProp)&&s.cleared.includes('road-threat')&&s.reachedSettlement;
       window.openGeneratedDialogue(p,s.reported?info.report:ready?'Ты принёс сведения о беде? Расскажи, что произошло на дороге.':'Прежде чем действовать, нам нужны сведения с дороги. Найди след и устрани угрозу проходу.',[
-        ...(ready&&!s.reported?[{label:'Передать найденные сведения',fn:()=>{s.reported=true;game().tell(info.report);game().save();window.openGeneratedDialogue(p,info.report,[{label:'Завершить разговор',fn:()=>{window.closeDialogue();game().render();}}]);emit('interaction',{success:true,propId:p.id,propType:'npc',storyRole:'elder',reported:true});}}]:[]),
+        ...(ready&&!s.reported?[{label:'Передать найденные сведения',fn:async()=>{s.reported=true;game().tell(info.report);game().save();await checkpointInteraction(p,()=>{window.openGeneratedDialogue(p,info.report,[{label:'Завершить разговор',fn:()=>{window.closeDialogue();game().render();}}]);emit('interaction',{success:true,propId:p.id,propType:'npc',storyRole:'elder',reported:true});});}}]:[]),
         {label:'Закончить разговор',fn:window.closeDialogue}
       ]);return true;
     }
@@ -98,6 +115,12 @@
   }
   function step(scene,x,y){
     if(!enabled()||game().state.combat||window.Tutorial?.active||story().intro<3||!story().npcDeparted)return;
+    if(game().state.world.gen.v===4&&!story().reachedSettlement){
+      const settlement=scene.landmarks?.find(p=>p.id==='settlement');
+      if(settlement&&Math.abs(settlement.x-x)+Math.abs(settlement.y-y)<=settlement.radius){
+        story().reachedSettlement=true;game().tell('Ты добрался до поселения. Найди старосту.');game().save();
+      }
+    }
     const found=(scene.encounters||[]).find(e=>!story().cleared.includes(e.id)&&Math.abs(e.x-x)+Math.abs(e.y-y)<=(e.radius??2));
     if(found){pendingEncounter=found;return true;}
     return false;
