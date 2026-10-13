@@ -701,18 +701,52 @@ var Props = (() => {
       B(0.2, 1.1, 0.02, 0.12, 0.14, 0.12, c.wood);
       B(0.2, 1.24, 0.02, 0.02, 0.22, 0.02, IRON);
     },
+    // Outdoor miniatures: a few deliberate voxel volumes, never individual leaves.
     tree: (c, B) => {
-      B(0, 0.45, 0, 0.2, 0.9, 0.2, DARK);
       const g = c.leaf;
-      B(0, 1.15, 0, 0.84, 0.5, 0.84, g);
-      B(0.08, 1.55, -0.03, 0.64, 0.44, 0.64, shade(g, 1.08));
-      B(-0.04, 1.9, 0.02, 0.4, 0.4, 0.4, shade(g, 0.94));
-      B(0.3, 1.05, 0.22, 0.3, 0.3, 0.3, shade(g, 0.88));
+      B(0, 0.48, 0, 0.22, 0.96, 0.22, DARK);
+      B(0, 1.16, 0, 0.86, 0.52, 0.84, shade(g, 0.84));
+      B(-0.18, 1.42, 0.08, 0.7, 0.44, 0.67, g);
+      B(0.18, 1.5, -0.1, 0.64, 0.42, 0.65, shade(g, 1.07));
+      B(-0.04, 1.78, -0.04, 0.53, 0.35, 0.55, shade(g, 1.12));
     },
     bush: (c, B) => {
-      B(0, 0.24, 0, 0.74, 0.46, 0.7, c.leaf);
-      B(-0.2, 0.4, 0.1, 0.36, 0.3, 0.36, shade(c.leaf, 1.1));
-      B(0.22, 0.34, -0.1, 0.3, 0.3, 0.3, shade(c.leaf, 0.92));
+      const g = c.leaf;
+      B(0, 0.18, 0, 0.67, 0.33, 0.63, shade(g, 0.82));
+      B(-0.15, 0.36, 0.05, 0.49, 0.29, 0.46, g);
+      B(0.17, 0.36, -0.08, 0.45, 0.29, 0.42, shade(g, 1.08));
+      B(0, 0.52, 0, 0.3, 0.16, 0.32, shade(g, 1.12));
+    },
+    "grass-short": (c, B) => {
+      const g = c.leaf;
+      B(-0.1, 0.07, 0, 0.095, 0.14, 0.075, shade(g, 1.1));
+      B(0.1, 0.09, -0.04, 0.075, 0.18, 0.08, g);
+      B(0, 0.065, 0.1, 0.085, 0.13, 0.07, shade(g, 0.84));
+    },
+    "grass-mid": (c, B) => {
+      const g = c.leaf;
+      for (const [x, z, h, t] of [[-0.15, 0, 0.3, 1], [0.08, -0.08, 0.4, 1.1], [0.19, 0.1, 0.27, 0.86], [-0.05, 0.17, 0.34, 1.05]])
+        B(x, h / 2, z, 0.075, h, 0.075, shade(g, t));
+    },
+    "grass-tall": (c, B) => {
+      const g = c.leaf;
+      for (const [x, z, h, t] of [[-0.16, -0.06, 0.53, 1], [0.1, -0.1, 0.61, 1.14], [0.21, 0.1, 0.48, 0.91], [-0.07, 0.18, 0.43, 0.84], [0.02, 0.01, 0.36, 1.08]])
+        B(x, h / 2, z, 0.073, h, 0.073, shade(g, t));
+    },
+    flowers: (c, B) => {
+      const g = shade(c.leaf, 1.1), petal = [14932918, 14269020, 13481674][c.h % 3];
+      for (const [x, z, h] of [[-0.15, -0.1, 0.3], [0.13, 0.1, 0.26], [-0.06, 0.18, 0.36]]) {
+        B(x, h / 2, z, 0.055, h, 0.055, g);
+        B(x, h + 0.025, z, 0.125, 0.05, 0.13, petal);
+        B(x, h + 0.045, z, 0.04, 0.03, 0.04, 11178066);
+      }
+    },
+    reeds: (c, B) => {
+      const g = shade(c.leaf, 0.95);
+      for (const [x, z, h] of [[-0.14, -0.1, 0.55], [0.1, 0.11, 0.45], [0.19, -0.13, 0.6]]) {
+        B(x, h / 2, z, 0.06, h, 0.06, g);
+        B(x, h + 0.06, z, 0.075, 0.14, 0.075, 7629117);
+      }
     },
     stall: (c, B) => {
       B(0, 0.36, 0.12, 0.94, 0.72, 0.5, c.wood);
@@ -820,12 +854,12 @@ var Props = (() => {
   function build(p, opts = {}) {
     const make = MODELS[p.model];
     if (!make) return null;
-    const h = hash(p.id || p.x + "," + p.y), ctx = { wood: WOODS[h % WOODS.length], leaf: LEAF[(h >>> 3) % LEAF.length], cloth: CLOTH[(h >>> 5) % CLOTH.length], h: h >>> 7 };
+    const h = hash(p.id || p.x + "," + p.y), ctx = { wood: WOODS[h % WOODS.length], leaf: Number.isInteger(p.leafColor) ? p.leafColor : LEAF[(h >>> 3) % LEAF.length], cloth: CLOTH[(h >>> 5) % CLOTH.length], h: h >>> 7 };
     ctx.flavor = p.flavor;
     const out = [];
     make(ctx, (x, y, z, w, hh, d, c, e = false) => out.push([x, y, z, w, hh, d, c, e]));
     const rotated = out.map((b) => rot(b, p.rot || 0));
-    if (opts.texel === false) return rotated;
+    if (opts.texel === false || ["tree", "bush", "grass-short", "grass-mid", "grass-tall", "flowers", "reeds"].includes(p.model)) return rotated;
     return rotated.concat(texelPass(rotated, role));
   }
   return __toCommonJS(props_index_exports);
