@@ -19,8 +19,53 @@ const MODELS = {
   counter: (c, B) => { B(0, .4, 0, .94, .8, .5, c.wood); B(0, .83, 0, 1.0, .07, .62, DARK); X.clutter(B, c, .865, -.4, .4, -.2, .2, c.flavor); },
   shelf: (c, B) => { B(0, .56, -.3, .92, 1.12, .3, c.wood); for (let i = 0; i < 3; i++) { B(0, .2 + i * .36, -.2, .86, .05, .34, DARK); for (let k = 0; k < 4; k++) B(-.3 + k * .2, .3 + i * .36, -.2, .12, .12 + ((k + i + c.h) % 3) * .04, .14, [0xb0452f, 0x3d6a8a, 0x5d8a4a, 0xc8a24a, 0xe6dcc4][(k + i + c.h) % 5]); } },
   well: (c, B) => { B(0, .24, 0, .92, .48, .92, STONE); B(0, .5, 0, .6, .04, .6, WATER); B(0, .5, 0, .78, .02, .78, STONE2); for (const x of [-.4, .4]) B(x, .9, 0, .07, .84, .07, c.wood); B(0, 1.34, 0, .96, .08, .12, DARK); B(0, 1.42, 0, .5, .06, .3, c.wood); B(.2, 1.1, .02, .12, .14, .12, c.wood); B(.2, 1.24, .02, .02, .22, .02, IRON); },
-  tree: (c, B) => { B(0, .45, 0, .2, .9, .2, DARK); const g = c.leaf; B(0, 1.15, 0, .84, .5, .84, g); B(.08, 1.55, -.03, .64, .44, .64, shade(g, 1.08)); B(-.04, 1.9, .02, .4, .4, .4, shade(g, .94)); B(.3, 1.05, .22, .3, .3, .3, shade(g, .88)); },
-  bush: (c, B) => { B(0, .24, 0, .74, .46, .7, c.leaf); B(-.2, .4, .1, .36, .3, .36, shade(c.leaf, 1.1)); B(.22, .34, -.1, .3, .3, .3, shade(c.leaf, .92)); },
+  // Outdoor miniatures: a few deliberate voxel volumes, never individual leaves.
+  tree: (c, B) => {
+    const g=c.leaf;
+    B(0,.48,0,.22,.96,.22,DARK);
+    B(0,1.16,0,.86,.52,.84,shade(g,.84));
+    B(-.18,1.42,.08,.70,.44,.67,g);
+    B(.18,1.50,-.10,.64,.42,.65,shade(g,1.07));
+    B(-.04,1.78,-.04,.53,.35,.55,shade(g,1.12));
+  },
+  bush: (c, B) => {
+    const g=c.leaf;
+    B(0,.18,0,.67,.33,.63,shade(g,.82));
+    B(-.15,.36,.05,.49,.29,.46,g);
+    B(.17,.36,-.08,.45,.29,.42,shade(g,1.08));
+    B(0,.52,0,.30,.16,.32,shade(g,1.12));
+  },
+  'grass-short': (c,B) => {
+    const g=c.leaf;
+    B(-.10,.07,0,.095,.14,.075,shade(g,1.10));
+    B(.10,.09,-.04,.075,.18,.08,g);
+    B(0,.065,.10,.085,.13,.07,shade(g,.84));
+  },
+  'grass-mid': (c,B) => {
+    const g=c.leaf;
+    for(const [x,z,h,t] of [[-.15,0,.30,1],[.08,-.08,.40,1.10],[.19,.10,.27,.86],[-.05,.17,.34,1.05]])
+      B(x,h/2,z,.075,h,.075,shade(g,t));
+  },
+  'grass-tall': (c,B) => {
+    const g=c.leaf;
+    for(const [x,z,h,t] of [[-.16,-.06,.53,1],[.10,-.10,.61,1.14],[.21,.10,.48,.91],[-.07,.18,.43,.84],[.02,.01,.36,1.08]])
+      B(x,h/2,z,.073,h,.073,shade(g,t));
+  },
+  flowers: (c,B) => {
+    const g=shade(c.leaf,1.10),petal=[0xe3dbb6,0xd9ba5c,0xcdb6ca][c.h%3];
+    for(const [x,z,h] of [[-.15,-.10,.30],[.13,.10,.26],[-.06,.18,.36]]){
+      B(x,h/2,z,.055,h,.055,g);
+      B(x,h+.025,z,.125,.05,.13,petal);
+      B(x,h+.045,z,.04,.03,.04,0xaa9052);
+    }
+  },
+  reeds: (c,B) => {
+    const g=shade(c.leaf,.95);
+    for(const [x,z,h] of [[-.14,-.10,.55],[.10,.11,.45],[.19,-.13,.60]]){
+      B(x,h/2,z,.06,h,.06,g);
+      B(x,h+.06,z,.075,.14,.075,0x74693d);
+    }
+  },
   stall: (c, B) => { B(0, .36, .12, .94, .72, .5, c.wood); for (const x of [-.45, .45]) B(x, .8, -.28, .07, 1.6, .07, DARK); B(0, 1.62, -.06, 1.0, .08, .82, c.cloth); B(0, 1.54, .3, 1.0, .1, .06, shade(c.cloth, 1.3)); for (let k = 0; k < 4; k++) B(-.3 + k * .2, .8, .12, .14, .12 + (k % 2) * .06, .16, [0xc8a24a, 0xb0452f, 0x5d8a4a, 0xe6dcc4][(k + c.h) % 4]); },
   anvil: (c, B) => { B(0, .2, 0, .34, .4, .3, DARK); B(0, .46, 0, .66, .14, .32, IRON); B(.36, .46, 0, .16, .08, .16, IRON); B(0, .55, 0, .5, .03, .26, 0x6a7078); },
   forge: (c, B) => { B(0, .35, -.08, .92, .7, .74, STONE2); B(0, .74, -.02, .6, .08, .54, 0x1c1512); B(0, .8, -.02, .46, .08, .42, FIRE, true); B(0, 1.25, -.3, .46, 1.0, .3, STONE); B(.4, .35, .3, .16, .3, .22, c.wood); B(.4, .55, .3, .22, .1, .26, 0x8a6a46); },
@@ -42,9 +87,9 @@ const role = c => LEAF.includes(c) || LEAF.some(l => [shade(l, 1.08), shade(l, .
 
 export function build(p, opts = {}) {
   const make = MODELS[p.model]; if (!make) return null;
-  const h = hash(p.id || p.x + ',' + p.y), ctx = { wood: WOODS[h % WOODS.length], leaf: LEAF[(h >>> 3) % LEAF.length], cloth: CLOTH[(h >>> 5) % CLOTH.length], h: h >>> 7 };
+  const h = hash(p.id || p.x + ',' + p.y), ctx = { wood: WOODS[h % WOODS.length], leaf: Number.isInteger(p.leafColor) ? p.leafColor : LEAF[(h >>> 3) % LEAF.length], cloth: CLOTH[(h >>> 5) % CLOTH.length], h: h >>> 7 };
   ctx.flavor = p.flavor; const out = []; make(ctx, (x, y, z, w, hh, d, c, e = false) => out.push([x, y, z, w, hh, d, c, e]));
   const rotated = out.map(b => rot(b, p.rot || 0));
-  if (opts.texel === false) return rotated;
+  if (opts.texel === false || ['tree','bush','grass-short','grass-mid','grass-tall','flowers','reeds'].includes(p.model)) return rotated;
   return rotated.concat(texelPass(rotated, role));
 }
