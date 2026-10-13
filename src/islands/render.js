@@ -11,6 +11,11 @@ const LAND_KEYS=new Set(['grass','moss']);
 // Nothing is stored in the save or sampled beyond the requested render chunk.
 const UNIT=4294967296;
 const FOLIAGE_LIMIT_PER_CHUNK=54;
+const FOLIAGE_COLORS={
+  forest:[0x456b3c,0x507645,0x416948],
+  meadow:[0x5d8446,0x618a4f,0x517c46],
+  swamp:[0x526745,0x465d42,0x5b704e]
+};
 
 export function islandRenderConfig(config,scene){
   return scene.island?{...config,enabled:true,chunkSize:10,maxChunks:32}:config;
@@ -137,8 +142,9 @@ export function islandFoliage(scene,rect,{sample=sampleScene}={}){
     if(!model)continue;
     // This property is visual-only. Avoid growing asset costs with world size.
     const hash=cellHash(seed,x,y);
+    const palette=FOLIAGE_COLORS[biome]||FOLIAGE_COLORS.meadow;
     out.push({x,y,id:'flora:'+x+':'+y,model,type:'decor',solid:false,
-      variant:(hash>>>8)%3,rot:hash%4});
+      leafColor:palette[(hash>>>8)%palette.length],variant:(hash>>>8)%3,rot:hash%4});
     if(out.length>=FOLIAGE_LIMIT_PER_CHUNK)return out;
   }
   return out;
