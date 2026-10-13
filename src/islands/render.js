@@ -7,6 +7,10 @@ import {stoneTile} from '../stone-atlas.js';
 export const ISLAND_OVERVIEW_MAX_SIDE=256;
 const MAX_CHUNK_SIDE=32;
 const LAND_KEYS=new Set(['grass','moss']);
+// All variation is a pure function of the island seed and global cell position.
+// Nothing is stored in the save or sampled beyond the requested render chunk.
+const UNIT=4294967296;
+const FOLIAGE_LIMIT_PER_CHUNK=54;
 
 export function islandRenderConfig(config,scene){
   return scene.island?{...config,enabled:true,chunkSize:10,maxChunks:32}:config;
@@ -85,18 +89,57 @@ function cellHash(seed,x,y){
   return (value^(value>>>16))>>>0;
 }
 
-/** Visual foliage has no scene ID, interaction identity or collision changes. */
+/** Appearance-only details with strict per-chunk budget, no collision or persistence.
+ * Large tree crowns never hide obligatory paths/landmarks. Small walk-through
+ * grass and flowers bring meadow/forest/swamp density without blocking movement.
+ */
 export function islandFoliage(scene,rect,{sample=sampleScene}={}){
-  chunkBounds(scene,rect);const out=[],arrival=scene.island.landmarks.arrival,landmarks=scene.landmarks||[];
+  chunkBounds(scene,rect);
+  const out=[],seed=scene.island.detailSeed,arrival=scene.island.landmarks.arrival;
+  const landmarks=scene.landmarks||[],props=scene.props||[];
+  const random=(x,y,salt)=>cellHash(seed^salt,x,y)/UNIT;
+  const treeCandidate=(x,y,weight)=>{
+    if(random(x,y,0x39a5e7)>weight)return false;
+    // Stable 3x3 spacing also works when the neighbor is in another chunk.
+    const score=random(x,y,0x1f3357);
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(dx===0&&dy===0)continue;
+      if(random(x+dx,y+dy,0x1f3357)<score)return false;
+    }
+    return true;
+  };
+  const nearFeature=(x,y,radius)=>(
+    Math.hypot(x-arrival[0],y-arrival[1])<radius ||
+    landmarks.some(p=>Math.hypot(x-p.x,y-p.y)<Math.min(8,p.radius||2)+radius) ||
+    props.some(p=>Math.abs(p.x-x)<=radius&&Math.abs(p.y-y)<=radius)
+  );
   for(let y=rect.y;y<rect.y+rect.h;y++)for(let x=rect.x;x<rect.x+rect.w;x++){
-    // Global coordinates ensure a remounted chunk recreates identical foliage.
-    if(x%3!==0||y%3!==0)continue;
-    const cell=sample(scene,x,y),hash=cellHash(scene.island.detailSeed,x,y);
-    if(!cell.land||cell.road||!LAND_KEYS.has(cell.surface)||hash/4294967296>cell.decoration*.65)continue;
-    if(Math.hypot(x-arrival[0],y-arrival[1])<14||
-      landmarks.some(p=>Math.hypot(x-p.x,y-p.y)<Math.min(8,p.radius||2)+2)||
-      (scene.props||[]).some(p=>Math.abs(p.x-x)<=2&&Math.abs(p.y-y)<=2))continue;
-    out.push({x,y,model:hash%5===0?'bush':'tree',type:'decor',solid:false,variant:(hash>>>8)%3,rot:hash%4});
+    const cell=sample(scene,x,y);
+    if(!cell.land||cell.road||!LAND_KEYS.has(cell.surface))continue;
+    const biome=cell.biome||'meadow',density=Math.max(0,Math.min(1,cell.decoration||0));
+    // Density may blend continuously across biome boundaries; colour & foliage
+    // aren't restricted to a fixed checkerboard or one prop per three cells.
+    const treeWeight=biome==='forest'?.65+.32*density:biome==='swamp'?.38+.30*density:.06+.20*density;
+    const largeClearance=biome==='forest'?4:3;
+    const tree=treeCandidate(x,y,treeWeight)&&!nearFeature(x,y,largeClearance);
+    let model=null;
+    if(tree)model='tree';
+    else if(!nearFeature(x,y,2)&&random(x,y,0xa11c5)<(biome==='forest'?.21:biome==='swamp'?.19:.04)+density*.07)model='bush';
+    else if(!nearFeature(x,y,1)){
+      const r=random(x,y,0xc86c3),green=biome==='forest'?.52:biome==='swamp'?.51:.31+density*.13;
+      const flower=biome==='meadow'?.15:biome==='forest'?.06:.025;
+      if(r<flower)model='flowers';
+      else if(r<flower+green){
+        const variant=random(x,y,0x51851);
+        model=biome==='swamp'&&variant<.40?'reeds':variant<.27?'grass-short':variant<.72?'grass-mid':'grass-tall';
+      }
+    }
+    if(!model)continue;
+    // This property is visual-only. Avoid growing asset costs with world size.
+    const hash=cellHash(seed,x,y);
+    out.push({x,y,id:'flora:'+x+':'+y,model,type:'decor',solid:false,
+      variant:(hash>>>8)%3,rot:hash%4});
+    if(out.length>=FOLIAGE_LIMIT_PER_CHUNK)return out;
   }
   return out;
 }
