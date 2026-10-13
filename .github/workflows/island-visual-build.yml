@@ -1,0 +1,50 @@
+name: Island visuals build
+
+on:
+  push:
+    branches:
+      - feat/islands-mobile
+    paths:
+      - src/islands/render.js
+      - src/props.js
+      - src/voxel.js
+      - tests/island-renderer.mjs
+      - docs/STYLE_DNDIGRA.md
+      - .github/workflows/island-visual-build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: island-visual-bundles
+  cancel-in-progress: false
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Build browser assets from authored source
+        run: npm run build
+      - name: Check island terrain, renderer and bounded streaming
+        run: node --test tests/island-renderer.mjs tests/island-scenes.mjs tests/island-terrain.mjs tests/region-renderer.mjs tests/region-resources.mjs
+      - name: Commit generated browser bundles to the feature branch
+        run: |
+          git config user.name "DNDIGRA visual build"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/props.js dist/voxel.js
+          if git diff --cached --quiet; then
+            echo "Browser bundles are already current."
+          else
+            git commit -m "build: island 3D foliage and soft-ground bundles [skip ci]"
+            git push origin HEAD:feat/islands-mobile
+          fi
