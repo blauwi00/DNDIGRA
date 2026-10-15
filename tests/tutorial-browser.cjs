@@ -24,6 +24,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   fs.mkdirSync(path.join(__dirname,'../qa'),{recursive:true});
   try{
     browser=await chromium.launch({executablePath:process.env.CHROME_EXECUTABLE,args:[...JSON.parse(process.env.CHROMIUM_ARGS||'[]'),'--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+    async function nav(page,id){await page.locator('#menu').click();await page.locator('#'+id).click();}
     async function idle(page){await page.waitForFunction(()=>!gameDebug.busy&&!HUD.active,null,{polling:100,timeout:60000});}
     async function step(page,wanted){await page.waitForFunction(n=>gameDebug.state.tutorial?.step===n,wanted,{timeout:30000});console.log('STEP',await page.evaluate(()=>gameDebug.active().classId),wanted);}
     async function flush(page){assert.equal(await page.evaluate(async()=>{gameDebug.save();Worlds.capture();return await Worlds.flush();}),true,'Actual world save succeeds');}
@@ -32,8 +33,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
     async function tapCell(page,cell,height=0){const p=await point(page,cell,height);const hit=await page.evaluate(p=>({id:document.elementFromPoint(p.x,p.y)?.id,tab:document.querySelector('.tabs [aria-selected=true]')?.id,viewport:document.getElementById('viewport').getBoundingClientRect().toJSON(),camera:camera.state}),p);console.log('TAP_CELL',cell,p,hit);assert.equal(hit.id,'voxel-canvas','The actual projected tap lands on the visible map canvas');await page.touchscreen.tap(p.x,p.y);}
     async function sizeCheck(page,classId,label){
       const size=page.viewportSize();assert.equal(await page.evaluate(()=>document.body.scrollWidth<=innerWidth),true,'No horizontal overflow '+classId+' '+label);
-      const card=await page.locator('#tutorial-card').boundingBox(),tabs=await page.locator('.tabs').boundingBox();
-      if(card)assert(card.y>=0&&card.x>=0&&card.x+card.width<=size.width&&card.y+card.height<tabs.y,'Instruction and navigation fit '+label);
+      const card=await page.locator('#tutorial-card').boundingBox();
+      if(card)assert(card.y>=0&&card.x>=0&&card.x+card.width<=size.width&&card.y+card.height<=size.height,'Instruction and navigation fit '+label);
       await page.screenshot({path:path.join(__dirname,'../qa/tutorial-'+classId+'-'+label+'-'+size.width+'.png')});
     }
     async function newHero(page,classId,name){return page.evaluate(async({classId,name})=>{
@@ -50,12 +51,12 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
         if(!state.canAttack){
           const move=await page.evaluate(()=>{const a=gameDebug.active(),e=gameDebug.state.enemies.find(e=>e.hp>0);return World.directions.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(c=>!gameDebug.blocked(c)&&!gameDebug.all().some(p=>p.hp>0&&p.x===c.x&&p.y===c.y)).map(c=>({c,route:gameDebug.pathTo(a,c)})).filter(x=>x.route&&x.route.length<=a.move).sort((a,b)=>a.route.length-b.route.length)[0]?.c;});
           if(!move){await page.locator('#end').click();continue;}
-          await page.locator('#camera-center').click();await tapCell(page,move);await page.waitForFunction(c=>objectPrompt?.p?.x===c.x&&objectPrompt?.p?.y===c.y&&objectPrompt.actions.some(a=>a.id==='move'),move);
+          await nav(page,'camera-center');await tapCell(page,move);await page.waitForFunction(c=>objectPrompt?.p?.x===c.x&&objectPrompt?.p?.y===c.y&&objectPrompt.actions.some(a=>a.id==='move'),move);
           await page.locator('.object-prompt [data-action=move]').click();await idle(page);continue;
         }
         // The visible prepared combat button uses the same real attack path.
-        if(await page.locator('#adventure-combat .adventure-combat-toggle').getAttribute('aria-expanded')==='false')await page.locator('#adventure-combat .adventure-combat-toggle').click();
-        await page.locator('#adventure-combat button:not(:disabled)').filter({hasText:/^Атаковать:/}).first().click();
+        await page.locator('#combat-tools-toggle').click();
+        await page.locator('#hud-target-actions button:not(:disabled)').filter({hasText:/^Атаковать:/}).first().click();
       }
       throw Error('Training victory did not finish after 40 legal player actions');
     }
@@ -70,10 +71,14 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
       assert.equal(await page.locator('#iphone-test').count(),0,'QA overlay is absent in the game and cannot cover camera controls');
       const hero=await newHero(page,classId,'Ученик '+classId);
       const skip=await page.evaluate(async heroId=>{const r=await fetch('/api/worlds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({heroId,skipTutorial:true,seed:'forbidden-skip',size:'small'})});return r.status;},hero.id);assert.equal(skip,400,'First tutorial cannot skip through API');
-      await page.evaluate(async hero=>{document.querySelectorAll('dialog').forEach(d=>d.close());await Worlds.choose(hero);},hero);
-      await page.getByRole('button',{name:'Начать мир',exact:true}).click();await page.locator('#world-seed').fill('tutorial-'+classId);await page.locator('#world-size').selectOption('small');
-      assert.equal(await page.locator('#skip-tutorial').isEnabled(),false,'First-world skip is disabled');
-      await page.getByRole('button',{name:'Создать мир',exact:true}).click();await page.waitForFunction(()=>Worlds.current&&gameDebug.state.scene==='glade');
+      // v4 islands have no mandatory tutorial. Exercise retained v3 saves and
+      // the menu's replay flow using a fresh, real API-created legacy world.
+      await page.evaluate(async hero=>{
+        const response=await fetch('/api/worlds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({heroId:hero.id,generatorVersion:3,seed:'tutorial-'+hero.classId,size:'small'})});
+        if(!response.ok)throw Error(await response.text());
+        document.querySelectorAll('dialog').forEach(d=>d.close());await Worlds.choose(hero);
+      },hero);
+      await page.locator('#modal').getByRole('button',{name:/^Продолжить ·/}).click();await page.waitForFunction(()=>Worlds.current&&gameDebug.state.scene==='glade');
       await page.locator('#adventure-cinematic .adventure-choices button').click();
       if(classId==='fighter'){
         await flush(page);await page.reload({waitUntil:'domcontentloaded',timeout:60000});await page.waitForFunction(()=>window.voxel?.ready);await page.getByRole('button',{name:'Продолжить',exact:true}).click();await page.waitForFunction(()=>gameDebug.state.story?.intro===1);
@@ -84,7 +89,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
       await sizeCheck(page,classId,'start');
       const heroPoint=await point(page,await page.evaluate(()=>({x:gameDebug.active().x,y:gameDebug.active().y}))),mapBox=await page.locator('#viewport').boundingBox();
       assert(heroPoint.x>=mapBox.x&&heroPoint.x<=mapBox.x+mapBox.width&&heroPoint.y>=mapBox.y&&heroPoint.y<=mapBox.y+mapBox.height,'Hero is visible when the first tutorial prompt opens');
-      await page.locator('#camera-center').click();
+      await nav(page,'camera-center');
       const cell=await page.evaluate(()=>{const a=gameDebug.active(),r=document.getElementById('viewport').getBoundingClientRect();
         return [2,1].flatMap(distance=>World.directions.map(([dx,dy])=>({x:a.x+dx*distance,y:a.y+dy*distance}))).find(c=>{
           if(gameDebug.blocked(c)||gameDebug.props.some(p=>p.x===c.x&&p.y===c.y)||gameDebug.all().some(p=>p.x===c.x&&p.y===c.y))return false;
@@ -97,14 +102,14 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
       await tapCell(page,cell);await step(page,1);const still=await page.evaluate(()=>({x:gameDebug.active().x,y:gameDebug.active().y}));assert.notDeepEqual(still,cell,'Select does not move');
       await page.locator('.object-prompt [data-action=move]').click();await step(page,2);await idle(page);assert.deepEqual(await page.evaluate(()=>({x:gameDebug.active().x,y:gameDebug.active().y})),cell);
       if(classId==='fighter')await reloadWorld(page,2);
-      await page.locator('#camera-center').click();await step(page,3);await page.evaluate(()=>{window.qaCameraActions=[];window.addEventListener('game-action',event=>{if(event.detail.type==='camera')qaCameraActions.push(JSON.stringify(camera.state));});});await page.locator('#zoom-out').click();await step(page,4);assert.equal(await page.evaluate(()=>qaCameraActions.at(-1)),await page.evaluate(()=>JSON.stringify(camera.state)),'Camera event is emitted after the real zoom changes the camera');
-      await page.locator('#camera-fit').click();
+      await nav(page,'camera-center');await step(page,3);await page.evaluate(()=>{window.qaCameraActions=[];window.addEventListener('game-action',event=>{if(event.detail.type==='camera')qaCameraActions.push(JSON.stringify(camera.state));});});await nav(page,'zoom-out');await step(page,4);assert.equal(await page.evaluate(()=>qaCameraActions.at(-1)),await page.evaluate(()=>JSON.stringify(camera.state)),'Camera event is emitted after the real zoom changes the camera');
+      await nav(page,'camera-fit');
       const cache=await page.evaluate(()=>{const p=gameDebug.props.find(p=>p.id==='starter-cache');return{x:p.x,y:p.y};});await tapCell(page,cache,.45);await page.waitForFunction(()=>objectPrompt?.p?.id==='starter-cache');
       await idle(page);assert.equal(await page.evaluate(()=>gameDebug.state.tutorial.step),4,'Selecting a cache cannot activate a new popup action from the same touch');
       assert.equal(await page.evaluate(()=>objectPrompt?.p?.id),'starter-cache','The cache waits for a separate action press after touch selection');
       await page.locator('.object-prompt [data-action=use]').click();await step(page,5);await idle(page);
       await page.locator('#dialogue-options').getByRole('button',{name:/^Открыть/}).click();await step(page,6);await idle(page);assert.ok(await page.evaluate(()=>gameDebug.state.potions>0),'Actual supplies received');await page.locator('#dialogue-close').click();
-      await page.locator('#tab-hero').click();await step(page,7);await page.locator('#tab-bag').click();await step(page,8);await sizeCheck(page,classId,'bag');
+      await nav(page,'tab-hero');await step(page,7);await nav(page,'tab-bag');await step(page,8);await sizeCheck(page,classId,'bag');
       if(classId==='fighter'){
         await page.locator('#bag-items button[title="Лечебное зелье"]').click();
         for(let disposal=0;disposal<20&&await page.evaluate(()=>gameDebug.state.potions>1);disposal++)await page.getByRole('button',{name:'Выбросить',exact:true}).click();
@@ -114,22 +119,22 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
         await page.locator('#bag-equipped button[title="Кольчуга"]').click();await page.getByRole('button',{name:'Снять в рюкзак',exact:true}).click();await step(page,9);assert.equal(await page.evaluate(()=>gameDebug.active().armorEquipped),false);
         await page.locator('#bag-items button[title="Кольчуга"]').click();await page.getByRole('button',{name:'Надеть броню',exact:true}).click();
       }else{
-        await page.locator('#tab-hero').click();const selected=classId==='rogue'?'Меч + факел':'Свободные руки';await page.locator('#hero-hands').getByRole('button',{name:selected,exact:true}).click();await step(page,9);
+        await nav(page,'tab-hero');const selected=classId==='rogue'?'Меч + факел':'Свободные руки';await page.locator('#hero-hands').getByRole('button',{name:selected,exact:true}).click();await step(page,9);
         const restore=classId==='wizard'?'Посох + свободная рука':classId==='cleric'?'Булава + свободная рука':'Меч + свободная рука';await page.locator('#hero-hands').getByRole('button',{name:restore,exact:true}).click();
       }
-      await page.locator('#tab-map').click();await page.locator('#journal').click();await step(page,10);await page.locator('#close').click();
+      await nav(page,'tab-map');await nav(page,'hud-open-journal');await step(page,10);await page.locator('#close').click();
       await page.locator('#combat-tools-toggle').click();await step(page,11);
       const ability=({fighter:/^Второе дыхание/,wizard:/^Доспехи мага/,rogue:/^Рывок$/,cleric:/^Лечение ран/})[classId];await page.locator('#quick-actions').getByRole('button',{name:ability}).click();await step(page,12);await idle(page);
       await page.waitForFunction(()=>gameDebug.state.combat&&gameDebug.state.encounter?.id==='tutorial-win');await sizeCheck(page,classId,'combat');
-      assert.equal(await page.locator('#adventure-combat .adventure-combat-toggle').getAttribute('aria-expanded'),'false','Prepared choices start collapsed so the hero remains visible');
-      for(const id of ['combat-tools-toggle','end','potion']){
+      assert.equal(await page.locator('#actions-panel').isVisible(),false,'Prepared choices start collapsed so the hero remains visible');
+      for(const id of ['combat-tools-toggle','end']){
         const visibleControl=await page.locator('#'+id).evaluate(button=>{const r=button.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===button;});
         assert.equal(visibleControl,true,'Prepared combat panel leaves required '+id+' control accessible');
       }
-      await page.locator('#combat-tools-toggle').click();await page.locator('#quick-actions').getByRole('button',{name:'Уклониться',exact:true}).click();await step(page,13);await page.getByRole('button',{name:'Закрыть действия',exact:true}).click();
+      await page.locator('#combat-tools-toggle').click();await page.locator('#quick-actions').getByRole('button',{name:'Уклониться',exact:true}).click();await step(page,13);assert.equal(await page.locator('#actions-panel').isVisible(),false,'Defensive action returns to map');
       await page.locator('#end').click();await step(page,14);await idle(page);
       for(let tries=0;tries<10&&!await page.locator('#potion').isEnabled();tries++){await page.locator('#end').click();await idle(page);}
-      await page.locator('#potion').click();await step(page,15);await idle(page);
+      await page.locator('#combat-tools-toggle').click();await page.locator('#potion').click();await step(page,15);await idle(page);
       await winBattle(page);await step(page,17);await idle(page);assert.equal(await page.evaluate(()=>gameDebug.state.encounter?.id),'tutorial-loss');
       assert.equal(await page.evaluate(()=>gameDebug.state.tutorial.completed),false,'Victory alone does not complete tutorial');assert.equal(await page.evaluate(()=>localStorage.getItem(TutorialRules.TUTORIAL_PROFILE_KEY)),null,'Marker is absent before rescue');
       await page.locator('#end').click();await step(page,19);await idle(page);assert.equal(await page.evaluate(()=>gameDebug.active().hp),0);assert.equal(await page.evaluate(()=>gameDebug.active().dead),false);
@@ -140,8 +145,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
       const recorded=db.prepare('SELECT snapshot FROM worlds WHERE id=?').get(await page.evaluate(()=>Worlds.current.id));assert.equal(JSON.parse(recorded.snapshot).tutorial.completed,true,'Completion persists through real Worker/SQLite');
       if(classId==='fighter'){
         const original=await page.evaluate(()=>({state:structuredClone(gameDebug.state),revision:Worlds.current.revision,id:Worlds.current.id}));
-        await page.locator('#menu').click();await page.getByRole('button',{name:'Повторить обучение · отдельная практика',exact:true}).click();await page.waitForFunction(()=>Worlds.practice&&gameDebug.state.tutorial.mode==='practice');await step(page,0);
-        await sizeCheck(page,classId,'practice');await page.locator('#menu').click();await page.getByRole('button',{name:'Вернуться из практики',exact:true}).click();await page.waitForFunction(()=>!Worlds.practice);
+        await nav(page,'hud-open-settings');await page.getByRole('button',{name:'Повторить обучение · отдельная практика',exact:true}).click();await page.waitForFunction(()=>Worlds.practice&&gameDebug.state.tutorial.mode==='practice');await step(page,0);
+        await sizeCheck(page,classId,'practice');await nav(page,'hud-open-settings');await page.getByRole('button',{name:'Вернуться из практики',exact:true}).click();await page.waitForFunction(()=>!Worlds.practice);
         assert.deepEqual(await page.evaluate(()=>structuredClone(gameDebug.state)),original.state,'Practice restores original snapshot exactly');assert.equal(await page.evaluate(()=>Worlds.current.id),original.id);assert.equal(await page.evaluate(()=>Worlds.current.revision),original.revision);
         await page.setViewportSize({width:320,height:568});await sizeCheck(page,classId,'complete');
       }

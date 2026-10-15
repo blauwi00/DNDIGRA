@@ -541,6 +541,7 @@
       note.textContent = path.length + " кл." + (state.combat ? " · движение " + path.length + " / " + a.move : " · остановка у цели");
       note.classList.toggle("over-budget", state.combat && path.length > a.move);
     }
+    window.CompactHUD?.render();
   }
   const wait = (ms) => new Promise((r) => setTimeout(r, ms)), animate = () => state.settings.animations && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   function pendingIslandLocationMilestone(snapshot, record) {
@@ -1587,5 +1588,6 @@
   window.Heroes?.init();
   window.HUD?.init();
   window.ProceduralLocations?.init();
+  window.CompactHUD?.init();
   window.CinematicMenu?.init();
 })();

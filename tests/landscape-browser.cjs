@@ -166,13 +166,15 @@ async function editorChecks(page, size, full) {
       for (const action of await page.locator('#item-actions button').all()) {
         await action.scrollIntoViewIfNeeded();await reachable(action,'Inventory action',44);
       }
-      await reachable(page.locator('#tab-map'),'Map tab',44);
+      await reachable(page.locator('#hud-back'),'Map tab',44);
       await noPageOverflow(page,size);
       await page.screenshot({path:path.join(artifacts,'bag-'+size.width+'x'+size.height+'.png')});
       console.log('LANDSCAPE_STAGE',size.width+'x'+size.height,'map');
-      await page.locator('#tab-map').click();
+      await page.locator('#hud-back').click();
       await reachable(page.locator('#hud-health'),'Existing hero HUD',44);
-      for (const control of await page.locator('.map-toolbar button').all()) await reachable(control,'Map camera control',44);
+      await page.locator('#menu').click();
+      for (const control of await page.locator('.map-toolbar button').all()) { await control.scrollIntoViewIfNeeded(); await reachable(control,'Map camera control',44); }
+      await page.locator('#hud-navigation-close').click();
       for (const control of await page.locator('#play-dock button:visible').all()) {
         await control.scrollIntoViewIfNeeded();await reachable(control,'Existing map action',44);
       }
@@ -197,6 +199,7 @@ async function editorChecks(page, size, full) {
       await page.locator('#dialogue-close').click();
       console.log('LANDSCAPE_STAGE',size.width+'x'+size.height,'menu dialog and roll');
       await page.locator('#menu').click();
+      await page.locator('#hud-open-settings').click();
       await reachable(page.locator('#close'),'Menu dialog close',44);
       await page.locator('#close').click();
       // Observe the real HUD readiness and check/tap in one browser task. The

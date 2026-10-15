@@ -1,3 +1,6 @@
+# Current compact HUD update · 2026-10-14
+Owner requested a full game viewport with interface controls revealed on demand, then publication to the existing Site. Preserve current art, rules, saves, generators and Site identity/audience. `dist/compact-hud.js` / `.css` are authored presentation source; see `docs/COMPACT_HUD.md`. Navigation and camera controls now live inside `#hud-navigation`; combat/actions reuse real existing handlers. Update browser interactions to open the drawer first. New warrior abilities/tempo remain design proposals and are not implemented by this update.
+
 # Current Site update ·2026-10-13
 Owner explicitly requested the updated EXISTING game on this Site and in native apps. Preserve project/audience/DB/migrations/title/local save key. Newly started adventures explicitly use compact islandv4; older saved generators remain frozen. Source branch main belongs to the Site provider only; GitHub main is untouched. No player-data import.
 

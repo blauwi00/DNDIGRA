@@ -31,6 +31,10 @@
   function highlight(requirement) {
     clearHighlights();
     for (const el of document.querySelectorAll(requirement.target)) if (el.getClientRects().length) el.classList.add('tutorial-target');
+    if (window.CompactHUD && !Array.from(document.querySelectorAll(requirement.target)).some(el => el.getClientRects().length)) {
+      const inActions = ['ability', 'dodge', 'potion', 'actions'].includes(requirement.id);
+      document.getElementById(inActions ? 'combat-tools-toggle' : 'menu')?.classList.add('tutorial-target');
+    }
     const abilityLabel = { secondWind: 'Второе дыхание', magearmor: 'Доспехи мага', dash: 'Рывок', cure: 'Лечение ран' };
     if (requirement.id === 'ability' || requirement.id === 'dodge') {
       const label = requirement.id === 'dodge' ? 'Уклониться' : abilityLabel[requirement.ability];
