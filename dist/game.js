@@ -34,7 +34,7 @@
   }
   const scene = () => World.scenes[state.scene], props = () => scene().props.filter((p) => (p.id !== "novice" || (state.scene === "crypt" ? state.episode?.stage === "investigate" : ["report", "done"].includes(state.episode?.stage))) && window.Adventure?.visibleProp(p, state) !== false).map((p) => p.id === departingNpc?.id ? departingNpc : p).concat((state.drops || []).filter((p) => p.scene === state.scene).map((p) => ({ ...p, type: "ground-item", solid: false, kind: 42 }))), doorKey = (p) => state.scene + ":" + p.id, isOpen = (p) => !!state.doors[doorKey(p)] || !!(state.world?.gen && window.GeneratedWorlds?.opened(p));
   const emitGameAction = (type, detail = {}) => window.dispatchEvent(new CustomEvent('game-action', { detail: { type, ...detail } }));
-  const actionAllowed = (type, id) => !window.Adventure?.locked && window.Tutorial?.allowsAction?.(type, id) !== false;
+  const actionAllowed = (type, id) => !(window.Adventure?.locked || window.Prologue?.locked) && window.Tutorial?.allowsAction?.(type, id) !== false;
   function save() {
     if (state.world) {
       window.Worlds?.capture();
@@ -278,7 +278,7 @@
   }
   function select(p) {
     if (prop(p)?.type === "chandelier") return;
-    if (busy || window.HUD?.pending || window.Worlds?.locked || window.Adventure?.locked) return;
+    if (busy || window.HUD?.pending || window.Worlds?.locked || (window.Adventure?.locked || window.Prologue?.locked)) return;
     selected = p;
     path = [];
     window.voxel?.tap(prop(p) || entity(p));
@@ -296,7 +296,7 @@
   }
   function mapTap(p) {
     if (moving) { stopRequested = true; return; }
-    if (busy || window.HUD?.pending || window.Worlds?.locked || window.Adventure?.locked) return;
+    if (busy || window.HUD?.pending || window.Worlds?.locked || (window.Adventure?.locked || window.Prologue?.locked)) return;
     if (!p) { selected = null; path = []; render(); return; }
     select(p);
   }
@@ -431,6 +431,7 @@
   }
   function objectAction(p) {
     if (p.type === "chandelier") return null;
+    if (window.Prologue?.active && p.prologue && p.type === 'furniture') return {label:p.id==='home-bed'?'Отдохнуть':'Взаимодействовать',enabled:!busy&&active().hp>0&&!state.combat&&approachPath(active(),p)!==null,fn:()=>approachInteract(p)};
     const a = active(), label = p.id === "trial-cache" ? state.trial?.step === 3 ? "Взять письмо" : "Осмотреть нишу" : p.type === "torch" ? Torches.fixture(p.id).present ? "Факел · взять / погасить" : "Оставить факел" : p.type === "door" && isOpen(p) ? "Пройти через дверь" : p.container ? "Открыть" : p.type === "altar" ? "Исследовать алтарь" : interactionLabels[p.type] || (p.description ? 'Осмотреть' : null);
     if (!label) return null;
     return { label, enabled: !busy && a.hp > 0 && (state.combat ? p.type === "torch" && dist(a, p) === 1 && !a.bonusUsed : approachPath(a, p) !== null), fn: () => state.combat ? interact(p) : approachInteract(p) };
@@ -528,7 +529,8 @@
     window.HUD?.render();
     window.Adventure?.render();
     window.Tutorial?.render();
-    if (!state.encounter?.tutorial && state.tutorial?.phase !== 'rescue') window.DeathScreen?.render();
+    window.Prologue?.render();
+    if (!window.Prologue?.active && !state.encounter?.tutorial && state.tutorial?.phase !== 'rescue') window.DeathScreen?.render();
     window.ProceduralLocations?.render();
     if (window.Worlds?.locked) {
       $("action").disabled = true;
@@ -615,7 +617,7 @@
     }
   }
   async function move() {
-    if (window.Worlds?.locked || window.Adventure?.locked) return;
+    if (window.Worlds?.locked || (window.Adventure?.locked || window.Prologue?.locked)) return;
     const a = active(), r = path.slice();
     if (busy || !r.length || state.combat && r.length > a.move) return;
     busy = true;
@@ -720,7 +722,7 @@
     if (state.enemies.length && state.enemies.every((e) => e.hp <= 0)) {
       const encounter = state.encounter;
       state.combat = false;
-      if (!window.Adventure?.victory(encounter)) {
+      if (!window.Prologue?.victory(encounter) && !window.Adventure?.victory(encounter)) {
         state.xp += 60;
         tell("Тренировочный бой завершён. +60 опыта.");
       }
@@ -1240,6 +1242,10 @@
     if (window.Worlds?.locked) return;
     if (busy || !actionAllowed('interaction') || active().hp<=0 || active().dead || dist(active(), p) !== 1) return;
     if (p.type === 'portal' && (state.combat || window.Adventure?.blocksPortals || window.Tutorial?.blocksPortals)) return;
+    if (!state.combat && window.Prologue?.interact(p)) {
+      emitGameAction('interaction', { success: true, propId: p.id, propType: p.type });
+      return;
+    }
     if (!state.combat && window.Adventure?.interact(p)) {
       emitGameAction('interaction', { success: true, propId: p.id, propType: p.type });
       return;
@@ -1531,6 +1537,7 @@
     return true;
   }
   function loadWorld(snapshot) {
+    window.Prologue?.install(snapshot);
     window.ProceduralLocations?.restore(snapshot);
     window.GeneratedWorlds?.restore(snapshot);
     state = structuredClone(snapshot);
@@ -1550,9 +1557,10 @@
     window.camera?.center(active());
     window.Adventure?.restore(state);
     window.Tutorial?.restore();
+    window.Prologue?.restore();
     return true;
   }
-  window.gameDebug = { startGenerated, loadWorld, loadHero, get state() {
+  window.gameDebug = { refreshSceneView(){ selected=null;path=[];createCells();window.voxel?.reset();window.camera?.center(active()); }, startGenerated, loadWorld, loadHero, get state() {
     return state;
   }, get departingNpc() {
     return departingNpc;

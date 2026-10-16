@@ -88,7 +88,8 @@
     }
     body.append(
       iconButton('hud-open-journal', 'Журнал заданий', 'book', () => navigate(() => {
-        if (window.Adventure?.active) window.Adventure.journal();
+        if (window.Prologue?.active) window.Prologue.journal();
+        else if (window.Adventure?.active) window.Adventure.journal();
         else window.HUD.openNotes();
       })),
       iconButton('hud-open-actions', 'Действия героя', 'more', () => navigate(() => window.GameMenu.actions())),

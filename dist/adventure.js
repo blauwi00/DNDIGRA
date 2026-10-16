@@ -171,7 +171,7 @@
   function classAction(a){return({fighter:['secondWind','Второе дыхание'],wizard:['magearmor','Доспехи мага'],cleric:['cure','Лечение ран'],rogue:['dash','Рывок']})[a.classId]||['dash','Рывок'];}
   function renderCombat(){
     if(!battle)return;const g=game(),s=g.state,a=g.active();
-    battle.hidden=!enabled()||!s.combat||document.getElementById('map-view')?.hidden;
+    battle.hidden=(!enabled()&&!window.Prologue?.active)||!s.combat||document.getElementById('map-view')?.hidden;
     if(battle.hidden){combatExpanded=false;combatKey='';return;}
     const key=[s.world.id,s.scene,s.encounter?.id].join(':');if(combatKey!==key){combatKey=key;combatExpanded=false;}
     battle.replaceChildren();const h=document.createElement('strong');h.textContent=a.name+' · ход '+s.round;const note=document.createElement('p');note.textContent=(a.acted?'Действие потрачено':'Действие доступно')+' · '+a.move+' клеток';note.hidden=!combatExpanded;
@@ -186,6 +186,7 @@
     actions.append(button('Выпить зелье',choose(()=>g.potion()),locked||a.hp>=a.max||!s.potions||a.bonusUsed),button('Завершить ход',choose(()=>g.endTurn()),locked));battle.append(h,toggle,note,actions);
   }
   function render(){
+    if(window.Prologue?.active){init();hideCard();renderCombat();return;}
     init();if(!enabled()||window.Worlds?.atMenu||window.CinematicMenu?.active){hideCard();if(battle)battle.hidden=true;return;}
     const g=game(),s=story();if(!s)return;
     if(s.intro<3){

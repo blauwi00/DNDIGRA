@@ -165,3 +165,29 @@ for(const savedByPut of [false,true]){
 for(const failure of adapterFailures)console.error('Real adapter '+(failure.savedByPut?'PUT':'GET')+': '+failure.error.stack);
 assert.equal(adapterFailures.length,0,'Real adapter practice restores both generated GET records and autosaved PUT records');
 console.log('PASS real adapter GET/PUT cache, canonical scene requests, repeat return and failed-entry restoration');
+
+// The story episode saves locally, including mid-combat, without touching the campaign.
+env.PrologueRules=await import('../src/prologue-rules.js');
+vm.runInContext(readFileSync(new URL('../dist/prologue.js',import.meta.url),'utf8'),env);
+env.Worlds.attach(structuredClone(original));
+const campaignBefore=JSON.stringify(game.state),requestCount=requests,resumeKeyBefore=saved.get('last-world-id');
+await env.Worlds.startPrologue(hero);
+assert.equal(env.Worlds.practiceKind,'prologue');
+assert.ok(env.Prologue.read(),'Starting the episode creates a recoverable local save');
+game.state.prologue.introSeen=true;game.state.gold=15;game.state.combat=true;
+env.Worlds.capture();await env.Worlds.flush();
+assert.equal(env.Prologue.read().gold,15);assert.equal(requests,requestCount);
+const localWrite=env.localStorage.setItem;
+env.localStorage.setItem=()=>{throw Error('storage full');};
+await assert.rejects(env.Worlds.endPractice(),/Не удалось сохранить/);
+assert.equal(env.Worlds.practiceKind,'prologue','Failed save keeps the episode open');
+env.localStorage.setItem=localWrite;
+await env.Worlds.endPractice();
+assert.equal(JSON.stringify(game.state),campaignBefore,'Combat exit restores the campaign exactly');
+assert.equal(saved.get('last-world-id'),resumeKeyBefore);assert.equal(requests,requestCount);
+assert.equal(env.Prologue.read().combat,true,'Combat checkpoint remains available after exit');
+await env.Worlds.startPrologue(hero,env.Prologue.read());
+assert.equal(game.state.gold,15);assert.equal(game.state.prologue.introSeen,true);
+await env.Worlds.endPractice();
+assert.equal(JSON.stringify(game.state),campaignBefore);
+console.log('PASS prologue local save, campaign isolation, combat resume and storage failure');

@@ -33,6 +33,10 @@
   function menu() {
     const d = $("modal"), body = $("modal-body");
     $("modal-title").textContent = "Меню";
+    if (window.Prologue?.active) {
+      body.replaceChildren(button('Задание и события',()=>window.Prologue.journal()),button('Сохранить и выйти',()=>window.Worlds.exitToMenu()),button('Действия героя',()=>window.GameMenu.actions()));
+      d.showModal(); return;
+    }
     if (window.Worlds?.practice) {
       const region = window.Worlds.practiceKind === 'region';
       const note = document.createElement('p');

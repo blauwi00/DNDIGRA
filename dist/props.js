@@ -824,7 +824,8 @@ var Props = (() => {
     ctx.flavor = p.flavor;
     const out = [];
     make(ctx, (x, y, z, w, hh, d, c, e = false) => out.push([x, y, z, w, hh, d, c, e]));
-    const rotated = out.map((b) => rot(b, p.rot || 0));
+    const pose = p.model === "cart" && p.wrecked ? out.map(([x, y, z, w, h2, d, ...rest]) => [-(y - 0.4), x + 0.5, z, h2, w, d, ...rest]) : out;
+    const rotated = pose.map((b) => rot(b, p.rot || 0));
     if (opts.texel === false) return rotated;
     return rotated.concat(texelPass(rotated, role));
   }

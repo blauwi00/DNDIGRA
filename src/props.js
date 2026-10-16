@@ -44,7 +44,10 @@ export function build(p, opts = {}) {
   const make = MODELS[p.model]; if (!make) return null;
   const h = hash(p.id || p.x + ',' + p.y), ctx = { wood: WOODS[h % WOODS.length], leaf: LEAF[(h >>> 3) % LEAF.length], cloth: CLOTH[(h >>> 5) % CLOTH.length], h: h >>> 7 };
   ctx.flavor = p.flavor; const out = []; make(ctx, (x, y, z, w, hh, d, c, e = false) => out.push([x, y, z, w, hh, d, c, e]));
-  const rotated = out.map(b => rot(b, p.rot || 0));
+  // The road episode tips the existing cart onto its side; reuse its materials
+  // and regenerate texels on the transformed boxes instead of adding artwork.
+  const pose = p.model==='cart'&&p.wrecked ? out.map(([x,y,z,w,h,d,...rest])=>[-(y-.4),x+.5,z,h,w,d,...rest]) : out;
+  const rotated = pose.map(b => rot(b, p.rot || 0));
   if (opts.texel === false) return rotated;
   return rotated.concat(texelPass(rotated, role));
 }

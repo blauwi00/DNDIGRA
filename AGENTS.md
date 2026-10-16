@@ -1,3 +1,6 @@
+# Current short prologue · 2026-10-16
+Owner authorized a small playable episode in the existing game after narrowing scope. See `docs/PROLOGUE.md`: peaceful village days, caravan attack, knockout beside carriage, preparation consequences and optional recovery. Preserve existing assets, campaign saves and Site identity. The episode has its own local save and authored scenes; this is not the full procedural island or AI GM. Latest owner directions supersede older generator-only task notes below.
+
 # Current compact HUD update · 2026-10-14
 Owner requested a full game viewport with interface controls revealed on demand, then publication to the existing Site. Preserve current art, rules, saves, generators and Site identity/audience. `dist/compact-hud.js` / `.css` are authored presentation source; see `docs/COMPACT_HUD.md`. Navigation and camera controls now live inside `#hud-navigation`; combat/actions reuse real existing handlers. Update browser interactions to open the drawer first. New warrior abilities/tempo remain design proposals and are not implemented by this update.
 

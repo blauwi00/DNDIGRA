@@ -38,6 +38,7 @@
     b.onclick = open;
   }
   function capture() {
+    if (practice?.kind === 'prologue') { window.Prologue.persist(); return; }
     if (practice) return;
     if (!current || current.status !== "active" || leaving) return;
     const snap = JSON.stringify(g().state);
@@ -48,6 +49,7 @@
     timer = setTimeout(() => flush(), 450);
   }
   async function flush() {
+    if (practice?.kind === 'prologue') return window.Prologue.persist();
     if (practice) return true;
     clearTimeout(timer);
     if (inflight) return inflight;
@@ -353,7 +355,7 @@
   function render() {
     document.body.classList.toggle("playing-world", !!current || !!practice);
     document.body.classList.toggle("world-locked", !practice && !!current && (current.status !== "active" || conflict || finishingCurrent()));
-    if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+(practice.kind==='region'?' · Находки не переносятся':' · Учебная практика');if($("world-save"))$("world-save").hidden=true;return;}
+    if(practice){if($("scene-name"))$("scene-name").textContent=g().scene.name+(practice.kind==='prologue'?'':practice.kind==='region'?' · Находки не переносятся':' · Учебная практика');if($("world-save"))$("world-save").hidden=true;return;}
     if (!current) return;
     const s = g().state;
     if (s.world && !s.world.discovered.includes(s.scene)) s.world.discovered.push(s.scene);
@@ -397,18 +399,21 @@
     else if(original.current)window.GeneratedWorlds?.prime(original.current);
     g().loadWorld(original.state);
   }
-  async function startTemporaryPractice(kind){
+  async function startTemporaryPractice(kind, options={}){
     if(practice)return true;
     if(practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
-    if(!g().active().confirmed)throw Error('Создайте героя, чтобы отправиться на практику с его классом и внешностью.');
+    if(!(options.hero||g().active()).confirmed)throw Error('Создайте героя, чтобы отправиться на практику с его классом и внешностью.');
     if(current?.status==='active'){capture();if(!await flush())throw Error('Сначала сохраните текущее приключение.');}
     if(practice)return true;
     if(practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
     if(!window.LocalAPI?.initialWorld||kind==='region'&&!window.RegionWalk?.createRegionWalk)throw Error('Практика пока недоступна. Обновите игру.');
-    const hero=structuredClone(g().active());
-    const snapshot=window.LocalAPI.initialWorld(hero,'practice-'+window.LocalAPI.randomUUID(),1,{seed:'practice-'+hero.id,size:'small',generatorVersion:3,tutorialCompleted:false});
+    const hero=structuredClone(options.hero||g().active());
+    let snapshot=options.snapshot?structuredClone(options.snapshot):window.LocalAPI.initialWorld(hero,'practice-'+window.LocalAPI.randomUUID(),1,{seed:'practice-'+hero.id,size:'small',generatorVersion:3,tutorialCompleted:false});
     let regionScene=null;
-    if(kind==='region'){
+    if(kind==='prologue'){
+      if(!options.snapshot)snapshot=window.Prologue.prepare(snapshot);
+      window.Prologue.install(snapshot);
+    }else if(kind==='region'){
       const scene=window.RegionWalk.createRegionWalk('region-walk-'+hero.id);
       window.World.compileCollisions(scene);
       regionScene={id:scene.id,previous:window.World.scenes[scene.id]};
@@ -433,13 +438,16 @@
       badge(current?'Мир сохранён':'');render();throw e;
     }
     finally{leaving=false;}
+    if(kind==='prologue')window.Prologue.persist();
     render();return true;
   }
   async function startPractice(){return startTemporaryPractice('tutorial');}
   async function startRegionWalk(){return startTemporaryPractice('region');}
+  async function startPrologue(hero,snapshot){return startTemporaryPractice('prologue',{hero,snapshot});}
   async function endPractice(){
     if(!practice)return true;
-    if(practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
+    if(practice.kind==='prologue'?(g().moving||g().actionBusy||window.HUD?.pending):practiceBlocked())throw Error('Дождитесь завершения действия или боя.');
+    if(practice.kind==='prologue'&&!window.Prologue.persist())throw Error(window.Prologue.saveError);
     const original=practice,temporary=structuredClone(g().state);leaving=true;
     try{
       try{loadPracticeOriginal(original);}catch(e){g().loadWorld(temporary);throw e;}
@@ -449,7 +457,7 @@
     finally{leaving=false;}
     badge(current?'Мир сохранён':'');render();return true;
   }
-  window.Worlds = { resume, resumeKey, startPractice, startRegionWalk, endPractice, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get practiceKind(){return practice?.kind||null;}, get atMenu() {
+  window.Worlds = { resume, resumeKey, startPractice, startRegionWalk, startPrologue, endPractice, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get practiceKind(){return practice?.kind||null;}, get atMenu() {
     return atMenu;
   }, get current() {
     return current;
