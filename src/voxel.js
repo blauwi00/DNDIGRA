@@ -324,6 +324,7 @@ function figure(kind, actor, options = {}) {
     const role = (c) => kind === 3 && c === bone ? "skin" : kind === 4 && c === wood ? "other" : colorRole(c);
     for (const v of texelPass(flat, role)) decalBox(p, v);
   }
+  if(storyEnemy?.scale)p.scale.setScalar(storyEnemy.scale);
   return compact(p);
 }
 function torchModel() {
@@ -1104,7 +1105,7 @@ function sync() {
   const entities = g.all(), ids = new Set(entities.map((p) => p.id));
   for (const p of entities) {
     let m = models.get(p.id);
-    const loadout = JSON.stringify([p.hands || [], p.appearance || null, p.classId, p.visual || null, p.gen || null]);
+    const loadout = JSON.stringify([p.hands || [], p.appearance || null, p.classId, p.visual || null, p.gen || null, p.monsterKind || null]);
     if (m && m.userData.loadout !== loadout) {
       if(maskRoot===m)setSelectionMask(null);
       actors.remove(m);
@@ -1365,7 +1366,7 @@ async function strike(a, b, animated) {
 }
 const portraits = /* @__PURE__ */ new Map();
 function portrait(kind, object, actor, angle = 0) {
-  const key = JSON.stringify([characterSpec(kind, actor) || characterProfile(actor || {}, kind), angle]) + kind + ":" + (object || "") + ":" + (actor?.portalKind || "") + ":" + (actor?.visual || "");
+  const key = JSON.stringify([characterSpec(kind, actor) || characterProfile(actor || {}, kind), angle]) + kind + ":" + (object || "") + ":" + (actor?.portalKind || "") + ":" + (actor?.visual || "") + ":" + (actor?.monsterKind || "");
   if (!portraits.has(key)) {
     try {
       if (!portraitRenderer) {
@@ -1582,9 +1583,10 @@ window.camera = { center, reset, fit, follow: (p) => {
 }, allowClick: () => true, get state() {
   return { scale: 5 / half, focus };
 } };
-window.fx = { step: () => {
+const rendererFX = { step: () => {
 }, strike, impact, door: () => {
 }, pulse: (p) => impact(p, "Отклик", false, true, "heal") };
+window.fx = window.CombatFX ? window.CombatFX.attach(rendererFX) : rendererFX;
 let menuStage;
 function renderMenu(time){menuStage ||= createMenuStage({figure,propModel,shadedBox,compact,terrainMaterial});renderer.setRenderTarget(null);menuStage.render(renderer,time,g.state.settings,window.CinematicMenu.editor);}
 function regionSnapshot(){
@@ -1605,7 +1607,7 @@ function waitRegionIdle(timeout=10000){
     function check(){const stats=regionSnapshot();if(stats.idle)return resolve(stats);if(performance.now()-started>timeout)return reject(new Error('Region loading timed out'));requestAnimationFrame(check);}check();
   });
 }
-window.voxel = { resize, get staticBatchStats(){
+window.voxel = { projectActor(p){const v=new T.Vector3(p.x+.5,.65,p.y+.5).project(camera);return {x:(v.x+1)*viewport.clientWidth/2,y:(1-v.y)*viewport.clientHeight/2};}, resize, get staticBatchStats(){
   const batches=regionOptions?.enabled?[...regionResources.values()].map(r=>r.batches):staticBatches?[staticBatches]:[];
   return batches.length?batches.reduce((n,b)=>({props:n.props+b.roots.length,sourceMeshes:n.sourceMeshes+b.sourceMeshes,drawMeshes:n.drawMeshes+b.meshes.length}),{props:0,sourceMeshes:0,drawMeshes:0}):null;
 }, get regionStats(){return regionSnapshot();}, regionReady:(x,y)=>canSelectRegionCell(regionOptions,regionPlan,regionStream,x,y), regionIdle:waitRegionIdle, turnHero:delta=>menuStage?.turn(delta), get menuDebug(){return menuStage?.debug;}, buildModel: (kind, actor, options) => figure(kind, actor, options), buildItem: itemModel, buildProp: propModel, compact, shadedBox, heroPortrait: (a, angle = 0) => portrait(a.kind, null, a, angle), portrait, sync, move, impact, tap, reset, fit, ground, get selectionMask() {

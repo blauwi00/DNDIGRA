@@ -1,5 +1,7 @@
 // Pure geometry for new story enemies. A null result keeps the legacy skeleton path.
-import { spec, build } from './characters.js';
+import { MONSTERS } from './combat/bestiary.js';
+import { beastBoxes as combatBeastBoxes } from './combat/beasts.js';
+import { spec, build, CLASS_KIND } from './characters.js';
 import { characterParts } from './character-style.js';
 import { texelPass } from './texel.js';
 
@@ -26,6 +28,12 @@ function beastBoxes() {
 
 export function enemyModel(actor = {}, { texel = true } = {}) {
   if (!actor) return null;
+  const monster=MONSTERS[actor.monsterKind];
+  if(monster){
+    if(monster.beast)return {visual:monster.beast,boxes:combatBeastBoxes(monster.beast),scale:monster.scale||1};
+    const appearance=spec(CLASS_KIND[monster.look.classId],{gen:monster.look});
+    return {visual:actor.monsterKind,spec:appearance,boxes:build(appearance,{texel}),scale:monster.scale||1};
+  }
   if (actor.visual === 'bandit') {
     const gen = actor.gen || { classId: 'rogue', gender: 'male', look: {}, hands: ['sword', 'empty'] };
     const appearance = spec(5, { gen });

@@ -1,4 +1,5 @@
 import {build} from 'esbuild';import {mkdir,cp,readdir,rm} from 'node:fs/promises';
+await build({entryPoints:['src/combat/index.js'],bundle:true,format:'iife',globalName:'Combat',outfile:'dist/combat.js'});
 await build({entryPoints:['src/worldgen/index.js'],bundle:true,format:'iife',globalName:'WorldGen',outfile:'dist/worldgen.js'});
 await build({entryPoints:['src/region-walk.js'],bundle:true,format:'iife',globalName:'RegionWalk',outfile:'dist/region-walk.js'});
 await build({entryPoints:['src/tutorial-rules.js'],bundle:true,format:'iife',globalName:'TutorialRules',outfile:'dist/tutorial-rules.js'});

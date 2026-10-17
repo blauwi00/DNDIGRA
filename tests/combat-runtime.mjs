@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import * as Combat from '../src/combat/index.js';
+import {enemyModel} from '../src/enemy-models.js';
+const context={window:{Combat},console};vm.createContext(context);vm.runInContext(readFileSync(new URL('../dist/dnd.js',import.meta.url),'utf8'),context);
+const D=context.window.DND;
+const make=(kind,x,y)=>{const def=Combat.enemyDefinition({id:kind,monsterKind:kind,kind:3,x,y});const a=D.init({...def});a.hp=a.max=def.max;a.ac=def.ac;return Combat.initializeEnemy(a,def);};
+const hero=D.init({id:'hero',kind:2,x:5,y:5});
+const archer=make('skeleton_archer',1,5);
+assert.equal(D.weapon(archer).range,8);assert.equal(D.weapon(archer).attackBonus,4);
+const world={actors:[archer,hero].map(a=>Combat.plannerActor(a,D.weapon(a))),cardinal:true,searchRadius:24,passable:(x,y)=>x>=0&&y>=0&&x<12&&y<12,los:(a,b)=>a.x===b.x||a.y===b.y};
+const intent=Combat.decide(world.actors[0],world);assert.equal(intent.kind,'attack');assert.equal(intent.path.length,0);assert.equal(intent.target,'hero');
+const fighter=make('skeleton',1,1);world.actors=[fighter,hero].map(a=>Combat.plannerActor(a,D.weapon(a)));
+const melee=Combat.decide(world.actors[0],world);let last=fighter;
+for(const [x,y] of melee.path){assert.equal(Math.abs(last.x-x)+Math.abs(last.y-y),1);last={x,y};}assert.ok(melee.path.length<=fighter.speed);
+const wall={...world,passable:(x,y)=>x>=0&&y>=0&&x<12&&y<12&&x!==3};assert.notEqual(Combat.decide(world.actors[0],wall).kind,'attack');
+const override=Combat.weaponFromAttack({name:'Тестовый лук',bonus:20,dice:'2d4+3',ranged:true,range:8,type:'piercing'});
+const roll=D.attack(archer,hero,1,0,n=>Math.ceil(n/2),0,override);assert.equal(roll.weapon.count,2);assert.equal(roll.weapon.damageBonus,3);assert.ok(roll.amount>=5&&roll.amount<=11);
+for(const kind of Combat.kindsList()){const m=enemyModel({monsterKind:kind});assert.ok(m.boxes.length>0,kind);assert.ok(m.boxes.every(b=>b.slice(0,6).every(Number.isFinite)),kind);}
+assert.equal(enemyModel({monsterKind:'ogre'}).scale,1.4);
+assert.equal(make('dark_mage',1,1).ai,'ranged');assert.equal(make('spider',1,1).attacks.length,1);
+console.log('PASS cardinal integration, blocked LOS, ranged DND dice, 15 textured models and explicit special-action fallback');

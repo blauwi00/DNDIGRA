@@ -658,14 +658,14 @@
       a.death = { success: 0, failure: 0, stable: false };
     }
   }
-  async function strike(a, b, enemy = false, reaction = false) {
+  async function strike(a, b, enemy = false, reaction = false, chosen = null) {
     face(a, b);
     renderPieces();
     window.voxel?.sync();
     const hasAdvantage = state.advantage > 0 || a.hidden || b.conditions?.includes("unconscious");
     const hasDisadvantage = state.advantage < 0 || a.hands?.includes("torch") || b.dodging && window.visibility?.canSee(b, a) || a.conditions.includes("poisoned") || DND.weapon(a, state.level).range > 1 && all().some((e) => e.kind !== a.kind && e.kind >= 3 !== a.kind >= 3 && !e.dummy && e.hp > 0 && dist(a, e) === 1);
     const advantage = hasAdvantage && hasDisadvantage ? 0 : hasAdvantage ? 1 : hasDisadvantage ? -1 : 0;
-    const r = DND.attack(a, b, a.kind === 3 ? 1 : state.level, advantage);
+    const r = DND.attack(a, b, a.kind === 3 ? 1 : state.level, advantage, undefined, 0, chosen ? Combat.weaponFromAttack(chosen) : undefined);
     if (a.hands?.includes("torch")) r.text += "\nФакел в руке — источник помехи (правило игры).";
     if (r.hit && b.conditions?.includes("unconscious") && dist(a, b) === 1 && !r.critical) {
       r.critical = true;
@@ -721,6 +721,7 @@
   function victory() {
     if (state.enemies.length && state.enemies.every((e) => e.hp <= 0)) {
       const encounter = state.encounter;
+      window.fx?.banner?.('ПОБЕДА','victory');
       state.combat = false;
       if (!window.Prologue?.victory(encounter) && !window.Adventure?.victory(encounter)) {
         state.xp += 60;
@@ -774,10 +775,13 @@
     if (!canonical || !canonical.enemies?.length || !training && state.story?.cleared?.includes(canonical.id)) return false;
     const reward = training ? { xp: 0, gold: 0 } : { xp: canonical.reward?.xp || 0, gold: canonical.reward?.gold || 0 };
     state.encounter = { id: canonical.id, scene: state.scene, name: canonical.name, tutorial: training, scriptedLoss: training && options.scriptedLoss === true && canonical.id === 'tutorial-loss', reward };
-    state.enemies = canonical.enemies.map(def => {
+    state.enemies = canonical.enemies.map(source => {
+      const def=window.Combat?.enemyDefinition(source)||source;
       const e = DND.init({ id: def.id, name: def.name, kind: def.kind ?? 3, x: def.x, y: def.y, facing: 2, visual: def.visual, gen: def.gen });
       e.hp = e.max = def.max; e.ac = e.baseAC = def.ac;
       e.className = ({ beast: 'Зверь', bandit: 'Налётчик', training: 'Учебный манекен' })[def.visual] || e.className;
+      window.Combat?.initializeEnemy(e,def);
+      if(!e.monsterKind&&!training)e.monsterKind=({bandit:"bandit",beast:"wolf"})[def.visual];
       return e;
     });
     if (training) {
@@ -852,13 +856,37 @@
           if (state.encounter?.scriptedLoss && state.tutorial?.step === 17) {
             p.acted = true;
           } else {
-          const t = state.party.filter((a) => a.hp > 0 && !a.dead).sort((a, b) => dist(p, a) - dist(p, b))[0];
-          if (t) {
-            if (dist(p, t) > 1) {
-              const paths = DIRS.map(([dx, dy]) => pathTo(p, { x: t.x + dx, y: t.y + dy })).filter(Boolean).sort((a, b) => a.length - b.length);
-              if (paths[0]) await travel(p, paths[0].slice(0, p.speed));
+          if(window.Combat){
+            const actors=all().map(a=>Combat.plannerActor(a,DND.weapon(a,state.level)));
+            const me=actors.find(a=>a.id===p.id);
+            const intent=Combat.decide(me,{actors,cardinal:true,searchRadius:24,
+              passable:(x,y)=>Math.abs(x-p.x)<=24&&Math.abs(y-p.y)<=24&&!blocked({x,y})&&!all().some(a=>a.id!==p.id&&a.hp>0&&a.x===x&&a.y===y),los:line});
+            p.combatNote=intent.note;
+            let remaining=p.speed;
+            const follow=async points=>{
+              for(const point of points){const next=Array.isArray(point)?{x:point[0],y:point[1]}:point;
+                if(remaining<=0||p.hp<=0||p.dead||dist(p,next)!==1||blocked(next)||entity(next))break;
+                const moved=await travel(p,[next]);remaining-=moved;if(!moved)break;
+              }
+            };
+            await follow(intent.path||[]);
+            const target=state.party.find(a=>a.id===intent.target);
+            if(target&&['attack','multiattack'].includes(intent.kind)){
+              const chosen=p.attacks?.[intent.attack];
+              {
+                for(let hit=0;hit<(intent.kind==='multiattack'?(p.multiattack||1):1);hit++){
+                  if(p.hp<=0||p.dead||target.hp<=0||target.dead||dist(p,target)>(chosen?Combat.weaponFromAttack(chosen):DND.weapon(p)).range||!line(p,target))break;
+                  await strike(p,target,true,false,chosen);
+                }
+              }
             }
-            if (p.hp > 0 && dist(p, t) === 1) await strike(p, t, true);
+            if(intent.retreatTo&&p.hp>0){
+              const route=pathTo(p,{x:intent.retreatTo[0],y:intent.retreatTo[1]});
+              if(route)await follow(route.slice(0,remaining));
+            }
+          } else {
+            const t=state.party.filter(a=>a.hp>0&&!a.dead).sort((a,b)=>dist(p,a)-dist(p,b))[0];
+            if(t){const routes=DIRS.map(([dx,dy])=>pathTo(p,{x:t.x+dx,y:t.y+dy})).filter(Boolean).sort((a,b)=>a.length-b.length);if(dist(p,t)>1&&routes[0])await travel(p,routes[0].slice(0,p.speed));if(p.hp>0&&dist(p,t)===1)await strike(p,t,true);}
           }
           }
           p.acted = true;

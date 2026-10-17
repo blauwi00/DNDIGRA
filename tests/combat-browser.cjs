@@ -1,0 +1,40 @@
+const assert=require('node:assert/strict'),fs=require('fs'),http=require('http'),path=require('path');
+const {chromium}=require('playwright');const {configureBrowserPage}=require('./browser-harness.cjs');
+const root=path.resolve(__dirname,'../dist'),out='/tmp/dndigra-combat-qa';
+const server=http.createServer((q,r)=>{if(q.url.startsWith('/api')){r.setHeader('Content-Type','application/json');return r.end(JSON.stringify({heroes:[],worlds:[]}));}try{const f=path.join(root,q.url.split('?')[0]==='/'?'index.html':q.url.split('?')[0]);r.setHeader('Content-Type',({js:'application/javascript',css:'text/css',html:'text/html',png:'image/png',svg:'image/svg+xml'})[f.split('.').pop()]||'application/octet-stream');r.end(fs.readFileSync(f));}catch{r.statusCode=404;r.end();}});
+(async()=>{fs.mkdirSync(out,{recursive:true});await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{
+ browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await configureBrowserPage(page);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:'+server.address().port+'/?offline=1');await page.waitForFunction(()=>window.voxel?.ready&&window.Combat);
+ await page.evaluate(()=>{
+  CinematicMenu.play();Worlds.detach();document.querySelectorAll('dialog[open]').forEach(d=>d.close());
+  const s=structuredClone(gameDebug.state);delete s.prologue;delete s.story;delete s.tutorial;s.world={id:'combat-qa',title:'Боевая проверка',discovered:[]};s.scene='combat-qa';s.combat=false;s.enemies=[];s.encounter=null;
+  const scene=PrologueRules.scenes(PrologueRules.initial())['prologue-road'];scene.id='combat-qa';scene.name='Лесная дорога';scene.encounters=[];World.compileCollisions(scene);World.scenes[scene.id]=scene;
+  const hero=DND.init({id:'qa-hero',name:'Бор',kind:2,x:10,y:12,appearance:Characters.defaultLook('fighter','male')});hero.hp=hero.max=100;hero.confirmed=true;s.party=[hero];s.active=hero.id;s.settings.animations=false;s.settings.ambient=.8;
+  gameDebug.loadWorld(s);viewsDebug.switchTab('map');camera.center(gameDebug.active());camera.zoom(.7);
+  window.makeCombatEnemy=(kind,x,y,id=kind)=>{const def=Combat.enemyDefinition({monsterKind:kind,id,kind:3,x,y});const a=DND.init({...def});a.hp=a.max=def.max;a.ac=def.ac;return Combat.initializeEnemy(a,def);};
+  const e=makeCombatEnemy('skeleton_archer',10,8);gameDebug.state.enemies=[e];gameDebug.state.combat=true;gameDebug.state.order=['qa-hero',e.id];gameDebug.state.cursor=0;gameDebug.state.encounter={id:'qa',scene:'combat-qa'};gameDebug.render();voxel.sync();
+  window.combatDecisions=0;const decide=Combat.decide; // expose observation through the planner input rather than replacing its read-only export
+  window.qaBefore={x:e.x,y:e.y,hp:gameDebug.active().hp};
+ });
+ await page.evaluate(()=>gameDebug.endTurn());
+ const result=await page.evaluate(()=>({enemy:gameDebug.state.enemies[0],logs:gameDebug.state.logs.slice(-8),cursor:gameDebug.state.cursor,busy:gameDebug.busy}));
+ assert.equal(result.enemy.x,10);assert.equal(result.enemy.y,8);assert.match(result.logs.join('\n'),/Костяной лук/);assert.equal(result.busy,false);assert.equal(result.cursor,0);console.log('PASS real enemy turn: ranged attack through existing DND/HUD at distance');
+ await page.evaluate(()=>{const e=makeCombatEnemy('bandit_captain',10,10);gameDebug.state.enemies=[e];gameDebug.state.order=['qa-hero',e.id];gameDebug.state.cursor=0;gameDebug.state.combat=true;gameDebug.render();voxel.sync();window.qaLogStart=gameDebug.state.logs.length;});
+ await page.evaluate(()=>gameDebug.endTurn());
+ const meleeResult=await page.evaluate(()=>({e:gameDebug.state.enemies[0],h:gameDebug.active(),logs:gameDebug.state.logs.slice(window.qaLogStart)}));
+ assert.equal(Math.abs(meleeResult.e.x-meleeResult.h.x)+Math.abs(meleeResult.e.y-meleeResult.h.y),1);
+ assert.equal(meleeResult.logs.filter(t=>t.includes('Ятаган')).length,2,'Boss executes two real DND attacks after moving');
+ console.log('PASS real cardinal movement and multiattack');
+ await page.evaluate(()=>{gameDebug.state.combat=false;gameDebug.active().hp=gameDebug.active().max=13;gameDebug.state.enemies=[makeCombatEnemy('skeleton_archer',10,8),makeCombatEnemy('wolf',9,11),makeCombatEnemy('goblin',11,12)];gameDebug.state.settings.animations=true;gameDebug.render();voxel.sync();});
+ await page.waitForTimeout(500);await page.screenshot({path:out+'/enemies-390x844.png'});
+ assert.equal(await page.evaluate(()=>fx.version),2,'Voxel renderer keeps CombatFX');
+ await page.evaluate(()=>{window.qaShot=fx.strike(gameDebug.state.enemies[0],gameDebug.active(),true);});
+ await page.waitForTimeout(90);await page.evaluate(()=>document.getElementById('combat-effects')?.getAnimations({subtree:true}).forEach(a=>a.pause()));await page.screenshot({path:out+'/ranged-390x844.png'});
+ const alignment=await page.evaluate(()=>{const r=document.getElementById('combat-effects').getBoundingClientRect(),v=document.getElementById('viewport').getBoundingClientRect();return {width:r.width,height:r.height,vw:v.width,vh:v.height,count:document.getElementById('combat-effects').children.length};});assert.equal(alignment.width,alignment.vw);assert.equal(alignment.height,alignment.vh);assert.ok(alignment.count>0);
+ await page.evaluate(()=>document.getElementById('combat-effects').getAnimations({subtree:true}).forEach(a=>a.finish()));await page.evaluate(()=>window.qaShot);
+ await page.evaluate(()=>{fx.impact(gameDebug.state.enemies[2],12,true,true);document.getElementById('combat-effects').getAnimations({subtree:true}).forEach(a=>{a.currentTime=140;a.pause();});});await page.screenshot({path:out+'/critical-390x844.png'});
+ await page.evaluate(()=>document.getElementById('combat-effects').getAnimations({subtree:true}).forEach(a=>a.finish()));
+ await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>fx.strike(gameDebug.active(),gameDebug.state.enemies[1],true));assert.equal(await page.evaluate(()=>document.getElementById('combat-effects').getAnimations({subtree:true}).length),0);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=390));assert.deepEqual(errors,[]);console.log('PASS real models, projected FX, critical, reduced motion and no overflow at 390x844');
+ }finally{await browser?.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1});
