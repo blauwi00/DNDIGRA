@@ -7,7 +7,7 @@ const suites=[
   'character-style','characters','preview-frame','inventory-rules','silhouette',
   'npc-facing','static-batches','texel-overlap','stone-atlas','location-generator',
   'worldgen-versions','worldgen','heroes-api','worlds-api','worlds-client','worldgen-api',
-  'adventure-worldgen','adventure-api','adventure-client','tutorial-rules','prologue',
+  'adventure-worldgen','adventure-api','adventure-client','tutorial-rules','prologue','caravan-cinema',
   'region-streaming','region-resources','region-renderer','region-walk','worlds-practice','local-api','enemy-models','prompt-input',
   'world-carry','native-config','island-terrain','island-scenes','island-client','island-renderer','island-api'
 ];

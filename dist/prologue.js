@@ -6,7 +6,7 @@
   let panel,hint,cardKey='',saveError='',starting=false;
   const active=()=>!!game()?.state.prologue;
   const state=()=>game().state.prologue;
-  const locked=()=>active()&&(['ride','crash'].includes(state().phase)||state().phase==='ambush'&&!game().state.combat||!state().introSeen);
+  const locked=()=>active()&&(state().preview||window.CaravanCinema?.active||['ride','crash'].includes(state().phase)||state().phase==='ambush'&&!game().state.combat||!state().introSeen);
   function button(text,fn){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){game()?.tell(e.message);error(e.message);}finally{b.disabled=false;}};return b;}
   function error(message){const d=document.getElementById('modal');document.getElementById('modal-title').textContent='Начало пути';document.getElementById('modal-body').replaceChildren(Object.assign(document.createElement('p'),{textContent:message}));if(!d.open)d.showModal();}
   function read(){
@@ -14,7 +14,7 @@
     return null;
   }
   function persist(){
-    if(!active())return true;
+    if(!active()||state().preview)return true;
     try{localStorage.setItem(key(),JSON.stringify(game().state));saveError='';return true;}
     catch{saveError='Не удалось сохранить на устройстве. Освободи место и попробуй снова.';return false;}
   }
@@ -35,6 +35,30 @@
     return snapshot;
   }
   function demoHero(){const appearance=HeroRules.applyLook({},'fighter','male');return HeroRules.sheet({name:'Бор',classId:'fighter',stats:HeroRules.preset('fighter'),appearance,kit:0,background:'Ты родился и вырос в этой деревне. Орен научил тебя обращаться с оружием. Завтра торговцам понадобится ещё один сопровождающий.'},'prologue-demo-fighter');}
+  async function preview(){
+    const hero=read()?.party[0]||(game().active().confirmed?game().active():demoHero());
+    const snapshot=prepare(LocalAPI.initialWorld(hero,'preview-'+LocalAPI.randomUUID(),1,{seed:'caravan-preview',size:'small',generatorVersion:3,tutorialCompleted:true}));
+    Object.assign(snapshot.prologue,{phase:'ride',introSeen:true,preview:true,preparation:'cargo',prepared:true});
+    snapshot.scene='prologue-road';snapshot.party[0].x=10;snapshot.party[0].y=12;
+    await Worlds.startPrologue(hero,snapshot);
+  }
+  function cinematic(s,g){
+    if(!window.CaravanCinema)return false;
+    if(CaravanCinema.active)return true;
+    const sequence=s.phase==='ride'?'road':s.phase==='crash'?'crash':s.phase==='aftermath'?'wake':null;
+    if(!sequence||s.cinemaSeen?.[sequence])return false;
+    CaravanCinema.play(sequence,()=>{
+      if(g.state.prologue!==s)return;
+      s.cinemaSeen={...s.cinemaSeen,[sequence]:true};g.save();
+      if(s.preview){
+        if(sequence==='road'){change('arrive');change('victory');return;}
+        if(sequence==='crash'){change('wake');return;}
+        s.previewFinished=true;
+      }
+      g.render();
+    });
+    return true;
+  }
   function open(){
     const d=document.getElementById('modal'),body=document.getElementById('modal-body'),saved=read();
     document.getElementById('modal-title').textContent='Начало пути';
@@ -128,9 +152,11 @@
   function focusGoal(){const s=state();const id=s.phase==='day1'?(!s.greeted?'prologue-oren':!s.supplies?'home-supplies':!s.delivered?'prologue-lisa':'home-bed'):s.phase==='day2'?(!s.preparation?'prologue-lisa':!s.prepared?(s.preparation==='cargo'?'rope':'prologue-teya'):'home-bed'):s.phase==='aftermath'?(s.recovered?'prologue-lisa':s.tracks?'stolen-bag':'prologue-lisa'):'carriage';const p=game().props.find(p=>p.id===id);if(p)camera.center(p);}
   function render(){
     init();const visible=active()&&!Worlds.atMenu&&!window.CinematicMenu?.active&&!document.getElementById('map-view').hidden;
-    hint.hidden=!visible;if(!visible){hide();return;}
+    hint.hidden=!visible;if(!visible){window.CaravanCinema?.stop();hide();return;}
     const s=state(),g=game();hint.textContent=(saveError?'Не сохранено · ':'')+rules().objective(s);hint.setAttribute('aria-label','Задание: '+rules().objective(s));
     if(g.actionBusy||window.HUD?.active){hide();return;}
+    if(cinematic(s,g)){hint.hidden=true;hide();return;}
+    if(s.previewFinished){hint.hidden=true;card('preview-end','Твоя дорога начинается дома','Сцена закончилась. В приключении ты сам подготовишься к дороге и защитишь торговку в бою.',[button('Начать приключение',async()=>{await Worlds.exitToMenu();open();}),button('В главное меню',()=>Worlds.exitToMenu())]);return;}
     if(!s.introSeen)card('intro','Первый день дома','Ты знаешь каждый поворот этой деревни. Через два утра карета Лисы уйдёт к рынку. Стражников не хватает, и ты согласился сопровождать торговцев. Сегодня нужно собрать вещи и поговорить с Ореном.',[button('Выйти во двор',()=>{s.introSeen=true;g.save();hide();g.render();})]);
     else if(s.phase==='ride')card('ride','Третье утро · в дороге','Деревня остаётся за спиной. Ты идёшь рядом с каретой. У поворота из кустов выходят люди: один хватает вожжи, другой идёт к Лисе с коротким мечом. Дарен прикрывает возницу.',[button('Прикрыть торговку',async()=>{change('arrive','Ты встаёшь между торговкой и вором.');await startBattle();})]);
     else if(s.phase==='ambush'&&!g.state.combat)card('battle-'+(g.active().hp>0),'Нападение на дороге',g.active().hp>0?'Вор подходит к торговке. Останови его.':'Вор оказался сильнее. Можно повторить столкновение с состоянием героя перед нападением.',[button(g.active().hp>0?'Вступить в бой':'Повторить бой',()=>startBattle(g.active().hp<=0||g.active().dead))]);
@@ -139,5 +165,5 @@
     else hide();
   }
   function restore(){cardKey='';saveError='';if(active()&&game().state.combat)queueMicrotask(()=>game().resumeEncounter());render();}
-  window.Prologue={open,prepare,install,restore,persist,read,interact,victory,render,journal,get active(){return active();},get locked(){return locked();},get saveError(){return saveError;}};
+  window.Prologue={open,preview,prepare,install,restore,persist,read,interact,victory,render,journal,get active(){return active();},get locked(){return locked();},get saveError(){return saveError;}};
 })();

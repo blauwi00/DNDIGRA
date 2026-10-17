@@ -191,3 +191,8 @@ assert.equal(game.state.gold,15);assert.equal(game.state.prologue.introSeen,true
 await env.Worlds.endPractice();
 assert.equal(JSON.stringify(game.state),campaignBefore);
 console.log('PASS prologue local save, campaign isolation, combat resume and storage failure');
+const savedEpisodeBefore=JSON.stringify(env.Prologue.read());
+const previewSnapshot=structuredClone(env.Prologue.read());previewSnapshot.prologue.preview=true;previewSnapshot.gold=999;
+await env.Worlds.startPrologue(hero,previewSnapshot);env.Worlds.capture();await env.Worlds.flush();await env.Worlds.endPractice();
+assert.equal(JSON.stringify(env.Prologue.read()),savedEpisodeBefore,'Cinematic preview must never overwrite the playable episode');
+console.log('PASS cinematic preview preserves episode and campaign saves');

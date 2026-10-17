@@ -1,3 +1,6 @@
+# Current cinematic follow-up · 2026-10-17
+Owner requested an immediate impressive addition in the existing game. Caravan cinematics use the current orthographic map, models and textures. Preserve the separate episode save: the menu preview never writes it. See docs/PROLOGUE.md and caravan-cinema tests. Existing game rules, generation and main campaign are unchanged.
+
 # Current short prologue · 2026-10-16
 Owner authorized a small playable episode in the existing game after narrowing scope. See `docs/PROLOGUE.md`: peaceful village days, caravan attack, knockout beside carriage, preparation consequences and optional recovery. Preserve existing assets, campaign saves and Site identity. The episode has its own local save and authored scenes; this is not the full procedural island or AI GM. Latest owner directions supersede older generator-only task notes below.
 
