@@ -25,3 +25,17 @@ const summary=Combat.intentSummary(world.actors[0],{kind:'multiattack',attack:0,
 assert.match(summary.text,/→ Бор$/);
 assert.match(summary.text,/атак: 1/);
 assert.equal(Combat.intentSummary(archer,{kind:'wait',target:null,path:[]},[]).text,'Выжидает');
+
+const mover={id:'p',hp:10,x:0,y:0};
+const near={id:'a',name:'A',hp:10,x:1,y:0}, later={id:'b',hp:10,x:1,y:2};
+const route=[{x:0,y:1},{x:0,y:2},{x:0,y:3},{x:0,y:2},{x:0,y:1}];
+const foes=[near,later], snapshot=JSON.stringify({mover,route,foes});
+const weapon=()=>({range:1});
+assert.deepEqual(Combat.opportunityThreats(mover,route,foes,weapon).map(f=>f.id),['a','b']);
+assert.equal(JSON.stringify({mover,route,foes}),snapshot);
+for(const altered of [{reactionUsed:true},{dead:true},{hp:0}])assert.deepEqual(Combat.opportunityThreats(mover,route,[{...near,...altered}],weapon),[]);
+assert.deepEqual(Combat.opportunityThreats({...mover,disengaged:true},route,foes,weapon),[]);
+assert.deepEqual(Combat.opportunityThreats(mover,route,foes,weapon,false),[]);
+assert.deepEqual(Combat.opportunityThreats(mover,route,foes,()=>({range:8})),[]);
+assert.deepEqual(Combat.opportunityThreats(mover,[{x:1,y:1}],foes,weapon),[]);
+console.log('PASS whole-route opportunity forecast, once per enemy, exclusions and no mutation');

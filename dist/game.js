@@ -378,7 +378,7 @@
       actions.push({ id: "move", label: "Идти" + (state.combat ? " · " + path.length + " кл." : ""), enabled: a.hp > 0 && !window.Worlds?.locked && (!state.combat || path.length <= a.move), run: move });
     }
     const anchor = actions[0]?.id === "move" ? { ...selected, name: "Клетка " + (selected.x + 1) + ", " + (selected.y + 1) } : p;
-    window.objectPrompt = { p: actions.length ? anchor : null, intent: selected && !object ? enemyIntent(p) : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
+    window.objectPrompt = { p: actions.length ? anchor : null, intent: actions[0]?.id === "move" && actions[0].enabled ? movementWarning(a, path) : selected && !object ? enemyIntent(p) : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
   }
   const interactionLabels = { "ground-item": "Подобрать", npc: "Говорить", door: "Открыть дверь", portal: "Перейти", chest: "Открыть сундук", altar: "Осмотреть", books: "Читать", desk: "Осмотреть", barrel: "Осмотреть", crate: "Осмотреть", chair: "Осмотреть", planter: "Осмотреть", scrolls: "Читать", rack: "Осмотреть", clue: "Изучить следы", counter: "Осмотреть", table: "Осмотреть", lantern: "Осмотреть", waymark: "Осмотреть" };
   function approachPath(a, p) {
@@ -564,6 +564,11 @@
     return !!saved && state === snapshot && window.Worlds.current?.id === record.id &&
       !pendingIslandLocationMilestone(snapshot, window.Worlds.current);
   }
+  function movementWarning(actor, steps) {
+    const foes = window.Combat?.opportunityThreats(actor, steps, state.enemies, f => DND.weapon(f, state.level), state.combat)
+      .filter(f => window.visibility?.canSee(actor, f) !== false) || [];
+    return foes.length ? { kind: "opportunity", text: "Могут ударить при отходе: " + foes.map(f => f.name).join(", "), hint: "Действие «Отход» позволяет уйти без этих атак." } : null;
+  }
   async function travel(e, steps) {
     let completed = 0;
     const controlled = e.kind < 3 && busy && e.id === state.active;
@@ -576,7 +581,7 @@
         if (controlled && stopRequested) break;
         const duration = animate() ? 220 : 0;
         if (state.combat && !e.disengaged) {
-          for (const foe of (e.kind === 3 ? state.party : state.enemies).filter((f) => f.hp > 0 && !f.reactionUsed && DND.weapon(f, state.level).range === 1 && dist(e, f) === 1 && dist(p, f) > 1)) {
+          for (const foe of (window.Combat?.opportunityThreats(e, [p], e.kind === 3 ? state.party : state.enemies, f => DND.weapon(f, state.level)) || (e.kind === 3 ? state.party : state.enemies).filter((f) => f.hp > 0 && !f.reactionUsed && DND.weapon(f, state.level).range === 1 && dist(e, f) === 1 && dist(p, f) > 1))) {
             foe.reactionUsed = true;
             await strike(foe, e, foe.kind === 3, true);
             if (e.hp <= 0) return completed;

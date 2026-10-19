@@ -32,6 +32,23 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith('/api')){r.setHeader(
  assert.equal(Math.abs(meleeResult.e.x-meleeResult.h.x)+Math.abs(meleeResult.e.y-meleeResult.h.y),1);
  assert.equal(meleeResult.logs.filter(t=>t.includes('Ятаган')).length,2,'Boss executes two real DND attacks after moving');
  console.log('PASS real cardinal movement and multiattack');
+ await page.evaluate(()=>{const e=makeCombatEnemy('goblin',11,12);gameDebug.state.enemies=[e];gameDebug.active().move=6;gameDebug.render();voxel.sync();});
+ const beforeRoute=await page.evaluate(()=>JSON.stringify(gameDebug.state));
+ await page.evaluate(()=>gameDebug.select({x:10,y:13}));
+ await page.waitForFunction(()=>document.querySelector('.enemy-intent')?.textContent.includes('Могут ударить'));
+ assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),beforeRoute);
+ await page.screenshot({path:out+'/route-warning-390x844.png'});
+ for(const flag of ['disengaged','reactionUsed']){
+   await page.evaluate(flag=>{(flag==='disengaged'?gameDebug.active():gameDebug.state.enemies[0])[flag]=true;gameDebug.render();},flag);
+   assert.equal(await page.evaluate(()=>window.objectPrompt.intent),null);
+   await page.evaluate(flag=>{(flag==='disengaged'?gameDebug.active():gameDebug.state.enemies[0])[flag]=false;gameDebug.render();},flag);
+ }
+ await page.evaluate(()=>window.objectPrompt.actions[0].run());
+ assert.equal(await page.evaluate(()=>gameDebug.state.enemies[0].reactionUsed),true,'The forecast matches an actual movement reaction');
+ assert.equal(await page.evaluate(()=>gameDebug.active().y),13);
+ await page.evaluate(()=>gameDebug.dismissMapActions());
+ console.log('PASS movement warning, no mutation, disengage, spent reactions and real execution');
+
  await page.evaluate(()=>{gameDebug.state.combat=false;gameDebug.active().hp=gameDebug.active().max=13;gameDebug.state.enemies=[makeCombatEnemy('skeleton_archer',10,8),makeCombatEnemy('wolf',9,11),makeCombatEnemy('goblin',11,12)];gameDebug.state.settings.animations=true;gameDebug.render();voxel.sync();});
  await page.waitForTimeout(500);await page.screenshot({path:out+'/enemies-390x844.png'});
  assert.equal(await page.evaluate(()=>fx.version),2,'Voxel renderer keeps CombatFX');

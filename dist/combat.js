@@ -35,6 +35,7 @@ var Combat = (() => {
     intentSummary: () => intentSummary,
     kindsList: () => kindsList,
     mod: () => mod,
+    opportunityThreats: () => opportunityThreats,
     placeEncounter: () => placeEncounter,
     plannerActor: () => plannerActor,
     reach: () => reach,
@@ -567,6 +568,23 @@ var Combat = (() => {
       if (intent.kind === "multiattack") label += " \xB7 \u0430\u0442\u0430\u043A: " + (me.multiattack || 1);
     }
     return { kind: intent.kind, text: (label || "\u0412\u044B\u0436\u0438\u0434\u0430\u0435\u0442") + (target && intent.kind !== "wait" && intent.kind !== "flee" ? " \u2192 " + target.name : ""), hint: "\u041F\u043B\u0430\u043D \u043C\u043E\u0436\u0435\u0442 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C\u0441\u044F \u043F\u043E\u0441\u043B\u0435 \u0442\u0432\u043E\u0435\u0433\u043E \u0445\u043E\u0434\u0430." };
+  }
+  function opportunityThreats(actor, steps, foes, weapon, combat = true) {
+    if (!combat || actor.disengaged || actor.dead || actor.hp <= 0) return [];
+    const distance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    const used = /* @__PURE__ */ new Set(), threats = [];
+    let from = actor;
+    for (const to of steps) {
+      for (const foe of foes) {
+        if (used.has(foe.id) || foe.dead || foe.hp <= 0 || foe.reactionUsed || weapon(foe).range !== 1) continue;
+        if (distance(from, foe) === 1 && distance(to, foe) > 1) {
+          used.add(foe.id);
+          threats.push(foe);
+        }
+      }
+      from = to;
+    }
+    return threats;
   }
   return __toCommonJS(index_exports);
 })();

@@ -37,3 +37,19 @@ export function intentSummary(me, intent, actors) {
   }
   return {kind:intent.kind,text:(label||'Выжидает')+(target&&intent.kind!=='wait'&&intent.kind!=='flee'?' → '+target.name:''),hint:'План может измениться после твоего хода.'};
 }
+
+// Same cardinal-grid reaction rule for preview and execution. Never mutates actors.
+export function opportunityThreats(actor, steps, foes, weapon, combat=true) {
+  if(!combat||actor.disengaged||actor.dead||actor.hp<=0)return [];
+  const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+  const used=new Set(), threats=[];
+  let from=actor;
+  for(const to of steps){
+    for(const foe of foes){
+      if(used.has(foe.id)||foe.dead||foe.hp<=0||foe.reactionUsed||weapon(foe).range!==1)continue;
+      if(distance(from,foe)===1&&distance(to,foe)>1){used.add(foe.id);threats.push(foe);}
+    }
+    from=to;
+  }
+  return threats;
+}
