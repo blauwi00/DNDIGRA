@@ -32,6 +32,7 @@ var Combat = (() => {
     decide: () => decide,
     enemyDefinition: () => enemyDefinition,
     initializeEnemy: () => initializeEnemy,
+    intentSummary: () => intentSummary,
     kindsList: () => kindsList,
     mod: () => mod,
     placeEncounter: () => placeEncounter,
@@ -555,6 +556,17 @@ var Combat = (() => {
     if (!match || !Number(match[1]) || !Number(match[2])) return null;
     const names = { piercing: "\u041A\u043E\u043B\u044E\u0449\u0438\u0439", slashing: "\u0420\u0443\u0431\u044F\u0449\u0438\u0439", bludgeoning: "\u0414\u0440\u043E\u0431\u044F\u0449\u0438\u0439", fire: "\u041E\u0433\u043E\u043D\u044C", poison: "\u042F\u0434" };
     return { name: attack.name, range: attack.ranged ? attack.range : attack.reach || 1, count: Number(match[1]), die: Number(match[2]), damageBonus: Number(match[3] || 0), attackBonus: attack.bonus, type: names[attack.type] || attack.type || "\u0424\u0438\u0437\u0438\u0447\u0435\u0441\u043A\u0438\u0439" };
+  }
+  function intentSummary(me, intent, actors) {
+    if (!intent) return null;
+    const target = actors.find((a) => a.id === intent.target);
+    const ranged = me.attacks?.[intent.attack]?.ranged;
+    let label = { wait: "\u0412\u044B\u0436\u0438\u0434\u0430\u0435\u0442", move: "\u0421\u0431\u043B\u0438\u0436\u0430\u0435\u0442\u0441\u044F", flee: "\u041E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442", web: "\u0413\u043E\u0442\u043E\u0432\u0438\u0442 \u043F\u0430\u0443\u0442\u0438\u043D\u0443", spell: "\u0413\u043E\u0442\u043E\u0432\u0438\u0442 \u0437\u0430\u043A\u043B\u0438\u043D\u0430\u043D\u0438\u0435" }[intent.kind];
+    if (intent.kind === "attack" || intent.kind === "multiattack") {
+      label = ranged ? intent.path?.length ? intent.retreat ? "\u041E\u0442\u043E\u0439\u0434\u0451\u0442 \u0438 \u0432\u044B\u0441\u0442\u0440\u0435\u043B\u0438\u0442" : "\u0417\u0430\u0439\u043C\u0451\u0442 \u043F\u043E\u0437\u0438\u0446\u0438\u044E \u0438 \u0432\u044B\u0441\u0442\u0440\u0435\u043B\u0438\u0442" : "\u0413\u043E\u0442\u043E\u0432\u0438\u0442 \u0432\u044B\u0441\u0442\u0440\u0435\u043B" : intent.path?.length ? "\u041F\u043E\u0434\u043E\u0439\u0434\u0451\u0442 \u0438 \u0430\u0442\u0430\u043A\u0443\u0435\u0442" : "\u0413\u043E\u0442\u043E\u0432\u0438\u0442 \u0443\u0434\u0430\u0440";
+      if (intent.kind === "multiattack") label += " \xB7 \u0430\u0442\u0430\u043A: " + (me.multiattack || 1);
+    }
+    return { kind: intent.kind, text: (label || "\u0412\u044B\u0436\u0438\u0434\u0430\u0435\u0442") + (target && intent.kind !== "wait" && intent.kind !== "flee" ? " \u2192 " + target.name : ""), hint: "\u041F\u043B\u0430\u043D \u043C\u043E\u0436\u0435\u0442 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C\u0441\u044F \u043F\u043E\u0441\u043B\u0435 \u0442\u0432\u043E\u0435\u0433\u043E \u0445\u043E\u0434\u0430." };
   }
   return __toCommonJS(index_exports);
 })();

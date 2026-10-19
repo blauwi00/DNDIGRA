@@ -3,3 +3,4 @@ export { MONSTERS, THEMES, THRESH, MULT, DIFFICULTY, buildEncounter, placeEncoun
 export { BEASTS, beastBoxes } from './beasts.js';
 export { decide, reach } from './ai.js';
 export {enemyDefinition,initializeEnemy,plannerActor,weaponFromAttack} from './runtime.js';
+export {intentSummary} from './runtime.js';

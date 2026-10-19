@@ -24,3 +24,16 @@ export function weaponFromAttack(attack) {
   const names={piercing:'Колющий',slashing:'Рубящий',bludgeoning:'Дробящий',fire:'Огонь',poison:'Яд'};
   return {name:attack.name,range:attack.ranged?attack.range:attack.reach||1,count:Number(match[1]),die:Number(match[2]),damageBonus:Number(match[3]||0),attackBonus:attack.bonus,type:names[attack.type]||attack.type||'Физический'};
 }
+
+// A forecast, never a reserved action: recomputed when positions or conditions change.
+export function intentSummary(me, intent, actors) {
+  if(!intent)return null;
+  const target=actors.find(a=>a.id===intent.target);
+  const ranged=me.attacks?.[intent.attack]?.ranged;
+  let label={wait:'Выжидает',move:'Сближается',flee:'Отступает',web:'Готовит паутину',spell:'Готовит заклинание'}[intent.kind];
+  if(intent.kind==='attack'||intent.kind==='multiattack'){
+    label=ranged?(intent.path?.length?(intent.retreat?'Отойдёт и выстрелит':'Займёт позицию и выстрелит'):'Готовит выстрел'):(intent.path?.length?'Подойдёт и атакует':'Готовит удар');
+    if(intent.kind==='multiattack')label+=' · атак: '+(me.multiattack||1);
+  }
+  return {kind:intent.kind,text:(label||'Выжидает')+(target&&intent.kind!=='wait'&&intent.kind!=='flee'?' → '+target.name:''),hint:'План может измениться после твоего хода.'};
+}

@@ -378,7 +378,7 @@
       actions.push({ id: "move", label: "Идти" + (state.combat ? " · " + path.length + " кл." : ""), enabled: a.hp > 0 && !window.Worlds?.locked && (!state.combat || path.length <= a.move), run: move });
     }
     const anchor = actions[0]?.id === "move" ? { ...selected, name: "Клетка " + (selected.x + 1) + ", " + (selected.y + 1) } : p;
-    window.objectPrompt = { p: actions.length ? anchor : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
+    window.objectPrompt = { p: actions.length ? anchor : null, intent: selected && !object ? enemyIntent(p) : null, actions, text: action?.label || "", enabled: !!action?.enabled, run: action?.fn };
   }
   const interactionLabels = { "ground-item": "Подобрать", npc: "Говорить", door: "Открыть дверь", portal: "Перейти", chest: "Открыть сундук", altar: "Осмотреть", books: "Читать", desk: "Осмотреть", barrel: "Осмотреть", crate: "Осмотреть", chair: "Осмотреть", planter: "Осмотреть", scrolls: "Читать", rack: "Осмотреть", clue: "Изучить следы", counter: "Осмотреть", table: "Осмотреть", lantern: "Осмотреть", waymark: "Осмотреть" };
   function approachPath(a, p) {
@@ -830,6 +830,20 @@
     emitGameAction('training-retry', { success: true, encounterId: 'tutorial-win' });
     return true;
   }
+  function planEnemy(p) {
+    const actors=all().map(a=>Combat.plannerActor(a,DND.weapon(a,state.level)));
+    const me=actors.find(a=>a.id===p.id);
+    // startTurn restores movement before execution. The preview forecasts that same next turn.
+    me.move=p.speed;
+    return Combat.decide(me,{actors,cardinal:true,searchRadius:24,
+      passable:(x,y)=>Math.abs(x-p.x)<=24&&Math.abs(y-p.y)<=24&&!blocked({x,y})&&!actors.some(a=>a.id!==p.id&&a.hp>0&&a.x===x&&a.y===y),los:line});
+  }
+  function enemyIntent(p) {
+    if(!window.Combat||!state.combat||busy||!p||p.kind!==3||p.hp<=0||p.dead||window.visibility?.canSee(active(),p)===false)return null;
+    if(state.encounter?.scriptedLoss&&state.tutorial?.step===17)return null;
+    const me=Combat.plannerActor(p,DND.weapon(p,state.level));
+    return Combat.intentSummary(me,planEnemy(p),all());
+  }
   async function enemiesUntilPlayer(advance = true, resuming = false) {
     if (advance) {
       state.cursor++;
@@ -857,10 +871,7 @@
             p.acted = true;
           } else {
           if(window.Combat){
-            const actors=all().map(a=>Combat.plannerActor(a,DND.weapon(a,state.level)));
-            const me=actors.find(a=>a.id===p.id);
-            const intent=Combat.decide(me,{actors,cardinal:true,searchRadius:24,
-              passable:(x,y)=>Math.abs(x-p.x)<=24&&Math.abs(y-p.y)<=24&&!blocked({x,y})&&!all().some(a=>a.id!==p.id&&a.hp>0&&a.x===x&&a.y===y),los:line});
+            const intent=planEnemy(p);
             p.combatNote=intent.note;
             let remaining=p.speed;
             const follow=async points=>{
@@ -1608,7 +1619,7 @@
     return moving;
   }, stop: () => {
     stopRequested = true;
-  }, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, dismissMapActions, attack, pathTo, line, canAttack, approachInteract, approachPath, normalizeRecoveredEncounter, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
+  }, enemyIntent, special, freeRoll, report, heal, all, isOpen, blocked, select, mapTap, dismissMapActions, attack, pathTo, line, canAttack, approachInteract, approachPath, normalizeRecoveredEncounter, center: (p) => ({ x: (p.x + 0.5) / scene().W, y: (p.y + 0.5) / scene().H }), render, art, active, save, tell, potion, journal, help, roll, test, enterScene, animate, getPiece: (id) => pieces.get(id) };
   window.Torches?.ensure();
   atlas.onload = cutAtlas;
   atlas.src = "assets/cartoon-atlas.png";

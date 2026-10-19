@@ -21,3 +21,7 @@ for(const kind of Combat.kindsList()){const m=enemyModel({monsterKind:kind});ass
 assert.equal(enemyModel({monsterKind:'ogre'}).scale,1.4);
 assert.equal(make('dark_mage',1,1).ai,'ranged');assert.equal(make('spider',1,1).attacks.length,1);
 console.log('PASS cardinal integration, blocked LOS, ranged DND dice, 15 textured models and explicit special-action fallback');
+const summary=Combat.intentSummary(world.actors[0],{kind:'multiattack',attack:0,target:'hero',path:[]},[{...hero,name:"Бор"}]);
+assert.match(summary.text,/→ Бор$/);
+assert.match(summary.text,/атак: 1/);
+assert.equal(Combat.intentSummary(archer,{kind:'wait',target:null,path:[]},[]).text,'Выжидает');

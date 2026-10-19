@@ -1537,13 +1537,15 @@ function tick(time) {
   if (prompt?.p) {
     const p = prompt.p, point = new T.Vector3(p.x + 0.5, 0.45, p.y + 0.5).project(camera);
     const x = (point.x + 1) * viewport.clientWidth / 2, y = (-point.y + 1) * viewport.clientHeight / 2;
-    const actions = prompt.actions || [], signature = JSON.stringify([p.name, actions.map(a=>[a.id,a.label,a.enabled])]);
+    const actions = prompt.actions || [], signature = JSON.stringify([p.name, prompt.intent, actions.map(a=>[a.id,a.label,a.enabled])]);
     if (objectPrompt.dataset.signature !== signature) {
       promptInput.clear();
       objectPrompt.dataset.signature = signature;
       const title = document.createElement("strong"); title.textContent = p.name;
       const buttons = actions.map(a=>{ const b=document.createElement("button");b.type="button";b.dataset.action=a.id;b.textContent=a.label;b.disabled=!a.enabled;return b; });
-      objectPrompt.replaceChildren(title,...buttons);
+      const info=[];
+      if(prompt.intent){const note=document.createElement('p');note.className='enemy-intent';note.dataset.kind=prompt.intent.kind;note.textContent=prompt.intent.text;const hint=document.createElement('small');hint.textContent=prompt.intent.hint;note.append(hint);info.push(note);}
+      objectPrompt.replaceChildren(title,...info,...buttons);
       objectPrompt.setAttribute("aria-label", "Действия · " + p.name);
     }
     const width = objectPrompt.offsetWidth || 190, height = objectPrompt.offsetHeight || 125;

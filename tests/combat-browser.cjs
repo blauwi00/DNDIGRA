@@ -17,6 +17,12 @@ const server=http.createServer((q,r)=>{if(q.url.startsWith('/api')){r.setHeader(
   window.combatDecisions=0;const decide=Combat.decide; // expose observation through the planner input rather than replacing its read-only export
   window.qaBefore={x:e.x,y:e.y,hp:gameDebug.active().hp};
  });
+ const savedBefore=await page.evaluate(()=>JSON.stringify(gameDebug.state));
+ const forecast=await page.evaluate(()=>gameDebug.enemyIntent(gameDebug.state.enemies[0]));
+ assert.match(forecast.text,/выстрел.*Бор/);assert.equal(await page.evaluate(()=>JSON.stringify(gameDebug.state)),savedBefore,'Forecast never changes combat or saves');
+ await page.evaluate(()=>gameDebug.select(gameDebug.state.enemies[0]));await page.waitForSelector('.enemy-intent');
+ await page.screenshot({path:out+'/intent-390x844.png'});
+ await page.evaluate(()=>gameDebug.dismissMapActions());await page.waitForFunction(()=>!document.querySelector('.enemy-intent')||document.querySelector('.object-prompt').hidden);
  await page.evaluate(()=>gameDebug.endTurn());
  const result=await page.evaluate(()=>({enemy:gameDebug.state.enemies[0],logs:gameDebug.state.logs.slice(-8),cursor:gameDebug.state.cursor,busy:gameDebug.busy}));
  assert.equal(result.enemy.x,10);assert.equal(result.enemy.y,8);assert.match(result.logs.join('\n'),/Костяной лук/);assert.equal(result.busy,false);assert.equal(result.cursor,0);console.log('PASS real enemy turn: ranged attack through existing DND/HUD at distance');
