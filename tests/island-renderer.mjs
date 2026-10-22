@@ -57,12 +57,13 @@ test('continuous biome colors use bounded shared materials and instance colors a
   for(let lap=0;lap<3;lap++)for(let row=200;row<850;row+=100)for(let x=200;x<850;x+=100){
     const root=buildIslandTerrain(S,{x,y:row,w:10,h:10},{geometry:geo,materialFor,sample:current});
     const resources=countGroupResources(root);counts.push(resources.materials);
-    assert.ok(resources.materials<=10);assert.equal(resources.geometries,1);
+    assert.ok(resources.materials<=14);assert.equal(resources.geometries,1);
     root.traverse(mesh=>{if(!mesh.isInstancedMesh)return;assert.ok(mesh.instanceColor);assert.ok(mesh.count<=500);assert.equal(mesh.userData.disposeMaterial,undefined);});
     const retired=[...materials.values()].map(mat=>{let disposed=0;mat.addEventListener('dispose',()=>disposed++);return ()=>disposed;});
     disposeOwnedGroup(root,{sharedGeometries:new Set([geo])});assert.ok(retired.every(count=>count()===0),'shared material survives every unload');
   }
-  assert.equal(samples,3*7*7*100);assert.ok(materials.size<=10,'all island travel shares a fixed set of material kinds');
+  assert.equal(samples,3*7*7*100);// 9 stone tiles + water + at most four pixel ground families.
+  assert.ok(materials.size<=14,'all island travel shares a fixed set of material kinds');
   assert.ok(counts.some(count=>count>1));geo.dispose();for(const mat of materials.values())mat.dispose();
 });
 

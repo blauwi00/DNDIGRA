@@ -16,6 +16,7 @@ import {enemyModel} from '../src/enemy-models.js';
 import {bindPromptInput} from '../src/prompt-input.js';
 import {planRegionChunks,createChunkStream} from '../src/region-streaming.js';
 import {stoneTile,createStoneMaterials} from '../src/stone-atlas.js';
+import {createPixelSurfaceMaterials} from '../src/islands/pixel-surfaces.js';
 import {SURFACE_BY_CODE,surfaceColor,wallColor} from '../src/worldgen/surfaces.js';
 import * as regionHelpers from '../src/region-rendering.js';
 import * as Props from '../src/props.js';
@@ -41,7 +42,7 @@ let scene={id:'small',W:20,H:20,outdoor:false,props:[hidden],decor:[],lights:[],
 const state={scene:'small',party:[hero],active:'hero',seed:4,settings:{lights:false,animations:false,ambient:.5,intensity:1},loot:{},enemies:[],combat:false};
 const game={state,get scene(){return scene;},get props(){return scene.props.filter(p=>p.id!=='hidden'||showHidden).map(p=>p.id===departingNpc?.id?departingNpc:p);},get departingNpc(){return departingNpc;},active:()=>hero,all:()=>[hero,...state.enemies],animate:()=>false,render:noop,isOpen:p=>!!state.doors?.[p.id],selected:null,route:[],mapTap:p=>{tapped=p;},dismissMapActions:noop};
 const World={tile:tileAt};
-const env={T:{...Three,WebGLRenderer:Renderer},stoneTile,createStoneMaterials:createTestStoneMaterials,WorldGen:{SURFACE_BY_CODE,surfaceColor,wallColor},npcFacing,faceCell,batchStaticModels,createMenuStage,texelPass,TEXEL,fitPreviewCamera,fillSilhouette,characterParts,characterProfile,characterSpec,characterBuild,enemyModel,bindPromptInput,planRegionChunks,createChunkStream,...regionHelpers,...islandRenderHelpers,
+const env={T:{...Three,WebGLRenderer:Renderer},stoneTile,createStoneMaterials:createTestStoneMaterials,createPixelSurfaceMaterials,WorldGen:{SURFACE_BY_CODE,surfaceColor,wallColor},npcFacing,faceCell,batchStaticModels,createMenuStage,texelPass,TEXEL,fitPreviewCamera,fillSilhouette,characterParts,characterProfile,characterSpec,characterBuild,enemyModel,bindPromptInput,planRegionChunks,createChunkStream,...regionHelpers,...islandRenderHelpers,
  document,performance:{now:()=>time},requestAnimationFrame:fn=>{const id=++nextFrame;frames.set(id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id),ResizeObserver:class{observe(){}},setTimeout:noop,console,World,Props,devicePixelRatio:1,location:{search:'?qa=1'},gameDebug:game,Torches:{lightSources:()=>[],fixture:()=>({present:true})}};env.window=env;env.document.getElementById('dialogue').hidden=true;
 vm.createContext(env);vm.runInContext(readFileSync(new URL('../src/voxel.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,''),env);
 const voxel=env.voxel;

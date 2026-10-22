@@ -1,11 +1,12 @@
 import * as T from "three";
 import {stoneTile,createStoneMaterials} from './stone-atlas.js';
-const stoneMaterial=createStoneMaterials(), sharedStoneMaterials=new Set();
+const stoneMaterial=createStoneMaterials(), sharedStoneMaterials=new Set(), pixelSurface=createPixelSurfaceMaterials({createCanvas:()=>document.createElement('canvas')});
 import {npcFacing,faceCell} from "./npc-facing.js";
 import {batchStaticModels} from './static-batches.js';
 import {planRegionChunks,createChunkStream} from './region-streaming.js';
 import {regionConfig,regionChunkId,cameraGroundBounds,expandRegionBounds,collectRegionPins,canSelectRegionCell,disposeOwnedGroup,countGroupResources} from './region-rendering.js';
 import { createMenuStage } from './menu-stage.js';
+import {createPixelSurfaceMaterials} from './islands/pixel-surfaces.js';
 import {islandRenderConfig,prepareIslandOverview,buildIslandTerrain,islandFoliage} from './islands/render.js';
 import { texelPass, TEXEL } from "./texel.js";
 import { fitPreviewCamera } from "./preview-frame.js";
@@ -806,7 +807,8 @@ function buildEnvironment(S,rect){
   if(S.island){
     resource.root.add(buildIslandTerrain(S,rect,{geometry:geo,materialFor:kind=>{
       if(kind.startsWith('stone:')){const mat=stoneMaterial(Number(kind.slice(6)));sharedStoneMaterials.add(mat);return mat;}
-      return terrainMaterial(0xffffff,kind==='water'?2:8);
+      if(kind.startsWith('ground:'))return pixelSurface(kind.slice(7));
+      return kind==='water'?pixelSurface('water'):terrainMaterial(0xffffff,8);
     }}));
   }else for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
     const type = World.tile(S, x, y), noise = (x * 113 + y * 71 + terrainSeed) % 11 / 100;
@@ -995,7 +997,7 @@ function overviewEnvironment(S){
   }
   const texture=new T.CanvasTexture(map);texture.colorSpace=T.SRGBColorSpace;texture.magFilter=texture.minFilter=T.NearestFilter;texture.generateMipmaps=false;
   const mat=new T.MeshStandardMaterial({map:texture,transparent:!S.island,roughness:1}),mesh=new T.Mesh(new T.PlaneGeometry(S.W,S.H),mat);
-  mesh.rotation.x=-Math.PI/2;mesh.position.set(S.W/2,S.island?-.075:-.018,S.H/2);mesh.receiveShadow=true;
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(S.W/2,S.island?-.13:-.018,S.H/2);mesh.receiveShadow=true;
   mesh.userData.disposeMaterial=true;mesh.userData.disposeTexture=true;root.add(mesh);root.name='region-overview';world.add(root);
   return root;
 }

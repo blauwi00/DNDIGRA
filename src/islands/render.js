@@ -7,6 +7,8 @@ import {stoneTile} from '../stone-atlas.js';
 export const ISLAND_OVERVIEW_MAX_SIDE=256;
 const MAX_CHUNK_SIDE=32;
 const LAND_KEYS=new Set(['grass','moss']);
+// Pixel ground textures are shared per family, so material kinds stay bounded.
+const GROUND_FAMILY={grass:'grass',moss:'grass',leaves:'grass',sand:'sand',dirt:'dirt',straw:'dirt',gravel:'stone',stone:'stone'};
 
 export function islandRenderConfig(config,scene){
   return scene.island?{...config,enabled:true,chunkSize:10,maxChunks:32}:config;
@@ -50,15 +52,18 @@ export function buildIslandTerrain(scene,rect,{geometry,materialFor,sample=sampl
     const cell=sample(scene,x,y);if(cell.tile==='void')continue;
     if(cell.land){
       const tile=stoneTile({surface:cell.surface,outdoor:true},x,y);
-      block(tile===null?'ground':'stone:'+tile,x+.5,-.095,y+.5,1,.17,1,cell.color);
+      // Atlas stone already carries its own colour; tinting it again by the
+      // surface colour multiplied twice and rendered roads almost black.
+      block(tile===null?'ground:'+(GROUND_FAMILY[cell.surface]||'dirt'):'stone:'+tile,x+.5,-.095,y+.5,1,.17,1,tile===null?cell.color:0xffffff);
     }else{
-      block('water',x+.5,-.13,y+.5,1,.17,1,cell.color);
+      // Water sits lower than before so the shoreline shows a raised earth edge.
+      block('water',x+.5,-.2,y+.5,1,.17,1,cell.color);
       // Foam belongs to sea cells, never to the logical dry floor. Fixed strips
       // meet the shoreline without allocating a global coast mask or new atlas.
-      if(isLand(scene.island,x-1,y))block('foam',x+.08,-.025,y+.5,.16,.012,1,0x94bbc0);
-      if(isLand(scene.island,x+1,y))block('foam',x+.92,-.025,y+.5,.16,.012,1,0x94bbc0);
-      if(isLand(scene.island,x,y-1))block('foam',x+.5,-.025,y+.08,1,.012,.16,0x94bbc0);
-      if(isLand(scene.island,x,y+1))block('foam',x+.5,-.025,y+.92,1,.012,.16,0x94bbc0);
+      if(isLand(scene.island,x-1,y))block('foam',x+.08,-.11,y+.5,.16,.012,1,0x94bbc0);
+      if(isLand(scene.island,x+1,y))block('foam',x+.92,-.11,y+.5,.16,.012,1,0x94bbc0);
+      if(isLand(scene.island,x,y-1))block('foam',x+.5,-.11,y+.08,1,.012,.16,0x94bbc0);
+      if(isLand(scene.island,x,y+1))block('foam',x+.5,-.11,y+.92,1,.012,.16,0x94bbc0);
     }
   }
   const matrix=new T.Matrix4(),position=new T.Vector3(),scale=new T.Vector3(),rotation=new T.Quaternion(),color=new T.Color();
