@@ -34,3 +34,23 @@ for(const mode of ['campaign','practice']){
   state.tutorial=createTutorial({skip:true,canSkip:true});env.Inventory.drop({id:'potion'});assert.equal(state.potions,0,'Completed tutorials do not reserve ordinary supplies');
 }
 console.log('PASS: actual inventory disposal reserves the final tutorial potion and explains why.');
+
+const entries=[{id:'gear0',name:'Верёвка',amount:1},{id:'potion',name:'Зелье',amount:3},{id:'gear1',name:'Меч',amount:1},{id:'gear2',name:'Дорожная еда',rawName:'Рационы · 5 дней',amount:2}];
+const original=JSON.stringify(entries);
+assert.deepEqual(InventoryRules.browseItems(entries,{query:'верев'}).map(i=>i.id),['gear0']);
+assert.deepEqual(InventoryRules.browseItems(entries,{query:'рационы 5'}).map(i=>i.id),['gear2']);
+assert.equal(InventoryRules.browseItems(entries,{group:'equipment'}).length,1);
+assert.equal(InventoryRules.browseItems(entries,{group:'supplies'}).length,2);
+assert.equal(InventoryRules.browseItems(entries,{sort:'quantity'})[0].id,'potion');
+assert.equal(JSON.stringify(entries),original,'Browsing never changes saved inventory order');
+{
+ const hero={inventory:['Меч','Меч','Кольчуга','Кольчуга'],hands:['sword','empty'],torches:0};
+ const game={state:{combat:false},active:()=>hero};const env={InventoryRules,document:{getElementById:()=>null},gameDebug:game};env.window=env;
+ vm.runInNewContext(readFileSync(new URL('../dist/inventory.js',import.meta.url),'utf8'),env);
+ assert.match(env.Inventory.locked({id:'gear0'}),/Сначала/);
+ assert.equal(env.Inventory.locked({id:'gear1'}),'','Spare sword is transferable');
+ assert.equal(env.Inventory.locked({id:'gear3'}),'','Spare armor is transferable');
+ assert.match(env.Inventory.locked({id:'gear9'}),/недоступен/);
+ assert.match(env.Inventory.locked({id:'gear1',rawName:'Бинты'}),/недоступен/);
+}
+console.log('PASS inventory search, categories, stable sorting, spare equipment and stale items');
