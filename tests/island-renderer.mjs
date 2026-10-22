@@ -83,11 +83,19 @@ test('water, coast and dry land have visible opaque geometry without collision-h
 
 test('nearby foliage is deterministic nonsolid decoration, bounded and avoids routes, props and arrival',()=>{
   const S=scene(600),rect={x:200,y:200,w:10,h:10},rich=(S,x,y)=>({land:true,biome:'forest',surface:'grass',color:0x5f8a4a,decoration:1,height:.3});
-  const first=islandFoliage(S,rect,{sample:rich});assert.deepEqual(islandFoliage(S,rect,{sample:rich}),first);assert.ok(first.length>0&&first.length<=16);
-  assert.ok(first.every(p=>p.solid===false&&['tree','bush'].includes(p.model)));
+  const TALL=['tree','bush'],COVER=['grass','flowers','rock','stump','mushrooms','reeds'];
+  const first=islandFoliage(S,rect,{sample:rich});assert.deepEqual(islandFoliage(S,rect,{sample:rich}),first);
+  const tall=first.filter(p=>TALL.includes(p.model));
+  assert.ok(tall.length>0&&tall.length<=25,'trees stay on the sparse 2-cell lattice');
+  assert.ok(first.length<=rect.w*rect.h,'at most one decoration per cell');
+  assert.ok(first.some(p=>COVER.includes(p.model)),'ground cover fills the space between trees');
+  assert.ok(first.every(p=>p.solid===false&&[...TALL,...COVER].includes(p.model)));
+  assert.ok(first.every(p=>Math.abs(p.ox)<.5&&Math.abs(p.oz)<.5),'sub-cell offsets never leave the cell');
   assert.deepEqual(islandFoliage(S,rect,{sample:()=>({...rich(),road:true})}),[]);
-  const occupied={...S,props:first.map(p=>({...p,type:'npc'}))};assert.deepEqual(islandFoliage(occupied,rect,{sample:rich}),[]);
-  const [x,y]=S.island.landmarks.arrival;assert.deepEqual(islandFoliage(S,{x:x-5,y:y-5,w:10,h:10},{sample:rich}),[]);
+  const props=tall.map(p=>({...p,type:'npc'})),occupied={...S,props};
+  assert.ok(islandFoliage(occupied,rect,{sample:rich}).every(f=>props.every(p=>Math.abs(p.x-f.x)>1||Math.abs(p.y-f.y)>1)),'nothing grows on or beside props');
+  const [x,y]=S.island.landmarks.arrival;
+  assert.ok(islandFoliage(S,{x:x-5,y:y-5,w:10,h:10},{sample:rich}).every(p=>!TALL.includes(p.model)),'the arrival clearing keeps no trees');
 });
 
 test('failed shared-material lookup releases partially built instance buffers and retains shared owners',()=>{

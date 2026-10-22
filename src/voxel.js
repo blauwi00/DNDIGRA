@@ -879,7 +879,7 @@ function buildEnvironment(S,rect){
     if(!['npc','door','portal','chest','ground-item','torch','chandelier'].includes(p.type)&&!p.container)staticRoots.push(m);
   }
   if(S.island&&window.Props)for(const p of islandFoliage(S,rect)){
-    const m=propModel(p);m.position.set(p.x+.5,0,p.y+.5);
+    const m=propModel(p);m.position.set(p.x+.5+(p.ox||0),0,p.y+.5+(p.oz||0));
     // These current-model trees are appearance only. They never enter models,
     // collision, fixture picking, saved props or the actor/interaction pin list.
     m.userData.islandDecoration=true;resource.root.add(m);staticRoots.push(m);
