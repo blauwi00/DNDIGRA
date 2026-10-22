@@ -53,8 +53,8 @@ export function createMenuStage({figure, propModel, shadedBox, compact, terrainM
     addBox(g,.25,.87,-.24,.13,.18,.13,0x7e4e2a);addBox(g,.25,.966,-.24,.11,.015,.11,0xbaa77f);
     addBox(g,-.35,.845,.15,.27,.1,.20,0x9c784a);compact(g);candle(g,-.47,.79,-.24);return g;
   };
-  table(.5,-.15);add('chair',.36,-1.13,0);add('chair',1.52,-.13,-Math.PI/2);
-  table(.2,3.55);add('chair',.15,2.6,0);add('chair',1.23,3.55,-Math.PI/2);
+  table(.5,-.15);add('chair',-.48,-.15,Math.PI/2);add('chair',1.52,-.13,-Math.PI/2);
+  table(.2,3.55);add('chair',-.72,3.55,Math.PI/2);add('chair',1.23,3.55,-Math.PI/2);
   // A recessed hearth, rather than the cooking stove from the kitchen.
   const hearthModel=new T.Group();hearthModel.position.set(.85,0,-3.75);room.add(hearthModel);
   for(const x of [-.65,.65])for(let i=0;i<4;i++)addBox(hearthModel,x,.27+i*.38,0,.4,.36,.8,palette[i]);
@@ -75,17 +75,21 @@ export function createMenuStage({figure, propModel, shadedBox, compact, terrainM
   for(let y=47;y<360;y+=32)for(let x=44;x<230;x+=34){rc.fillStyle=(x+y)%3?'#b18a43':'#8a3f32';rc.fillRect(x,y,9,5);}
   rc.save();rc.translate(128,192);rc.rotate(Math.PI/4);rc.strokeStyle='#b79850';rc.lineWidth=6;rc.strokeRect(-43,-43,86,86);rc.strokeRect(-27,-27,54,54);rc.restore();
   const rugTexture=new T.CanvasTexture(rugCanvas);rugTexture.magFilter=T.NearestFilter;rugTexture.colorSpace=T.SRGBColorSpace;const rug=new T.Mesh(new T.PlaneGeometry(3.15,5.2),new T.MeshStandardMaterial({map:rugTexture,roughness:1}));rug.rotation.x=-Math.PI/2;rug.position.set(-1.9,.006,1);rug.receiveShadow=true;room.add(rug);
-  const actor=(kind,x,z,rotation,seated=false,npcId,look={})=>{
+  // Each patron has an own routine so the room never moves in unison.
+  const actor=(kind,x,z,rotation,seated=false,npcId,look={},behavior='drink')=>{
     const spec={kind,npcId,hands:['empty','empty']};if(!npcId)spec.appearance={...window.Characters.defaultLook({0:'rogue',1:'wizard',2:'fighter',5:'cleric'}[kind],'male'),...look};
     const m=figure(kind,spec,{articulated:true,base:false});m.position.set(x,seated?.20:0,z);m.rotation.y=rotation;m.scale.setScalar(1.08);scene.add(m);
     const rig=m.userData.rig;if(seated)rig.legL.rotation.x=rig.legR.rotation.x=-1.05;
     const mug=new T.Group();shadedBox(mug,0,0,0,.105,.12,.105,0x865d35);shadedBox(mug,.062,.01,0,.04,.07,.025,0xac8050);mug.position.set(.31,.53,.23);m.add(mug);
-    patrons.push({m,rig,mug,phase:patrons.length*3.4,seated,baseY:m.position.y});return m;
+    if(behavior==='wipe'||behavior==='doze')mug.visible=false;if(behavior==='dice')mug.position.set(.42,.5,.42);
+    patrons.push({m,rig,mug,phase:patrons.length*3.4,seated,baseY:m.position.y,baseX:x,baseRot:rotation,behavior});return m;
   };
-  actor(5,-2.2,-3.1,.30,false,'innkeeper');
-  actor(2,.36,-1.13,.25,true,undefined,{hair:'#593321',hairStyle:'short'});
-  actor(0,1.52,-.13,-Math.PI/2,true,undefined,{hair:'#392c22',cloth:'#6b674c'});
-  actor(1,.15,2.6,.25,true,undefined,{headgear:'none',hair:'#c7c4bf',beard:'none',cloth:'#385168',hairStyle:'short'});
+  actor(5,-2.2,-3.1,.30,false,'innkeeper',{},'wipe');
+  actor(2,-.48,-.15,Math.PI/2,true,undefined,{hair:'#593321',hairStyle:'short'},'drink');
+  actor(0,1.52,-.13,-Math.PI/2,true,undefined,{hair:'#392c22',cloth:'#6b674c'},'dice');
+  // Seated beside the near table, not behind it: from this camera a patron on
+  // the far side had his legs hidden and seemed to stand on the tabletop.
+  actor(1,-.72,3.55,Math.PI/2,true,undefined,{headgear:'none',hair:'#c7c4bf',beard:'none',cloth:'#385168',hairStyle:'short'},'doze');
   const hemisphere=new T.HemisphereLight(0xe7e1d5,0x493628,.8);scene.add(hemisphere);
   const key=new T.DirectionalLight(0xffecd5,2.1);key.position.set(-2,7,5);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-8;key.shadow.normalBias=.02;scene.add(key);
   const hearth=new T.PointLight(0xff8d27,7,8,1.7);hearth.position.set(.85,.9,-3.03);scene.add(hearth);
@@ -119,10 +123,26 @@ export function createMenuStage({figure, propModel, shadedBox, compact, terrainM
     candles.intensity=settings.lights?settings.intensity*(4.3+Math.sin(t*5)*.1):0;grid.visible=settings.grid;
     for(const m of fixtures)for(const f of m.userData.flames||[]){f.userData.menuRestScaleY ??= f.scale.y;f.scale.y=f.userData.menuRestScaleY*(1+Math.sin(t*8+f.position.x*4)*.08);}
     for(const f of flames){f.m.scale.y=1+Math.sin(t*8+f.phase)*.09;}
-    for(const p of patrons){const u=t+p.phase,cycle=(u%18),lift=cycle>9&&cycle<14?Math.sin((cycle-9)/5*Math.PI):0;
-      p.m.position.y=p.baseY+Math.sin(u*1.4)*.008;p.rig.torso.scale.y=1+Math.sin(u*1.4)*.009;p.rig.head.rotation.y=Math.sin(u*.33)*.1;
-      p.rig.armR.rotation.x=-lift*1.5;p.rig.armR.rotation.z=-lift*.25;
-      p.mug.position.set(.31-lift*.11,.53+lift*.42,.23-lift*.16);p.mug.rotation.x=-lift*.4;
+    for(const p of patrons){const u=t+p.phase,r=p.rig;
+      p.m.position.y=p.baseY+Math.sin(u*1.4)*.008;r.torso.scale.y=1+Math.sin(u*1.4)*.009;
+      r.armL.rotation.set(0,0,0);r.armR.rotation.set(0,0,0);r.head.rotation.set(0,Math.sin(u*.33)*.1,0);r.torso.rotation.set(0,0,0);
+      if(p.behavior==='drink'){const cycle=u%18,lift=cycle>9&&cycle<14?Math.sin((cycle-9)/5*Math.PI):0;
+        r.armR.rotation.x=-lift*1.5;r.armR.rotation.z=-lift*.25;r.head.rotation.x=-lift*.25;
+        p.mug.position.set(.31-lift*.11,.53+lift*.42,.23-lift*.16);p.mug.rotation.x=-lift*.4;}
+      else if(p.behavior==='wipe'){// Walks along the bar, stops to wipe it in small circles, glances at the room.
+        const cycle=u%14,walking=cycle<3||(cycle>7&&cycle<10),dir=cycle<7?1:-1,k=cycle<3?cycle/3:cycle<7?1:cycle<10?1-(cycle-7)/3:0;
+        p.m.position.x=p.baseX+(k-.5)*1.3;p.m.rotation.y=walking?p.baseRot+dir*.9:p.baseRot;
+        if(walking){const step=Math.sin(u*9);r.legL.rotation.x=step*.45;r.legR.rotation.x=-step*.45;r.armL.rotation.x=-step*.3;p.m.position.y=p.baseY+Math.abs(step)*.025;}
+        else{r.legL.rotation.x=r.legR.rotation.x=0;r.armR.rotation.x=-1.1+Math.sin(u*5)*.18;r.armR.rotation.z=Math.cos(u*5)*.22;r.head.rotation.y=Math.sin(u*.6)*.45;}}
+      else if(p.behavior==='dice'){// Shakes dice, throws, then leans back to laugh or slumps.
+        const cycle=u%9;
+        if(cycle<2.2){r.armR.rotation.x=-.9+Math.sin(u*22)*.12;r.armR.rotation.z=-.2;}
+        else if(cycle<2.6){r.armR.rotation.x=-.9+(cycle-2.2)/.4*.7;}
+        else if(cycle<4.5){const laugh=Math.sin((cycle-2.6)/1.9*Math.PI);r.torso.rotation.x=-laugh*.12;r.head.rotation.x=-laugh*.3;p.m.position.y+=Math.abs(Math.sin(u*14))*laugh*.015;}
+        else r.head.rotation.y=Math.sin(u*.5)*.35;}
+      else if(p.behavior==='doze'){// Asleep at the table: head drops, jerks awake now and then.
+        const cycle=u%16,wake=cycle>12&&cycle<13.2?Math.sin((cycle-12)/1.2*Math.PI):0;
+        r.head.rotation.x=.55-wake*.6+Math.sin(u*.9)*.04;r.torso.rotation.x=.18-wake*.15;r.armL.rotation.x=r.armR.rotation.x=-.75;r.head.rotation.y=wake*.3;}
     }
     for(let i=0;i<12;i++){const u=(t*.17+i*.618)%1;positions[i*3]=.85+Math.sin(i*4.2+u*3)*.17;positions[i*3+1]=u<.16?.25+u*5:-100;positions[i*3+2]=-3.4+Math.sin(i*2.1)*.12;}
     sparks.visible=animated&&settings.lights;particleGeometry.attributes.position.needsUpdate=true;
