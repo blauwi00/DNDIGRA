@@ -3,7 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "npm run build && node tests/character-style.mjs && node tests/inventory-rules.mjs && node tests/heroes-api.mjs && node tests/worlds-api.mjs && node tests/worlds-client.mjs && node tests/silhouette.mjs",
+    "test:browser": "node tests/mobile-browser.cjs"
   },
   "dependencies": {
     "three": "0.186.1"
