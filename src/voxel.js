@@ -1348,17 +1348,25 @@ function impact(p, value, crit = false, animated = true, type = "damage") {
   el.textContent = value === 0 ? "0" : String(value);
   viewport.append(el);
   effects.push({ el, p: { x: p.x + 0.5, y: 0.9, z: p.y + 0.5 }, start: performance.now(), life: 1100 });
+  if (type !== "heal") react(p, value, crit);
+}
+function react(p, value, crit = false) {
   const m = models.get(p.id);
-  if (m && type !== "heal") {
-    m.userData.hit = performance.now();
-  }
+  if (!m) return;
+  if (value === 0 || typeof value === "string") m.userData.dodge = performance.now();
+  else m.userData.hit = performance.now();
+  if (typeof value === "number" && value > 0 && p.hp !== undefined && p.hp <= 0) m.userData.fall = performance.now() + 180;
+  m.userData.hitCrit = crit;
 }
 async function strike(a, b, animated) {
   const m = models.get(a.id);
   if (m) {
     m.rotation.y = [0, Math.PI / 2, Math.PI, -Math.PI / 2][a.facing || 0];
-    m.userData.strike = { start: performance.now(), dx: Math.sign(b.x - a.x), dz: Math.sign(b.y - a.y) };
+    m.userData.strike = { start: performance.now(), dx: Math.sign(b.x - a.x), dz: Math.sign(b.y - a.y), ranged: Math.abs(b.x - a.x) + Math.abs(b.y - a.y) > 1 };
   }
+  // The next impact on the target is pushed away from this attacker.
+  const target = models.get(b.id);
+  if (target) target.userData.struckFrom = { dx: Math.sign(b.x - a.x), dz: Math.sign(b.y - a.y) };
   if (Math.abs(b.x - a.x) + Math.abs(b.y - a.y) > 1) {
     const shot = new T.Mesh(new T.BoxGeometry(0.07, 0.07, 0.19), material(a.kind === 1 ? 7651315 : 13676131, true));
     scene.add(shot);
@@ -1418,6 +1426,55 @@ function tap(p) {
   if (!m || p.type === "chandelier") return;
   m.userData.tap = { start: performance.now(), type: p.type || "actor", baseY: m.userData.tap?.baseY ?? m.position.y, baseZ: m.userData.tap?.baseZ ?? m.rotation.z };
 }
+// Combat body language for map figures: wind-up and lunge, knockback and
+// squash on a hit, a side-step on a miss, a fall on death and a breathing
+// guard stance during encounters. Offsets are recomputed from the logical
+// cell every frame, so nothing drifts and saved positions are untouched.
+function combatPose(m, time, animate) {
+  const u = m.userData, p = u.p;
+  if (typeof p.kind !== "number") return;
+  if (u.fall && p.hp > 0) delete u.fall;
+  const facing = [0, Math.PI / 2, Math.PI, -Math.PI / 2][p.facing || 0];
+  m.rotation.order = "YXZ";
+  let ox = 0, oz = 0, oy = 0, pitch = 0, roll = 0, sy = 1, sway = 0;
+  const pulse = (start, ms) => { const t = (time - start) / ms; return t >= 0 && t < 1 ? t : null; };
+  if (u.strike) {
+    const t = pulse(u.strike.start, u.strike.ranged ? 320 : 460), s = u.strike;
+    if (t === null) delete u.strike;
+    else if (s.ranged) { const k = Math.sin(t * Math.PI); ox -= s.dx * k * .08; oz -= s.dz * k * .08; pitch -= k * .12; }
+    else {
+      // 0-.3 wind-up back, .3-.48 lunge, then recover
+      const back = t < .3 ? t / .3 : t < .48 ? 1 - (t - .3) / .18 : 0;
+      const lunge = t < .3 ? 0 : t < .48 ? (t - .3) / .18 : 1 - (t - .48) / .52;
+      const d = lunge * .38 - back * .12;
+      ox += s.dx * d; oz += s.dz * d; pitch += lunge * .32 - back * .18; sy *= 1 + back * .05 - lunge * .04;
+      oy += Math.sin(Math.min(1, t / .48) * Math.PI) * .04;
+    }
+  }
+  if (u.hit) {
+    const t = pulse(u.hit, u.hitCrit ? 520 : 380), from = u.struckFrom || { dx: 0, dz: 0 };
+    if (t === null) { delete u.hit; delete u.struckFrom; }
+    else { const k = Math.sin(t * Math.PI) * (1 - t * .4), push = u.hitCrit ? .3 : .18;
+      ox += from.dx * k * push; oz += from.dz * k * push; pitch -= k * .28; sy *= 1 - k * (u.hitCrit ? .16 : .1);
+      roll += Math.sin(t * Math.PI * 3) * (1 - t) * .08; }
+  }
+  if (u.dodge) {
+    const t = pulse(u.dodge, 360), from = u.struckFrom || { dx: 1, dz: 0 };
+    if (t === null) { delete u.dodge; delete u.struckFrom; }
+    else { const k = Math.sin(t * Math.PI); ox += -from.dz * k * .2; oz += from.dx * k * .2; roll += k * .22 * (from.dx || 1); oy += k * .03; }
+  }
+  if (u.fall) {
+    const t = Math.min(1, Math.max(0, (time - u.fall) / 600));
+    roll += (1 - (1 - t) ** 3) * 1.45; oy -= t * .08;
+  } else if (g.state.encounter && animate && !(p.hp <= 0)) {
+    // Guard stance: each figure breathes and shifts on its own rhythm.
+    const ph = (p.id || "").length * 1.7 + (p.x || 0) * .9;
+    sy *= 1 + Math.sin(time / 420 + ph) * .018; oy += Math.abs(Math.sin(time / 840 + ph)) * .012; sway = Math.sin(time / 1300 + ph) * .07;
+  }
+  m.position.set(p.x + .5 + ox, oy, p.y + .5 + oz);
+  m.rotation.y = facing + sway; m.rotation.x = pitch; m.rotation.z = roll; m.scale.y = sy;
+  if (!u.strike && !u.hit && !u.dodge && !u.fall && !g.state.encounter) { m.rotation.x = m.rotation.z = 0; m.scale.y = 1; m.position.y = 0; }
+}
 function tick(time) {
   requestAnimationFrame(tick);
   if(window.CinematicMenu?.active && ready && !document.hidden){if(time-last>=30){last=time;renderMenu(time);}return;}
@@ -1452,16 +1509,7 @@ function tick(time) {
       }
       if(m.userData.staticBatched)m.userData.staticBatchOwner?.update(m);
     }
-    if (m.userData.strike) {
-      const s = m.userData.strike, t = (time - s.start) / 280;
-      if (t < 1) {
-        m.position.x = m.userData.p.x + 0.5 + s.dx * Math.sin(t * Math.PI) * 0.1;
-        m.position.z = m.userData.p.y + 0.5 + s.dz * Math.sin(t * Math.PI) * 0.1;
-      } else {
-        delete m.userData.strike;
-        m.position.set(m.userData.p.x + 0.5, 0, m.userData.p.y + 0.5);
-      }
-    }
+    if (m.userData.p && (m.userData.strike || m.userData.hit || m.userData.dodge || m.userData.fall || g.state.encounter) && !motions.has(m.userData.p.id)) combatPose(m, time, animate);
     if (m.userData.hinge) {
       const h = m.userData.hinge;
       h.rotation.y = T.MathUtils.lerp(h.rotation.y, h.userData.goal || 0, 0.22);
@@ -1611,7 +1659,7 @@ function waitRegionIdle(timeout=10000){
     function check(){const stats=regionSnapshot();if(stats.idle)return resolve(stats);if(performance.now()-started>timeout)return reject(new Error('Region loading timed out'));requestAnimationFrame(check);}check();
   });
 }
-window.voxel = { projectActor(p){const v=new T.Vector3(p.x+.5,.65,p.y+.5).project(camera);return {x:(v.x+1)*viewport.clientWidth/2,y:(1-v.y)*viewport.clientHeight/2};}, resize, get staticBatchStats(){
+window.voxel = { react, projectActor(p){const v=new T.Vector3(p.x+.5,.65,p.y+.5).project(camera);return {x:(v.x+1)*viewport.clientWidth/2,y:(1-v.y)*viewport.clientHeight/2};}, resize, get staticBatchStats(){
   const batches=regionOptions?.enabled?[...regionResources.values()].map(r=>r.batches):staticBatches?[staticBatches]:[];
   return batches.length?batches.reduce((n,b)=>({props:n.props+b.roots.length,sourceMeshes:n.sourceMeshes+b.sourceMeshes,drawMeshes:n.drawMeshes+b.meshes.length}),{props:0,sourceMeshes:0,drawMeshes:0}):null;
 }, get regionStats(){return regionSnapshot();}, regionReady:(x,y)=>canSelectRegionCell(regionOptions,regionPlan,regionStream,x,y), regionIdle:waitRegionIdle, turnHero:delta=>menuStage?.turn(delta), get menuDebug(){return menuStage?.debug;}, buildModel: (kind, actor, options) => figure(kind, actor, options), buildItem: itemModel, buildProp: propModel, compact, shadedBox, heroPortrait: (a, angle = 0) => portrait(a.kind, null, a, angle), portrait, sync, move, impact, tap, reset, fit, ground, get selectionMask() {

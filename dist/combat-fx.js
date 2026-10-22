@@ -122,7 +122,7 @@
     const text = isNum ? '−' + amount : amount, size = critical ? 34 : isNum ? Math.min(30, 17 + amount * .6) : 17;
     const color = heal ? COLORS.heal : !isNum ? '#c8d0e0' : critical ? '#ffcf40' : COLORS.damage;
     number(pt, text, color, size, critical, animate);
-    if(window.voxel && animate && !reduced() && isNum && amount>0){const model=window.voxel.models.get(p.id);if(model)model.userData.hit=performance.now();}
+    if(window.voxel && animate && !reduced()){if(window.voxel.react)window.voxel.react(p,isNum?amount:String(amount),critical);else if(isNum&&amount>0){const model=window.voxel.models.get(p.id);if(model)model.userData.hit=performance.now();}}
     if (!animate || reduced()) return;
     if (heal) { ring(pt, COLORS.heal, 12, 58, 560); crosses(pt, COLORS.heal); if (s) s.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.6) saturate(1.4) hue-rotate(60deg)', offset: .25 }, { filter: 'brightness(1)' }], { duration: 520 }); return; }
     if (!isNum) { // промах: цель уходит в сторону
