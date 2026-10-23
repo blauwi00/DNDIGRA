@@ -67,7 +67,7 @@ modelBox.append(portraitBox);stage.append(modelBox);}else stage.append(modelBox,
         if (isDefault()) { const keep = a.skin, d = Ch.defaultLook(draft.classId, g); for (const k of Object.keys(a)) delete a[k]; Object.assign(a, d, { skin: keep }); } else a.gender = g;
       });
     }
-    function resetClass() { commit(a => { const keep = a.skin, d = Ch.defaultLook(draft.classId, a.gender); for (const k of Object.keys(a)) delete a[k]; Object.assign(a, d, { skin: keep }); }); }
+    function resetClass() { commit(a => { const keep = a.skin, d = (window.Heroes?.appearanceDefaults || Ch.defaultLook)(draft.classId, a.gender); for (const k of Object.keys(a)) delete a[k]; Object.assign(a, d, { skin: keep }); }); }
     function randomAll() { const r = Ch.randomLook(draft.classId, ap().gender); commit(a => { for (const k of Object.keys(a)) delete a[k]; Object.assign(a, r); }); }
     function randomColors() { const r = Ch.randomLook(draft.classId, ap().gender); commit(a => { for (const k of COLOR_KEYS) a[k] = r[k]; a.skin = r.skin; }); }
 

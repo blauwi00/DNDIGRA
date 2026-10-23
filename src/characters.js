@@ -227,6 +227,9 @@ function hair(B, s) {
   const fringe = () => { H(front, 0, 1.06, .21, .48, .07, .06); for (const sx of [-1, 1]) H(front, sx * .2, 1.0, .21, .08, .12, .06); };
   const sides = (hh = .24, y = .98) => { for (const sx of [-1, 1]) H(low, sx * .26, y, 0, .05, hh, .42); };
   let backZ = -.255;
+  // A solid layer hugging the skull under all strands, so no style can leave
+  // bald patches between its cap, fringe and side pieces.
+  if (st !== 'mohawk') H(low, 0, 1.02, -.02, .48, .18, .44, st === 'buzz' ? shade(h, .85) : h);
   switch (st) {
     case 'buzz': H(top, 0, 1.125, 0, .48, .07, .43); H(front, 0, 1.07, .205, .46, .07, .04); for (const sx of [-1, 1]) H(low, sx * .245, .99, 0, .02, .16, .38); backZ = -.2; break;
     case 'short': cap(); fringe(); sides(); H(low, 0, .93, -.22, .5, .38, .07); H(top, -.1, 1.2, .02, .16, .08, .22); H(top, .12, 1.21, -.06, .16, .1, .16); H(top, 0, 1.19, .13, .2, .05, .1); break;
@@ -252,7 +255,10 @@ function hair(B, s) {
 const OUTFIT = {
   fighter(B, s, bw, arm, o) {
     const { trim } = s;
-    const paul = (w, hh) => { for (const sx of [-1, 1]) { B(sx * arm, .7, 0, w, .07, .2, trim); B(sx * arm, .66, 0, w, hh, .18, s.cloth2); } };
+    const paul = (w, hh) => { for (const sx of [-1, 1]) {
+      const x = sx * (arm + .035), pw = w + .09, ph = hh + .08;
+      B(x, .68, 0, pw, ph, .27, s.cloth); B(x, .68 + ph / 2 + .012, 0, pw + .02, .025, .29, trim); B(x, .68 - ph / 2 - .01, 0, pw + .01, .025, .28, trim); B(x + sx * (pw / 2 + .01), .68, 0, .02, ph, .28, trim);
+    } };
     if (o === 'plate') { paul(.17, .08); for (const sx of [-1, 1]) B(sx * .07, .62, .13, .03, .15, .012, trim); B(0, .685, .13, .16, .03, .012, trim); B(0, .71, -.02, bw + .02, .03, .27, trim); }
     if (o === 'tabard') { B(0, .4, .135, .22, .4, .012, s.cloth); B(0, .53, .145, .03, .15, .012, trim); B(0, .56, .145, .11, .03, .012, trim); B(0, .21, .136, .22, .03, .012, trim); B(0, .71, 0, bw + .02, .03, .27, trim); }
     if (o === 'leather') { B(0, .56, .13, bw - .06, .25, .012, s.cloth); B(0, .56, .136, .02, .25, .012, shade(s.leather, .6)); for (const sx of [-1, 1]) { B(sx * arm, .66, 0, .15, .06, .19, s.cloth); B(sx * .12, .56, .14, .05, .05, .012, trim); } B(0, .71, 0, bw + .02, .03, .27, trim); }
@@ -261,13 +267,22 @@ const OUTFIT = {
   wizard(B, s, bw, arm, o) {
     const { trim } = s;
     for (const sx of [-1, 1]) B(sx * arm, .47, 0, .14, .04, .19, trim);
-    if (o === 'robe') { for (const sx of [-1, 1]) B(sx * .1, .57, .128, .045, .24, .012, trim); B(0, .71, 0, bw + .02, .04, .27, trim); B(0, .5, .128, .03, .1, .012, trim); }
+    if (o === 'robe') {
+      const inner = shade(s.cloth, .45);
+      B(0, .5, .129, .12, .42, .012, inner); for (const sx of [-1, 1]) B(sx * .075, .45, .132, .03, .56, .012, trim);
+      B(0, .71, 0, bw + .02, .04, .27, trim); for (const sx of [-1, 1]) B(sx * (bw / 2 + .01), .66, .02, .05, .1, .24, trim);
+      B(0, .43, .14, .07, .07, .02, s.gem, true);
+    }
     if (o === 'mantle') { B(0, .72, 0, bw + .13, .09, .31, s.cloth2); B(0, .665, 0, bw + .15, .025, .33, trim); B(0, .78, -.1, .3, .12, .08, s.cloth2); B(0, .72, .16, .05, .05, .02, s.gem); }
     if (o === 'sash') { const sc = s.accent ?? s.cloth2; for (let i = 0; i < 5; i++) B(-.12 + i * .06, .68 - i * .055, .13, .09, .07, .012, sc); B(0, .45, 0, bw + .04, .1, .27, sc); B(.09, .34, .14, .06, .12, .02, sc); B(-.02, .33, .14, .06, .1, .02, sc); }
     if (o === 'scholar') { B(0, .56, .13, bw - .1, .25, .012, s.cloth2); B(0, .64, .14, .1, .1, .012, CREAM); B(0, .6, .145, .02, .2, .012, trim); B(.19, .33, .12, .12, .12, .07, s.leather); B(.19, .385, .12, .13, .03, .075, trim); }
   },
   rogue(B, s, bw, arm, o) {
     const { trim, leather } = s;
+    if (s.headgear !== 'hood' && s.cape !== 'none') { // lowered hood: a cowl around the neck and over the shoulders
+      const c = s.capeC; B(0, .74, -.16, .44, .14, .14, c); B(0, .8, -.2, .32, .09, .1, shade(c, .85));
+      B(0, .715, .02, bw + .1, .07, .3, c); for (const sx of [-1, 1]) { B(sx * .15, .66, .135, .1, .12, .03, c); B(sx * (bw / 2 + .06), .62, 0, .07, .2, .26, c); }
+      B(0, .66, .15, .06, .05, .02, trim); }
     if (o === 'leathers') { for (let i = 0; i < 5; i++) B(-.12 + i * .06, .67 - i * .06, .13, .075, .06, .02, leather); B(.18, .33, .12, .12, .12, .07, leather); B(.18, .385, .12, .13, .03, .075, trim); }
     if (o === 'vest') { B(0, .56, .128, .06, .24, .012, CREAM); for (const sx of [-1, 1]) B(sx * .1, .56, .13, .1, .25, .012, leather); for (let i = 0; i < 3; i++) B(0, .64 - i * .07, .14, .09, .015, .012, trim); }
     if (o === 'tunic') { B(0, .36, 0, bw + .02, .2, .28, s.cloth); B(0, .255, 0, bw + .04, .025, .3, trim); B(0, .43, 0, bw + .03, .05, .29, leather); B(0, .43, .15, .08, .065, .03, trim); B(.14, .3, .15, .09, .09, .02, s.cloth2); }
@@ -327,13 +342,14 @@ function accessories(B, s, bw, arm) {
 
 function held(B, s, arm, trim) {
   const { classId: cls, hands } = s, has = k => hands.includes(k);
-  if (has('sword')) { B(-.34, .38, .09, .055, .1, .055, s.leather); B(-.34, .45, .09, .17, .035, .075, trim); B(-.34, .72, .09, .05, .5, .04, STEEL); }
+  if (has('sword') && cls === 'rogue') { B(-.34, .38, .1, .05, .09, .05, s.leather); B(-.34, .44, .1, .12, .03, .06, trim); B(-.34, .45, .21, .06, .04, .24, STEEL); B(-.34, .45, .34, .035, .03, .04, STEEL); }
+  else if (has('sword')) { B(-.34, .38, .09, .055, .1, .055, s.leather); B(-.34, .45, .09, .17, .035, .075, trim); B(-.34, .72, .09, .05, .5, .04, STEEL); }
   if (has('shield')) {
     const blue = cls === 'fighter' ? s.cloth : s.p.cloth;
     B(.33, .5, .17, .27, .38, .05, trim); B(.33, .5, .2, .21, .32, .03, blue); B(.33, .5, .222, .03, .18, .02, trim); B(.33, .53, .222, .13, .03, .02, trim);
   }
   if (has('bow')) { for (let i = 0; i < 5; i++) B(-.34 - Math.abs(i - 2) * -.02, .36 + i * .12, .1, .06, .16, .05, 0xa27c40); B(-.4, .6, .1, .02, .6, .02, 0xc5b891); }
-  if (has('staff') && cls === 'wizard') { B(-.36, .62, .08, .05, .9, .05, WOOD); B(-.36, 1.1, .08, .13, .06, .13, trim); B(-.36, 1.2, .08, .09, .13, .09, s.gem, true); }
+  if (has('staff') && cls === 'wizard') { B(-.36, .62, .08, .05, .9, .05, WOOD); B(-.36, 1.1, .08, .15, .06, .15, trim); B(-.36, 1.21, .08, .12, .16, .12, s.gem, true); for (const sx of [-1, 1]) B(-.36 + sx * .07, 1.18, .08, .03, .1, .03, trim); }
   if (has('staff') && cls !== 'wizard') { B(-.34, .58, .09, .05, .82, .05, WOOD); B(-.34, 1.04, .09, .15, .15, .15, IRON); B(-.34, 1.04, .09, .19, .04, .19, trim); B(-.34, 1.04, .09, .04, .19, .19, trim); }
   if (s.book) B(-.3, .45, .13, .13, .16, .045, 0x7a2f2f);
 }

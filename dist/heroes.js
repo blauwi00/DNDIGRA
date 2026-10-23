@@ -14,8 +14,12 @@
     b.onclick = fn;
     return b;
   }
+  // New heroes follow the approved reference sheet. The rogue wears brown
+  // leathers under a dark green cloak; generated NPCs keep the frozen class
+  // defaults so existing world seeds are not altered.
+  const HERO_LOOK = { rogue: { cloth: "#714c38", leather: "#4b3626", capeColor: "#2d4f2c" } };
   function appearanceDefaults(classId, gender = "male") {
-    return Characters.defaultLook(classId, gender);
+    return { ...Characters.defaultLook(classId, gender), ...(HERO_LOOK[classId] || {}) };
   }
   function makeDraft(id = "fighter") {
     return { name: ["Арден", "Рин", "Мира", "Бор"][pick(4)], classId: id, stats: R.preset(id), appearance: appearanceDefaults(id), kit: pick(2), background: R.background(id, pick) };
@@ -140,9 +144,9 @@
   function updateBasics(patch) {
     // An untouched look follows the class/gender defaults (blue knight, violet
     // mage, green rogue, crimson cleric); a look the player edited is kept.
-    const untouched=JSON.stringify(Characters.normalize(draft.appearance,draft.classId))===JSON.stringify(Characters.defaultLook(draft.classId,draft.appearance.gender));
-    if(patch.classId&&patch.classId!==draft.classId){draft.classId=patch.classId;draft.stats=R.preset(patch.classId);draft.kit=pick(2);draft.background=R.background(patch.classId,pick);draft.appearance=untouched?Characters.defaultLook(patch.classId,draft.appearance.gender):Characters.normalize(draft.appearance,patch.classId);}
-    if(patch.gender)draft.appearance=untouched?Characters.defaultLook(draft.classId,patch.gender):{...draft.appearance,gender:patch.gender};
+    const untouched=JSON.stringify(Characters.normalize(draft.appearance,draft.classId))===JSON.stringify(Characters.normalize(appearanceDefaults(draft.classId,draft.appearance.gender),draft.classId));
+    if(patch.classId&&patch.classId!==draft.classId){draft.classId=patch.classId;draft.stats=R.preset(patch.classId);draft.kit=pick(2);draft.background=R.background(patch.classId,pick);draft.appearance=untouched?appearanceDefaults(patch.classId,draft.appearance.gender):Characters.normalize(draft.appearance,patch.classId);}
+    if(patch.gender)draft.appearance=untouched?appearanceDefaults(draft.classId,patch.gender):{...draft.appearance,gender:patch.gender};
     if(patch.name!==undefined)draft.name=patch.name;
     remember();editor();
   }
@@ -380,7 +384,7 @@
       const classes=document.createElement('div');classes.className='hc-classes';classes.setAttribute('role','radiogroup');classes.setAttribute('aria-label','Класс');
       for(const [id,c]of Object.entries(R.CLASSES)){
         const card=button('',()=>updateBasics({classId:id}),'hc-class'+(draft.classId===id?' active':''));card.setAttribute('role','radio');card.setAttribute('aria-checked',String(draft.classId===id));card.setAttribute('aria-label',c.name+'. '+ROLE[id]);
-        const look=draft.classId===id?draft.appearance:Characters.defaultLook(id,draft.appearance.gender);
+        const look=draft.classId===id?draft.appearance:appearanceDefaults(id,draft.appearance.gender);
         const art=document.createElement('span');art.className='hc-portrait';try{art.append(Artwork.hero(R.sheet({...draft,classId:id,kit:0,stats:R.preset(id),appearance:look,name:c.name},'class-'+id)));}catch{}
         const name=document.createElement('b');name.textContent=c.name;const role=document.createElement('small');role.textContent=ROLE[id];
         card.append(art,name,role);classes.append(card);
@@ -464,7 +468,7 @@
     $("hero-view").prepend(b);
     if(!window.CinematicMenu)open();
   }
-  window.Heroes = { init, open, paintPreview, refreshPortraits: () => {
+  window.Heroes = { init, open, paintPreview, appearanceDefaults, refreshPortraits: () => {
     if (draft) paintPreview();
     else if (loaded) paintList();
   }, get heroes() {

@@ -732,6 +732,7 @@ var Characters = (() => {
       for (const sx of [-1, 1]) H(low, sx * 0.26, y, 0, 0.05, hh, 0.42);
     };
     let backZ = -0.255;
+    if (st !== "mohawk") H(low, 0, 1.02, -0.02, 0.48, 0.18, 0.44, st === "buzz" ? shade(h, 0.85) : h);
     switch (st) {
       case "buzz":
         H(top, 0, 1.125, 0, 0.48, 0.07, 0.43);
@@ -871,8 +872,11 @@ var Characters = (() => {
       const { trim } = s;
       const paul = (w, hh) => {
         for (const sx of [-1, 1]) {
-          B(sx * arm, 0.7, 0, w, 0.07, 0.2, trim);
-          B(sx * arm, 0.66, 0, w, hh, 0.18, s.cloth2);
+          const x = sx * (arm + 0.035), pw = w + 0.09, ph = hh + 0.08;
+          B(x, 0.68, 0, pw, ph, 0.27, s.cloth);
+          B(x, 0.68 + ph / 2 + 0.012, 0, pw + 0.02, 0.025, 0.29, trim);
+          B(x, 0.68 - ph / 2 - 0.01, 0, pw + 0.01, 0.025, 0.28, trim);
+          B(x + sx * (pw / 2 + 0.01), 0.68, 0, 0.02, ph, 0.28, trim);
         }
       };
       if (o === "plate") {
@@ -911,9 +915,12 @@ var Characters = (() => {
       const { trim } = s;
       for (const sx of [-1, 1]) B(sx * arm, 0.47, 0, 0.14, 0.04, 0.19, trim);
       if (o === "robe") {
-        for (const sx of [-1, 1]) B(sx * 0.1, 0.57, 0.128, 0.045, 0.24, 0.012, trim);
+        const inner = shade(s.cloth, 0.45);
+        B(0, 0.5, 0.129, 0.12, 0.42, 0.012, inner);
+        for (const sx of [-1, 1]) B(sx * 0.075, 0.45, 0.132, 0.03, 0.56, 0.012, trim);
         B(0, 0.71, 0, bw + 0.02, 0.04, 0.27, trim);
-        B(0, 0.5, 0.128, 0.03, 0.1, 0.012, trim);
+        for (const sx of [-1, 1]) B(sx * (bw / 2 + 0.01), 0.66, 0.02, 0.05, 0.1, 0.24, trim);
+        B(0, 0.43, 0.14, 0.07, 0.07, 0.02, s.gem, true);
       }
       if (o === "mantle") {
         B(0, 0.72, 0, bw + 0.13, 0.09, 0.31, s.cloth2);
@@ -938,6 +945,17 @@ var Characters = (() => {
     },
     rogue(B, s, bw, arm, o) {
       const { trim, leather } = s;
+      if (s.headgear !== "hood" && s.cape !== "none") {
+        const c = s.capeC;
+        B(0, 0.74, -0.16, 0.44, 0.14, 0.14, c);
+        B(0, 0.8, -0.2, 0.32, 0.09, 0.1, shade(c, 0.85));
+        B(0, 0.715, 0.02, bw + 0.1, 0.07, 0.3, c);
+        for (const sx of [-1, 1]) {
+          B(sx * 0.15, 0.66, 0.135, 0.1, 0.12, 0.03, c);
+          B(sx * (bw / 2 + 0.06), 0.62, 0, 0.07, 0.2, 0.26, c);
+        }
+        B(0, 0.66, 0.15, 0.06, 0.05, 0.02, trim);
+      }
       if (o === "leathers") {
         for (let i = 0; i < 5; i++) B(-0.12 + i * 0.06, 0.67 - i * 0.06, 0.13, 0.075, 0.06, 0.02, leather);
         B(0.18, 0.33, 0.12, 0.12, 0.12, 0.07, leather);
@@ -1117,7 +1135,12 @@ var Characters = (() => {
   }
   function held(B, s, arm, trim) {
     const { classId: cls, hands } = s, has = (k) => hands.includes(k);
-    if (has("sword")) {
+    if (has("sword") && cls === "rogue") {
+      B(-0.34, 0.38, 0.1, 0.05, 0.09, 0.05, s.leather);
+      B(-0.34, 0.44, 0.1, 0.12, 0.03, 0.06, trim);
+      B(-0.34, 0.45, 0.21, 0.06, 0.04, 0.24, STEEL);
+      B(-0.34, 0.45, 0.34, 0.035, 0.03, 0.04, STEEL);
+    } else if (has("sword")) {
       B(-0.34, 0.38, 0.09, 0.055, 0.1, 0.055, s.leather);
       B(-0.34, 0.45, 0.09, 0.17, 0.035, 0.075, trim);
       B(-0.34, 0.72, 0.09, 0.05, 0.5, 0.04, STEEL);
@@ -1135,8 +1158,9 @@ var Characters = (() => {
     }
     if (has("staff") && cls === "wizard") {
       B(-0.36, 0.62, 0.08, 0.05, 0.9, 0.05, WOOD);
-      B(-0.36, 1.1, 0.08, 0.13, 0.06, 0.13, trim);
-      B(-0.36, 1.2, 0.08, 0.09, 0.13, 0.09, s.gem, true);
+      B(-0.36, 1.1, 0.08, 0.15, 0.06, 0.15, trim);
+      B(-0.36, 1.21, 0.08, 0.12, 0.16, 0.12, s.gem, true);
+      for (const sx of [-1, 1]) B(-0.36 + sx * 0.07, 1.18, 0.08, 0.03, 0.1, 0.03, trim);
     }
     if (has("staff") && cls !== "wizard") {
       B(-0.34, 0.58, 0.09, 0.05, 0.82, 0.05, WOOD);
