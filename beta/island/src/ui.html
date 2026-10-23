@@ -1,0 +1,23 @@
+<button class="menubtn" id="menuBtn" aria-label="Меню"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zm0 4h12v2H2zm0 4h12v2H2z"/></svg></button>
+<div class="cstat" id="cstat" hidden></div>
+<div class="wheel" id="wheel" hidden></div>
+<div class="screen main" id="mainmenu" hidden>
+  <div class="mm"><h2>За гранью</h2><p>Остров Хельги</p>
+    <button id="mContinue">Продолжить</button><button id="mNew">Новая игра</button><button id="mSettings">Настройки</button>
+    <div class="mset" id="mSet" hidden><button id="mSound">Звук</button></div></div></div>
+<div class="screen pause" id="pause" hidden>
+  <div class="mm"><h2>Пауза</h2><div class="sheet" id="sheet"></div>
+    <button id="pResume">Продолжить</button><button id="pSound">Звук</button><button id="pMain">Главное меню</button></div></div>
+<div class="screen editor" id="editor" hidden>
+  <div class="ed">
+    <div class="edl"><canvas id="edCanvas"></canvas></div>
+    <div class="edr">
+      <h2>Ваш герой</h2>
+      <label class="nm">Имя<input id="edName" maxlength="16" autocomplete="off"></label>
+      <div class="lab">Класс</div><div class="cls-row" id="edClass"></div><p class="about" id="edAbout"></p>
+      <div class="lab">Кожа</div><div class="sw-row" id="ed_skin"></div>
+      <div class="lab">Причёска</div><div class="hs-row" id="ed_style"></div><div class="lab">Цвет волос</div><div class="sw-row" id="ed_hair"></div>
+      <div class="lab">Одежда</div><div class="sw-row" id="ed_cloth"></div>
+      <div class="edbtns"><button id="edBack">Назад</button><button id="edGo" class="go">В путь</button></div>
+    </div></div></div>
+<div class="note" id="note" hidden role="status"></div><div class="chestui" id="chestui" hidden role="dialog" aria-label="Сундук"></div>

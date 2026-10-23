@@ -1,0 +1,160 @@
+// ---------- toasts ----------
+let toastT=0;function toast(text,ms=2600){dice.hidden=false;dice.textContent=text;clearTimeout(toastT);toastT=setTimeout(()=>dice.hidden=true,ms);}
+const hint={set textContent(v){if(v)toast(v)}};
+
+// ---------- action wheel ----------
+// Tap a character (or a rock): a ring of verbs opens around it. "Атаковать" opens a
+// second ring with what the hero holds in each hand. Everything the player can do to
+// someone lives here; there are no screen buttons.
+const wheelEl=document.getElementById('wheel');let wheelOf=null;
+const ICONS={ // 16x16 pixel glyphs, drawn with currentColor
+  attack:'M12 1h3v3l-8 8-2-2zM3 10l3 3-1 1 1 1-1 1-1-1-2 2-1-1 2-2-1-1 1-1z',
+  shove:'M2 7h8V4l5 4-5 4V9H2z',
+  stone:'M4 6l4-3 5 2 2 5-3 4H5l-3-3z',
+  look:'M1 8c2-4 5-5 7-5s5 1 7 5c-2 4-5 5-7 5s-5-1-7-5zm7-3a3 3 0 100 6 3 3 0 000-6z',
+  talk:'M2 2h12v9H7l-4 3v-3H2z',
+  potion:'M6 1h4v2H9v3l4 4v4H3v-4l4-4V3H6z',
+  bread:'M2 8c0-3 3-5 6-5s6 2 6 5v4H2z',
+  sneak:'M3 9h4v5H3zm6-6h4v5H9zM3 6h3v2H3zm6-5h3v1H9z',
+  stand:'M7 1h2v2H7zM5 4h6v5H9v6H7V9H5z',
+  end:'M3 1h10v2l-4 5 4 5v2H3v-2l4-5-4-5z',
+  special:'M8 1l2 5h5l-4 3 2 6-5-4-5 4 2-6-4-3h5z',
+  back:'M7 3L2 8l5 5V9h7V7H7z',
+  pick:'M7 1h2v8l3-3 1 1-5 5-5-5 1-1 3 3z',
+  close:'M3 2l5 5 5-5 1 1-5 5 5 5-1 1-5-5-5 5-1-1 5-5-5-5z'};
+const svg=k=>'<svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="'+ICONS[k]+'"/></svg>';
+function closeWheel(){wheelEl.hidden=true;wheelEl.replaceChildren();wheelOf=null;}
+wheelEl.addEventListener('pointerdown',e=>e.stopPropagation());
+// items: {icon|img, label, sub, ok, run}
+function showWheel(target,items,title){closeWheel();wheelOf=target;wheelEl.hidden=false;
+  const n=items.length,R=n<=3?62:n<=5?70:78;
+  const t=document.createElement('div');t.className='wtitle';t.textContent=title;wheelEl.append(t);
+  items.forEach((it,i)=>{const a=-Math.PI/2+(n===1?0:(i/(n))*Math.PI*2),b=document.createElement('button');b.className='wbtn';b.disabled=it.ok===false;
+    b.style.left=Math.cos(a)*R+'px';b.style.top=Math.sin(a)*R+'px';
+    b.innerHTML='<span class="ring">'+(it.img?'<img alt="" src="'+it.img+'">':svg(it.icon))+'</span><span class="wl"></span>'+(it.sub?'<span class="ws"></span>':'');
+    b.querySelector('.wl').textContent=it.label;if(it.sub)b.querySelector('.ws').textContent=it.sub;b.setAttribute('aria-label',it.label+(it.sub?', '+it.sub:''));
+    b.onclick=ev=>{ev.stopPropagation();sfx('click');if(it.keep)it.run();else{closeWheel();it.run();}};
+    b.style.transitionDelay=(i*25)+'ms';wheelEl.append(b);});
+  const c=document.createElement('button');c.className='wclose';c.innerHTML=svg('close');c.setAttribute('aria-label','Закрыть');c.onclick=ev=>{ev.stopPropagation();closeWheel();};wheelEl.append(c);
+  placeWheel();requestAnimationFrame(()=>wheelEl.classList.add('open'));}
+function placeWheel(){if(!wheelOf)return;if(wheelOf.o&&(!wheelOf.o.visible||wheelOf.dead)||!document.getElementById('chestui').hidden)return closeWheel();const o=wheelOf.o||wheelOf.mesh||wheelOf,v=(wheelOf.pos||o.position).clone();v.y+=.6;v.project(camera);const r=canvas.getBoundingClientRect();
+  const m=96;wheelEl.style.left=Math.min(r.width-m,Math.max(m,(v.x+1)/2*r.width))+'px';wheelEl.style.top=Math.min(r.height-m,Math.max(m+20,(1-v.y)/2*r.height))+'px';}
+const count=id=>window.handsCount?window.handsCount(id):0;
+
+function enemyWheel(e){const fight=CB.on,items=[];
+  items.push({icon:'attack',label:'Атаковать',sub:fight&&CB.acted?'действие потрачено':'',ok:!(fight&&CB.acted),keep:true,run:()=>attackWheel(e)});
+  items.push({icon:'shove',label:'Толкнуть',sub:'Атлетика +'+HERO.athletics,ok:reachable(e)&&!(fight&&CB.acted),run:()=>doVerb(e,()=>shove(e),{adj:man(e,H0)>1})});
+  const st=count('stone');
+  if(fight)items.push({icon:'stone',label:'Отвлечь камнем',sub:st?'камней: '+st:'нет камней',ok:st>0&&man(e,H0)<=6&&!CB.acted,run:()=>doVerb(e,()=>stoneFoe(e))});
+  else if(!e.aware)items.push({icon:'stone',label:'Отвлечь камнем',sub:st?'бросить рядом · камней: '+st:'нет камней',ok:st>0,run:()=>{const [x,z]=noiseCellNear(e);if(Math.hypot(x-H0.x,z-H0.z)>9)return toast('Подойдите ближе, чтобы добросить камень.');stoneNoise(x,z);}});
+  items.push({icon:'look',label:'Осмотреть',run:()=>toast(e.name+': здоровье '+Math.max(0,e.hp)+' из '+e.max+', КД '+e.ac+', '+(e.range>1?'стреляет на '+e.range+' клеток':'бьёт вблизи')+(e.aware?'.':'. Вас не видит.'),4000)});
+  showWheel(e,items,e.name+' · '+Math.max(0,e.hp)+'/'+e.max);}
+function attackWheel(e){const items=heroAttacks().map(a=>{const adv=advantage(H0,e,a).v,inR=a.range>1?man(e,H0)<=a.range:reachable(e);
+    return {img:a.id?window.handsIconURL(a.id):null,icon:'attack',label:a.n,sub:inR?chance(a.hit,e.ac,adv)+'%'+(adv>0?' ▲':adv<0?' ▼':'')+' · '+a.hand:'далеко',ok:inR,
+      run:()=>doVerb(e,()=>attack(H0,e,a),{adj:a.range===1&&man(e,H0)>1})};});
+  if(HERO.cls==='mage')items.push({icon:'special',label:'Маг. стрела',sub:SP.missiles?'без промаха · '+SP.missiles+' ост.':'нужен отдых',ok:SP.missiles>0&&man(e,H0)<=8,run:()=>doVerb(e,()=>magicMissile(e))});
+  items.push({icon:'back',label:'Назад',keep:true,run:()=>enemyWheel(e)});
+  showWheel(e,items,'Чем атаковать');}
+function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
+  {icon:'look',label:'Осмотреть',run:()=>toast(a.npc+'. Житель острова.')}];
+  showWheel(a,items,a.npc);}
+function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2:d(4);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
+  toast((id==='potion'?'Зелье лечения: 2к4 + 2 = ':'Хлеб: 1к4 = ')+v);window.handsConsume&&window.handsConsume(id);}
+function heroWheel(){const f=CB.on,ht=heroTurn(),items=[];
+  if(!f)items.push(H0.sneak?{icon:'stand',label:'Выпрямиться',run:()=>{H0.sneak=false;H0.spd=2.4;}}:{icon:'sneak',label:'Красться',sub:'Скрытность +'+HERO.stealth,run:()=>{H0.sneak=true;H0.spd=1.3;toast('Вы крадётесь: враги замечают только спереди и вблизи.');}});
+  const p=count('potion'),b=count('bread'),full=H0.hp>=H0.max;
+  items.push({icon:'potion',label:'Зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · есть '+p:'нет',ok:p>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,()=>heal('potion'),{kind:'bonus'}):heal('potion')});
+  if(!f)items.push({icon:'bread',label:'Хлеб',sub:b?'1к4 · есть '+b:'нет',ok:b>0&&!full,run:()=>heal('bread')});
+  if(HERO.cls==='fighter')items.push({icon:'special',label:'Второе дыхание',sub:SP.wind?'1к10+2'+(f?' · бонус':''):'нужен отдых',ok:SP.wind>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,secondWind,{kind:'bonus'}):secondWind()});
+  if(HERO.cls==='rogue'&&f)items.push({icon:'special',label:'Рывок',sub:'бонус · +6 клеток',ok:ht&&!CB.bonus,run:()=>doVerb(null,dash,{kind:'bonus'})});
+  if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
+  showWheel(H0,items,H0.name);}
+const usedRocks=new Set();
+// anything with a description: look closely; some things give an item the first time
+function lookWheel(L,mesh){const p=new THREE.Vector3();mesh.getWorldPosition(p);const x=Math.floor(p.x),z=Math.floor(p.z);
+  const items=[{icon:'look',label:'Осмотреть',run:()=>inspect(L,x,z)}];
+  if(L.loot&&!L.taken)items[L.item?'unshift':'push']({icon:'pick',label:'Взять',sub:L.loot.map(([id,n])=>window.handsItemName(id)+(n>1?' ×'+n:'')).join(', '),run:()=>inspect(L,x,z,true)});
+  showWheel({pos:p},items,L.n);}
+// look: the wheel is already gone, the camera leans in, the hero studies the thing; the text comes after, at the top
+function inspect(L,x,z,grab){if(CB.on)return toast('Не время разглядывать.');goDo(x,z,false,async()=>{H0.face=Math.atan2(x+.5-H0.px,z+.5-H0.pz);zoomTarget=.62;
+  heroPose(grab?'pickup':'look',grab?900:1500);window.handsGesture&&window.handsGesture(grab?'pickup':'inspect');await wait(grab?450:1400);
+  if(L.loot&&!L.taken&&(grab||!L.item)){const got=window.handsGive(L.loot,'Найдено');if(got.length){L.taken=true;if(L.grp)L.grp.visible=false;}else toast('Больше не унести: '+window.handsItemName(L.loot[0][0])+'.');}
+  if(!grab||!L.item)note(L.n,L.t);setTimeout(()=>zoomTarget=1,grab?500:2200);});}
+const noteEl=document.getElementById('note');let noteT=0;
+function note(t,x){noteEl.hidden=false;noteEl.innerHTML='<b></b><span></span>';noteEl.children[0].textContent=t;noteEl.children[1].textContent=x;noteEl.classList.remove('show');void noteEl.offsetWidth;noteEl.classList.add('show');
+  clearTimeout(noteT);noteT=setTimeout(()=>noteEl.hidden=true,6500);}
+noteEl.addEventListener('pointerdown',e=>{e.stopPropagation();noteEl.hidden=true;});
+function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.5);
+  showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
+    {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',herb:'Пахнет мятой и чем-то горьким.'})[R.type],4000)}],R.name);}
+for(const [ms,n,t,loot] of OUT){const L={n,t,loot,meshes:ms};looks.push(L);ms.forEach(m=>m.userData.look=L);}
+itemProp(scene,Z.dock[0]+3.5,groundAt(Z.dock[0]+3,Z.dock[1]+2)+.04,Z.dock[1]+2.5,'stone',2,'Гладкие камни','Обкатанные морем голыши. Удобно бросать.',0);
+function rockWheel(x,z){const k=x+','+z,pos=new THREE.Vector3(x+.5,groundAt(x,z),z+.5);
+  showWheel({pos},[{icon:'pick',label:'Поднять камни',sub:usedRocks.has(k)?'уже пусто':'+2 камня',ok:!usedRocks.has(k)&&!CB.on,
+    run:()=>goDo(x,z,false,()=>{heroPose('pickup',900);window.handsGesture&&window.handsGesture('pickup');setTimeout(()=>{if(window.handsAdd('stone',2))usedRocks.add(k);},450);})}],'Камни');}
+
+// ---------- hero look: recolour the shared box model ----------
+// hairstyles are rebuilt from the model's own hair boxes (brows stay)
+const HAIR_C=new Set([0x493024,0x584136,0x402a20,0x5d463c,0x5b453a,0x553e32,0x665247]),BROW=0x3e291f;
+const HAIRS={messy:'Растрёпанные',short:'Короткие',long:'Длинные',tail:'Хвост',bun:'Пучок',bald:'Бритая'};
+function styleHair(boxes,st){const isH=b=>HAIR_C.has(b[6]),tag=b=>{const o=b.slice();o[8]='hair';return o;},H=0x493024;
+  let out=boxes.map(b=>isH(b)||b[6]===BROW?tag(b):b);if(st==='messy'||!st)return out;
+  const keepTop=b=>!isH(b)||b[1]>=1.05&&b[1]<1.18&&Math.abs(b[0])<.25&&b[2]<.2; // cap only: no tufts, no fringe
+  if(st==='bald')return out.filter(b=>!isH(b));
+  if(st==='short'||st==='tail'||st==='bun'){out=out.filter(keepTop);out.push(tag([-.26,1.04,0,.05,.12,.42,H]),tag([.26,1.04,0,.05,.12,.42,H]),tag([0,1.02,-.22,.5,.2,.07,H]),tag([0,1.1,.21,.46,.04,.05,H]));}
+  if(st==='tail')out.push(tag([0,1.12,-.28,.14,.14,.1,H]),tag([.05,.98,-.33,.12,.22,.1,H]),tag([.1,.82,-.35,.1,.18,.09,H]),tag([.13,.7,-.35,.07,.1,.07,H]));
+  if(st==='bun')out.push(tag([0,1.25,-.06,.26,.17,.24,H]),tag([0,1.35,-.06,.16,.07,.16,H]));
+  if(st==='long')out.push(tag([0,.74,-.22,.5,.36,.07,H]),tag([-.26,.8,-.02,.06,.32,.36,H]),tag([.26,.8,-.02,.06,.32,.36,H]),tag([-.25,.7,.16,.09,.3,.08,H]),tag([.25,.7,.16,.09,.3,.08,H]));
+  return out;}
+const LOOKS={skin:['e9bf90','d9a27a','b9805a','8a5a3a','f2d2b0'],hair:['493024','1c1612','8a5a2a','c8a060','8a8a8a','6a2418'],cloth:['284d6c','6a2a24','3a5a2a','4a3a5a','6a5a3a','2a2a2a']};
+const cH={},tmpC=new THREE.Color();
+function recolor(boxes,look){const base={skin:new THREE.Color(0xe9bf90).getHSL({}),hair:new THREE.Color(0x493024).getHSL({}),cloth:new THREE.Color(0x284d6c).getHSL({})};
+  const tgt={skin:new THREE.Color('#'+look.skin).getHSL({}),hair:new THREE.Color('#'+look.hair).getHSL({}),cloth:new THREE.Color('#'+look.cloth).getHSL({})};
+  return boxes.map(b=>{const c=tmpC.setHex(b[6]).getHSL({}),hue=c.h*360;let g=null;
+    if(c.l>.55&&hue>15&&hue<45&&c.s>.3&&c.s<.8)g='skin';else if(hue>190&&hue<235&&c.s>.2)g='cloth';else if(b[8]==='hair')g='hair';
+    if(!g)return b;const t=tgt[g],k=c.l/base[g].l;const nc=new THREE.Color().setHSL(t.h,Math.min(1,t.s*(c.s/(base[g].s||1))),Math.min(.95,t.l*k));const out=b.slice();out[6]=nc.getHex();return out;});}
+function rebuildHero(look){const m=buildModel(recolor(styleHair(MODELS['fighter-male'],look.style),look));const held=hero.userData.held;
+  hero.clear();[...m.children].forEach(c=>hero.add(c));Object.assign(hero.userData,m.userData,{held});}
+let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
+function applyHero(s){HEROSET=s;HERO=Object.assign({cls:s.cls},CLASSES[s.cls]);H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look);setHP();}
+
+// ---------- menus ----------
+let paused=true;
+const mainEl=document.getElementById('mainmenu'),pauseEl=document.getElementById('pause'),edEl=document.getElementById('editor');
+function screen(el){for(const x of [mainEl,pauseEl,edEl])x.hidden=x!==el;paused=!!el;closeWheel();}
+function hasSave(){try{return !!localStorage.getItem(SAVE)&&!!HEROSET}catch(e){return false}}
+function mainMenu(){screen(mainEl);document.getElementById('mContinue').hidden=!hasSave();document.getElementById('mSet').hidden=true;}
+document.getElementById('mContinue').onclick=()=>screen(null);
+document.getElementById('mNew').onclick=()=>openEditor();
+document.getElementById('mSettings').onclick=()=>{const s=document.getElementById('mSet');s.hidden=!s.hidden;};
+document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();screen(pauseEl);renderSheet();};
+document.getElementById('pResume').onclick=()=>screen(null);
+document.getElementById('pMain').onclick=()=>{save();mainMenu();};
+for(const id of ['mSound','pSound'])document.getElementById(id).onclick=()=>{sndBtn.onclick();};
+function renderSheet(){const h=HERO,el=document.getElementById('sheet');
+  el.innerHTML='<b></b><span>'+h.n+' · здоровье '+Math.max(0,H0.hp)+' / '+H0.max+' · КД '+heroAC()+'</span><span>Ближний бой +'+h.melee+' · стрельба +'+h.ranged+' · магия +'+h.spell+'</span><span>Скрытность +'+h.stealth+' · Атлетика +'+h.athletics+'</span><small></small>';
+  el.querySelector('b').textContent=H0.name;el.querySelector('small').textContent=h.about;}
+
+// ---------- hero editor with a live 3D preview ----------
+const ED={name:'Эльдар',cls:'fighter',look:{skin:LOOKS.skin[0],hair:LOOKS.hair[0],cloth:LOOKS.cloth[0],style:'messy'}};
+let pv=null;
+function preview(){const c=document.getElementById('edCanvas');
+  if(!pv){const r=new THREE.WebGLRenderer({canvas:c,antialias:false,alpha:true});r.setPixelRatio(Math.min(devicePixelRatio,2));const s=new THREE.Scene(),cam=new THREE.PerspectiveCamera(30,1,.1,20);
+    cam.position.set(0,1.05,4.6);cam.lookAt(0,.62,0);s.add(new THREE.HemisphereLight(0xdfe8ff,0x3a2a1a,1.1));const dl=new THREE.DirectionalLight(0xffe0b0,.8);dl.position.set(2,3,2);s.add(dl);
+    const ped=new THREE.Mesh(new THREE.CylinderGeometry(.55,.6,.12,12),lam(T.stone));ped.position.y=-.06;s.add(ped);pv={r,s,cam,m:null,t:0};
+    const loop=()=>{if(edEl.hidden){pv.raf=0;return;}const w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*r.getPixelRatio())){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+      cam.position.set(0,1.05,4.6/Math.min(1,Math.max(.45,w/h*1.3)));cam.lookAt(0,.62,0);pv.t+=.012;if(pv.m){pv.m.rotation.y=Math.sin(pv.t)*.9;const rg=pv.m.userData.rig;if(pv.m.userData.twoHand==='staff'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}}r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
+  if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(recolor(styleHair(MODELS['fighter-male'],ED.look.style),ED.look));const [L,R]=CLASSES[ED.cls].start;
+  const two=TWO.has(L)?L:TWO.has(R)?R:null;if(two)setTwoHanded(pv.m,two);else{if(L)setHeld(pv.m,'L',L);if(R)setHeld(pv.m,'R',R);}pv.s.add(pv.m);if(!pv.raf)pv.loop();}
+function openEditor(){screen(edEl);const cls=document.getElementById('edClass');cls.replaceChildren();
+  for(const [k,c] of Object.entries(CLASSES)){const b=document.createElement('button');b.className='cls'+(ED.cls===k?' on':'');b.innerHTML='<b></b><small></small>';b.children[0].textContent=c.n;
+    b.children[1].textContent='Здоровье '+c.hp+' · КД '+c.ac;b.onclick=()=>{ED.cls=k;openEditor();};cls.append(b);}
+  document.getElementById('edAbout').textContent=CLASSES[ED.cls].about;
+  for(const part of ['skin','hair','cloth']){const row=document.getElementById('ed_'+part);row.replaceChildren();
+    for(const hex of LOOKS[part]){const b=document.createElement('button');b.className='sw'+(ED.look[part]===hex?' on':'');b.style.background='#'+hex;b.setAttribute('aria-label',part+' '+hex);
+      b.onclick=()=>{ED.look[part]=hex;openEditor();};row.append(b);}}
+  const hs=document.getElementById('ed_style');hs.replaceChildren();for(const [k,n] of Object.entries(HAIRS)){const b=document.createElement('button');b.className='hs'+(ED.look.style===k?' on':'');b.textContent=n;b.onclick=()=>{ED.look.style=k;openEditor();};hs.append(b);}
+  const nm=document.getElementById('edName');nm.value=ED.name;nm.oninput=()=>ED.name=nm.value.slice(0,16);preview();}
+document.getElementById('edBack').onclick=()=>mainMenu();
+document.getElementById('edGo').onclick=()=>{const s={name:(ED.name||'').trim()||'Безымянный',cls:ED.cls,look:Object.assign({},ED.look)};
+  resetting=true;try{localStorage.setItem('helga-hero',JSON.stringify(s));localStorage.removeItem(SAVE);sessionStorage.setItem('helga-start','new');}catch(e){}location.reload();};

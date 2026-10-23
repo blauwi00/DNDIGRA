@@ -1,0 +1,393 @@
+// ---------- renderer / scene ----------
+const canvas=document.getElementById('c'),stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
+const focus=new THREE.Vector3(8,0,30);
+let camZoom=1,zoomTarget=1; // the camera leans in while the hero looks at something
+function placeCam(){camera.position.set(focus.x,focus.y+8.2*camZoom,focus.z+6.6*camZoom);camera.lookAt(focus)}
+const T={p:[0,1,2,3].map(planks),stone:stoneFloor(),grass:grass(),dirt:dirt(),cobble:cobble(),wall:wallStone(),crate:crate(),leaves:leaves(),bark:bark(),water:water(),gside:grassSide(),moss:moss(),blade:blade(),smoke:smokeTex()};
+const sand=tex(32,(g,s)=>{noise(g,s,['#b8a37a','#c2ad84','#ad9870','#bfa97f']);for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#8f7d5c','#d8c79e']))});
+const lam=(map,extra={})=>new THREE.MeshLambertMaterial(Object.assign({map},extra));
+const box=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const BOX=box(1,1,1);
+
+// ---------- island generation, 80 x 60 cells ----------
+// Codes: F room floor, X room wall (solid), E room exit; ~ sea, A sand, G grass, D dirt road, C cobble, S ruin floor, P planks (dock), H house (solid), W ruin wall (solid)
+const W=80,H=106,grid=[],height=[];
+const hash2=(x,z)=>{let h=(x*374761393+z*668265263)>>>0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296};
+const vnoise=(x,z,s)=>{const X=Math.floor(x/s),Z=Math.floor(z/s),fx=x/s-X,fz=z/s-Z,l=(a,b,t)=>a+(b-a)*t*t*(3-2*t);
+  return l(l(hash2(X,Z),hash2(X+1,Z),fx),l(hash2(X,Z+1),hash2(X+1,Z+1),fx),fz)};
+for(let z=0;z<H;z++){grid.push([]);for(let x=0;x<W;x++){
+  const d=((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;grid[z].push(d<1?'G':'~');}}
+const at=(x,z)=>(grid[z]||[])[x]||'~',set=(x,z,c)=>{if(grid[z]&&grid[z][x]!==undefined)grid[z][x]=c};
+// beach ring
+const near=(x,z,c,r)=>{for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(at(x+dx,z+dz)===c)return true;return false};
+for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)==='G'&&near(x,z,'~',2))grid[z][x]='A';
+// zones (centres)
+const Z={dock:[6,31],village:[26,30],forest:[60,40],camp:[64,44],ruins:[60,13],grave:[52,10],hunter:[46,48]};
+function road(a,b,c='D'){let [x,z]=a;const [tx,tz]=b;while(x!==tx||z!==tz){for(const [ox,oz] of [[0,0],[0,1]])if(at(x+ox,z+oz)!=='~')set(x+ox,z+oz,c);
+  if(x!==tx&&(z===tz||hash2(x,z)<.6))x+=Math.sign(tx-x);else z+=Math.sign(tz-z);}}
+road([Z.dock[0]+3,Z.dock[1]],Z.village);road(Z.village,[Z.ruins[0]-2,Z.ruins[1]+3]);road(Z.village,[Z.camp[0]-3,Z.camp[1]]);road([Z.village[0]+8,Z.village[1]+4],Z.hunter);
+// village plaza
+for(let z=Z.village[1]-3;z<=Z.village[1]+3;z++)for(let x=Z.village[0]-4;x<=Z.village[0]+4;x++)if(Math.hypot(x-Z.village[0],(z-Z.village[1])*1.3)<5)set(x,z,'C');
+// dock: planks out over the sea
+for(let x=0;x<=Z.dock[0]+3;x++)for(const z of [Z.dock[1],Z.dock[1]+1])set(x,z,'P');
+// ruins floor
+for(let z=Z.ruins[1]-5;z<=Z.ruins[1]+5;z++)for(let x=Z.ruins[0]-6;x<=Z.ruins[0]+6;x++)if(at(x,z)!=='~'&&hash2(x,z)<.85)set(x,z,'S');
+// houses (footprints, solid) around the plaza
+const HOUSES=[[18,23,5,4],[30,22,6,4],[18,35,5,4],[31,35,6,5],[38,27,4,4],[13,28,4,4]];
+const HOUSE_INFO=[['tavern','Таверна «Пьяный угорь»'],['forge','Кузница'],['home','Дом рыбака'],['hall','Дом старосты'],['barn','Амбар'],['herb','Хижина травницы']];
+// Each house has a room far south of the island (rows 96+), beyond the camera's reach.
+const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const iw=Math.min(9,hw+3),id=7,ox=2+i*13,oz=96;
+  return {i,type:HOUSE_INFO[i][0],name:HOUSE_INFO[i][1],ox,oz,iw,id,door:[hx+Math.floor(hw/2),hz+hd],exit:[ox+Math.floor(iw/2),oz+id-1]};});
+for(const R of ROOMS){for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++)set(x,z,(x===R.ox||x===R.ox+R.iw-1||z===R.oz||z===R.oz+R.id-1)?'X':'F');set(...R.exit,'E');}
+for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');
+// ruin walls: broken rectangle
+const RW=[];for(let x=Z.ruins[0]-5;x<=Z.ruins[0]+5;x++)for(const z of [Z.ruins[1]-4,Z.ruins[1]+4])if(hash2(x,z*3)<.7&&Math.abs(x-Z.ruins[0])>1)RW.push([x,z]);
+for(let z=Z.ruins[1]-4;z<=Z.ruins[1]+4;z++)for(const x of [Z.ruins[0]-5,Z.ruins[0]+5])if(hash2(x*3,z)<.7)RW.push([x,z]);
+for(const [x,z] of RW)if(at(x,z)!=='~')set(x,z,'W');
+for(let z=0;z<H;z++){height.push([]);for(let x=0;x<W;x++){const c=at(x,z);
+  height[z].push(c==='F'||c==='E'||c==='X'?.3:c==='~'?0:c==='A'?.24:c==='P'?.3:c==='D'?.27:c==='C'?.29:c==='S'?.3:.3+vnoise(x,z,5)*.08);}}
+// cells from each land cell to the nearest sea, so the surf is only heard near water
+const seaDist=[];{const q=[];for(let z=0;z<90;z++){seaDist.push([]);for(let x=0;x<W;x++){const s=at(x,z)==='~';seaDist[z].push(s?0:99);if(s)q.push([x,z]);}}
+  for(let i=0;i<q.length;i++){const[x,z]=q[i];for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const nx=x+dx,nz=z+dz;if(nz<0||nz>=90||nx<0||nx>=W)continue;if(seaDist[nz][nx]>seaDist[z][x]+1){seaDist[nz][nx]=seaDist[z][x]+1;q.push([nx,nz]);}}}}
+const groundAt=(x,z)=>{x=Math.floor(x);z=Math.floor(z);return at(x,z)==='~'?.12:height[z][x]};
+
+// ---------- chunking: the island is drawn in 16x16 pieces so off-screen ones are culled ----------
+const CH=16;
+function chunk(list){const m=new Map();for(const c of list){const k=Math.floor(c[0]/CH)+','+Math.floor(c[1]/CH);if(!m.has(k))m.set(k,[]);m.get(k).push(c);}return [...m.values()];}
+function fitBounds(im,cells,top){let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;for(const [x,z] of cells){x0=Math.min(x0,x);z0=Math.min(z0,z);x1=Math.max(x1,x+1);z1=Math.max(z1,z+1);}
+  im.geometry=im.geometry.clone();im.geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3((x0+x1)/2,top/2,(z0+z1)/2),Math.hypot(x1-x0,z1-z0,top)/2+1);
+  im.frustumCulled=true;
+  // the chunk-wide sphere is for culling only; instance raycasts need the local one
+  const g=im.geometry,cull=g.boundingSphere,loc=g.clone();loc.computeBoundingSphere();const local=loc.boundingSphere;loc.dispose();
+  const rc=im.raycast;im.raycast=function(r,out){g.boundingSphere=local;try{rc.call(this,r,out)}finally{g.boundingSphere=cull}};}
+// ---------- terrain: one instanced mesh per surface and chunk ----------
+const SURF={G:{top:T.grass,side:T.gside},A:{top:sand,side:sand},D:{top:T.dirt,side:T.dirt},C:{top:T.cobble,side:T.stone},S:{top:T.stone,side:T.stone},H:{top:T.dirt,side:T.dirt},W:{top:T.stone,side:T.stone},P:{top:T.p[0],side:T.p[1]}};
+const pickable=[],tmpCol=new THREE.Color();const m4=new THREE.Matrix4(),q0=new THREE.Quaternion(),v1=new THREE.Vector3(),v2=new THREE.Vector3();
+for(const [code,s] of Object.entries(SURF)){const cells=[];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)===code)cells.push([x,z]);if(!cells.length)continue;
+  const side=lam(s.side,code==='G'?{}:{color:0xb8b0a8}),mats=[side,side,lam(s.top),side,side,side];
+  for(const part of chunk(cells)){const im=new THREE.InstancedMesh(BOX,mats,part.length);im.receiveShadow=true;
+    part.forEach(([x,z],i)=>{const h=code==='P'?.08:height[z][x];m4.compose(v1.set(x+.5,code==='P'?h+.18:h/2,z+.5),q0,v2.set(1,h,1));im.setMatrixAt(i,m4);
+      const v=.86+.22*vnoise(x,z,6)+(hash2(x*3,z*5)-.5)*.08,w=code==='G'?(vnoise(x+40,z,9)-.5)*.14:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
+    fitBounds(im,part,2);im.userData.cells=part;scene.add(im);pickable.push(im);}}
+// dock posts
+{const posts=[];for(let x=0;x<=Z.dock[0]+3;x+=2)for(const z of [Z.dock[1]-.05,Z.dock[1]+2.05])posts.push([x+.5,z]);
+ const im=new THREE.InstancedMesh(BOX,lam(T.bark),posts.length);posts.forEach(([x,z],i)=>{m4.compose(v1.set(x,.2,z),q0,v2.set(.14,.6,.14));im.setMatrixAt(i,m4)});im.castShadow=true;scene.add(im);}
+// sea
+const wmat=lam(T.water,{transparent:true,opacity:.92});T.water.wrapS=T.water.wrapT=THREE.RepeatWrapping;T.water.repeat.set(70,55);
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(140,110),wmat);sea.rotation.x=-Math.PI/2;sea.position.set(W/2,.12,H/2);scene.add(sea);
+// shore foam
+{const f=[];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)==='~'&&near(x,z,'A',1))f.push([x,z]);
+ const im=new THREE.InstancedMesh(box(1,.02,1),new THREE.MeshBasicMaterial({color:0x9fc3cf,transparent:true,opacity:.22}),f.length);f.forEach(([x,z],i)=>{m4.compose(v1.set(x+.5,.14,z+.5),q0,v2.set(1,1,1));im.setMatrixAt(i,m4)});scene.add(im);window.foam=im;}
+
+// ---------- props: instanced trees, rocks, grass; solid cells block walking ----------
+const solid=new Set(),blockCell=(x,z)=>solid.add(Math.floor(x)+','+Math.floor(z)),free=(x,z)=>!solid.has(x+','+z)&&!['~','H','W','X'].includes(at(x,z));
+for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(['H','W','X'].includes(at(x,z)))blockCell(x,z);
+const nearZone=(x,z,name,r)=>Math.hypot(x-Z[name][0],z-Z[name][1])<r;
+const treeCells=[],rockCells=[],bushCells=[],grassCells=[],mushCells=[];
+for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){if(at(x,z)!=='G')continue;
+  if(ROOMS.some(R=>Math.abs(x-R.door[0])<=2&&z-R.door[1]>=-1&&z-R.door[1]<=2))continue; /* keep doorways clear */const r=hash2(x*7,z*13),dens=x>44?.42:x>36?.18:.08;
+  if(nearZone(x,z,'village',9)||nearZone(x,z,'camp',3)||nearZone(x,z,'hunter',3)||nearZone(x,z,'grave',6)||nearZone(x,z,'ruins',7))
+    {if(r<.06)grassCells.push([x,z]);continue;}
+  if([[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>['D','C','P'].includes(at(x+a,z+b)))){if(r<.12)bushCells.push([x,z]);else if(r<.5)grassCells.push([x,z]);continue;}
+  if(r<dens)treeCells.push([x,z]);else if(r<dens+.04)rockCells.push([x,z]);else if(r<dens+.08)bushCells.push([x,z]);else if(x>44&&r<dens+.1)mushCells.push([x,z]);else if(r<dens+.45)grassCells.push([x,z]);}
+for(const c of [...treeCells,...rockCells,...bushCells])blockCell(...c);
+// no sealed pockets: every open land cell must connect to the dock; cut the fewest props to link any that don't
+{const K=(x,z)=>x+','+z,land=(x,z)=>z<90&&!['~','H','W','X'].includes(at(x,z)),seen=new Set();
+ const flood=(x0,z0)=>{const q=[[x0,z0]];seen.add(K(x0,z0));while(q.length){const[x,z]=q.pop();for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(seen.has(K(nx,nz))||!free(nx,nz)||nz>=90)continue;seen.add(K(nx,nz));q.push([nx,nz]);}}};
+ flood(Z.dock[0]+1,Z.dock[1]);const cut=new Set();
+ for(let z=0;z<90;z++)for(let x=0;x<W;x++){if(!free(x,z)||seen.has(K(x,z)))continue;
+   const prev=new Map([[K(x,z),null]]),dq=[[x,z]];let end=null;   // 0-1 BFS: open cells cost 0, props cost 1
+   while(dq.length){const[cx,cz]=dq.shift();if(seen.has(K(cx,cz))){end=[cx,cz];break;}
+     for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,nz=cz+dz;if(prev.has(K(nx,nz))||!land(nx,nz))continue;prev.set(K(nx,nz),[cx,cz]);free(nx,nz)?dq.unshift([nx,nz]):dq.push([nx,nz]);}}
+   if(!end)continue;for(let c=end;c;c=prev.get(K(c[0],c[1])))if(!free(c[0],c[1])){solid.delete(K(c[0],c[1]));cut.add(K(c[0],c[1]));}
+   flood(x,z);}
+ for(const L of [treeCells,rockCells,bushCells])for(let i=L.length-1;i>=0;i--)if(cut.has(K(...L[i])))L.splice(i,1);}
+function instanced(geo,mat,list,place,shadow=true){const out=[];if(!list.length)return out;for(const part of chunk(list)){const im=new THREE.InstancedMesh(geo,mat,part.length);
+  part.forEach((c,i)=>{place(c,i,m4);im.setMatrixAt(i,m4);const v=.82+hash2(c[0]*7,c[1]*3)*.3;im.setColorAt(i,tmpCol.setRGB(v,v*(.95+hash2(c[1],c[0])*.1),v*.95));});im.castShadow=shadow;im.receiveShadow=true;fitBounds(im,part,3);im.userData.cells=part;scene.add(im);out.push(im);}return out;}
+const qY=a=>new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),a);
+const WIND={value:0};
+function sway(mat,amp,topOnly){mat.onBeforeCompile=sh=>{sh.uniforms.uWind=WIND;sh.vertexShader='uniform float uWind;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+  '#include <begin_vertex>\n#ifdef USE_INSTANCING\nvec4 wp=instanceMatrix*vec4(0.,0.,0.,1.);\n#else\nvec4 wp=vec4(0.);\n#endif\nfloat k='+(topOnly?'max(0.,position.y+.5)':'1.')+';\ntransformed.x+=sin(uWind*1.7+wp.x*.7+wp.z*.4)*'+amp+'*k;\ntransformed.z+=cos(uWind*1.3+wp.z*.6)*'+amp+'*.6*k;');};return mat;}
+const leafA=sway(lam(T.leaves),.05,1),leafB=sway(lam(T.leaves,{color:0xb8c9a0}),.06,1),pine=sway(lam(T.leaves,{color:0x8aa080}),.07,1);
+instanced(BOX,lam(T.bark),treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5,groundAt(x,z)+.45*s,z+.5),q0,v2.set(.22*s,.9*s,.22*s))});
+for(const [k,mat,y,sz] of [[0,leafA,1.05,.95],[1,leafB,1.45,.7],[2,pine,1.78,.42]])
+  instanced(BOX,mat,treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5+(k-1)*.05,groundAt(x,z)+y*s,z+.5),qY(hash2(z,x)*3),v2.set(sz*s,sz*.8*s,sz*s))});
+const rockMeshes=instanced(BOX,lam(T.stone),rockCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.12,z+.5),qY(hash2(x,z)*3),v2.set(.5,.24,.4)));
+instanced(BOX,lam(T.leaves,{color:0xa8c090}),bushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.22,z+.5),qY(hash2(x,z)*3),v2.set(.62,.44,.56)));
+const bladeMat=sway(new THREE.MeshLambertMaterial({map:T.blade,transparent:true,alphaTest:.5,side:THREE.DoubleSide}),.07,1);
+// meadow flowers: little petal clusters on stems, three colours
+{const fl=[];for(let z=1;z<89;z++)for(let x=1;x<W-1;x++)if(at(x,z)==='G'&&!solid.has(x+','+z)&&hash2(x*11,z*17)<.09&&!nearZone(x,z,'grave',7)&&!nearZone(x,z,'ruins',8))fl.push([x,z]);
+ const stem=new THREE.MeshLambertMaterial({color:0x3f6a2e});[0xe8d06a,0xd88ab0,0xe8e8f0].forEach((c,ci)=>{const list=fl.filter(([x,z])=>Math.floor(hash2(z,x)*3)===ci);
+   instanced(box(.02,.16,.02),sway(stem,.04,1),list,([x,z],i,m)=>m.compose(v1.set(x+.25+hash2(x,z)*.5,groundAt(x,z)+.08,z+.3+hash2(z,x)*.4),q0,v2.set(1,1,1)),false);
+   instanced(box(.08,.05,.08),sway(new THREE.MeshLambertMaterial({color:c,emissive:c,emissiveIntensity:.15}),.04,0),list,([x,z],i,m)=>m.compose(v1.set(x+.25+hash2(x,z)*.5,groundAt(x,z)+.17,z+.3+hash2(z,x)*.4),qY(hash2(x,z)*3),v2.set(1,1,1)),false);});}
+for(const a of [0,Math.PI/2])instanced(new THREE.PlaneGeometry(.26,.44),bladeMat,grassCells,([x,z],i,m)=>m.compose(v1.set(x+.25+hash2(x,z)*.5,groundAt(x,z)+.22,z+.25+hash2(z,x)*.5),qY(a+hash2(x,z)),v2.set(1,1,1)),false);
+instanced(BOX,new THREE.MeshLambertMaterial({color:0x9a3a2a}),mushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.1,z+.5),q0,v2.set(.14,.06,.14)),false);
+// houses: plank walls, door, gabled roof
+const roofMat=lam(T.p[2],{color:0x8a5a3a}),wallMat=lam(T.p[0],{color:0xc8b8a0}),doorMat=new THREE.MeshLambertMaterial({color:0x3a2416});
+const houseMeshes=[];
+// a plank door in a frame: the leaf hangs on a hinge pivot so it can swing open
+const doorWood=[0x8a6040,0x7a5436,0x94683f].map(c=>lam(T.p[1],{color:c})),frameMat=lam(T.bark,{color:0x7a6450}),ironMat=new THREE.MeshLambertMaterial({color:0x2c2c30}),brass=new THREE.MeshLambertMaterial({color:0xc8a040});
+function makeDoor(w=.64,h=.95){const g=new THREE.Group(),B=(m,x,y,z,sx,sy,sz,p=g)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
+  for(const s of [-1,1])B(frameMat,s*(w/2+.06),(h+.12)/2,0,.12,h+.12,.16);B(frameMat,0,h+.1,0,w+.36,.12,.18);B(lam(T.stone),0,.02,.08,w+.2,.04,.2);
+  const pivot=new THREE.Group();pivot.position.set(-w/2,0,.02);g.add(pivot);
+  for(let i=0;i<3;i++)B(doorWood[i],w/6+i*w/3,h/2,0,w/3-.012,h,.06,pivot);
+  for(const y of [.2,h-.2]){B(ironMat,w/2,y,.035,w-.02,.05,.012,pivot);B(ironMat,.06,y,.04,.12,.08,.02,pivot);}
+  B(brass,w-.1,h*.5,.05,.04,.1,.03,pivot);B(brass,w-.1,h*.5-.06,.06,.08,.03,.03,pivot);
+  return {g,pivot};}
+function swing(d,open,ms=420){const from=d.pivot.rotation.y,to=open?1.45:0;return tween(ms,k=>d.pivot.rotation.y=from+(to-from)*k);}
+HOUSES.forEach(([hx,hz,hw,hd],hi)=>{const g=new THREE.Group(),y=.3;g.userData.house=hi;houseMeshes.push(g);
+  const w=new THREE.Mesh(BOX,wallMat);w.scale.set(hw-.1,1.3,hd-.1);w.position.set(hx+hw/2,y+.65,hz+hd/2);w.castShadow=w.receiveShadow=true;g.add(w);
+  for(const s of [-1,1]){const r=new THREE.Mesh(BOX,roofMat);r.scale.set(hw+.3,.12,hd/2+.35);r.position.set(hx+hw/2,y+1.62,hz+hd/2+s*hd/4);r.rotation.x=s*.55;r.castShadow=true;g.add(r);}
+  const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);g.userData.door=dr;
+  const st=new THREE.Mesh(BOX,lam(T.stone));st.scale.set(.8,.06,.4);st.position.set(hx+Math.floor(hw/2)+.5,y+.03,hz+hd+.2);g.add(st);
+  for(const s of [-1,1]){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+s*(hw/2-.9),y+.85,hz+hd);g.add(win);}
+  {const cx=hx+hw-1.2,cz=hz+hd*.3;const ch=new THREE.Mesh(BOX,lam(T.wall,{color:0x9a948a}));ch.scale.set(.4,.9,.4);ch.position.set(cx,y+1.9,cz);ch.castShadow=true;g.add(ch);g.userData.chimney=new THREE.Vector3(cx,y+2.4,cz);}
+  scene.add(g);});
+// ruin walls (varying heights) and gravestones
+instanced(BOX,lam(T.wall),RW.filter(([x,z])=>at(x,z)==='W'),([x,z],i,m)=>{const h=.4+hash2(x,z)*1.2;m.compose(v1.set(x+.5,.3+h/2,z+.5),q0,v2.set(1,h,1))});
+const graves=[];for(let z=Z.grave[1]-3;z<=Z.grave[1]+3;z+=2)for(let x=Z.grave[0]-4;x<=Z.grave[0]+4;x+=2)if(at(x,z)==='G'&&hash2(x,z)<.8){graves.push([x,z]);blockCell(x,z);}
+instanced(BOX,lam(T.wall,{color:0xa0a4a8}),graves,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.3,z+.5),qY((hash2(x,z)-.5)*.3),v2.set(.5,.6,.14)));
+// village well, crates, barrels, market stall
+function solidBox(x,z,w,h,d,mat,y0){const m=new THREE.Mesh(BOX,mat);m.scale.set(w,h,d);m.position.set(x+.5,(y0??groundAt(x,z))+h/2,z+.5);m.castShadow=m.receiveShadow=true;scene.add(m);blockCell(x,z);return m;}
+const OUT=[];
+// village well: a ring of stones round dark water, two posts, a little roof and a bucket on a rope
+{const g=new THREE.Group(),[wx,wz]=Z.village,y0=groundAt(wx,wz),stoneM=lam(T.wall,{color:0xb0aaa0}),M=[];blockCell(wx,wz);
+ const B=(m,x,y,z,sx,sy,sz,ry=0)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,y,z);o.rotation.y=ry;o.castShadow=o.receiveShadow=true;g.add(o);M.push(o);return o;};
+ for(let i=0;i<10;i++){const a=i/10*Math.PI*2;B(stoneM,Math.cos(a)*.36,.21,Math.sin(a)*.36,.25,.42,.16,-a+Math.PI/2);}
+ const wtr=new THREE.Mesh(new THREE.CircleGeometry(.3,12),new THREE.MeshBasicMaterial({color:0x16222c}));wtr.rotation.x=-Math.PI/2;wtr.position.y=.3;g.add(wtr);M.push(wtr);
+ for(const s of [-1,1])B(lam(T.bark),s*.46,.6,0,.08,1.2,.08);B(lam(T.bark),0,1.1,0,1.02,.07,.07);
+ for(const s of [-1,1]){const r=B(lam(T.p[1],{color:0x8a5a3a}),0,1.3,s*.17,1.2,.05,.44);r.rotation.x=s*.62;}
+ B(new THREE.MeshLambertMaterial({color:0xc8b088}),0,.88,0,.015,.4,.015);const bk=B(lam(T.p[1],{color:0x6a4a30}),0,.62,0,.16,.14,.16);B(ironMat,0,.66,0,.17,.03,.17);
+ g.position.set(wx+.5,y0,wz+.5);scene.add(g);OUT.push([M,'Колодец','Глубокий. Внизу блестит вода и, кажется, чья-то монетка.']);}
+[[22,28],[22,29],[30,32],[17,31],[35,30]].forEach(([x,z],i)=>OUT.push([[solidBox(x,z,.45,.45,.45,lam(T.crate))],'Ящик',i===2?'Среди соломы — пара гладких камней.':'Пустой ящик из-под рыбы.',i===2?[['stone',2]]:null]));
+// boat at the dock
+{const g=new THREE.Group(),hull=lam(T.p[1],{color:0x8a6a4a});for(const [x,w] of [[0,1.6],[0,1.8]]){const m=new THREE.Mesh(BOX,hull);m.scale.set(w,.25,.8);m.position.set(1.6,.2,Z.dock[1]-1.2);g.add(m);}scene.add(g);}
+
+// ---------- lights: moon + a few warm points ----------
+const hemi=new THREE.HemisphereLight(0x6a7fa0,0x2a2018,.75);scene.add(hemi);
+const moon=new THREE.DirectionalLight(0x9fb4d8,.6);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);Object.assign(moon.shadow.camera,{left:-11,right:11,top:11,bottom:-11});scene.add(moon,moon.target);
+scene.fog=new THREE.FogExp2(0x0d1418,.05);scene.background=new THREE.Color(0x0d1418);
+const torches=[];
+function torch(x,z,fire=false){blockCell(x,z);const g=new THREE.Group(),y=groundAt(x,z);
+  if(!fire){const post=new THREE.Mesh(BOX,lam(T.bark));post.scale.set(.08,.7,.08);post.position.y=.35;g.add(post);}
+  else for(let i=0;i<6;i++){const a=i/6*6.28,s=new THREE.Mesh(BOX,lam(T.wall));s.scale.set(.14,.1,.12);s.position.set(Math.cos(a)*.27,.05,Math.sin(a)*.27);g.add(s);}
+  const fl=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffb347}));fl.scale.set(fire?.2:.12,fire?.28:.16,fire?.2:.12);fl.position.y=fire?.18:.78;g.add(fl);
+  g.position.set(x+.5,y,z+.5);scene.add(g);torches.push({fl,ph:hash2(x,z)*9,base:fire?3.2:2.4,dist:fire?8:6.5,pos:new THREE.Vector3(x+.5,y+(fire?.6:.95),z+.5)});}
+// Only three real lights exist; each frame they move to the fires nearest the hero.
+const LIGHTS=[0,1,2].map(()=>{const L=new THREE.PointLight(0xff9a40,0,6,1.6);scene.add(L);return L;});
+torch(23,27);torch(30,33);torch(Z.dock[0]+3,Z.dock[1]-1);torch(Z.camp[0],Z.camp[1],true);torch(Z.hunter[0],Z.hunter[1],true);torch(Z.ruins[0],Z.ruins[1],true);
+// fireflies + mist follow the camera
+// fireflies at night, butterflies by day (same pool, different look)
+const FFLY=new THREE.MeshBasicMaterial({color:0xd8f59a}),BFLY=[0xe8c84a,0xf0f0f8,0xd88ab0,0x8ac0e8].map(c=>new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide}));
+// chimney smoke: a few soft puffs per house near the hero
+const puffMat=new THREE.MeshBasicMaterial({map:T.smoke,transparent:true,depthWrite:false,opacity:.5}),puffs=[];
+function smokeTick(dt,t){for(const g of houseMeshes){const c=g.userData.chimney;if(!c||c.distanceToSquared(focus)>400)continue;
+  if(Math.random()<dt*2.2){let p=puffs.find(p=>!p.visible);if(!p&&puffs.length<60){p=new THREE.Mesh(new THREE.PlaneGeometry(.35,.35),puffMat.clone());scene.add(p);puffs.push(p);}
+    if(p){p.visible=true;p.position.copy(c);p.userData={life:0,dx:(Math.random()-.5)*.2};}}}
+  for(const p of puffs){if(!p.visible)continue;const u=p.userData;u.life+=dt;p.position.y+=dt*.45;p.position.x+=dt*(.25+u.dx);p.scale.setScalar(1+u.life*.9);p.quaternion.copy(camera.quaternion);
+    p.material.opacity=.32*Math.max(0,1-u.life/3.2)*(1-.65*nightness());p.material.color.setScalar(1-.5*nightness());if(u.life>3.2)p.visible=false;}}
+const flies=[];for(let i=0;i<22;i++){const f=new THREE.Mesh(box(.04,.04,.04),new THREE.MeshBasicMaterial({color:0xd8f59a}));f.userData={ox:(hash2(i,1)-.5)*16,oz:(hash2(i,2)-.5)*12,ph:hash2(i,3)*9,c:i%4};scene.add(f);flies.push(f);}
+{RIG}
+{INTERIORS}
+
+// ---------- characters ----------
+const hero=buildModel(MODELS['fighter-male']);scene.add(hero);setHeld(hero,'L','shield');setHeld(hero,'R','sword');
+const actors=[],enemies=[];
+function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(free(x+dx,z+dz))c.push([x+dx,z+dz]);if(c.length){[x,z]=c[0];if(o.home)o.home=[x,z];}}const m=buildModel(MODELS[model]);o.model=model;if(o.scale)m.scale.setScalar(o.scale);scene.add(m);
+  const a=Object.assign({o:m,x,z,px:x+.5,pz:z+.5,face:hash2(x,z)*6,ph:hash2(z,x)*9,spd:1.8,home:[x,z]},o);actors.push(a);return a;}
+const H0={o:hero,x:Z.dock[0]+1,z:Z.dock[1],face:Math.PI/2,ph:0,spd:2.4,hp:20,max:20,ac:15,name:'Эльдар'};H0.px=H0.x+.5;H0.pz=H0.z+.5;actors.push(H0);
+const tint=(a,c)=>{a.o.userData.mats[0].color.setHex(c);return a;};
+const RM=t=>ROOMS.find(r=>r.type===t);
+actor('innkeeper',RM('tavern').ox+5,RM('tavern').oz+2,{wander:2,spd:1.2,npc:'Трактирщик Брам',talkId:'bram',act:'wipe',home:[RM('tavern').ox+5,RM('tavern').oz+2]});
+tint(actor('innkeeper',RM('forge').ox+4,RM('forge').oz+4,{wander:0,spd:1.1,npc:'Кузнец Горан',talkId:'smith',act:'hammer',face:Math.PI}),0x9a8a80);
+tint(actor('innkeeper',RM('herb').ox+3,RM('herb').oz+2,{wander:0,spd:1.1,npc:'Травница Ивва',talkId:'herb',act:'stir',face:-Math.PI/2}),0xa0c0a0);
+actor('innkeeper',Z.village[0]-3,Z.village[1]+2,{wander:4,spd:1.3,npc:'Мельник Тодор',talkId:'miller'});
+tint(actor('innkeeper',Z.dock[0]+2,Z.dock[1]+1,{wander:1,spd:1,npc:'Рыбак Олав',talkId:'fisher'}),0x90a8c0);
+const FOE={
+  bandit:{name:'Разбойник',hp:11,ac:12,atk:3,dmg:6,dmgB:1,atkName:'Сабля',speed:6,perc:10,dex:1,wis:0,ath:2},
+  goblin:{name:'Гоблин',hp:7,ac:15,atk:4,dmg:6,dmgB:2,atkName:'Короткий лук',range:6,speed:6,perc:9,dex:2,wis:-1,ath:-1,spd:2.6},
+  skeleton:{name:'Скелет',hp:13,ac:13,atk:4,dmg:6,dmgB:2,atkName:'Ржавый меч',speed:6,perc:9,dex:2,wis:-1,ath:0},
+  wolf:{name:'Волк',hp:11,ac:13,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Укус',speed:8,perc:13,dex:2,wis:1,ath:1,spd:2.8}};
+function foe(model,x,z,o){o=Object.assign({},FOE[model],{max:FOE[model].hp},o);const a=actor(model,x,z,Object.assign({enemy:true,wander:3,spd:2.2,cd:0},o));enemies.push(a);
+  if(model==='bandit')setHeld(a.o,'R','dagger');return a;}
+foe('bandit',Z.camp[0]+1,Z.camp[1]-1);foe('bandit',Z.camp[0]-1,Z.camp[1]+1);
+foe('goblin',Z.forest[0]-4,Z.forest[1]-6);foe('goblin',Z.hunter[0]+3,Z.hunter[1]-2);
+foe('skeleton',Z.ruins[0]-2,Z.ruins[1]+1);foe('skeleton',Z.ruins[0]+2,Z.ruins[1]-1);foe('skeleton',Z.grave[0],Z.grave[1]+1);
+foe('wolf',Z.forest[0]+3,Z.forest[1]-2,{wander:4});foe('wolf',Z.forest[0]+5,Z.forest[1]-1,{wander:4});
+// enemy health bars: shown once a fight starts
+const barBg=new THREE.MeshBasicMaterial({color:0x14100c,depthTest:false}),barFg=new THREE.MeshBasicMaterial({color:0xd23a30,depthTest:false});
+for(const e of enemies){const g=new THREE.Group(),bg=new THREE.Mesh(box(.62,.1,.01),barBg),fg=new THREE.Mesh(box(.56,.06,.01),barFg);fg.position.z=.01;bg.renderOrder=fg.renderOrder=9;g.add(bg,fg);g.visible=false;scene.add(g);e.bar={g,fg};}
+for(const a of actors){a.px=a.x+.5;a.pz=a.z+.5;}
+
+// ---------- walking ----------
+const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&a.x===x&&a.z===z);
+function path(sx,sz,tx,tz,self,adjacent=false,limit=900){const key=(x,z)=>x+','+z,prev=new Map([[key(sx,sz),null]]),q=[[sx,sz]];let end=null;
+  while(q.length&&prev.size<limit){const[x,z]=q.shift();if(adjacent?Math.abs(x-tx)+Math.abs(z-tz)===1:(x===tx&&z===tz)){end=[x,z];break;}
+    for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!free(nx,nz)||occupied(nx,nz,self)||prev.has(key(nx,nz)))continue;prev.set(key(nx,nz),[x,z]);q.push([nx,nz])}}
+  if(!end)return null;const out=[];let c=end;while(c){out.unshift(c);c=prev.get(key(c[0],c[1]))}return out.slice(1)}
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();
+const adj=(a,x,z)=>Math.abs(a.x-x)+Math.abs(a.z-z)===1;
+// walk next to (or onto) a target cell, then run the action
+function goDo(x,z,onto,fn){if(onto?(H0.x===x&&H0.z===z):adj(H0,x,z)){H0.route=null;fn();return;}
+  const p=path(H0.x,H0.z,x,z,H0,!onto,3000);if(p&&p.length){H0.route=p;H0.dest=onto?[x,z]:p[p.length-1];H0.arrive=fn;}else hint.textContent='Не найти дорогу туда.';}
+function tapActor(a){if(a===H0)return heroWheel();if(a.enemy)return enemyWheel(a);if(a.npc)return npcWheel(a);}
+const marker=new THREE.Group();{const ringM=new THREE.MeshBasicMaterial({color:0xf2c14e,transparent:true,opacity:.85,depthWrite:false});
+  const ring=new THREE.Mesh(new THREE.RingGeometry(.26,.36,20),ringM);ring.rotation.x=-Math.PI/2;marker.add(ring);
+  const dot=new THREE.Mesh(new THREE.CircleGeometry(.08,10),ringM);dot.rotation.x=-Math.PI/2;marker.add(dot);marker.visible=false;marker.renderOrder=3;scene.add(marker);}
+function ripple(p,bad){const m=new THREE.Mesh(new THREE.RingGeometry(.1,.16,20),new THREE.MeshBasicMaterial({color:bad?0xff5a4a:0xffffff,transparent:true,opacity:.9,depthWrite:false}));
+  m.rotation.x=-Math.PI/2;m.position.set(p.x,p.y+.03,p.z);m.renderOrder=4;scene.add(m);tween(420,k=>{m.scale.setScalar(1+k*3);m.material.opacity=.9*(1-k)}).then(()=>{scene.remove(m);m.geometry.dispose();});}
+const shown=m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;};
+canvas.addEventListener('pointerdown',e=>{if(!wheelEl.hidden){closeWheel();return;}if(H0.dead||busy||paused)return;const r=canvas.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(mv,camera);H0.arrive=null;
+  // characters: potion/bread in hand is used on them; enemies are approached and attacked; villagers talk
+  for(const a of actors){if(a.dead||!a.o.visible)continue;if(ray.intersectObject(a.o,true).length){tapActor(a);return;}}
+  const rk=room?null:ray.intersectObjects(rockMeshes)[0],gh=ray.intersectObjects(pickable)[0];
+  if(rk&&(!gh||rk.distance<=gh.distance+.3)){const [x,z]=rk.object.userData.cells[rk.instanceId];rockWheel(x,z);return;}
+  const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
+  const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on){hint.textContent='Сначала закончите бой.';return;}if(it){goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
+  if(hits.object.userData.look){lookWheel(hits.object.userData.look,hits.object);return;}
+  {let o=hits.object;while(o&&o.userData.house==null)o=o.parent;if(o){houseWheel(ROOMS[o.userData.house],hits.object);return;}}
+  const [tx,tz]=hits.instanceId!=null&&hits.object.userData.cells?hits.object.userData.cells[hits.instanceId]:[Math.floor(hits.point.x),Math.floor(hits.point.z)];
+  const who=actors.find(a=>!a.dead&&a!==H0&&a.x===tx&&a.z===tz);if(who){tapActor(who);return;}
+  if(CB.on){if(heroTurn())heroMove(tx,tz);else hint.textContent='Сейчас ход противника.';return;}
+  ripple(hits.point,!free(tx,tz));if(!free(tx,tz)){hint.textContent='Туда не пройти.';return;}
+  if(at(tx,tz)==='E'){goDo(tx,tz,true,leaveRoom);return;}
+  const p=path(H0.x,H0.z,tx,tz,H0,false,3000);if(p&&p.length){H0.route=p;H0.dest=[tx,tz];}else hint.textContent='Не найти дорогу туда.';});
+
+{COMBAT}
+// potion / bread from the hands, used by tapping a character (D&D: potion 2d4+2)
+function useConsumable(target){const h=hero.userData.held||{},id=['potion','bread'].find(x=>h.L===x||h.R===x);if(!id||target.enemy)return false;
+  if(CB.on){if(!heroTurn()){hint.textContent='Сейчас ход противника.';return true;}if(CB.bonus){hint.textContent='Бонусное действие уже потрачено в этом ходу.';return true;}CB.bonus=true;setTimeout(updateBar,0);}
+  if(target!==H0&&Math.abs(target.x-H0.x)+Math.abs(target.z-H0.z)>1){hint.textContent='Подойдите вплотную, чтобы дать предмет.';return true;}
+  const heal=id==='potion'?d(4)+d(4)+2:d(4);sfx('heal');if(target===H0){H0.hp=Math.min(H0.max,H0.hp+heal);setHP();}
+  floatText('+'+heal,'#7fe08a',target.o);dice.hidden=false;dice.innerHTML=(target===H0?'Вы ':'Вы даёте '+target.npc+' ')+(id==='potion'?'зелье лечения: 2d4+2 = <b>'+heal+'</b>':'хлеб: 1d4 = <b>'+heal+'</b>');
+  window.handsConsume&&window.handsConsume(id);return true;}
+
+// ---------- dialogue and quests ----------
+const talkEl=document.getElementById('talk'),questEl=document.getElementById('quest');
+function say(who,text,choices=[]){talkEl.hidden=false;talkEl.replaceChildren();const h=document.createElement('b');h.textContent=who;const p=document.createElement('p');p.textContent=text;talkEl.append(h,p);
+  const row=document.createElement('div');for(const [label,fn] of [...choices,['Уйти',null]]){const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();talkEl.hidden=true;fn&&fn();};row.append(b);}talkEl.append(row);}
+talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
+const Q={dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
+function questUI(){const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;questEl.innerHTML=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>').join('');}
+function questKill(e){for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
+function reward(q,items,line,who){q.state=3;window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>ITEM_NAMES[id]+' ×'+n).join(', ')+'.');}
+function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
+  if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
+  if(q.left===0){q.state=2;return reward(q,items,ok,who);}
+  say(who,ask,[['Берусь',()=>{q.state=1;questUI();say(who,'Да хранит тебя море.');}]]);}
+function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
+  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2]]);
+  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери.','Мельница снова мелет спокойно.',[['bread',3]]);
+  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани.','Море спокойно, рыба идёт.',[['potion',1],['bread',1]]);
+  if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
+  if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Выпей, когда будет худо: возьми его в руку и коснись себя.');}
+    return say(n,'Травы любят тишину. Береги себя.');}
+  say(n,'Доброй ночи.');}
+
+// ---------- zones ----------
+const ZONES=[['dock','Причал',6],['village','Деревня Заводь',10],['ruins','Руины часовни',8],['grave','Старое кладбище',6],['camp','Лагерь разбойников',6],['hunter','Стоянка охотника',5],['forest','Тёмный лес',14]];
+let zoneNow='';const zoneEl=document.getElementById('zone');
+function zoneCheck(){if(room)return;const z=ZONES.find(([k,,r])=>nearZone(H0.x,H0.z,k,r));const n=z?z[1]:'';if(n&&n!==zoneNow){zoneEl.textContent=n;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');}zoneNow=n;}
+
+// ---------- loop ----------
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w/h<1?55:h<460?46:38;camera.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let last=performance.now(),aiT=0;
+function step(a,dt){if(!a.route)return 0;const[nx,nz]=a.route[0];
+  if(occupied(nx,nz,a)){ // someone stepped in the way: walk around them to the same destination
+    const dest=a.dest,p=dest&&path(a.x,a.z,dest[0],dest[1],a,a.arrive&&!(at(dest[0],dest[1])==='E'),3000);a.route=p&&p.length?p:null;if(!a.route)a.arrive=null;return 0;}const tx=nx+.5,tz=nz+.5,dx=tx-a.px,dz=tz-a.pz,dd=Math.hypot(dx,dz);a.face=Math.atan2(dx,dz);
+  if(dd<.05){a.x=nx;a.z=nz;a.px=tx;a.pz=tz;a.route.shift();if(!a.route.length){a.route=null;if(a.arrive){const f=a.arrive;a.arrive=null;f();}}return 0;}const s=Math.min(dd,dt*a.spd);a.px+=dx/dd*s;a.pz+=dz/dd*s;return 1;}
+// can this enemy see the hero? a cone in front, shorter while sneaking; very close and loud always counts
+function sees(e){if(room||H0.dead)return false;const dx=H0.px-e.px,dz=H0.pz-e.pz,dist=Math.hypot(dx,dz);
+  if(dist>(H0.sneak?3.6:6.5)*(1-.25*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
+function notices(e){if(!sees(e)){e.checked=false;return false;}if(!H0.sneak)return true;if(e.checked)return false;e.checked=true;
+  const r=d(20),tot=r+HERO.stealth,ok=tot>=e.perc;dice.hidden=false;dice.innerHTML='Скрытность против '+e.name+': '+r+' + '+HERO.stealth+' = <b>'+tot+'</b> против '+e.perc+' — '+(ok?'вас не заметили':'<b>замечены!</b>');return !ok;}
+function ai(){const now=performance.now();
+  for(const a of actors){if(a===H0||a.dead)continue;
+    if(a.enemy){if(a.inFight)continue;
+      if(!a.aware&&!busy&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
+      if(CB.on)continue;
+      if(a.investigate){const I=a.investigate;if(!I.t){if(!a.route){const p=path(a.x,a.z,I.x,I.z,a,true,800);if(p&&p.length>0&&Math.hypot(a.x-I.x,a.z-I.z)>1.5)a.route=p;else I.t=now;}}
+        else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
+      if(!a.route&&Math.random()<.12)a.face+=(Math.random()-.5)*2.4;} // idle enemies look around, giving chances to slip behind them
+    if(!a.route&&!(a.hold>now)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
+      if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
+// life when standing still: villagers work, enemies fidget, the hero gets restless
+function idleLife(a,r,b,t){const p=a.ph;
+  if(a.act==='wipe'){r.armL.rotation.set(-1.05,Math.sin(t*3+p)*.15,Math.sin(t*3+p)*.35);b.rotation.x=.12;}
+  if(a.act==='hammer'&&!a.route){a.face=Math.PI;const k=(t*1.1+p)%1,up=k<.6?k/.6:1-(k-.6)/.4*1.0,hit=k>.94;r.armL.rotation.set(-.3-1.9*Math.max(0,up),0,.1);b.rotation.x=.1+.06*up;
+    if(k<a.hk&&room&&room.type==='forge')sfx('clank');a.hk=k;}
+  if(a.act==='stir'&&!a.route){a.face=-Math.PI/2;r.armL.rotation.set(-1.1+Math.sin(t*2.2+p)*.12,0,Math.cos(t*2.2+p)*.35);b.rotation.x=.18;b.rotation.z=Math.sin(t*2.2+p)*.03;}
+  if(a.enemy&&!a.inFight){if(a.model==='skeleton'){b.rotation.z=Math.sin(t*9+p)*.02;r.head.rotation.z=Math.sin(t*1.3+p)*.15;}
+    if(a.model==='wolf'){r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+p))*.35;}
+    if(a.model==='bandit'||a.model==='goblin'){r.head.rotation.y=Math.sin(t*.7+p)*.6;}}
+  if(a===H0&&!CB.on&&!a.pose&&!a.dead){a.idleT=(a.idleT||0)+.016;if(a.idleT>7){a.idleT=0;heroPose(['stretch','around','shift'][Math.floor(Math.random()*3)],1800);}}
+  else if(a===H0)a.idleT=0;}
+// short body gestures: looking closely, picking up, opening a chest, drinking
+function heroPose(type,ms=1000){H0.pose={type,t0:performance.now(),ms};}
+function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=null;a.crouch=0;return;}const s=Math.sin(Math.min(1,k)*Math.PI),T=a.pose.type;
+  if(T==='look'){r.head.rotation.x=.35*s;r.head.rotation.y=Math.sin(k*9)*.2*s;r.armR.rotation.set(-1.5*s,0,-.3*s);b.rotation.x=.15*s;}
+  if(T==='pickup'){a.crouch=.14*s;r.legL.rotation.x=-.8*s;r.legR.rotation.x=.5*s;b.rotation.x=.45*s;r.armR.rotation.set(-1.1*s,0,0);r.head.rotation.x=.3*s;}
+  if(T==='open'){a.crouch=.08*s;b.rotation.x=.3*s;r.armL.rotation.set(-1.3*s,0,.2*s);r.armR.rotation.set(-1.3*s,0,-.2*s);}
+  if(T==='stretch'){r.armL.rotation.set(-2.6*s,0,.3*s);r.armR.rotation.set(-2.6*s,0,-.3*s);b.rotation.x=-.12*s;}
+  if(T==='around'){r.head.rotation.y=Math.sin(k*Math.PI*2)*.9*s;}
+  if(T==='shift'){b.rotation.z=Math.sin(k*Math.PI*2)*.06;r.legL.rotation.x=.15*s;}
+  if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
+function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/1000;
+  for(let i=anims.length-1;i>=0;i--){const a=anims[i],k=Math.min(1,(now-a.t0)/a.ms);a.fn(k<1?1-Math.pow(1-k,2):1);if(k>=1){anims.splice(i,1);a.res()}}
+  camZoom+=(zoomTarget-camZoom)*Math.min(1,dt*3.5);WIND.value=t;
+  ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
+  if(!room)smokeTick(dt,t);
+  {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();}}placeWheel();
+  for(const a of actors){if(a.dead&&a!==H0)continue;const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
+    const o=a.o,b=o.userData.body,walk=a.walkT;const sw=reduce?0:Math.sin(walk),breathe=reduce?0:Math.sin(t*2+a.ph);
+    o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
+    if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
+    const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
+      if(o.userData.twoHand==='staff'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
+      else if(o.userData.twoHand){r.armL.rotation.set(-1.0+breathe*.03,0,.5);r.armR.rotation.set(-1.0+breathe*.03,0,-.5);} // both hands meet on the bow
+      else{r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(walk?sw*.5:-breathe*.04,0,0);}
+      if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
+      if(!walk&&!a.off)idleLife(a,r,b,t);
+      r.torso.scale.y=1+(walk?0:breathe*.012);r.head.rotation.y=walk?0:Math.sin(t*.5+a.ph)*.15;r.head.rotation.x=0;
+      if(a.pose)applyPose(a,r,b,now);else a.crouch=0;}}
+  for(const e of enemies){const b=e.bar;b.g.visible=!e.dead&&e.o.visible&&(e.inFight||e.hp<e.max);if(!b.g.visible)continue;
+    b.g.position.set(e.o.position.x,e.o.position.y+1.15*(e.scale||1),e.o.position.z);b.g.quaternion.copy(camera.quaternion);const k=Math.max(0,e.hp/e.max);b.fg.scale.x=k;b.fg.position.x=-.28*(1-k);}
+  if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});
+    flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
+    T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
+  focus.x+=(H0.px-focus.x)*Math.min(1,dt*3);focus.z+=(H0.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(H0.px,H0.pz)*.5;placeCam();
+  if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
+  const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
+  LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});
+  moon.target.position.copy(focus);
+  if(!paused)worldTick(dt);zoneCheck();renderer.render(scene,camera);requestAnimationFrame(frame)}
+{EXTRAS}
+// ---------- save: progress lives in this browser only ----------
+const SAVE='helga-island-beta-1';
+let resetting=false;
+function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.map(e=>e.dead?1:0),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
+  herb:actors.find(a=>a.talkId==='herb').gave||0,time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
+function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
+  for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
+  (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
+  const cs=interact.filter(i=>i.chest);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
+  (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
+  actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
+  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
+{UI}
+// start: a fresh hero from the editor goes straight in; otherwise the main menu comes first
+setTimeout(()=>{let fresh=false;try{fresh=sessionStorage.getItem('helga-start')==='new';sessionStorage.removeItem('helga-start');}catch(e){}
+  if(HEROSET)applyHero(Object.assign({},HEROSET,{fresh}));
+  if(fresh){const [L,R]=CLASSES[HERO.cls].start;const bag=[{id:'potion',n:1},{id:'bread',n:1},{id:'stone',n:3}];if(HERO.cls==='rogue')bag.push({id:'bow',n:1});window.handsLoad&&window.handsLoad({L:L&&{id:L,n:1},R:R&&{id:R,n:1},bag});rest();screen(null);toast('Нажмите на землю, чтобы идти. Нажмите на себя, врага или жителя — откроется колесо действий.',6000);}
+  else{load();mainMenu();}
+  setHP();setInterval(save,3000);addEventListener('pagehide',save);},0);
+setHP();requestAnimationFrame(frame);
+window.__game={looks,lookWheel,houseWheel,heroPose,interact,enemyWheel,attackWheel,heroWheel,screen,applyHero,openEditor,get paused(){return paused},setTime:v=>worldTime=v,CB,startCombat,endHeroTurn,heroMove,stoneNoise,noiseCellNear,sees,get busy(){return busy},tapActor,ROOMS,interact,enterRoom,leaveRoom,talk,Q,get room(){return room},H0,enemies,actors,free,path,at,Z,camera,useConsumable};
