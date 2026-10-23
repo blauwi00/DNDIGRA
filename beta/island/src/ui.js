@@ -74,6 +74,7 @@ const usedRocks=new Set();
 function lookWheel(L,mesh){const p=new THREE.Vector3();mesh.getWorldPosition(p);const x=Math.floor(p.x),z=Math.floor(p.z);
   const items=[{icon:'look',label:'Осмотреть',run:()=>inspect(L,x,z)}];
   if(L.loot&&!L.taken)items[L.item?'unshift':'push']({icon:'pick',label:'Взять',sub:L.loot.map(([id,n])=>window.handsItemName(id)+(n>1?' ×'+n:'')).join(', '),run:()=>inspect(L,x,z,true)});
+  if(L.action){const A=L.action();if(A)items.unshift(A);}
   showWheel({pos:p},items,L.n);}
 // look: the wheel is already gone, the camera leans in, the hero studies the thing; the text comes after, at the top
 function inspect(L,x,z,grab){if(CB.on)return toast('Не время разглядывать.');goDo(x,z,false,async()=>{H0.face=Math.atan2(x+.5-H0.px,z+.5-H0.pz);zoomTarget=.62;
@@ -87,6 +88,14 @@ noteEl.addEventListener('pointerdown',e=>{e.stopPropagation();noteEl.hidden=true
 function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.5);
   showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
     {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',herb:'Пахнет мятой и чем-то горьким.'})[R.type],4000)}],R.name);}
+// chapel brazier: look at it, and relight it with a torch in hand
+{const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,
+  action:()=>chapel.lit?null:{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
+  looks.push(L);ms.forEach(m=>m.userData.look=L);}
+function hasTorch(){const h=hero.userData.held||{};return h.L==='torch'||h.R==='torch';}
+async function lightChapel(){if(chapel.lit)return;heroPose('open',900);await wait(500);sfx('spell');setChapel(true);shake=.25;
+  banner('Огонь часовни горит');note('Жаровня часовни','Пламя вспыхивает белым, потом золотым. Над руинами разносится тихий звон — будто колокол, которого здесь давно нет.');
+  if(Q.fire.state===1){Q.fire.state=2;questUI();}else if(Q.fire.state===0)Q.fire.state=2;}
 for(const [ms,n,t,loot] of OUT){const L={n,t,loot,meshes:ms};looks.push(L);ms.forEach(m=>m.userData.look=L);}
 itemProp(scene,Z.dock[0]+3.5,groundAt(Z.dock[0]+3,Z.dock[1]+2)+.04,Z.dock[1]+2.5,'stone',2,'Гладкие камни','Обкатанные морем голыши. Удобно бросать.',0);
 function rockWheel(x,z){const k=x+','+z,pos=new THREE.Vector3(x+.5,groundAt(x,z),z+.5);
@@ -158,3 +167,37 @@ function openEditor(){screen(edEl);const cls=document.getElementById('edClass');
 document.getElementById('edBack').onclick=()=>mainMenu();
 document.getElementById('edGo').onclick=()=>{const s={name:(ED.name||'').trim()||'Безымянный',cls:ED.cls,look:Object.assign({},ED.look)};
   resetting=true;try{localStorage.setItem('helga-hero',JSON.stringify(s));localStorage.removeItem(SAVE);sessionStorage.setItem('helga-start','new');}catch(e){}location.reload();};
+
+// ---------- explored land, the island map and the quest pointer ----------
+const MAPH=60,seen=new Uint8Array(W*MAPH);
+function markSeen(){if(room)return;for(let z=H0.z-7;z<=H0.z+7;z++)for(let x=H0.x-9;x<=H0.x+9;x++)if(x>=0&&z>=0&&x<W&&z<MAPH&&(x-H0.x)**2/81+(z-H0.z)**2/49<=1)seen[z*W+x]=1;}
+function seenRLE(){let out='',c=seen[0],n=0;for(const v of seen){if(v===c)n++;else{out+=c+':'+n+',';c=v;n=1;}}return out+c+':'+n;}
+function seenLoad(s){let i=0;for(const part of s.split(',')){const [v,n]=part.split(':').map(Number);seen.fill(v,i,i+n);i+=n;}}
+// where the current task points: the nearest foe it needs, the brazier, or whoever gives the reward
+function questTarget(){const q=questFocus&&questFocus.state>0&&questFocus.state<3?questFocus:Object.values(Q).find(q=>q.state===1||q.state===2);if(!q)return null;
+  const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=actors.find(a=>a.talkId===giver);
+  if(q.state===2){if(who.z>=90){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
+  if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};
+  const foes=enemies.filter(e=>!e.dead&&e.name===q.need).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
+const ptrEl=document.getElementById('qptr');
+function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=true;return;}
+  let tx=T.x,tz=T.z;if(room){if(T.inRoom===room){const who=actors.find(a=>a.npc===T.label);tx=who.x;tz=who.z;}else{tx=room.exit[0];tz=room.exit[1];}}
+  const v=new THREE.Vector3(tx+.5,groundAt(tx,tz)+1.3,tz+.5).project(camera),r=canvas.getBoundingClientRect();
+  let sx=(v.x+1)/2*r.width,sy=(1-v.y)/2*r.height;const m=46,on=v.z<1&&sx>m&&sx<r.width-m&&sy>m&&sy<r.height-m;
+  ptrEl.hidden=false;ptrEl.classList.toggle('edge',!on);
+  if(!on){const cx=r.width/2,cy=r.height/2;let dx=sx-cx,dy=sy-cy;if(v.z>1){dx=-dx;dy=-dy;}const k=Math.min((cx-m)/Math.abs(dx||1),(cy-m)/Math.abs(dy||1));sx=cx+dx*k;sy=cy+dy*k;
+    ptrEl.style.setProperty('--a',Math.atan2(dy,dx)+'rad');}
+  ptrEl.classList.toggle('l',sx<110);ptrEl.classList.toggle('r',sx>r.width-110);ptrEl.style.left=sx+'px';ptrEl.style.top=sy+'px';ptrEl.dataset.label=room&&T.inRoom!==room?'Выход':T.label;}
+// the map: drawn from the grid, unexplored land stays dark
+const mapEl=document.getElementById('mapview'),MAPC={'~':'#123040','A':'#b8a37a','G':'#3d5e2e','D':'#7a6448','C':'#8a8476','S':'#6e6c66','P':'#8a6040','H':'#9a5a30','W':'#4a4a4a'};
+function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=8;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');
+  for(let z=0;z<MAPH;z++)for(let x=0;x<W;x++){const code=at(x,z);let col=MAPC[code]||'#3d5e2e';if(code==='G'&&solid.has(x+','+z))col='#24391e';g.fillStyle=col;g.fillRect(x*k,z*k,k,k);
+    if(!seen[z*W+x]&&code!=='~'){g.fillStyle='rgba(8,10,12,.86)';g.fillRect(x*k,z*k,k,k);}}
+  g.font='bold 13px "Pixelify Sans",monospace';g.textAlign='center';
+  for(const [key,name] of ZONES){const [x,z]=Z[key];if(!seen[z*W+x])continue;g.fillStyle='#000a';g.fillText(name,x*k+k/2+1,z*k-5);g.fillStyle='#f3e2bd';g.fillText(name,x*k+k/2,z*k-6);}
+  if(!chapel.lit&&seen[Z.ruins[1]*W+Z.ruins[0]]){}else if(chapel.lit){g.fillStyle='#ffb347';g.beginPath();g.arc(Z.ruins[0]*k+k/2,Z.ruins[1]*k+k/2,6,0,7);g.fill();}
+  const T=questTarget();if(T){const x=T.x*k+k/2,z=T.z*k+k/2;g.strokeStyle='#ff5a4a';g.lineWidth=3;g.beginPath();g.arc(x,z,9,0,7);g.stroke();g.fillStyle='#ff5a4a';g.fillText('!',x,z+5);}
+  const hx=(room?ROOMS[room.i].door[0]:H0.x)*k+k/2,hz=(room?ROOMS[room.i].door[1]:H0.z)*k+k/2;g.fillStyle='#f2c14e';g.strokeStyle='#000';g.lineWidth=2;g.beginPath();g.arc(hx,hz,6,0,7);g.fill();g.stroke();
+  const leg=mapEl.querySelector('.leg');leg.textContent=T?'Красный круг — цель: '+T.label+'. Жёлтая точка — вы.':'Жёлтая точка — вы. Тёмное — ещё не исследовано.';}
+document.getElementById('mapClose').onclick=()=>{mapEl.hidden=true;paused=false;};
+document.getElementById('pMap').onclick=()=>openMap();

@@ -176,10 +176,15 @@ function torch(x,z,fire=false){blockCell(x,z);const g=new THREE.Group(),y=ground
   if(!fire){const post=new THREE.Mesh(BOX,lam(T.bark));post.scale.set(.08,.7,.08);post.position.y=.35;g.add(post);}
   else for(let i=0;i<6;i++){const a=i/6*6.28,s=new THREE.Mesh(BOX,lam(T.wall));s.scale.set(.14,.1,.12);s.position.set(Math.cos(a)*.27,.05,Math.sin(a)*.27);g.add(s);}
   const fl=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffb347}));fl.scale.set(fire?.2:.12,fire?.28:.16,fire?.2:.12);fl.position.y=fire?.18:.78;g.add(fl);
-  g.position.set(x+.5,y,z+.5);scene.add(g);torches.push({fl,ph:hash2(x,z)*9,base:fire?3.2:2.4,dist:fire?8:6.5,pos:new THREE.Vector3(x+.5,y+(fire?.6:.95),z+.5)});}
+  g.position.set(x+.5,y,z+.5);scene.add(g);const T_={fl,g,ph:hash2(x,z)*9,base:fire?3.2:2.4,dist:fire?8:6.5,pos:new THREE.Vector3(x+.5,y+(fire?.6:.95),z+.5)};torches.push(T_);return T_;}
 // Only three real lights exist; each frame they move to the fires nearest the hero.
 const LIGHTS=[0,1,2].map(()=>{const L=new THREE.PointLight(0xff9a40,0,6,1.6);scene.add(L);return L;});
-torch(23,27);torch(30,33);torch(Z.dock[0]+3,Z.dock[1]-1);torch(Z.camp[0],Z.camp[1],true);torch(Z.hunter[0],Z.hunter[1],true);torch(Z.ruins[0],Z.ruins[1],true);
+torch(23,27);torch(30,33);torch(Z.dock[0]+3,Z.dock[1]-1);torch(Z.camp[0],Z.camp[1],true);torch(Z.hunter[0],Z.hunter[1],true);
+// the chapel brazier in the ruins starts cold: relighting it is the end of the prologue
+const chapel=torch(Z.ruins[0],Z.ruins[1],true);chapel.lit=false;chapel.fl.visible=false;
+function setChapel(lit){chapel.lit=lit;chapel.fl.visible=lit;chapel.base=lit?4:0;}
+{const g=chapel.g,st=lam(T.wall,{color:0x8a8478});for(const [x,z,h] of [[-.55,-.35,.5],[.55,-.35,.5]]){const p=new THREE.Mesh(BOX,st);p.scale.set(.16,h,.16);p.position.set(x,h/2,z);g.add(p);}
+  const lin=new THREE.Mesh(BOX,st);lin.scale.set(1.3,.12,.18);lin.position.set(0,.52,-.35);g.add(lin);}
 // fireflies + mist follow the camera
 // fireflies at night, butterflies by day (same pool, different look)
 const FFLY=new THREE.MeshBasicMaterial({color:0xd8f59a}),BFLY=[0xe8c84a,0xf0f0f8,0xd88ab0,0x8ac0e8].map(c=>new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide}));
@@ -272,20 +277,27 @@ const talkEl=document.getElementById('talk'),questEl=document.getElementById('qu
 function say(who,text,choices=[]){talkEl.hidden=false;talkEl.replaceChildren();const h=document.createElement('b');h.textContent=who;const p=document.createElement('p');p.textContent=text;talkEl.append(h,p);
   const row=document.createElement('div');for(const [label,fn] of [...choices,['Уйти',null]]){const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();talkEl.hidden=true;fn&&fn();};row.append(b);}talkEl.append(row);}
 talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
-const Q={dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
+let questFocus=null;
+const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
 function questUI(){const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;questEl.innerHTML=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>').join('');}
 function questKill(e){for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
-function reward(q,items,line,who){q.state=3;window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>ITEM_NAMES[id]+' ×'+n).join(', ')+'.');}
+function reward(q,items,line,who){q.state=3;window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
-  say(who,ask,[['Берусь',()=>{q.state=1;questUI();say(who,'Да хранит тебя море.');}]]);}
+  say(who,ask,[['Берусь',()=>{q.state=1;questFocus=q;questUI();say(who,'Да хранит тебя море.');}]]);}
 function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
+  if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
+    if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
+    if(q.state===1)return say(n,'Жаровня в руинах всё ещё холодная. Факел — в моём ящике с припасами.');
+    if(q.state===2){q.state=3;window.handsGive([['potion',2]],'Награда');questUI();banner('Пролог пройден');
+      return say(n,'Огонь часовни виден даже отсюда! Хельга снова под защитой. Ты сделал больше, чем мы смели просить. Остров твой дом, путник — заходи, когда захочешь.');}
+    return say(n,'Огонь горит. Мёртвые спят. Выпей со мной, герой.');}
   if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2]]);
   if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери.','Мельница снова мелет спокойно.',[['bread',3]]);
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани.','Море спокойно, рыба идёт.',[['potion',1],['bread',1]]);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
-  if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Выпей, когда будет худо: возьми его в руку и коснись себя.');}
+  if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
     return say(n,'Травы любят тишину. Береги себя.');}
   say(n,'Доброй ночи.');}
 
@@ -344,7 +356,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();}}placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
     const o=a.o,b=o.userData.body,walk=a.walkT;const sw=reduce?0:Math.sin(walk),breathe=reduce?0:Math.sin(t*2+a.ph);
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
@@ -373,13 +385,14 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.map(e=>e.dead?1:0),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.map(e=>e.dead?1:0),fire:chapel.lit?1:0,seen:seenRLE(),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   const cs=interact.filter(i=>i.chest);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
+  if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
 {UI}
@@ -390,4 +403,4 @@ setTimeout(()=>{let fresh=false;try{fresh=sessionStorage.getItem('helga-start')=
   else{load();mainMenu();}
   setHP();setInterval(save,3000);addEventListener('pagehide',save);},0);
 setHP();requestAnimationFrame(frame);
-window.__game={looks,lookWheel,houseWheel,heroPose,interact,enemyWheel,attackWheel,heroWheel,screen,applyHero,openEditor,get paused(){return paused},setTime:v=>worldTime=v,CB,startCombat,endHeroTurn,heroMove,stoneNoise,noiseCellNear,sees,get busy(){return busy},tapActor,ROOMS,interact,enterRoom,leaveRoom,talk,Q,get room(){return room},H0,enemies,actors,free,path,at,Z,camera,useConsumable};
+window.__game={chapel,setChapel,openMap,looks,lookWheel,houseWheel,heroPose,interact,enemyWheel,attackWheel,heroWheel,screen,applyHero,openEditor,get paused(){return paused},setTime:v=>worldTime=v,CB,startCombat,endHeroTurn,heroMove,stoneNoise,noiseCellNear,sees,get busy(){return busy},tapActor,ROOMS,interact,enterRoom,leaveRoom,talk,Q,get room(){return room},H0,enemies,actors,free,path,at,Z,camera,useConsumable};

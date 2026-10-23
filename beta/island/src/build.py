@@ -43,6 +43,6 @@ stage=stage.replace('<canvas id="c"></canvas>','<canvas id="c"></canvas>'+open('
 rig=rig.replace("window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;","window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;hero.userData.held={L:two?null:L,R:two?null:R,two};")
 main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read()).replace('{UI}',open('ui.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
 out='<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+stage+'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>\n'+models+tex+main+'\n'+hands+'\n</script>\n'
-open(os.path.join(OUT,'island-big.html'),'w').write(out)
+open(os.path.join(OUT,'island.html'),'w').write(out)
 prev='<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">'+out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','package/build/three.min.js')+'</body></html>'
-(open('../prevbig.html','w').write(prev) if OUT=='..' else None);print('built',len(out))
+print('built',len(out))

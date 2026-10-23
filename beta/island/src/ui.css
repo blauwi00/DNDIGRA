@@ -98,3 +98,19 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 .note.show{animation:noteIn .3s cubic-bezier(.2,1.4,.4,1)}@keyframes noteIn{from{transform:translate(-50%,-14px);opacity:0}}
 .note b{display:block;color:#f2c14e;font-size:13px;margin-bottom:3px}.note span{font-size:13px;line-height:1.35}
 @media (max-height:440px){.note{top:46px;max-width:calc(100% - 260px)}}
+
+/* quest pointer: a bobbing marker over the target, or an arrow at the screen edge */
+.qptr{position:absolute;z-index:5;width:0;height:0;pointer-events:none}
+.qptr::before{content:"";position:absolute;left:-9px;top:-22px;width:18px;height:18px;background:#ff5a4a;clip-path:polygon(50% 100%,0 0,100% 0);filter:drop-shadow(0 0 4px #000);animation:qbob 1s ease-in-out infinite}
+.qptr::after{content:attr(data-label);position:absolute;left:0;top:-40px;transform:translateX(-50%);white-space:nowrap;font-family:"Pixelify Sans","Courier New",monospace;font-size:11px;color:#ffd0c8;text-shadow:1px 1px 0 #000,0 0 4px #000}
+.qptr.edge::before{left:-10px;top:-10px;width:20px;height:20px;clip-path:polygon(100% 50%,0 0,25% 50%,0 100%);transform:rotate(var(--a));animation:none}
+.qptr.edge::after{top:14px}
+@keyframes qbob{50%{transform:translateY(-5px)}}
+.screen.mapview{background:#05070aee;z-index:22}
+.mapbox{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:calc(100% - 24px);max-height:calc(100% - 16px)}
+.mapbox h2{margin:0;font-family:var(--display);font-size:22px;color:#f3e2bd}
+.mapbox canvas{max-width:100%;max-height:calc(100vh - 130px);image-rendering:pixelated;box-shadow:0 0 0 2px #b8923e,0 0 0 4px #1d1611,0 0 0 6px #4a3522}
+.mapbox .leg{margin:0;font-size:12px;color:#c8b48a;font-family:"Pixelify Sans","Courier New",monospace}
+.mapbox button{font:inherit;font-family:"Pixelify Sans","Courier New",monospace;color:#f0e2c2;background:#2a1e14;border:0;padding:8px 18px;min-height:40px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.qptr::before{animation:none}}
+.qptr.l::after{transform:none;left:-6px}.qptr.r::after{transform:translateX(-100%);left:6px}

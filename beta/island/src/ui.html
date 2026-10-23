@@ -1,13 +1,14 @@
 <button class="menubtn" id="menuBtn" aria-label="Меню"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zm0 4h12v2H2zm0 4h12v2H2z"/></svg></button>
 <div class="cstat" id="cstat" hidden></div>
-<div class="wheel" id="wheel" hidden></div>
+<div class="wheel" id="wheel" hidden></div><div class="qptr" id="qptr" hidden aria-hidden="true"></div>
+<div class="screen mapview" id="mapview" hidden><div class="mapbox"><h2>Остров Хельги</h2><canvas></canvas><p class="leg"></p><button id="mapClose">Закрыть</button></div></div>
 <div class="screen main" id="mainmenu" hidden>
   <div class="mm"><h2>За гранью</h2><p>Остров Хельги</p>
     <button id="mContinue">Продолжить</button><button id="mNew">Новая игра</button><button id="mSettings">Настройки</button>
     <div class="mset" id="mSet" hidden><button id="mSound">Звук</button></div></div></div>
 <div class="screen pause" id="pause" hidden>
   <div class="mm"><h2>Пауза</h2><div class="sheet" id="sheet"></div>
-    <button id="pResume">Продолжить</button><button id="pSound">Звук</button><button id="pMain">Главное меню</button></div></div>
+    <button id="pResume">Продолжить</button><button id="pMap">Карта острова</button><button id="pSound">Звук</button><button id="pMain">Главное меню</button></div></div>
 <div class="screen editor" id="editor" hidden>
   <div class="ed">
     <div class="edl"><canvas id="edCanvas"></canvas></div>
