@@ -46,17 +46,42 @@ function side(createCanvas,family,seed){
   });
 }
 
-export function createPixelSurfaceMaterials({createCanvas=()=>document.createElement('canvas')}={}){
-  const cache=new Map();
+// Hand-painted tiles (GPT sheets sliced to 64px, dist/assets/tiles). Each
+// family has variants picked per cell; sides reuse the dirt tile, darkened.
+export const TILE_SETS = {
+  grass: ['grass', 'grass', 'grass-flowers', 'grass-dirt'],
+  sand: ['sand', 'sand', 'sand-wet'],
+  dirt: ['dirt', 'dirt', 'mud'],
+  stone: ['gravel', 'cobble'],
+  water: ['water-0'],
+};
+export function tileVariant(family, hash) {
+  const set = TILE_SETS[family] || TILE_SETS.dirt;
+  return Math.abs(hash) % set.length;
+}
+
+export function createPixelSurfaceMaterials({createCanvas=()=>document.createElement('canvas'),loadTexture=null}={}){
+  const cache=new Map(),images=new Map();
+  const tile=name=>{
+    if(!images.has(name)){const t=loadTexture('assets/tiles/'+name+'.png');t.colorSpace=T.SRGBColorSpace;t.magFilter=T.NearestFilter;t.minFilter=T.NearestFilter;t.generateMipmaps=false;images.set(name,t);}
+    return images.get(name);
+  };
   return surface=>{
-    const family=TOPS[surface]?surface:'dirt';
-    if(!cache.has(family)){
-      const seed=[...family].reduce((a,c)=>a*31+c.charCodeAt(0),7);
-      const top=new T.MeshStandardMaterial({map:paint(createCanvas,seed,TOPS[family]),roughness:1});
-      const edge=new T.MeshStandardMaterial({map:side(createCanvas,family,seed+1),roughness:1});
+    const [name,v]=String(surface).split('#'),family=TOPS[name]?name:'dirt',variant=Number(v)||0,key=family+'#'+variant;
+    if(!cache.has(key)){
+      let top,edge;
+      if(loadTexture){
+        const set=TILE_SETS[family]||TILE_SETS.dirt;
+        top=new T.MeshStandardMaterial({map:tile(set[variant%set.length]),roughness:1});
+        edge=new T.MeshStandardMaterial({map:tile(family==='water'?'water-0':family==='sand'?'sand':'dirt'),color:0x8a8078,roughness:1});
+      }else{
+        const seed=[...family].reduce((a,c)=>a*31+c.charCodeAt(0),7);
+        top=new T.MeshStandardMaterial({map:paint(createCanvas,seed,TOPS[family]),roughness:1});
+        edge=new T.MeshStandardMaterial({map:side(createCanvas,family,seed+1),roughness:1});
+      }
       // BoxGeometry face order: +x, -x, +y (top), -y, +z, -z.
-      cache.set(family,[edge,edge,top,edge,edge,edge]);
+      cache.set(key,[edge,edge,top,edge,edge,edge]);
     }
-    return cache.get(family);
+    return cache.get(key);
   };
 }

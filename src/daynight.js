@@ -39,9 +39,9 @@ export function outdoorLight(total){
   return {
     sun,night:1-sun,
     skyColor:golden>0?mix(sky,0xffb070,golden*.5):sky,groundColor:ground,
-    ambient:.55+sun*.37,
+    ambient:.55+sun*.75,
     fillColor:golden>0?mix(mix(0x9fb4d8,0xfff1dc,sun),0xffa060,golden*.6):mix(0x9fb4d8,0xfff1dc,sun),
-    fill:.28+sun*.4,
+    fill:.28+sun*.8,
     background:mix(0x0d1418,0x2a3b44,sun),
     fogDensity:.012+(1-sun)*.03,
   };

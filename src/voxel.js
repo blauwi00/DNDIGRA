@@ -1,6 +1,6 @@
 import * as T from "three";
 import {stoneTile,createStoneMaterials} from './stone-atlas.js';
-const stoneMaterial=createStoneMaterials(), sharedStoneMaterials=new Set(), pixelSurface=createPixelSurfaceMaterials({createCanvas:()=>document.createElement('canvas')});
+const stoneMaterial=createStoneMaterials(), sharedStoneMaterials=new Set(), pixelSurfaceTextured=typeof document.createElementNS==='function', pixelSurface=createPixelSurfaceMaterials({createCanvas:()=>document.createElement('canvas'),loadTexture:typeof document.createElementNS==='function'?url=>new T.TextureLoader().load(url):null});
 import {npcFacing,faceCell} from "./npc-facing.js";
 import {batchStaticModels} from './static-batches.js';
 import {planRegionChunks,createChunkStream} from './region-streaming.js';
@@ -807,7 +807,8 @@ function buildEnvironment(S,rect){
   }
   if(S.island){
     resource.root.add(buildIslandTerrain(S,rect,{geometry:geo,materialFor:kind=>{
-      if(kind.startsWith('stone:')){const mat=stoneMaterial(Number(kind.slice(6)));sharedStoneMaterials.add(mat);return mat;}
+      // Roads use the painted cobblestone tile when tiles can load.
+      if(kind.startsWith('stone:')){if(pixelSurfaceTextured)return pixelSurface('stone#1');const mat=stoneMaterial(Number(kind.slice(6)));sharedStoneMaterials.add(mat);return mat;}
       if(kind.startsWith('ground:'))return pixelSurface(kind.slice(7));
       return kind==='water'?pixelSurface('water'):terrainMaterial(0xffffff,8);
     }}));

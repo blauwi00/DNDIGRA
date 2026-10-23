@@ -3,6 +3,7 @@ import {sampleScene} from './scene.js';
 import {isLand} from './terrain.js';
 import {stoneTile} from '../stone-atlas.js';
 import {SURFACES} from '../worldgen/surfaces.js';
+import {tileVariant} from './pixel-surfaces.js';
 
 // Independent of dry area: only visible chunks and a fixed overview are sampled.
 export const ISLAND_OVERVIEW_MAX_SIDE=256;
@@ -22,6 +23,7 @@ function softTint(surface,rgb){
   const mix=shift=>Math.round(((base>>shift)&255)*.67+((rgb>>shift)&255)*.33);
   return (mix(16)<<16)|(mix(8)<<8)|mix(0);
 }
+const paleTint=rgb=>{const m=sh=>Math.round(255*.85+((rgb>>sh)&255)*.15);return (m(16)<<16)|(m(8)<<8)|m(0);};
 function bounds(scene){
   if(!scene.island||!Number.isInteger(scene.W)||!Number.isInteger(scene.H)||scene.W<1||scene.H<1||scene.W>1040||scene.H>1040)throw new RangeError('Invalid island render bounds');
 }
@@ -62,10 +64,12 @@ export function buildIslandTerrain(scene,rect,{geometry,materialFor,sample=sampl
       const tile=stoneTile({surface:cell.surface,outdoor:true},x,y);
       // Atlas stone already carries its own colour; tinting it again by the
       // surface colour multiplied twice and rendered roads almost black.
-      block(tile===null?'ground:'+(GROUND_FAMILY[cell.surface]||'dirt'):'stone:'+tile,x+.5,-.095,y+.5,1,.17,1,tile===null?softTint(cell.surface,cell.color):0xffffff);
+      // Painted tiles carry their own colour; a light tint keeps biome shifts.
+      const family=GROUND_FAMILY[cell.surface]||'dirt',variant=tileVariant(family,cellHash(scene.island.detailSeed,x,y)>>>4);
+      block(tile===null?'ground:'+family+'#'+variant:'stone:'+tile,x+.5,-.095,y+.5,1,.17,1,tile===null?paleTint(softTint(cell.surface,cell.color)):0xffffff);
     }else{
       // Water sits lower than before so the shoreline shows a raised earth edge.
-      block('water',x+.5,-.2,y+.5,1,.17,1,cell.color);
+      block('water',x+.5,-.2,y+.5,1,.17,1,paleTint(cell.color));
       // Foam belongs to sea cells, never to the logical dry floor. Fixed strips
       // meet the shoreline without allocating a global coast mask or new atlas.
       if(isLand(scene.island,x-1,y))block('foam',x+.08,-.11,y+.5,.16,.012,1,0x94bbc0);
