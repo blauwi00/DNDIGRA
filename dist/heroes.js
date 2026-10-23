@@ -138,8 +138,11 @@
     }
   }
   function updateBasics(patch) {
-    if(patch.classId&&patch.classId!==draft.classId){draft.classId=patch.classId;draft.stats=R.preset(patch.classId);draft.kit=pick(2);draft.background=R.background(patch.classId,pick);draft.appearance=Characters.normalize(draft.appearance,patch.classId);}
-    if(patch.gender)draft.appearance.gender=patch.gender;
+    // An untouched look follows the class/gender defaults (blue knight, violet
+    // mage, green rogue, crimson cleric); a look the player edited is kept.
+    const untouched=JSON.stringify(Characters.normalize(draft.appearance,draft.classId))===JSON.stringify(Characters.defaultLook(draft.classId,draft.appearance.gender));
+    if(patch.classId&&patch.classId!==draft.classId){draft.classId=patch.classId;draft.stats=R.preset(patch.classId);draft.kit=pick(2);draft.background=R.background(patch.classId,pick);draft.appearance=untouched?Characters.defaultLook(patch.classId,draft.appearance.gender):Characters.normalize(draft.appearance,patch.classId);}
+    if(patch.gender)draft.appearance=untouched?Characters.defaultLook(draft.classId,patch.gender):{...draft.appearance,gender:patch.gender};
     if(patch.name!==undefined)draft.name=patch.name;
     remember();editor();
   }
@@ -337,9 +340,10 @@
       body.append(note);
     }
     const f = $("heroes-footer");
-    f.replaceChildren(button(step ? "Назад" : "К героям", () => {
+    f.replaceChildren(button(step ? "Назад" : window.CinematicMenu?.active ? "В меню" : "К героям", () => {
+      if (!step && window.CinematicMenu?.active) { $("heroes-close").click(); return; }
       if (step) {
-        step--;
+        step=(window.CinematicMenu?.active&&step===2)?0:step-1;
         editor();
       } else {
         draft = null;
@@ -352,7 +356,7 @@
         status("Введите имя героя.");
         return;
       }
-      step++;
+      step+=(window.CinematicMenu?.active&&step===0)?2:1;
       editor();
     }, "gold"));
     else {
@@ -361,11 +365,36 @@
       f.append(b);
     }
     if(step===0 && window.CinematicMenu?.active){
-      const top=document.createElement('div');top.className='hero-creation-top';const basics=document.createElement('div');basics.className='hero-basics';
-      for(const node of [...body.children])if(node!==steps&&node!==preview)basics.append(node);
-      top.append(basicControls(),preview);body.append(top);
-      const next=document.createElement('section');next.className='foundation-card';next.innerHTML='<h3>Характеристики</h3><p>Распредели 27 очков или выбери набор для своего класса.</p>';
-      next.append(button('Распределить очки',()=>{step=1;editor();}),button('Готовый набор · '+R.CLASSES[draft.classId].name,()=>{draft.stats=R.preset(draft.classId);step=2;editor();},'gold'));body.append(next);
+      // Mobile-game layout: big model on the left, name, class cards with
+      // portraits and a gender switch on the right. Nothing scrolls; stats use
+      // the class set and can be changed later from the story step.
+      for(const node of [...body.children])if(node!==steps&&node!==preview)node.remove();
+      const stage=document.createElement('div');stage.className='hc-stage';
+      const side=document.createElement('section');side.className='hc-side';
+      const nameRow=document.createElement('div');nameRow.className='hc-name';
+      const input=document.createElement('input');input.value=draft.name;input.maxLength=24;input.autocomplete='off';input.setAttribute('aria-label','Имя героя');input.placeholder='Имя героя';
+      input.oninput=()=>{draft.name=input.value;remember();if(window.CinematicMenu?.editor)CinematicMenu.editor.actor.name=draft.name;};
+      const dice=button('',()=>updateBasics({name:['Эльдар','Арден','Мира','Рин','Бор','Ингрид','Корвин','Сельма'][pick(8)]}));dice.className='hc-dice';dice.setAttribute('aria-label','Случайное имя');dice.append(UIIcons.node('dice'));
+      nameRow.append(input,dice);
+      const ROLE={fighter:'Латы, меч и щит. Держит удар.',rogue:'Ловкость и скрытность. Бьёт исподтишка.',wizard:'Заклинания издалека. Хрупок.',cleric:'Лечит и защищает союзников.'};
+      const classes=document.createElement('div');classes.className='hc-classes';classes.setAttribute('role','radiogroup');classes.setAttribute('aria-label','Класс');
+      for(const [id,c]of Object.entries(R.CLASSES)){
+        const card=button('',()=>updateBasics({classId:id}),'hc-class'+(draft.classId===id?' active':''));card.setAttribute('role','radio');card.setAttribute('aria-checked',String(draft.classId===id));card.setAttribute('aria-label',c.name+'. '+ROLE[id]);
+        const look=draft.classId===id?draft.appearance:Characters.defaultLook(id,draft.appearance.gender);
+        const art=document.createElement('span');art.className='hc-portrait';try{art.append(Artwork.hero(R.sheet({...draft,classId:id,kit:0,stats:R.preset(id),appearance:look,name:c.name},'class-'+id)));}catch{}
+        const name=document.createElement('b');name.textContent=c.name;const role=document.createElement('small');role.textContent=ROLE[id];
+        card.append(art,name,role);classes.append(card);
+      }
+      const genders=document.createElement('div');genders.className='hc-genders';genders.setAttribute('role','radiogroup');genders.setAttribute('aria-label','Пол');
+      for(const [gender,text]of [['male','Мужской'],['female','Женский']]){const g=button(text,()=>updateBasics({gender}),'hc-gender'+(draft.appearance.gender===gender?' active':''));g.setAttribute('role','radio');g.setAttribute('aria-checked',String(draft.appearance.gender===gender));genders.append(g);}
+      side.append(nameRow,classes,genders);stage.append(preview,side);body.append(stage);
+    }
+    if(step===3 && window.CinematicMenu?.active){
+      // Same layout as the first step: model on the left, story on the right.
+      const stage=document.createElement('div');stage.className='hc-stage';const side=document.createElement('section');side.className='hc-side hc-story';
+      for(const node of [...body.children])if(node!==steps&&node!==preview)side.append(node);
+      side.append(button('Характеристики · изменить',()=>{step=1;editor();},'hc-stats-link'));
+      stage.append(preview,side);body.append(stage);
     }
     paintPreview();
     panel.scrollTop = scroll;

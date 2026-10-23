@@ -82,7 +82,7 @@ async function editorChecks(page, size, full) {
   await page.evaluate(() => CinematicMenu.open());
   await page.getByRole('button',{name:'Новая игра',exact:true}).click();
   await page.waitForFunction(() => CinematicMenu.route==='heroes' && document.getElementById('heroes-panel').open);
-  await page.getByRole('button',{name:'Маг',exact:true}).click();
+  await page.getByRole('radio',{name:new RegExp('^Маг')}).click();
   await page.getByRole('button',{name:'3 · Внешность',exact:true}).click();
   const editor = page.locator('.look-editor');
   await reachable(page.locator('#heroes-close'), 'Editor back', 44);

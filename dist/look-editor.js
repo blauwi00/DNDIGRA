@@ -42,7 +42,8 @@
     const undoBtn = toolBtn('undo', 'Отмена', undo), resetBtn = toolBtn('reset', 'Сброс', resetClass);
     undoBtn.disabled = true;
     tools.append(diceBtn, undoBtn, resetBtn);
-    if(window.CinematicMenu?.active){const basics=Heroes.basicControls();modelBox.append(portraitBox);stage.append(basics,modelBox);}else stage.append(modelBox, portraitBox, tools);
+    if(window.CinematicMenu?.active){// Name, class and gender live on the first step only.
+modelBox.append(portraitBox);stage.append(modelBox);}else stage.append(modelBox, portraitBox, tools);
     const tabs = el('div', 'look-tabs'); tabs.setAttribute('role', 'tablist');
     const categories=window.CinematicMenu?.active?[...Ch.TABS].sort((a,b)=>['face','hair','outfit','looks','extras'].indexOf(a.id)-['face','hair','outfit','looks','extras'].indexOf(b.id)):Ch.TABS;
     const tabBtns = categories.map(t => { const b = el('button', 'look-tab', t.name); b.type = 'button'; b.setAttribute('role', 'tab'); b.onclick = () => { tab = t.id; paintTabs(); paintPanel(); }; tabs.append(b); return [t.id, b]; });
