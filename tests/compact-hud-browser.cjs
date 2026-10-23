@@ -128,7 +128,7 @@ async function resetMap(page) {
 
       console.log('COMPACT_HUD_STAGE',tag,'navigation and camera');
       await openNavigation(page);
-      for(const id of ['tab-map','tab-hero','tab-bag','zoom-out','zoom-in','camera-center','camera-fit']) {
+      for(const id of ['tab-map','tab-hero','tab-bag','zoom-out','zoom-in']) { // camera follows the hero; centre/fit buttons are hidden
         const control=page.locator('#'+id);await control.scrollIntoViewIfNeeded();await reachable(control,id);
       }
       const beforeZoom=await page.evaluate(()=>camera.state.scale);

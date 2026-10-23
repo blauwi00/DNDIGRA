@@ -1200,6 +1200,7 @@ function resize() {
   draw();
 }
 function center(p) {
+  followHero.chasing = false; const act = g.active?.(), am = act && models.get(act.id); if (act) followKey = act.id + ":" + (am ? am.position.x : act.x + .5).toFixed(3) + ":" + (am ? am.position.z : act.y + .5).toFixed(3);
   if(regionOptions?.enabled&&regionPlan?.mode==='overview')half=4.8;
   focus = { x: p.x + 0.5, z: p.y + 0.5 };
   cameraUpdate();
@@ -1281,14 +1282,11 @@ canvas.addEventListener("pointermove", (e) => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()];
-    half = T.MathUtils.clamp(pinchHalf * pinchDist / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), 2.8, 15);
+    half = T.MathUtils.clamp(pinchHalf * pinchDist / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), 2.8, FOLLOW_MAX_HALF);
   } else if (start) {
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     if (Math.hypot(dx, dy) > 5) drag = true;
-    if (drag) {
-      focus.x = panStart.x - dx * 2 * half / (viewport.clientHeight || 520);
-      focus.z = panStart.z - dy * 2 * half / (viewport.clientHeight || 520) / 0.819;
-    }
+    // The camera stays on the hero (owner request): dragging no longer pans.
   }
   cameraUpdate();
   draw();
@@ -1331,7 +1329,7 @@ for (const [id, fn] of Object.entries({ "zoom-in": () => {
   cameraUpdate();
   draw();
 }, "zoom-out": () => {
-  half = Math.min(15, half / 0.8);
+  half = Math.min(FOLLOW_MAX_HALF, half / 0.8);
   cameraUpdate();
   draw();
 }, "camera-center": () => center(g.active()), "camera-fit": fit })) document.getElementById(id).onclick = fn;
@@ -1549,6 +1547,23 @@ function nightMotion(time) {
   for (const m of mists) { const u = m.userData; m.position.set(focus.x + ((u.ox + t * u.sp + 30) % 22) - 11, u.y, focus.z + u.oz); }
 }
 let clockLast = 0;
+// Follow camera: always centred on the active hero, eased while it walks.
+const FOLLOW_MAX_HALF = 8;
+// It eases only after the hero moves, so a scripted camera.center() (cutscenes,
+// tests) holds until the hero takes the next step.
+let followKey = "";
+function followHero(dt) {
+  const a = g.active?.(); if (!a) return;
+  const m = models.get(a.id), tx = m ? m.position.x : a.x + .5, tz = m ? m.position.z : a.y + .5;
+  const key = a.id + ":" + tx.toFixed(3) + ":" + tz.toFixed(3);
+  if (key === followKey && !followHero.chasing) return;
+  if (key !== followKey) { followKey = key; followHero.chasing = true; }
+  const k = Math.min(1, dt * 6);
+  if (Math.abs(tx - focus.x) + Math.abs(tz - focus.z) < 1e-3) { followHero.chasing = false; return; }
+  focus.x += (tx - focus.x) * k; focus.z += (tz - focus.z) * k;
+  if (Math.abs(tx - focus.x) + Math.abs(tz - focus.z) > 12) { focus.x = tx; focus.z = tz; }
+  cameraUpdate();
+}
 function tick(time) {
   requestAnimationFrame(tick);
   if(window.CinematicMenu?.active && ready && !document.hidden){if(time-last>=30){last=time;renderMenu(time);}return;}
@@ -1560,6 +1575,7 @@ function tick(time) {
     tick.lastShadow = time;
   }
   const animate = g.animate(), a = g.active();
+  if (clockLast) followHero(Math.min(.1, (time - clockLast) / 1000));
   if (clockLast && !clockPaused()) g.state.worldTime = advanceClock(g.state.worldTime, (time - clockLast) / 1000);
   clockLast = time;
   if (outdoors()) { applyDaylight(); nightMotion(time); }

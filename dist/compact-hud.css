@@ -644,3 +644,4 @@ body.game-ui.compact-hud:not(.map-active) #tutorial-card {
 }
 body.game-ui .object-prompt .enemy-intent{flex:1 0 100%;max-width:100%;margin:2px 0 5px;padding:7px 0;border-top:1px solid #e7bb6c44;border-bottom:1px solid #e7bb6c44;white-space:normal;overflow-wrap:anywhere;font:500 13px/1.4 system-ui;color:#f4ce8d;text-align:left}
 body.game-ui .object-prompt .enemy-intent small{display:block;margin-top:4px;font:11px/1.35 system-ui;color:#c4b9a5}
+#camera-fit,#camera-center{display:none!important}
