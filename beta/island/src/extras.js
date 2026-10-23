@@ -67,6 +67,9 @@ function sfx(type){if(!audio()||muted)return;const t=AC.currentTime+.01,r=Math.r
     case 'pickup':burst(t,.12,.18,'bandpass',1800,1.2,.01,.15);burst(t+.08,.1,.12,'bandpass',900,1,.01,.15);break; // cloth and pouch
     case 'heal':for(const [f,dl] of [[660,0],[990,.07],[1320,.14],[1760,.21]])toneS(t+dl,f*(1+(r()-.5)*.01),.9,.035,'sine',.7);break; // glass shimmer
     case 'notice':knockW(t,.5,90);burst(t,.3,.2,'lowpass',200,1,.005,.4);break; // a low drum thump
+    case 'chopw':knockW(t,.35,140);burst(t,.05,.15,'bandpass',1200,2,.001,.3);break;
+    case 'bark':for(const dl of [0,.22]){const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(420,t+dl);o.frequency.exponentialRampToValueAtTime(260,t+dl+.08);out(chain(o,filt('lowpass',1400,1)),t+dl,.005,.06,.09,.2);o.start(t+dl);o.stop(t+dl+.15);}break;
+    case 'flap':for(let i=0;i<5;i++)burst(t+i*.07,.05,.07,'bandpass',700+Math.random()*300,1.5,.005,.1);break;
     case 'click':knockW(t,.12,900);break;
     case 'clank':for(const [f,v] of [[1180,.06],[2950,.04],[4400,.02]]){const o=AC.createOscillator();o.frequency.value=f*(1+(r()-.5)*.02);out(o,t,.001,v,.35,.5);o.start(t);o.stop(t+.4);}burst(t,.03,.12,'highpass',2000,.7,.001,.3);break;
     case 'fight':for(let i=0;i<3;i++){knockW(t+i*.14,.5-i*.1,70);burst(t+i*.14,.25,.35,'lowpass',140,1,.003,.5);}break;}}
@@ -78,6 +81,8 @@ function ambient(){const loopN=(sec,rate=1)=>{const s=AC.createBufferSource();s.
   AMB.sea=mk(loopN(6),filt('lowpass',420,.6),0);const lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=.09;lg.gain.value=0;lfo.connect(lg).connect(AMB.sea.gain);lfo.start();AMB.seaL=lg;
   AMB.wind=mk(loopN(6,.7),filt('bandpass',800,.8),0);
   AMB.fire=mk(loopN(4,.5),filt('lowpass',160,.7),0);
+  AMB.rain=mk(loopN(5,1),filt('bandpass',2400,.5),0);
+  AMB.crowd=mk(loopN(5,.6),filt('bandpass',500,1.4),0);
   AMB.cr=0;}
 function crackle(){const t=AC.currentTime;burst(t,.012+Math.random()*.02,.05+Math.random()*.08,'bandpass',1800+Math.random()*3500,3,.001,.2);}
 function chirp(){const t=AC.currentTime,f=4300+Math.random()*400;for(let i=0;i<3;i++){const o=AC.createOscillator();o.frequency.value=f;out(o,t+i*.06,.004,.006,.035,.1);o.start(t+i*.06);o.stop(t+i*.06+.06);}}

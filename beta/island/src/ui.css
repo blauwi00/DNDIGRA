@@ -119,3 +119,7 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 /* a hero brought from the game keeps the game's look: colour and hair pickers step aside */
 .editor.from-game #ed_skin,.editor.from-game #ed_hair,.editor.from-game #ed_cloth,.editor.from-game #ed_style,.editor.from-game .lab.lk{display:none}
 .screen.editor{overflow:hidden}.screen.editor .ed{position:absolute;inset:0;height:auto}.edl,.edr{min-height:0}
+.bark{position:absolute;z-index:6;transform:translate(-50%,-100%);max-width:200px;background:#f3e9d2;color:#2a1e14;font-family:"Pixelify Sans","Courier New",monospace;font-size:12px;line-height:1.25;padding:5px 8px;pointer-events:none;
+  box-shadow:0 0 0 2px #2a1e14,0 3px 0 2px #0006;animation:barkIn .25s cubic-bezier(.2,1.5,.4,1)}
+.bark::after{content:"";position:absolute;left:50%;bottom:-7px;width:10px;height:7px;background:#2a1e14;clip-path:polygon(0 0,100% 0,50% 100%);transform:translateX(-50%)}
+@keyframes barkIn{from{transform:translate(-50%,-80%) scale(.6);opacity:0}}

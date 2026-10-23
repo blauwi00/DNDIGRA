@@ -41,7 +41,7 @@ i=stage.index('<div class="bar-ui">');j=stage.index('</div>',i)+6
 stage=stage[:i]+stage[j:]
 stage=stage.replace('<canvas id="c"></canvas>','<canvas id="c"></canvas>'+open('ui.html').read(),1)
 rig=rig.replace("window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;","window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;hero.userData.held={L:two?null:L,R:two?null:R,two};")
-main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read()).replace('{UI}',open('ui.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
+main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read()).replace('{UI}',open('ui.js').read()).replace('{LIFE}',open('life.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
 out='<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+stage+'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>\n'+models+tex+main+'\n'+hands+'\n</script>\n'
 open(os.path.join(OUT,'island.html'),'w').write(out)
 # inside the app: a local three.js copy (works offline and in the native shell) and a way back to the game menu
