@@ -7,6 +7,7 @@ import {planRegionChunks,createChunkStream} from './region-streaming.js';
 import {regionConfig,regionChunkId,cameraGroundBounds,expandRegionBounds,collectRegionPins,canSelectRegionCell,disposeOwnedGroup,countGroupResources} from './region-rendering.js';
 import { createMenuStage } from './menu-stage.js';
 import {createPixelSurfaceMaterials} from './islands/pixel-surfaces.js';
+import {advanceClock,clockParts,outdoorLight} from './daynight.js';
 import {islandRenderConfig,prepareIslandOverview,buildIslandTerrain,islandFoliage} from './islands/render.js';
 import { texelPass, TEXEL } from "./texel.js";
 import { fitPreviewCamera } from "./preview-frame.js";
@@ -1169,8 +1170,7 @@ function sync() {
     const end = route.at(-1);
     if (end) outline(end.x + 0.5, end.y + 0.5, 10337165, 0.68);
   }
-  ambient.intensity = g.state.settings.lights ? 0.65 + g.state.settings.ambient * 0.45 : 0.85;
-  fill.intensity = g.state.settings.lights ? 0.43 : 0.85;
+  applyDaylight();
   renderer.shadowMap.enabled = g.state.settings.lights;
   for (const t of torches) if (t.portable) t.light.shadow.needsUpdate = true;
   renderer.shadowMap.needsUpdate = true;
@@ -1475,6 +1475,80 @@ function combatPose(m, time, animate) {
   m.rotation.y = facing + sway; m.rotation.x = pitch; m.rotation.z = roll; m.scale.y = sy;
   if (!u.strike && !u.hit && !u.dodge && !u.fall && !g.state.encounter) { m.rotation.x = m.rotation.z = 0; m.scale.y = 1; m.position.y = 0; }
 }
+// ——— Day and night outdoors ———
+// Interiors keep their fixed lighting. Outdoors the hemisphere/fill light,
+// background, fog, fireflies, mist and a vignette follow the game clock.
+const nightFx = new T.Group(), fireflies = [], mists = [];
+nightFx.name = "night-fx"; scene.add(nightFx);
+for (let i = 0; i < 26; i++) {
+  const f = new T.Mesh(geo, new T.MeshBasicMaterial({ color: 0xd8f59a, toneMapped: false, transparent: true }));
+  f.scale.setScalar(.045); f.userData = { ox: (Math.random() - .5) * 18, oz: (Math.random() - .5) * 14, ph: Math.random() * 9 };
+  nightFx.add(f); fireflies.push(f);
+}
+{
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const x = c.getContext("2d"), grad = x.createRadialGradient(32, 32, 2, 32, 32, 32);
+  grad.addColorStop(0, "rgba(150,170,190,.13)"); grad.addColorStop(1, "rgba(150,170,190,0)"); x.fillStyle = grad; x.fillRect(0, 0, 64, 64);
+  const tex = new T.CanvasTexture(c);
+  for (let i = 0; i < 8; i++) {
+    const m = new T.Mesh(new T.PlaneGeometry(6, 3.5), new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+    m.rotation.x = -Math.PI / 2; m.userData = { ox: (Math.random() - .5) * 20, oz: (Math.random() - .5) * 14, sp: .15 + Math.random() * .2, y: .45 + Math.random() * .3 };
+    nightFx.add(m); mists.push(m);
+  }
+}
+// A warm glow around the active hero keeps the night readable.
+const heroGlow = new T.PointLight(0xffb060, 0, 6, 2);
+heroGlow.name = "hero-night-glow"; scene.add(heroGlow);
+const vignette = document.createElement("div");
+vignette.className = "voxel-vignette"; vignette.setAttribute("aria-hidden", "true");
+vignette.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .6s;background:radial-gradient(ellipse at 50% 55%,transparent 42%,rgba(4,8,12,.75) 100%)";
+viewport.append(vignette);
+const clockPill = document.createElement("div");
+clockPill.className = "voxel-clock"; clockPill.setAttribute("role", "status");
+clockPill.style.cssText = "position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:5;display:none;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(14,18,20,.72);border:1px solid rgba(214,179,112,.35);color:#e7dcc6;font:600 12px/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;pointer-events:none";
+viewport.append(clockPill);
+const SUN_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.4" fill="#f2c45a"/><g stroke="#f2c45a" stroke-width="1.6" stroke-linecap="round"><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13M3 13l1.4-1.4M11.6 4.4 13 3"/></g></svg>';
+const MOON_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.8 2.2a6 6 0 1 0 3 9.6 5 5 0 0 1-3-9.6z" fill="#c9d6ee"/></svg>';
+let clockText = "";
+const outdoors = () => !!(g?.scene && (g.scene.island || g.scene.outdoor));
+function applyDaylight() {
+  const st = g.state.settings, baseAmbient = st.lights ? 0.65 + st.ambient * 0.45 : 0.85, baseFill = st.lights ? 0.43 : 0.85;
+  if (!outdoors()) {
+    ambient.color.setHex(12507101); ambient.groundColor.setHex(3159078); ambient.intensity = baseAmbient;
+    fill.color.setHex(11912909); fill.intensity = baseFill;
+    heroGlow.intensity = 0;
+    scene.background.set("#0b1919"); scene.fog = null; nightFx.visible = false; vignette.style.opacity = "0"; clockPill.style.display = "none";
+    return;
+  }
+  const L = outdoorLight(g.state.worldTime);
+  ambient.color.setHex(L.skyColor); ambient.groundColor.setHex(L.groundColor); ambient.intensity = baseAmbient * L.ambient;
+  fill.color.setHex(L.fillColor); fill.intensity = baseFill * (L.fill + .32);
+  scene.background.setHex(L.background);
+  // Orthographic fog: start just past the focus so the far edge of the map fades.
+  const d = camera.position.distanceTo(new T.Vector3(focus.x, 0, focus.z));
+  if (!scene.fog) scene.fog = new T.Fog(L.background, d, d + 40);
+  scene.fog.color.setHex(L.background); scene.fog.near = d - 2 + L.sun * 10; scene.fog.far = d + 14 + L.sun * 40;
+  nightFx.visible = g.state.settings.animations && L.night > .35;
+  const hero = g.active?.();
+  if (hero) heroGlow.position.set(hero.x + .5, 1.1, hero.y + .5);
+  heroGlow.intensity = L.night * (g.state.settings.lights ? 9 : 6);
+  vignette.style.opacity = String(.25 + L.night * .75);
+  const c = clockParts(g.state.worldTime), text = "День " + c.day + " · " + c.label + (L.sun > .5 ? "s" : "m");
+  if (text !== clockText) { clockText = text; clockPill.innerHTML = (L.sun > .5 ? SUN_ICON : MOON_ICON) + "<span>День " + c.day + " · " + c.label + "</span>"; clockPill.setAttribute("aria-label", "День " + c.day + ", " + c.label); }
+  clockPill.style.display = "flex";
+}
+function clockPaused() {
+  return !outdoors() || g.state.combat || g.busy || window.CinematicMenu?.active || !!document.querySelector?.("dialog[open]") || document.getElementById("map-view").hidden;
+}
+function nightMotion(time) {
+  if (!nightFx.visible) return;
+  const t = time / 1000;
+  for (const f of fireflies) { const u = f.userData;
+    f.position.set(focus.x + u.ox + Math.sin(t * .4 + u.ph) * .8, .45 + Math.sin(t * 1.3 + u.ph) * .25, focus.z + u.oz + Math.cos(t * .33 + u.ph) * .8);
+    f.material.opacity = Math.max(0, Math.sin(t * 2 + u.ph * 3)); }
+  for (const m of mists) { const u = m.userData; m.position.set(focus.x + ((u.ox + t * u.sp + 30) % 22) - 11, u.y, focus.z + u.oz); }
+}
+let clockLast = 0;
 function tick(time) {
   requestAnimationFrame(tick);
   if(window.CinematicMenu?.active && ready && !document.hidden){if(time-last>=30){last=time;renderMenu(time);}return;}
@@ -1486,6 +1560,9 @@ function tick(time) {
     tick.lastShadow = time;
   }
   const animate = g.animate(), a = g.active();
+  if (clockLast && !clockPaused()) g.state.worldTime = advanceClock(g.state.worldTime, (time - clockLast) / 1000);
+  clockLast = time;
+  if (outdoors()) { applyDaylight(); nightMotion(time); }
   reconcileRegions();
   for (const [id, v] of motions) {
     const t = Math.min(1, (time - v.start) / v.duration), ease = 1 - (1 - t) ** 3;

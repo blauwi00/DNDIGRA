@@ -1,3 +1,6 @@
+# Claude visual pass · 2026-10-23
+Branch `claude/affectionate-ritchie-sbvta3` (based on `feature/current-game-2026-10-22`). Owner approved the look of Claude's demo scene: dark fantasy, pixel textures on 3D blocks, night light. Done: island ground pixel textures (`src/islands/pixel-surfaces.js`), fix for near-black atlas stone roads, denser jittered foliage with new nature props, tavern menu patrons with individual routines, 3D combat body language (`combatPose` in `src/voxel.js`), and a day/night cycle (`src/daynight.js`): one day = 20 real minutes, clock saved in `state.worldTime`, paused in menus, dialogs and combat; outdoors only. Owner plans to supply GPT-generated pixel textures; downscale them to a strict 32px grid before use. Owner asked to publish this branch to the existing Site; Claude has no Site access.
+
 # Current cinematic follow-up · 2026-10-17
 Owner requested an immediate impressive addition in the existing game. Caravan cinematics use the current orthographic map, models and textures. Preserve the separate episode save: the menu preview never writes it. See docs/PROLOGUE.md and caravan-cinema tests. Existing game rules, generation and main campaign are unchanged.
 
