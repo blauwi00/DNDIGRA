@@ -134,6 +134,7 @@ function screen(el){for(const x of [mainEl,pauseEl,edEl])x.hidden=x!==el;paused=
 function hasSave(){try{return !!localStorage.getItem(SAVE)&&!!HEROSET}catch(e){return false}}
 function mainMenu(){screen(mainEl);document.getElementById('mContinue').hidden=!hasSave();document.getElementById('mSet').hidden=true;}
 document.getElementById('mContinue').onclick=()=>screen(null);
+if(window.ISLAND_IN_APP){const x=document.getElementById('mExit');x.hidden=false;x.onclick=()=>{save();location.href='../index.html';};}
 document.getElementById('mNew').onclick=()=>openEditor();
 document.getElementById('mSettings').onclick=()=>{const s=document.getElementById('mSet');s.hidden=!s.hidden;};
 document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();screen(pauseEl);renderSheet();};

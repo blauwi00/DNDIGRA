@@ -20,10 +20,16 @@
     const actions=document.createElement('nav');actions.className='cinema-actions';actions.setAttribute('aria-label','Главное меню');
     const cont=button('Продолжить',()=>Worlds.resume(),'play',true);cont.disabled=!Worlds.current&&!localStorage.getItem(Worlds.resumeKey||'last-world-id');
     // Owner asked for a mobile-game title: only continue, new game and settings.
-    actions.append(cont,button('Новая игра',()=>{setRoute('heroes');Heroes.start(false);Heroes.open();},'new',cont.disabled),button('Настройки',settings,'settings'));
+    actions.append(cont,button('Новая игра',newGame,'new',cont.disabled),button('Настройки',settings,'settings'));
     const footer=document.createElement('footer');footer.className='menu-footer';footer.innerHTML='<span>Исследуй. Решай. Оставь свой след.</span><span class="menu-live"><i aria-hidden="true"></i>История начинается с тебя</span>';
     const status=document.createElement('p');status.id='cinema-status';status.setAttribute('role','status');root.append(atmosphere,mast,actions,footer,status);
   }
+  // New game offers the island (its own page and save) or the classic campaign; the title keeps its three buttons.
+  function newGame(){setRoute('newgame');const root=$('cinematic-menu');root.replaceChildren();const head=document.createElement('div');head.className='cinema-head';head.append(button('Назад',home,'back'));
+    const h=document.createElement('h2');h.textContent='Новая игра';head.append(h);const nav=document.createElement('nav');nav.className='cinema-actions cinema-newgame';nav.setAttribute('aria-label','Выбор приключения');
+    const isl=button('Остров Хельги',()=>{location.href='island/index.html';},'play',true);const camp=button('Классическая кампания',()=>{setRoute('heroes');Heroes.start(false);Heroes.open();},'new');
+    const note=document.createElement('p');note.className='menu-manifest';note.textContent='Остров Хельги — новое приключение: дома, сундуки, пошаговые бои. Кампания — прежний мир и герои.';
+    nav.append(isl,camp);root.append(head,nav,note);}
   async function worlds(){setRoute('worlds');await Heroes.list();$('heroes-title').textContent='Миры';const p=document.createElement('p');p.className='world-selection-note';p.textContent='Выбери героя, чтобы продолжить его мир или начать новый.';$('heroes-body').prepend(p);}
   function closeScreen(){if(fromGame){play();return;}document.querySelectorAll('dialog[open]').forEach(d=>d.close());home();}
   function play(){active=false;editor=null;fromGame=false;document.body.classList.remove('cinematic-active');$('cinematic-menu').hidden=true;applyPreferences(true);requestAnimationFrame(()=>window.voxel?.resize());}

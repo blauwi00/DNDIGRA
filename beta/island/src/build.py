@@ -44,5 +44,11 @@ rig=rig.replace("window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:nu
 main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read()).replace('{UI}',open('ui.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
 out='<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+stage+'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>\n'+models+tex+main+'\n'+hands+'\n</script>\n'
 open(os.path.join(OUT,'island.html'),'w').write(out)
+# inside the app: a local three.js copy (works offline and in the native shell) and a way back to the game menu
+APP=os.environ.get('APP')
+if APP:
+  os.makedirs(APP,exist_ok=True)
+  app=out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','three.min.js').replace('<script>\n','<script>\nwindow.ISLAND_IN_APP=true;\n',1)
+  open(os.path.join(APP,'index.html'),'w').write('<!doctype html><html lang="ru"><head><meta charset="utf-8">'+app+'</html>')
 prev='<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">'+out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','package/build/three.min.js')+'</body></html>'
 print('built',len(out))

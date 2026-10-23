@@ -227,7 +227,7 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 <div class="screen mapview" id="mapview" hidden><div class="mapbox"><h2>Остров Хельги</h2><canvas></canvas><p class="leg"></p><button id="mapClose">Закрыть</button></div></div>
 <div class="screen main" id="mainmenu" hidden>
   <div class="mm"><h2>За гранью</h2><p>Остров Хельги</p>
-    <button id="mContinue">Продолжить</button><button id="mNew">Новая игра</button><button id="mSettings">Настройки</button>
+    <button id="mContinue">Продолжить</button><button id="mNew">Новая игра</button><button id="mSettings">Настройки</button><button id="mExit" hidden>Выйти из острова</button>
     <div class="mset" id="mSet" hidden><button id="mSound">Звук</button></div></div></div>
 <div class="screen pause" id="pause" hidden>
   <div class="mm"><h2>Пауза</h2><div class="sheet" id="sheet"></div>
@@ -1283,6 +1283,7 @@ function screen(el){for(const x of [mainEl,pauseEl,edEl])x.hidden=x!==el;paused=
 function hasSave(){try{return !!localStorage.getItem(SAVE)&&!!HEROSET}catch(e){return false}}
 function mainMenu(){screen(mainEl);document.getElementById('mContinue').hidden=!hasSave();document.getElementById('mSet').hidden=true;}
 document.getElementById('mContinue').onclick=()=>screen(null);
+if(window.ISLAND_IN_APP){const x=document.getElementById('mExit');x.hidden=false;x.onclick=()=>{save();location.href='../index.html';};}
 document.getElementById('mNew').onclick=()=>openEditor();
 document.getElementById('mSettings').onclick=()=>{const s=document.getElementById('mSet');s.hidden=!s.hidden;};
 document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();screen(pauseEl);renderSheet();};
