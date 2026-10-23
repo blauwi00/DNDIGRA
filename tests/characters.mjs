@@ -14,10 +14,9 @@ function check(label,s){
   assert.ok(boxes.length<=RULES.maxWithTexels,label+': с текселями '+boxes.length+' > '+RULES.maxWithTexels);
   assert.ok(decals.length>0,label+': нет текселей');
   for(const d of decals)assert.ok(d.length===10&&(d[8]==='f'||d[8]==='t')&&(d[8]==='f'?d[5]:d[4])<=.011&&Number.isFinite(d[9])&&Number.isInteger(d[6]),label+': некорректная наклейка '+JSON.stringify(d));
-  const eyes=boxes.filter(b=>b[6]===s.eye&&b[5]<=.02&&b[2]>=.19&&b[1]>=.88&&b[1]<=1.02&&Math.abs(b[0])<=.15); // head lifted by PROPORTION
-  // Up to 6 eye boxes; brows sharing the eye colour sit in the same band after the head lift.
-  assert.ok(eyes.length>=1&&eyes.length<=8,label+': глаза не найдены ('+eyes.length+')');
-  const head=boxes.find(b=>b[3]>=.38&&b[4]>=.34&&b[5]>=.32&&b[6]===s.skin); // scaled by PROPORTION.head
+  const eyes=boxes.filter(b=>b[6]===s.eye&&b[5]<=.02&&b[2]>=.22&&b[1]>=.83&&b[1]<=.94&&Math.abs(b[0])<=.15);
+  assert.ok(eyes.length>=1&&eyes.length<=6,label+': глаза не найдены ('+eyes.length+')');
+  const head=boxes.find(b=>b[3]>=.44&&b[4]>=.4&&b[5]>=.38&&b[6]===s.skin);
   assert.ok(head,label+': нет головы-куба');
   const ratio=head[4]/(head[1]+head[4]/2);
   assert.ok(ratio>=RULES.headMinRatio&&ratio<=RULES.headMaxRatio,label+': пропорция головы '+ratio.toFixed(2));
@@ -97,7 +96,7 @@ const old={...base,appearance:{skin:HeroRules.COLORS.skin[0],hair:HeroRules.COLO
   const s0=spec(2,{classId:'fighter',appearance:{...base,marks:[]}}),s1=spec(2,{classId:'fighter',appearance:{...base,marks:[mark]}});
   const a=new Set(build(s0,{texel:false}).map(b=>b.join(','))),mk=build(s1,{texel:false}).filter(b=>!a.has(b.join(',')));
   assert.ok(mk.length>0,mark+': знак не нарисован');
-  const eyeBoxes=build(s1,{texel:false}).filter(b=>b[6]===s1.eye&&b[5]<=.02&&b[1]>=.88&&b[1]<=1.02&&Math.abs(b[0])<=.15); // head lifted by PROPORTION
+  const eyeBoxes=build(s1,{texel:false}).filter(b=>b[6]===s1.eye&&b[5]<=.02&&b[1]>=.83&&b[1]<=.94&&Math.abs(b[0])<=.15);
   for(const m of mk)for(const e of eyeBoxes)if(Math.abs(m[0]-e[0])<(m[3]+e[3])/2-.002&&Math.abs(m[1]-e[1])<(m[4]+e[4])/2-.002)bad.push(mark+' на глазах ('+eyes+', '+gender+')');}
  assert.deepEqual([...new Set(bad)],[],'знаки на глазах');
  for(const mark of ['scar','browscar','warpaint']){const s=spec(2,{classId:'fighter',appearance:{...defaultLook('fighter','male'),marks:[mark]}});assert.ok(build(s,{texel:false}).some(b=>b[6]!==undefined),mark);}

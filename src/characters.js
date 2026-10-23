@@ -7,7 +7,7 @@ export { shade, TEXEL };
 export { PALETTES, OPTIONS, OUTFITS, GROUPS, TABS, PRESETS, COLOR_FIELDS, defaultLook, normalize, randomLook, presetLook, validateAppearance };
 
 export const RULES = {
-  headMinRatio: .28, headMaxRatio: .4, // доля головы от высоты фигуры (эталонный лист: около трети роста)
+  headMinRatio: .34, headMaxRatio: .46, // доля головы от высоты фигуры
   maxBoxes: 200,                        // бюджет боксов фигуры без текселей
   maxWithTexels: 520,                   // бюджет вместе с текселями-наклейками (правило «тексели», src/texel.js)
   texel: true,
@@ -87,41 +87,21 @@ export function build(s, opts = {}) {
   B(0, .43, 0, bw + .02, .05, .27, o === 'monk' ? 0xc8b88a : s.leather); B(0, .43, .14, .08, .065, .03, cls === 'wizard' ? s.gem : trim);
   for (const sx of [-1, 1]) { B(sx * arm, .55, 0, aw, .24, female ? .15 : .18, sleeve); B(sx * arm, .4, .02, aw - .02, .08, female ? .1 : .12, s.skin); }
   // Голова, уши, лицо
-  const headFrom = out.length;
   B(0, .9, .02, .46, .42, .4, s.skin);
   face(B, s);
   hair(B, s);
   ears(B, s);
   if (s.beard !== 'none') beard(B, s);
   marks(B, s);
-  const headTo = out.length;
   // Наряд по классу, плащ, головной убор, украшения, предметы в руках
   OUTFIT[cls](B, s, bw, arm, o);
   if (s.cape !== 'none') cape(B, s, bw);
-  const gearFrom = out.length;
   headgear(B, s);
-  const gearTo = out.length;
   accessories(B, s, bw, arm);
-  const heldFrom = out.length;
   held(B, s, arm, trim);
-  proportions(out, i => (i >= headFrom && i < headTo) || (i >= gearFrom && i < gearTo), i => i >= heldFrom);
   separateCoplanarFaces(out);
   if (opts.texel ?? RULES.texel) out.push(...texelPass(out, texelRole(s)));
   return out;
-}
-
-// Reference-sheet proportions: the head (with hair and headgear) is scaled
-// to 90% around the neck, and everything above the knees is lifted so the
-// legs and torso read longer. Boxes crossing the knee line are stretched.
-export const PROPORTION = { head: .86, neck: .69, knee: .3, lift: .1 };
-function proportions(boxes, isHead, isRigid) {
-  const { head: k, neck, knee, lift } = PROPORTION;
-  boxes.forEach((b, i) => {
-    if (isHead(i)) { b[0] *= k; b[1] = neck + (b[1] - neck) * k; b[2] = .02 + (b[2] - .02) * k; b[3] *= k; b[4] *= k; b[5] *= k; }
-    const bottom = b[1] - b[4] / 2, top = b[1] + b[4] / 2;
-    if (bottom >= knee - 1e-6 || isRigid(i)) b[1] += lift; // held items move as one piece
-    else if (top > knee) { b[1] += lift / 2; b[4] += lift; }
-  });
 }
 
 // Outfits and facial features intentionally overlap. Give coincident surfaces a
@@ -163,7 +143,7 @@ function face(B, s) {
       case 'sleepy': B(x, .88, .226, .07, .055, .012, E); B(x, .915, .228, .085, .028, .012, shade(s.skin, .82)); break;
       case 'sparkle': B(x, .895, .226, .075, .1, .012, E); if (colored) B(x, .88, .232, .035, .05, .012, dark); B(x + .016, .92, .234, .022, .026, .012, WHITE); break;
       case 'big': B(x, .885, .226, .09, .11, .012, E); if (colored) B(x, .875, .232, .04, .055, .012, dark); B(x + .018, .915, .234, .03, .03, .012, WHITE); break;
-      default: B(x, .875, .226, .065, .11, .012, E); B(x + .015, .9, .232, .02, .025, .008, shade(E, 2.4));
+      default: B(x, .89, .226, .06, .085, .012, E);
     }
   }
   if (fem) for (const sx of [-1, 1]) { // ресницы, лёгкий румянец
@@ -192,7 +172,7 @@ function face(B, s) {
     case 'open': m(0, .775, .06, .05, MOUTH); m(0, .762, .04, .018, 0xc0505a, .238); break;
     case 'cat': m(-.035, .775, .045, .02); m(.035, .775, .045, .02); m(0, .79, .025, .03); break;
     case 'frown': m(0, .78, .08, .02); m(-.05, .765, .022, .022); m(.05, .765, .022, .022); break;
-    default: m(0, .785, fem ? .06 : .05, .018);
+    default: m(0, .78, fem ? .105 : .09, fem ? .028 : .02); m(-.055, .795, .022, .022); m(.055, .795, .022, .022);
   }
 }
 
@@ -233,31 +213,9 @@ function marks(B, s) {
   if (has('mole')) px(.075, .775, 0x4a2f25, .022, .022);
   if (has('warpaint')) { // «когти»: две диагональные полосы на каждой щеке
     const c = s.markC ?? 0xb02f3d;
-    for (const sx of [-1, 1]) for (const off of [0, .045]) for (let i = 0; i < 3; i++) px(sx * (.175 - off - i * .022), .8 - i * .03, c, .034, P);
+    for (const sx of [-1, 1]) for (const off of [0, .045]) for (let i = 0; i < 3; i++) px(sx * (.175 - off - i * .022), .812 - i * .03, c, .034, P);
   }
   if (has('plaster')) { B(0, .835, z, .072, .03, .012, 0xf0e4cc); B(0, .835, .23, .032, .075, .012, 0xf0e4cc); B(0, .835, .232, .018, .018, .012, mix(0xf0e4cc, 0xb59a6a, .5)); }
-}
-
-// Объёмные пряди как на эталонном листе: макушка из кубиков разной высоты,
-// неровная чёлка над лбом, боковые пряди до щёк, затылок с рваным краем.
-const jag = (i, k = 0) => [.0, .035, .015, .05, .02, .04, .01][(i * 3 + k) % 7];
-function tufts(H, top, front, low, h, { length = .26, fringe = .1, crown = .1, sideLow = .82, backLow = .74 } = {}) {
-  for (let ix = -2; ix <= 2; ix++) for (let iz = -2; iz <= 2; iz++) { // макушка
-    const hh = .04 + crown * (.3 + .7 * (((ix * 7 + iz * 5) % 5 + 5) % 5) / 4) * (1 - Math.abs(ix) * .18) * (iz === 2 ? .6 : 1);
-    H(top, ix * .105 + (iz % 2) * .02, 1.1 + hh / 2, iz * .09 - .02, .1, hh, .095, (ix + iz) % 2 ? h : shade(h, 1.1));
-  }
-  for (let i = 0; i < 6; i++) { // чёлка с рваным краем
-    const x = -.225 + i * .09, bottom = 1.1 - fringe - jag(i) * .8;
-    H(front, x, (1.15 + bottom) / 2, .23, .095, 1.15 - bottom, .06, i % 2 ? h : shade(h, .92));
-  }
-  for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) { // боковые пряди
-    const z = .1 - i * .1, bottom = sideLow - jag(i, sx > 0 ? 2 : 0) + (i === 0 ? .05 : 0) - (i === 3 ? .05 : 0);
-    H(low, sx * .255, (1.13 + bottom) / 2, z, .06, 1.13 - bottom, .12, i % 2 ? h : shade(h, .94));
-  }
-  for (let i = 0; i < 5; i++) { // затылок
-    const bottom = backLow - jag(i, 4);
-    H(low, -.2 + i * .1, (1.13 + bottom) / 2, -.23, .11, 1.13 - bottom, .08, i % 2 ? h : shade(h, .93));
-  }
 }
 
 // Причёски: top — макушка, front — чёлка, low — боковые и задние пряди. Под шлемом и капюшоном часть прячется.
@@ -274,14 +232,14 @@ function hair(B, s) {
   if (st !== 'mohawk') H(low, 0, 1.02, -.02, .48, .18, .44, st === 'buzz' ? shade(h, .85) : h);
   switch (st) {
     case 'buzz': H(top, 0, 1.125, 0, .48, .07, .43); H(front, 0, 1.07, .205, .46, .07, .04); for (const sx of [-1, 1]) H(low, sx * .245, .99, 0, .02, .16, .38); backZ = -.2; break;
-    case 'short': tufts(H, top, front, low, h, { crown: .2, fringe: .045, sideLow: .9 }); break;
+    case 'short': cap(); fringe(); sides(); H(low, 0, .93, -.22, .5, .38, .07); H(top, -.1, 1.2, .02, .16, .08, .22); H(top, .12, 1.21, -.06, .16, .1, .16); H(top, 0, 1.19, .13, .2, .05, .1); break;
     case 'spiky': cap(); fringe(); sides(.2, 1.0); H(low, 0, .95, -.22, .5, .32, .07); for (const [x, y, z, w, hh] of [[-.18, 1.2, .06, .1, .14], [-.06, 1.23, .08, .1, .2], [.06, 1.23, 0, .1, .2], [.18, 1.2, -.04, .1, .14], [0, 1.2, -.14, .12, .14]]) H(top, x, y, z, w, hh, .1); break;
     case 'mohawk': H(top, 0, 1.22, 0, .12, .22, .42); H(top, 0, 1.35, -.05, .12, .08, .26); H(top, 0, 1.12, 0, .3, .04, .44); H(low, 0, .98, -.2, .12, .3, .05); for (const sx of [-1, 1]) H(low, sx * .245, 1.02, 0, .02, .1, .36, shade(h, .6)); backZ = -.225; break;
     case 'sweep': cap(); sides(); H(low, 0, .93, -.22, .5, .38, .07); H(top, -.05, 1.19, 0, .34, .07, .3); H(front, .12, 1.1, .22, .2, .06, .05); H(front, 0, 1.06, .22, .2, .06, .05); H(front, -.12, 1.02, .22, .2, .06, .05); H(front, -.2, .95, .22, .07, .12, .05); break;
     case 'bob': cap(); H(front, 0, 1.04, .215, .48, .1, .05); for (const sx of [-1, 1]) H(low, sx * .27, .84, 0, .07, .34, .42); H(low, 0, .85, -.22, .58, .4, .1); backZ = -.272; break;
     case 'long': cap(); fringe(); for (const sx of [-1, 1]) H(low, sx * .27, .8, 0, .07, .5, .38); H(low, 0, .76, -.24, .54, .64, .1); H(top, 0, 1.2, -.02, .3, .08, .3); backZ = -.292; break;
     case 'wavy': H(top, 0, 1.14, 0, .54, .12, .5); H(top, 0, 1.22, -.02, .38, .06, .34); H(front, -.12, 1.05, .215, .26, .08, .05); H(front, .14, 1.07, .215, .2, .06, .05); H(front, .24, .97, .2, .05, .14, .05); for (const sx of [-1, 1]) { H(low, sx * .29, .8, 0, .08, .5, .4); H(low, sx * .31, .56, .02, .07, .16, .34); } H(low, 0, .72, -.25, .62, .76, .12); backZ = -.312; break;
-    case 'ponytail': tufts(H, top, front, low, h, { crown: .13, fringe: .05, sideLow: .84 }); H(top, 0, 1.28, -.13, .22, .12, .18); H(top, 0, 1.36, -.18, .16, .1, .14, shade(h, 1.08)); H(top, 0, 1.27, -.27, .14, .06, .1, s.trim); for (let i = 0; i < 4; i++) H(top, (i % 2) * .03 - .015, 1.2 - i * .12, -.3 - i * .012, .14 - i * .02, .13, .11, i % 2 ? h : shade(h, .92)); H(top, 0, .73, -.35, .08, .08, .08, t); backZ = -.36; break;
+    case 'ponytail': cap(); fringe(); sides(.2, 1.0); H(low, 0, .95, -.22, .5, .3, .07); H(top, 0, 1.17, -.17, .14, .1, .1, s.trim); H(top, 0, 1.22, -.26, .16, .16, .14); H(top, 0, 1.05, -.31, .16, .38, .12); H(top, 0, .83, -.31, .12, .14, .1, t); backZ = -.32; break;
     case 'bun': cap(); fringe(); sides(); H(low, 0, .93, -.22, .5, .34, .07); H(top, 0, 1.24, -.02, .2, .12, .2); H(top, 0, 1.33, -.02, .14, .08, .14); H(top, 0, 1.19, -.02, .22, .03, .22, s.trim); break;
     case 'twin': cap(); fringe(); sides(.2, 1.0); H(low, 0, .95, -.21, .5, .3, .06); for (const sx of [-1, 1]) { H(low, sx * .3, .96, -.04, .1, .5, .14); H(low, sx * .3, .66, -.04, .1, .1, .14, t); H(low, sx * .28, 1.1, -.04, .12, .05, .14, s.trim); } break;
     case 'braid': cap(); fringe(); sides(.2, 1.0); H(low, 0, .93, -.22, .5, .4, .07); H(low, .22, .88, .12, .1, .12, .1); H(low, .22, .76, .14, .09, .1, .1); H(low, .22, .64, .16, .1, .1, .1); H(low, .22, .55, .17, .09, .08, .09, t); H(low, .22, .5, .18, .1, .04, .1, s.trim); break;
@@ -299,17 +257,9 @@ const OUTFIT = {
     const { trim } = s;
     const paul = (w, hh) => { for (const sx of [-1, 1]) {
       const x = sx * (arm + .035), pw = w + .09, ph = hh + .08;
-      B(x, .68, 0, pw, ph, .27, s.cloth); B(x, .68 + ph / 2 + .012, 0, pw + .02, .025, .29, trim); B(x, .68 - ph / 2 - .01, 0, pw + .01, .025, .28, trim); B(x, .68, .14, pw, .02, .012, trim);
+      B(x, .68, 0, pw, ph, .27, s.cloth); B(x, .68 + ph / 2 + .012, 0, pw + .02, .025, .29, trim); B(x, .68 - ph / 2 - .01, 0, pw + .01, .025, .28, trim); B(x + sx * (pw / 2 + .01), .68, 0, .02, ph, .28, trim);
     } };
-    if (o === 'plate') {
-      paul(.17, .08); B(0, .71, -.02, bw + .02, .03, .27, trim);
-      const cw = bw - .06; // нагрудник с золотой каймой и рёбрами
-      B(0, .57, .131, cw, .22, .012, shade(s.cloth, 1.12)); B(0, .68, .137, cw, .02, .012, trim); B(0, .46, .137, cw, .02, .012, trim);
-      for (const sx of [-1, 1]) B(sx * cw / 2, .57, .137, .02, .22, .012, trim); B(0, .6, .14, .02, .12, .012, trim); B(0, .655, .14, .12, .02, .012, trim);
-      if (s.gender !== 'female') for (const sx of [-1, 1]) { B(sx * .1, .36, .02, .17, .1, .26, s.cloth); B(sx * .1, .31, .02, .175, .02, .265, trim); } // набедренные пластины
-      for (const sx of [-1, 1]) { B(sx * arm, .41, .02, .15, .1, .15, s.leather); B(sx * arm, .465, .02, .155, .025, .155, trim); } // латные перчатки
-      for (const sx of [-1, 1]) B(sx * .1, .27, .03, .16, .025, .21, trim); // золотые отвороты сапог
-    }
+    if (o === 'plate') { paul(.17, .08); for (const sx of [-1, 1]) B(sx * .07, .62, .13, .03, .15, .012, trim); B(0, .685, .13, .16, .03, .012, trim); B(0, .71, -.02, bw + .02, .03, .27, trim); }
     if (o === 'tabard') { B(0, .4, .135, .22, .4, .012, s.cloth); B(0, .53, .145, .03, .15, .012, trim); B(0, .56, .145, .11, .03, .012, trim); B(0, .21, .136, .22, .03, .012, trim); B(0, .71, 0, bw + .02, .03, .27, trim); }
     if (o === 'leather') { B(0, .56, .13, bw - .06, .25, .012, s.cloth); B(0, .56, .136, .02, .25, .012, shade(s.leather, .6)); for (const sx of [-1, 1]) { B(sx * arm, .66, 0, .15, .06, .19, s.cloth); B(sx * .12, .56, .14, .05, .05, .012, trim); } B(0, .71, 0, bw + .02, .03, .27, trim); }
     if (o === 'knight') { paul(.2, .12); B(0, .72, 0, bw - .02, .06, .29, STEEL); B(0, .6, .13, bw - .04, .2, .012, STEEL); B(0, .6, .14, .03, .16, .012, trim); B(0, .63, .14, .12, .03, .012, trim); B(0, .385, .1, bw + .02, .08, .29, STEEL); B(0, .35, .1, bw + .02, .02, .29, trim); }
@@ -393,15 +343,10 @@ function accessories(B, s, bw, arm) {
 function held(B, s, arm, trim) {
   const { classId: cls, hands } = s, has = k => hands.includes(k);
   if (has('sword') && cls === 'rogue') { B(-.34, .38, .1, .05, .09, .05, s.leather); B(-.34, .44, .1, .12, .03, .06, trim); B(-.34, .45, .21, .06, .04, .24, STEEL); B(-.34, .45, .34, .035, .03, .04, STEEL); }
-  else if (has('sword')) { // клинок вперёд и чуть вниз, ступенями, как на эталоне
-    B(-.34, .42, .08, .055, .09, .055, s.leather); B(-.34, .45, .15, .2, .04, .05, trim);
-    for (let i = 0; i < 5; i++) B(-.34, .44 - i * .03, .22 + i * .085, .09, .05, .1, i === 4 ? shade(STEEL, .9) : STEEL);
-    B(-.34, .31, .64, .05, .03, .05, STEEL); }
+  else if (has('sword')) { B(-.34, .38, .09, .055, .1, .055, s.leather); B(-.34, .45, .09, .17, .035, .075, trim); B(-.34, .72, .09, .05, .5, .04, STEEL); }
   if (has('shield')) {
     const blue = cls === 'fighter' ? s.cloth : s.p.cloth;
-    const sx = .4, z = .22; // щит-капля: широкий верх, сужение книзу
-    for (const [y, w, hh] of [[.62, .34, .24], [.44, .3, .12], [.34, .22, .08], [.27, .14, .06], [.22, .07, .04]]) { B(sx, y, z - .02, w, hh, .05, trim); B(sx, y + (y > .5 ? .01 : .005), z + .005, w - .05, hh - (y > .5 ? .04 : .02), .03, blue); }
-    B(sx, .52, z + .025, .04, .28, .02, trim); B(sx, .58, z + .025, .17, .04, .02, trim);
+    B(.33, .5, .17, .27, .38, .05, trim); B(.33, .5, .2, .21, .32, .03, blue); B(.33, .5, .222, .03, .18, .02, trim); B(.33, .53, .222, .13, .03, .02, trim);
   }
   if (has('bow')) { for (let i = 0; i < 5; i++) B(-.34 - Math.abs(i - 2) * -.02, .36 + i * .12, .1, .06, .16, .05, 0xa27c40); B(-.4, .6, .1, .02, .6, .02, 0xc5b891); }
   if (has('staff') && cls === 'wizard') { B(-.36, .62, .08, .05, .9, .05, WOOD); B(-.36, 1.1, .08, .15, .06, .15, trim); B(-.36, 1.21, .08, .12, .16, .12, s.gem, true); for (const sx of [-1, 1]) B(-.36 + sx * .07, 1.18, .08, .03, .1, .03, trim); }
@@ -410,8 +355,7 @@ function held(B, s, arm, trim) {
 }
 
 const css = c => '#' + (c & 0xffffff).toString(16).padStart(6, '0');
-// Crop windows follow PROPORTION: the head now spans about .79–1.45.
-export const VIEWS = { face: { y0: .76, y1: 1.18 }, head: { y0: .7, y1: 1.47 }, hat: { y0: .76, y1: 1.6 }, body: { y0: .1, y1: 1.42 }, full: { y0: .06, y1: 1.58 } };
+export const VIEWS = { face: { y0: .66, y1: 1.14 }, head: { y0: .6, y1: 1.44 }, hat: { y0: .66, y1: 1.62 }, body: { y0: .1, y1: 1.36 }, full: { y0: .06, y1: 1.52 } };
 
 // 2D-портрет из тех же боксов. view: bust (по умолчанию), head, face, full; back — вид сзади (для плаща).
 export function portrait(kind, actor, opts = {}) {
