@@ -1216,7 +1216,7 @@ function fit() {
   draw();
 }
 function reset() {
-  half = 4.8;
+  half = 6.4; // shows the trees around the hero, not only the road
   center(g.active());
 }
 function updateSilhouette() {

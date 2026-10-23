@@ -115,12 +115,23 @@ export function islandFoliage(scene,rect,{sample=sampleScene}={}){
     // spills onto roads, props or neighbouring interactive cells.
     const ox=((hash>>>12)%7-3)*.07,oz=((hash>>>16)%7-3)*.07,variant=(hash>>>8)%3;
     // Only a small ring around the landing spot stays open; the rest is wooded.
-    const clearing=Math.hypot(x-arrival[0],y-arrival[1])<4;
+    const clearing=Math.hypot(x-arrival[0],y-arrival[1])<3;
     if(cell.surface==='sand'){
       if(roll<.025&&!near(x,y,1))out.push({x,y,ox,oz,model:'rock',type:'decor',solid:false,variant,rot});
       continue;
     }
     if(!LAND_KEYS.has(cell.surface))continue;
+    // The meadow around the landing spot is dressed on purpose: a ring of
+    // trees and bushes 4-12 cells out, and roadside shrubs and stones.
+    const ring=Math.hypot(x-arrival[0],y-arrival[1]);
+    if(ring>=3&&ring<=12&&!near(x,y,1)){
+      const r2=(hash>>>24)/256;
+      if(x%2===0&&y%2===0&&r2<.45){out.push({x,y,ox,oz,model:r2<.3?'tree':'bush',type:'decor',solid:false,variant,rot});continue;}
+    }
+    if(!near(x,y,1)&&[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>sample(scene,x+dx,y+dy).road)){
+      const r3=(hash>>>8)%100;
+      if(r3<10){out.push({x,y,ox,oz,model:r3<5?'bush':'rock',type:'decor',solid:false,variant,rot});continue;}
+    }
     if(x%2===0&&y%2===0&&!clearing&&roll<=cell.decoration*.55+.12&&!near(x,y,2)){
       out.push({x,y,ox,oz,model:hash%4===0?'bush':'tree',type:'decor',solid:false,variant,rot});continue;
     }

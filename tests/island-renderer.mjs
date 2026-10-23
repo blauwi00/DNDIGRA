@@ -95,7 +95,7 @@ test('nearby foliage is deterministic nonsolid decoration, bounded and avoids ro
   const props=tall.map(p=>({...p,type:'npc'})),occupied={...S,props};
   assert.ok(islandFoliage(occupied,rect,{sample:rich}).every(f=>props.every(p=>Math.abs(p.x-f.x)>1||Math.abs(p.y-f.y)>1)),'nothing grows on or beside props');
   const [x,y]=S.island.landmarks.arrival;
-  assert.ok(islandFoliage(S,{x:x-5,y:y-5,w:10,h:10},{sample:rich}).every(p=>!TALL.includes(p.model)||Math.hypot(p.x-x,p.y-y)>=4),'the landing spot keeps a small open ring');
+  assert.ok(islandFoliage(S,{x:x-5,y:y-5,w:10,h:10},{sample:rich}).every(p=>!TALL.includes(p.model)||Math.hypot(p.x-x,p.y-y)>=3),'the landing spot keeps a small open ring');
 });
 
 test('failed shared-material lookup releases partially built instance buffers and retains shared owners',()=>{
