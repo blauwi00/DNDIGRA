@@ -102,7 +102,7 @@ function assertPromptFits(rect,viewport,dock){
 {
  const viewport={width:390,height:520,left:0,top:0},dock={left:0,top:420,width:390,height:100};
  assertPromptFits(promptFixture({...viewport,dock}),viewport,dock);
- promptFixture({...viewport,dock,target:{x:hero.x,y:hero.y+4}});assert.equal(promptElement.hidden,true,'A target behind the portrait bottom dock stays unavailable');
+ promptFixture({...viewport,dock,target:{x:hero.x,y:hero.y+6}});assert.equal(promptElement.hidden,true,'A target behind the portrait bottom dock stays unavailable');
 }
 // Restore the original lifecycle fixture after bounded placement checks.
 env.objectPrompt=null;promptViewport.clientWidth=390;promptViewport.clientHeight=520;

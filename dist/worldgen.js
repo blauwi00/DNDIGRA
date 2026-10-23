@@ -4782,7 +4782,7 @@ var WorldGen = (() => {
       for (const region of scene.regions || []) if (region.surface && x >= region.x && y >= region.y && x < region.x + region.w && y < region.y + region.h) surface2 = region.surface;
       const road2 = roadSurface(scene, x, y);
       surface2 = road2 || surface2;
-      const arrival = scene.island.landmarks.arrival, clearing2 = Math.hypot(x - arrival[0], y - arrival[1]) <= 8;
+      const arrival = scene.island.landmarks.arrival, clearing2 = Math.hypot(x - arrival[0], y - arrival[1]) <= 4;
       return {
         ...cell,
         tile,

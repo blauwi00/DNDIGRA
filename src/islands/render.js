@@ -114,7 +114,8 @@ export function islandFoliage(scene,rect,{sample=sampleScene}={}){
     // Sub-cell offsets break the grid; they stay inside the cell so nothing
     // spills onto roads, props or neighbouring interactive cells.
     const ox=((hash>>>12)%7-3)*.07,oz=((hash>>>16)%7-3)*.07,variant=(hash>>>8)%3;
-    const clearing=Math.hypot(x-arrival[0],y-arrival[1])<14;
+    // Only a small ring around the landing spot stays open; the rest is wooded.
+    const clearing=Math.hypot(x-arrival[0],y-arrival[1])<4;
     if(cell.surface==='sand'){
       if(roll<.025&&!near(x,y,1))out.push({x,y,ox,oz,model:'rock',type:'decor',solid:false,variant,rot});
       continue;

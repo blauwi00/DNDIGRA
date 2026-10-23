@@ -1186,7 +1186,8 @@ function cameraUpdate() {
   camera.bottom = -half;
   const elevation=regionOptions?.enabled?Math.max(12,half*1.4):12;
   camera.far=Math.max(80,elevation+half*4);
-  camera.position.set(focus.x, elevation, focus.z + elevation*.7);
+  // Tilted view like the approved demo scene: about 45° so faces and walls show.
+  camera.position.set(focus.x, elevation, focus.z + elevation*CAMERA_DEPTH);
   camera.lookAt(focus.x, 0, focus.z);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
@@ -1550,6 +1551,7 @@ function nightMotion(time) {
 let clockLast = 0;
 // Follow camera: always centred on the active hero, eased while it walks.
 const FOLLOW_MAX_HALF = 8;
+const CAMERA_DEPTH = 1.0;
 // It eases only after the hero moves, so a scripted camera.center() (cutscenes,
 // tests) holds until the hero takes the next step.
 let followKey = "";

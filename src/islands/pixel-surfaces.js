@@ -49,9 +49,10 @@ function side(createCanvas,family,seed){
 // Hand-painted tiles (GPT sheets sliced to 64px, dist/assets/tiles). Each
 // family has variants picked per cell; sides reuse the dirt tile, darkened.
 export const TILE_SETS = {
-  grass: ['grass', 'grass', 'grass-flowers', 'grass-dirt'],
-  sand: ['sand', 'sand', 'sand-wet'],
-  dirt: ['dirt', 'dirt', 'mud'],
+  // Canva tiles use large simple shapes that stay readable at map scale.
+  grass: ['canva-grass', 'canva-grass', 'canva-grass', 'canva-grass-flowers'],
+  sand: ['canva-sand', 'canva-sand', 'sand-wet'],
+  dirt: ['canva-dirt'],
   stone: ['gravel', 'cobble'],
   water: ['water-0'],
 };
@@ -73,7 +74,7 @@ export function createPixelSurfaceMaterials({createCanvas=()=>document.createEle
       if(loadTexture){
         const set=TILE_SETS[family]||TILE_SETS.dirt;
         top=new T.MeshStandardMaterial({map:tile(set[variant%set.length]),roughness:1});
-        edge=new T.MeshStandardMaterial({map:tile(family==='water'?'water-0':family==='sand'?'sand':'dirt'),color:0x8a8078,roughness:1});
+        edge=new T.MeshStandardMaterial({map:tile(family==='water'?'water-0':family==='sand'?'canva-sand':'canva-dirt'),color:0x8a8078,roughness:1});
       }else{
         const seed=[...family].reduce((a,c)=>a*31+c.charCodeAt(0),7);
         top=new T.MeshStandardMaterial({map:paint(createCanvas,seed,TOPS[family]),roughness:1});

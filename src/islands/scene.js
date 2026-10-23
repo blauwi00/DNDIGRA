@@ -38,7 +38,7 @@ export function sampleScene(scene,x,y){
     for(const region of scene.regions||[])if(region.surface&&x>=region.x&&y>=region.y&&x<region.x+region.w&&y<region.y+region.h)surface=region.surface;
     const road=roadSurface(scene,x,y);
     surface=road||surface;
-    const arrival=scene.island.landmarks.arrival,clearing=Math.hypot(x-arrival[0],y-arrival[1])<=8;
+    const arrival=scene.island.landmarks.arrival,clearing=Math.hypot(x-arrival[0],y-arrival[1])<=4; // small open ring at the landing spot
     return {...cell,tile,road:!!road,...(surface?{surface,color:surfaceColor(surface,x,y)}:{}),
       decoration:surface||clearing?0:cell.decoration};
   }
