@@ -114,3 +114,8 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 .mapbox button{font:inherit;font-family:"Pixelify Sans","Courier New",monospace;color:#f0e2c2;background:#2a1e14;border:0;padding:8px 18px;min-height:40px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.qptr::before{animation:none}}
 .qptr.l::after{transform:none;left:-6px}.qptr.r::after{transform:translateX(-100%);left:6px}
+.gh-row{display:flex;gap:6px;flex-wrap:wrap}.gh{font:inherit;color:#f0e2c2;background:#1d1611;border:0;padding:6px 10px;cursor:pointer;display:flex;flex-direction:column;gap:1px;box-shadow:inset 0 0 0 2px #4a3522;text-align:left}
+.gh b{font-size:13px}.gh small{font-size:10px;color:#a8987a}.gh.on{box-shadow:inset 0 0 0 2px #f2c14e;background:#3a2a1a}
+/* a hero brought from the game keeps the game's look: colour and hair pickers step aside */
+.editor.from-game #ed_skin,.editor.from-game #ed_hair,.editor.from-game #ed_cloth,.editor.from-game #ed_style,.editor.from-game .lab.lk{display:none}
+.screen.editor{overflow:hidden}.screen.editor .ed{position:absolute;inset:0;height:auto}.edl,.edr{min-height:0}

@@ -16,10 +16,12 @@ const CLASSES={
     about:'Крепкий и надёжный. Второе дыхание: бонусным действием лечит 1к10 + 2 раз до отдыха.'},
   rogue:{n:'Плут',hp:16,ac:14,speed:6,melee:5,mb:3,ranged:5,rb:3,spell:1,stealth:7,athletics:2,dex:3,start:[null,'dagger'],
     about:'Тихий и точный. Скрытая атака: +2к6 урона при преимуществе. Рывок: бонусным действием ещё 6 клеток.'},
+  cleric:{n:'Жрец',hp:18,ac:14,speed:6,melee:4,mb:2,ranged:2,rb:0,spell:4,stealth:0,athletics:3,dex:0,start:['shield','sword'],
+    about:'Броня и вера. Лечащее слово: бонусным действием лечит 1к4 + 3, два раза до отдыха.'},
   mage:{n:'Маг',hp:14,ac:12,speed:6,melee:2,mb:0,ranged:2,rb:0,spell:5,stealth:2,athletics:0,dex:2,start:['staff',null],
     about:'Хрупкий, но опасный издалека. Искра 1к10 на 6 клеток. Магическая стрела: три снаряда без промаха, 2 раза до отдыха.'}};
 let HERO=Object.assign({cls:'fighter'},CLASSES.fighter);
-const SP={wind:1,missiles:2};const rest=()=>{SP.wind=1;SP.missiles=2;};
+const SP={wind:1,missiles:2,word:2};const rest=()=>{SP.wind=1;SP.missiles=2;SP.word=2;};
 // attack options from what the hero holds in each hand
 function heroAttacks(){const h=hero.userData.held||{},o=[],H=HERO;
   const add=(id,n,hit,die,k,b,range,kind,hand)=>o.push({id,n,hit,die,k,b,range,kind,hand});
@@ -115,6 +117,7 @@ async function magicMissile(def){SP.missiles--;floatText('Магическая �
   rollEl.hidden=false;rollEl.innerHTML='<span class="lbl">Магическая стрела → '+def.name+'</span><span class="res">3 × (1к4 + 1) = <b>'+tot+'</b> без промаха</span>';
   def.aware=true;hurt(def,tot);rollDone();}
 function secondWind(){SP.wind=0;const heal=d(10)+2;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#7fe08a',hero);toast('Второе дыхание: 1к10 + 2 = '+heal);}
+function healingWord(){SP.word--;const heal=d(4)+3;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Лечащее слово: 1к4 + 3 = '+heal);}
 function dash(){CB.move+=6;floatText('Рывок','#9fe0ff',hero);showMoves();}
 
 // ---------- doing a chosen verb (from the wheel) ----------

@@ -48,7 +48,7 @@ open(os.path.join(OUT,'island.html'),'w').write(out)
 APP=os.environ.get('APP')
 if APP:
   os.makedirs(APP,exist_ok=True)
-  app=out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','three.min.js').replace('<script>\n','<script>\nwindow.ISLAND_IN_APP=true;\n',1)
+  app=out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','three.min.js').replace('<script>\n','<script src="../characters.js"></script>\n<script>\n',1).replace('<script>\n','<script>\nwindow.ISLAND_IN_APP=true;\n',1)
   open(os.path.join(APP,'index.html'),'w').write('<!doctype html><html lang="ru"><head><meta charset="utf-8">'+app+'</html>')
 prev='<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">'+out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','package/build/three.min.js')+'</body></html>'
 print('built',len(out))

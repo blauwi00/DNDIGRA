@@ -66,6 +66,7 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[];
   items.push({icon:'potion',label:'Зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · есть '+p:'нет',ok:p>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,()=>heal('potion'),{kind:'bonus'}):heal('potion')});
   if(!f)items.push({icon:'bread',label:'Хлеб',sub:b?'1к4 · есть '+b:'нет',ok:b>0&&!full,run:()=>heal('bread')});
   if(HERO.cls==='fighter')items.push({icon:'special',label:'Второе дыхание',sub:SP.wind?'1к10+2'+(f?' · бонус':''):'нужен отдых',ok:SP.wind>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,secondWind,{kind:'bonus'}):secondWind()});
+  if(HERO.cls==='cleric')items.push({icon:'special',label:'Лечащее слово',sub:SP.word?'1к4+3 · '+SP.word+' ост.':'нужен отдых',ok:SP.word>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,healingWord,{kind:'bonus'}):healingWord()});
   if(HERO.cls==='rogue'&&f)items.push({icon:'special',label:'Рывок',sub:'бонус · +6 клеток',ok:ht&&!CB.bonus,run:()=>doVerb(null,dash,{kind:'bonus'})});
   if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
   showWheel(H0,items,H0.name);}
@@ -122,10 +123,11 @@ function recolor(boxes,look){const base={skin:new THREE.Color(0xe9bf90).getHSL({
   return boxes.map(b=>{const c=tmpC.setHex(b[6]).getHSL({}),hue=c.h*360;let g=null;
     if(c.l>.55&&hue>15&&hue<45&&c.s>.3&&c.s<.8)g='skin';else if(hue>190&&hue<235&&c.s>.2)g='cloth';else if(b[8]==='hair')g='hair';
     if(!g)return b;const t=tgt[g],k=c.l/base[g].l;const nc=new THREE.Color().setHSL(t.h,Math.min(1,t.s*(c.s/(base[g].s||1))),Math.min(.95,t.l*k));const out=b.slice();out[6]=nc.getHex();return out;});}
-function rebuildHero(look){const m=buildModel(recolor(styleHair(MODELS['fighter-male'],look.style),look));const held=hero.userData.held;
+const heroBoxes=s=>s&&s.game&&window.Characters?Characters.build(Characters.spec('hero',s.game)):recolor(styleHair(MODELS['fighter-male'],s.look.style),s.look);
+function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));const held=hero.userData.held;
   hero.clear();[...m.children].forEach(c=>hero.add(c));Object.assign(hero.userData,m.userData,{held});}
 let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
-function applyHero(s){HEROSET=s;HERO=Object.assign({cls:s.cls},CLASSES[s.cls]);H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look);setHP();}
+function applyHero(s){HEROSET=s;HERO=Object.assign({cls:s.cls},CLASSES[s.cls]);H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
 
 // ---------- menus ----------
 let paused=true;
@@ -153,8 +155,8 @@ function preview(){const c=document.getElementById('edCanvas');
     cam.position.set(0,1.05,4.6);cam.lookAt(0,.62,0);s.add(new THREE.HemisphereLight(0xdfe8ff,0x3a2a1a,1.1));const dl=new THREE.DirectionalLight(0xffe0b0,.8);dl.position.set(2,3,2);s.add(dl);
     const ped=new THREE.Mesh(new THREE.CylinderGeometry(.55,.6,.12,12),lam(T.stone));ped.position.y=-.06;s.add(ped);pv={r,s,cam,m:null,t:0};
     const loop=()=>{if(edEl.hidden){pv.raf=0;return;}const w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*r.getPixelRatio())){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
-      cam.position.set(0,1.05,4.6/Math.min(1,Math.max(.45,w/h*1.3)));cam.lookAt(0,.62,0);pv.t+=.012;if(pv.m){pv.m.rotation.y=Math.sin(pv.t)*.9;const rg=pv.m.userData.rig;if(pv.m.userData.twoHand==='staff'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}}r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
-  if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(recolor(styleHair(MODELS['fighter-male'],ED.look.style),ED.look));const [L,R]=CLASSES[ED.cls].start;
+      const fit=pv.fit||1;cam.position.set(0,1.05*fit,4.6*fit/Math.min(1,Math.max(.45,w/h*1.3)));cam.lookAt(0,.62*fit,0);pv.t+=.012;if(pv.m){pv.m.rotation.y=Math.sin(pv.t)*.9;const rg=pv.m.userData.rig;if(pv.m.userData.twoHand==='staff'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}}r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
+  if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(heroBoxes(ED));{const bb=new THREE.Box3().setFromObject(pv.m);pv.fit=Math.max(1,(bb.max.y-bb.min.y)/1.25);}const [L,R]=CLASSES[ED.cls].start;
   const two=TWO.has(L)?L:TWO.has(R)?R:null;if(two)setTwoHanded(pv.m,two);else{if(L)setHeld(pv.m,'L',L);if(R)setHeld(pv.m,'R',R);}pv.s.add(pv.m);if(!pv.raf)pv.loop();}
 function openEditor(){screen(edEl);const cls=document.getElementById('edClass');cls.replaceChildren();
   for(const [k,c] of Object.entries(CLASSES)){const b=document.createElement('button');b.className='cls'+(ED.cls===k?' on':'');b.innerHTML='<b></b><small></small>';b.children[0].textContent=c.n;
@@ -164,9 +166,24 @@ function openEditor(){screen(edEl);const cls=document.getElementById('edClass');
     for(const hex of LOOKS[part]){const b=document.createElement('button');b.className='sw'+(ED.look[part]===hex?' on':'');b.style.background='#'+hex;b.setAttribute('aria-label',part+' '+hex);
       b.onclick=()=>{ED.look[part]=hex;openEditor();};row.append(b);}}
   const hs=document.getElementById('ed_style');hs.replaceChildren();for(const [k,n] of Object.entries(HAIRS)){const b=document.createElement('button');b.className='hs'+(ED.look.style===k?' on':'');b.textContent=n;b.onclick=()=>{ED.look.style=k;openEditor();};hs.append(b);}
-  const nm=document.getElementById('edName');nm.value=ED.name;nm.oninput=()=>ED.name=nm.value.slice(0,16);preview();}
+  const nm=document.getElementById('edName');nm.value=ED.name;nm.oninput=()=>ED.name=nm.value.slice(0,16);
+  edEl.classList.toggle('from-game',!!ED.game);renderGameHeroes();preview();}
+// heroes from the main game: offline profile in IndexedDB, or the Site's API when signed in
+let gameHeroes=null;
+async function loadGameHeroes(){if(gameHeroes)return gameHeroes;const list=[];
+  try{const r=await fetch('../api/heroes',{credentials:'same-origin'});if(r.ok){const j=await r.json();if(Array.isArray(j.heroes))list.push(...j.heroes);}}catch(e){}
+  if(!list.length)try{list.push(...await new Promise(res=>{const q=indexedDB.open('dndigra-offline-v1');q.onerror=()=>res([]);q.onupgradeneeded=()=>{q.transaction.abort();res([]);};
+    q.onsuccess=()=>{const db=q.result;if(!db.objectStoreNames.contains('profiles')){db.close();return res([]);}const g=db.transaction('profiles','readonly').objectStore('profiles').get('player');
+      g.onsuccess=()=>{db.close();res((g.result&&g.result.heroes)||[]);};g.onerror=()=>{db.close();res([]);};};}));}catch(e){}
+  return gameHeroes=list.filter(h=>h&&h.name&&h.classId);}
+const GAME_CLASS={fighter:'fighter',rogue:'rogue',wizard:'mage',cleric:'cleric'};
+async function renderGameHeroes(){const box=document.getElementById('edGame');if(!window.ISLAND_IN_APP||!window.Characters){box.hidden=true;return;}
+  const list=await loadGameHeroes();box.hidden=!list.length;const row=box.querySelector('.gh-row');row.replaceChildren();
+  for(const h of list){const b=document.createElement('button');b.className='gh'+(ED.game&&ED.game.id===h.id?' on':'');b.innerHTML='<b></b><small></small>';b.children[0].textContent=h.name;b.children[1].textContent=h.className||h.classId;
+    b.onclick=()=>{ED.game={id:h.id,classId:h.classId,appearance:h.appearance};ED.name=h.name.slice(0,16);ED.cls=GAME_CLASS[h.classId]||'fighter';openEditor();};row.append(b);}
+  const own=document.createElement('button');own.className='gh'+(ED.game?'':' on');own.innerHTML='<b>Новый</b><small>свой облик</small>';own.onclick=()=>{ED.game=null;openEditor();};row.append(own);}
 document.getElementById('edBack').onclick=()=>mainMenu();
-document.getElementById('edGo').onclick=()=>{const s={name:(ED.name||'').trim()||'Безымянный',cls:ED.cls,look:Object.assign({},ED.look)};
+document.getElementById('edGo').onclick=()=>{const s={name:(ED.name||'').trim()||'Безымянный',cls:ED.cls,look:Object.assign({},ED.look),game:ED.game||null};
   resetting=true;try{localStorage.setItem('helga-hero',JSON.stringify(s));localStorage.removeItem(SAVE);sessionStorage.setItem('helga-start','new');}catch(e){}location.reload();};
 
 // ---------- explored land, the island map and the quest pointer ----------
