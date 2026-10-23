@@ -13,13 +13,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.voxel?.ready&&window.voxel.menuDebug);
  fs.mkdirSync(path.resolve(__dirname,'../qa'),{recursive:true});await page.waitForTimeout(1200);
  await page.screenshot({path:root+'/../qa/menu-main-390.png'});
- assert.equal(await page.getByRole('navigation',{name:'Главное меню'}).getByRole('button').count(),5);
+ assert.equal(await page.getByRole('navigation',{name:'Главное меню'}).getByRole('button').count(),3,'Continue, new game and settings only');
  for(const size of [{width:852,height:393},{width:1366,height:768},{width:390,height:844}]){
    await page.setViewportSize(size);await page.waitForTimeout(300);
-   const layout=await page.evaluate(()=>{const root=document.getElementById('cinematic-menu'),title=root.querySelector('h1').getBoundingClientRect(),card=root.querySelector('.menu-chapter').getBoundingClientRect();return {width:root.clientWidth,scroll:root.scrollWidth,title:title.toJSON(),card:card.toJSON(),actions:root.querySelector('.cinema-actions').getBoundingClientRect().toJSON()};});
+   const layout=await page.evaluate(()=>{const root=document.getElementById('cinematic-menu'),title=root.querySelector('h1').getBoundingClientRect();return {chapter:!!root.querySelector('.menu-chapter'),width:root.clientWidth,scroll:root.scrollWidth,title:title.toJSON(),actions:root.querySelector('.cinema-actions').getBoundingClientRect().toJSON()};});
    assert.ok(layout.scroll<=layout.width+1,'Home must not overflow horizontally');
    assert.ok(layout.title.right<=size.width,'Title fits screen');
-   if(size.width>699){assert.ok(layout.card.bottom<=size.height,'Chapter fits landscape');assert.ok(layout.actions.right<=layout.card.left,'Menu and chapter must not overlap');}
+   assert.equal(layout.chapter,false,'The prologue card is gone from the title');assert.ok(layout.actions.bottom<=size.height,'Menu fits the screen');
    await page.screenshot({path:root+'/../qa/title-screen-'+size.width+'.png'});
  }
  const before=await page.evaluate(()=>({debug:voxel.menuDebug,world:JSON.stringify(gameDebug.state)}));await page.waitForTimeout(500);
