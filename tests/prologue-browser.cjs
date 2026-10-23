@@ -17,9 +17,9 @@ const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://loc
    const use=page.locator('.object-prompt [data-action="use"]');await use.waitFor({state:'visible'});assert.ok(await use.isEnabled(),'Object is reachable: '+id);await use.click();await idle();await page.locator('#dialogue').waitFor({state:'visible'});
    assert.equal(await page.evaluate(id=>{const a=gameDebug.active(),p=gameDebug.props.find(p=>p.id===id);return Math.abs(a.x-p.x)+Math.abs(a.y-p.y);},id),1,'Interaction walks to the object: '+id);
   }
-  async function resume(){await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready&&window.CinematicMenu?.active);await page.getByRole('button',{name:'Начало пути · короткое приключение',exact:true}).click();await page.getByRole('button',{name:'Продолжить · Бор',exact:true}).click();await idle();}
+  async function resume(){await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready&&window.CinematicMenu?.active);await page.evaluate(()=>window.Prologue.open());await page.getByRole('button',{name:'Продолжить · Бор',exact:true}).click();await idle();}
   await page.goto('http://127.0.0.1:'+server.address().port+'/?offline=1',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.voxel?.ready&&window.CinematicMenu?.active);
-  await page.getByRole('button',{name:'Начало пути · короткое приключение',exact:true}).click();await page.getByRole('button',{name:'Начать с готовым воином',exact:true}).click();
+  await page.evaluate(()=>window.Prologue.open());await page.getByRole('button',{name:'Начать с готовым воином',exact:true}).click();
   await phase('day1');await page.getByRole('button',{name:'Выйти во двор',exact:true}).click();
   await page.evaluate(()=>{gameDebug.state.settings.animations=false;gameDebug.render();});
   await page.screenshot({path:artifacts+'/day1.png'});

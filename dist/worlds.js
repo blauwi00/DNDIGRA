@@ -457,7 +457,7 @@
     finally{leaving=false;}
     badge(current?'Мир сохранён':'');render();return true;
   }
-  window.Worlds = { resume, resumeKey, startPractice, startRegionWalk, startPrologue, endPractice, begin: h=>newWorld(h,[]), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get practiceKind(){return practice?.kind||null;}, get atMenu() {
+  window.Worlds = { resume, resumeKey, startPractice, startRegionWalk, startPrologue, endPractice, begin: h=>create(h,[],{seed:'',size:'auto',generatorVersion:4}), init, choose, enterTest, workshop, open, capture, flush, detach, attach, reload, finish, render, prepareLeave, exitToMenu, get practice(){return !!practice;}, get practiceKind(){return practice?.kind||null;}, get atMenu() {
     return atMenu;
   }, get current() {
     return current;

@@ -19,12 +19,10 @@
     const mast=document.createElement('div');mast.className='cinema-mast';mast.innerHTML='<p class="menu-eyebrow">У каждой легенды есть начало</p><h1>За гранью</h1><div class="cinema-ornament" aria-hidden="true"><i></i></div><p class="menu-manifest">Твоя история ещё не написана.</p>';
     const actions=document.createElement('nav');actions.className='cinema-actions';actions.setAttribute('aria-label','Главное меню');
     const cont=button('Продолжить',()=>Worlds.resume(),'play',true);cont.disabled=!Worlds.current&&!localStorage.getItem(Worlds.resumeKey||'last-world-id');
-    actions.append(cont,button('Новая игра',()=>{setRoute('heroes');Heroes.start(false);Heroes.open();},'new',cont.disabled),button('Герои',()=>{setRoute('heroes');return Heroes.list();},'hero'),button('Миры',()=>worlds(),'world'),button('Настройки',settings,'settings'));
-    const chapter=document.createElement('section');chapter.className='menu-chapter';chapter.setAttribute('aria-label','Первая дорога');
-    chapter.innerHTML='<div class="chapter-number" aria-hidden="true">I</div><p class="menu-eyebrow">Пролог · начало пути</p><h2>Первая<br> дорога</h2><p class="chapter-copy">Два тихих дня дома.<br>Одна дорога, которая изменит всё.</p><div class="chapter-rule" aria-hidden="true"></div>';
-    chapter.append(button('Начало пути · короткое приключение',()=>window.Prologue.open(),'play',true),button('Сцена «Первая дорога»',()=>window.Prologue.preview(),'play'));
+    // Owner asked for a mobile-game title: only continue, new game and settings.
+    actions.append(cont,button('Новая игра',()=>{setRoute('heroes');Heroes.start(false);Heroes.open();},'new',cont.disabled),button('Настройки',settings,'settings'));
     const footer=document.createElement('footer');footer.className='menu-footer';footer.innerHTML='<span>Исследуй. Решай. Оставь свой след.</span><span class="menu-live"><i aria-hidden="true"></i>История начинается с тебя</span>';
-    const status=document.createElement('p');status.id='cinema-status';status.setAttribute('role','status');root.append(atmosphere,mast,actions,chapter,footer,status);
+    const status=document.createElement('p');status.id='cinema-status';status.setAttribute('role','status');root.append(atmosphere,mast,actions,footer,status);
   }
   async function worlds(){setRoute('worlds');await Heroes.list();$('heroes-title').textContent='Миры';const p=document.createElement('p');p.className='world-selection-note';p.textContent='Выбери героя, чтобы продолжить его мир или начать новый.';$('heroes-body').prepend(p);}
   function closeScreen(){if(fromGame){play();return;}document.querySelectorAll('dialog[open]').forEach(d=>d.close());home();}
