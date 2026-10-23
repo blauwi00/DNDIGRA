@@ -15,8 +15,8 @@ assert.deepEqual([[2,1],[1,2],[0,1],[1,0]].map(([x,y])=>faceCell({x:1,y:1},{x,y}
 for(const cls of Object.keys(CLASS_KIND))for(const gender of ['male','female']){
  const look={...defaultLook(cls,gender),headgear:'none',beard:'none',marks:[],accessories:[]};
  const boxes=build(spec(CLASS_KIND[cls],{classId:cls,appearance:look}),{texel:false});
- assert.equal(boxes.some(b=>Math.abs(b[0])<1e-8&&Math.abs(b[1]-.845)<1e-8&&Math.abs(b[2]-.226)<.001&&b[3]<.05&&b[4]<.06),false,'No nose geometry');
- assert.ok(boxes.some(b=>b[2]>.23&&b[1]<.84&&b[1]>.75),'Mouth remains expressive');
+ assert.equal(boxes.some(b=>Math.abs(b[0])<1e-8&&Math.abs(b[1]-.92)<.02&&Math.abs(b[2]-.21)<.02&&b[3]<.05&&b[4]<.06),false,'No nose geometry');
+ assert.ok(boxes.some(b=>b[2]>.2&&b[1]<.9&&b[1]>.8&&b[4]<.03),'Mouth remains expressive');
 }
 const island=createIsland('npc-compact-facing',600),[x,y]=island.landmarks.port;
 const coastalNpc={id:'captain',type:'npc',x,y};

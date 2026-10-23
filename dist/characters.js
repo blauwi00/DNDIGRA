@@ -30,6 +30,7 @@ var Characters = (() => {
     PALETTE: () => PALETTE,
     PALETTES: () => PALETTES,
     PRESETS: () => PRESETS,
+    PROPORTION: () => PROPORTION,
     RULES: () => RULES,
     TABS: () => TABS,
     TEXEL: () => TEXEL,
@@ -360,9 +361,9 @@ var Characters = (() => {
 
   // src/characters.js
   var RULES = {
-    headMinRatio: 0.34,
-    headMaxRatio: 0.46,
-    // доля головы от высоты фигуры
+    headMinRatio: 0.28,
+    headMaxRatio: 0.4,
+    // доля головы от высоты фигуры (эталонный лист: около трети роста)
     maxBoxes: 200,
     // бюджет боксов фигуры без текселей
     maxWithTexels: 520,
@@ -480,20 +481,46 @@ var Characters = (() => {
       B(sx * arm, 0.55, 0, aw, 0.24, female ? 0.15 : 0.18, sleeve);
       B(sx * arm, 0.4, 0.02, aw - 0.02, 0.08, female ? 0.1 : 0.12, s.skin);
     }
+    const headFrom = out.length;
     B(0, 0.9, 0.02, 0.46, 0.42, 0.4, s.skin);
     face(B, s);
     hair(B, s);
     ears(B, s);
     if (s.beard !== "none") beard(B, s);
     marks(B, s);
+    const headTo = out.length;
     OUTFIT[cls](B, s, bw, arm, o);
     if (s.cape !== "none") cape(B, s, bw);
+    const gearFrom = out.length;
     headgear(B, s);
+    const gearTo = out.length;
     accessories(B, s, bw, arm);
+    const heldFrom = out.length;
     held(B, s, arm, trim);
+    proportions(out, (i) => i >= headFrom && i < headTo || i >= gearFrom && i < gearTo, (i) => i >= heldFrom);
     separateCoplanarFaces(out);
     if (opts.texel ?? RULES.texel) out.push(...texelPass(out, texelRole(s)));
     return out;
+  }
+  var PROPORTION = { head: 0.86, neck: 0.69, knee: 0.3, lift: 0.1 };
+  function proportions(boxes, isHead, isRigid) {
+    const { head: k, neck, knee, lift } = PROPORTION;
+    boxes.forEach((b, i) => {
+      if (isHead(i)) {
+        b[0] *= k;
+        b[1] = neck + (b[1] - neck) * k;
+        b[2] = 0.02 + (b[2] - 0.02) * k;
+        b[3] *= k;
+        b[4] *= k;
+        b[5] *= k;
+      }
+      const bottom = b[1] - b[4] / 2, top = b[1] + b[4] / 2;
+      if (bottom >= knee - 1e-6 || isRigid(i)) b[1] += lift;
+      else if (top > knee) {
+        b[1] += lift / 2;
+        b[4] += lift;
+      }
+    });
   }
   function separateCoplanarFaces(boxes) {
     const relief = 5e-4, layers = boxes.map(() => Array(6).fill(0));
@@ -553,7 +580,8 @@ var Characters = (() => {
           B(x + 0.018, 0.915, 0.234, 0.03, 0.03, 0.012, WHITE);
           break;
         default:
-          B(x, 0.89, 0.226, 0.06, 0.085, 0.012, E);
+          B(x, 0.875, 0.226, 0.065, 0.11, 0.012, E);
+          B(x + 0.015, 0.9, 0.232, 0.02, 0.025, 8e-3, shade(E, 2.4));
       }
     }
     if (fem) for (const sx of [-1, 1]) {
@@ -627,9 +655,7 @@ var Characters = (() => {
         m(0.05, 0.765, 0.022, 0.022);
         break;
       default:
-        m(0, 0.78, fem ? 0.105 : 0.09, fem ? 0.028 : 0.02);
-        m(-0.055, 0.795, 0.022, 0.022);
-        m(0.055, 0.795, 0.022, 0.022);
+        m(0, 0.785, fem ? 0.06 : 0.05, 0.018);
     }
   }
   function ears(B, s) {
@@ -711,12 +737,31 @@ var Characters = (() => {
     if (has("mole")) px(0.075, 0.775, 4861733, 0.022, 0.022);
     if (has("warpaint")) {
       const c = s.markC ?? 11546429;
-      for (const sx of [-1, 1]) for (const off of [0, 0.045]) for (let i = 0; i < 3; i++) px(sx * (0.175 - off - i * 0.022), 0.812 - i * 0.03, c, 0.034, P2);
+      for (const sx of [-1, 1]) for (const off of [0, 0.045]) for (let i = 0; i < 3; i++) px(sx * (0.175 - off - i * 0.022), 0.8 - i * 0.03, c, 0.034, P2);
     }
     if (has("plaster")) {
       B(0, 0.835, z, 0.072, 0.03, 0.012, 15787212);
       B(0, 0.835, 0.23, 0.032, 0.075, 0.012, 15787212);
       B(0, 0.835, 0.232, 0.018, 0.018, 0.012, mix(15787212, 11901546, 0.5));
+    }
+  }
+  var jag = (i, k = 0) => [0, 0.035, 0.015, 0.05, 0.02, 0.04, 0.01][(i * 3 + k) % 7];
+  function tufts(H, top, front, low, h, { length = 0.26, fringe = 0.1, crown = 0.1, sideLow = 0.82, backLow = 0.74 } = {}) {
+    for (let ix = -2; ix <= 2; ix++) for (let iz = -2; iz <= 2; iz++) {
+      const hh = 0.04 + crown * (0.3 + 0.7 * (((ix * 7 + iz * 5) % 5 + 5) % 5) / 4) * (1 - Math.abs(ix) * 0.18) * (iz === 2 ? 0.6 : 1);
+      H(top, ix * 0.105 + iz % 2 * 0.02, 1.1 + hh / 2, iz * 0.09 - 0.02, 0.1, hh, 0.095, (ix + iz) % 2 ? h : shade(h, 1.1));
+    }
+    for (let i = 0; i < 6; i++) {
+      const x = -0.225 + i * 0.09, bottom = 1.1 - fringe - jag(i) * 0.8;
+      H(front, x, (1.15 + bottom) / 2, 0.23, 0.095, 1.15 - bottom, 0.06, i % 2 ? h : shade(h, 0.92));
+    }
+    for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) {
+      const z = 0.1 - i * 0.1, bottom = sideLow - jag(i, sx > 0 ? 2 : 0) + (i === 0 ? 0.05 : 0) - (i === 3 ? 0.05 : 0);
+      H(low, sx * 0.255, (1.13 + bottom) / 2, z, 0.06, 1.13 - bottom, 0.12, i % 2 ? h : shade(h, 0.94));
+    }
+    for (let i = 0; i < 5; i++) {
+      const bottom = backLow - jag(i, 4);
+      H(low, -0.2 + i * 0.1, (1.13 + bottom) / 2, -0.23, 0.11, 1.13 - bottom, 0.08, i % 2 ? h : shade(h, 0.93));
     }
   }
   function hair(B, s) {
@@ -741,13 +786,7 @@ var Characters = (() => {
         backZ = -0.2;
         break;
       case "short":
-        cap();
-        fringe();
-        sides();
-        H(low, 0, 0.93, -0.22, 0.5, 0.38, 0.07);
-        H(top, -0.1, 1.2, 0.02, 0.16, 0.08, 0.22);
-        H(top, 0.12, 1.21, -0.06, 0.16, 0.1, 0.16);
-        H(top, 0, 1.19, 0.13, 0.2, 0.05, 0.1);
+        tufts(H, top, front, low, h, { crown: 0.2, fringe: 0.045, sideLow: 0.9 });
         break;
       case "spiky":
         cap();
@@ -803,15 +842,13 @@ var Characters = (() => {
         backZ = -0.312;
         break;
       case "ponytail":
-        cap();
-        fringe();
-        sides(0.2, 1);
-        H(low, 0, 0.95, -0.22, 0.5, 0.3, 0.07);
-        H(top, 0, 1.17, -0.17, 0.14, 0.1, 0.1, s.trim);
-        H(top, 0, 1.22, -0.26, 0.16, 0.16, 0.14);
-        H(top, 0, 1.05, -0.31, 0.16, 0.38, 0.12);
-        H(top, 0, 0.83, -0.31, 0.12, 0.14, 0.1, t);
-        backZ = -0.32;
+        tufts(H, top, front, low, h, { crown: 0.13, fringe: 0.05, sideLow: 0.84 });
+        H(top, 0, 1.28, -0.13, 0.22, 0.12, 0.18);
+        H(top, 0, 1.36, -0.18, 0.16, 0.1, 0.14, shade(h, 1.08));
+        H(top, 0, 1.27, -0.27, 0.14, 0.06, 0.1, s.trim);
+        for (let i = 0; i < 4; i++) H(top, i % 2 * 0.03 - 0.015, 1.2 - i * 0.12, -0.3 - i * 0.012, 0.14 - i * 0.02, 0.13, 0.11, i % 2 ? h : shade(h, 0.92));
+        H(top, 0, 0.73, -0.35, 0.08, 0.08, 0.08, t);
+        backZ = -0.36;
         break;
       case "bun":
         cap();
@@ -876,14 +913,28 @@ var Characters = (() => {
           B(x, 0.68, 0, pw, ph, 0.27, s.cloth);
           B(x, 0.68 + ph / 2 + 0.012, 0, pw + 0.02, 0.025, 0.29, trim);
           B(x, 0.68 - ph / 2 - 0.01, 0, pw + 0.01, 0.025, 0.28, trim);
-          B(x + sx * (pw / 2 + 0.01), 0.68, 0, 0.02, ph, 0.28, trim);
+          B(x, 0.68, 0.14, pw, 0.02, 0.012, trim);
         }
       };
       if (o === "plate") {
         paul(0.17, 0.08);
-        for (const sx of [-1, 1]) B(sx * 0.07, 0.62, 0.13, 0.03, 0.15, 0.012, trim);
-        B(0, 0.685, 0.13, 0.16, 0.03, 0.012, trim);
         B(0, 0.71, -0.02, bw + 0.02, 0.03, 0.27, trim);
+        const cw = bw - 0.06;
+        B(0, 0.57, 0.131, cw, 0.22, 0.012, shade(s.cloth, 1.12));
+        B(0, 0.68, 0.137, cw, 0.02, 0.012, trim);
+        B(0, 0.46, 0.137, cw, 0.02, 0.012, trim);
+        for (const sx of [-1, 1]) B(sx * cw / 2, 0.57, 0.137, 0.02, 0.22, 0.012, trim);
+        B(0, 0.6, 0.14, 0.02, 0.12, 0.012, trim);
+        B(0, 0.655, 0.14, 0.12, 0.02, 0.012, trim);
+        if (s.gender !== "female") for (const sx of [-1, 1]) {
+          B(sx * 0.1, 0.36, 0.02, 0.17, 0.1, 0.26, s.cloth);
+          B(sx * 0.1, 0.31, 0.02, 0.175, 0.02, 0.265, trim);
+        }
+        for (const sx of [-1, 1]) {
+          B(sx * arm, 0.41, 0.02, 0.15, 0.1, 0.15, s.leather);
+          B(sx * arm, 0.465, 0.02, 0.155, 0.025, 0.155, trim);
+        }
+        for (const sx of [-1, 1]) B(sx * 0.1, 0.27, 0.03, 0.16, 0.025, 0.21, trim);
       }
       if (o === "tabard") {
         B(0, 0.4, 0.135, 0.22, 0.4, 0.012, s.cloth);
@@ -1141,16 +1192,20 @@ var Characters = (() => {
       B(-0.34, 0.45, 0.21, 0.06, 0.04, 0.24, STEEL);
       B(-0.34, 0.45, 0.34, 0.035, 0.03, 0.04, STEEL);
     } else if (has("sword")) {
-      B(-0.34, 0.38, 0.09, 0.055, 0.1, 0.055, s.leather);
-      B(-0.34, 0.45, 0.09, 0.17, 0.035, 0.075, trim);
-      B(-0.34, 0.72, 0.09, 0.05, 0.5, 0.04, STEEL);
+      B(-0.34, 0.42, 0.08, 0.055, 0.09, 0.055, s.leather);
+      B(-0.34, 0.45, 0.15, 0.2, 0.04, 0.05, trim);
+      for (let i = 0; i < 5; i++) B(-0.34, 0.44 - i * 0.03, 0.22 + i * 0.085, 0.09, 0.05, 0.1, i === 4 ? shade(STEEL, 0.9) : STEEL);
+      B(-0.34, 0.31, 0.64, 0.05, 0.03, 0.05, STEEL);
     }
     if (has("shield")) {
       const blue = cls === "fighter" ? s.cloth : s.p.cloth;
-      B(0.33, 0.5, 0.17, 0.27, 0.38, 0.05, trim);
-      B(0.33, 0.5, 0.2, 0.21, 0.32, 0.03, blue);
-      B(0.33, 0.5, 0.222, 0.03, 0.18, 0.02, trim);
-      B(0.33, 0.53, 0.222, 0.13, 0.03, 0.02, trim);
+      const sx = 0.4, z = 0.22;
+      for (const [y, w, hh] of [[0.62, 0.34, 0.24], [0.44, 0.3, 0.12], [0.34, 0.22, 0.08], [0.27, 0.14, 0.06], [0.22, 0.07, 0.04]]) {
+        B(sx, y, z - 0.02, w, hh, 0.05, trim);
+        B(sx, y + (y > 0.5 ? 0.01 : 5e-3), z + 5e-3, w - 0.05, hh - (y > 0.5 ? 0.04 : 0.02), 0.03, blue);
+      }
+      B(sx, 0.52, z + 0.025, 0.04, 0.28, 0.02, trim);
+      B(sx, 0.58, z + 0.025, 0.17, 0.04, 0.02, trim);
     }
     if (has("bow")) {
       for (let i = 0; i < 5; i++) B(-0.34 - Math.abs(i - 2) * -0.02, 0.36 + i * 0.12, 0.1, 0.06, 0.16, 0.05, 10648640);
@@ -1171,7 +1226,7 @@ var Characters = (() => {
     if (s.book) B(-0.3, 0.45, 0.13, 0.13, 0.16, 0.045, 8007471);
   }
   var css = (c) => "#" + (c & 16777215).toString(16).padStart(6, "0");
-  var VIEWS = { face: { y0: 0.66, y1: 1.14 }, head: { y0: 0.6, y1: 1.44 }, hat: { y0: 0.66, y1: 1.62 }, body: { y0: 0.1, y1: 1.36 }, full: { y0: 0.06, y1: 1.52 } };
+  var VIEWS = { face: { y0: 0.76, y1: 1.18 }, head: { y0: 0.7, y1: 1.47 }, hat: { y0: 0.76, y1: 1.6 }, body: { y0: 0.1, y1: 1.42 }, full: { y0: 0.06, y1: 1.58 } };
   function portrait(kind, actor, opts = {}) {
     const s = spec(kind, actor);
     if (!s) return null;

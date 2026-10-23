@@ -302,14 +302,15 @@ function figure(kind, actor, options = {}) {
     let rig;
     if(options.articulated) {
       rig={};
-      for(const [key,position] of Object.entries({head:[0,.77,0],torso:[0,.45,0],armL:[-.23,.66,0],armR:[.23,.66,0],legL:[-.1,.34,0],legR:[.1,.34,0]})) {
+      for(const [key,position] of Object.entries({head:[0,.86,0],torso:[0,.55,0],armL:[-.23,.76,0],armR:[.23,.76,0],legL:[-.1,.44,0],legR:[.1,.44,0]})) {
         const group=new T.Group();group.position.set(...position);p.add(group);rig[key]=group;
       }
       p.userData.rig=rig;
     }
     for (const source of storyEnemy?.boxes || characterBuild(spec,{texel:options.texel??window.Characters?.RULES.texel})) {
       const v=[...source];let target=p;
-      if(rig){const [x,y]=v;const key=(Math.abs(x)>.29||(Math.abs(x)>.19&&y<.74))?(x<0?'armL':'armR'):y>=.74?'head':y<.4?(x<0?'legL':'legR'):'torso';target=rig[key];v[0]-=target.position.x;v[1]-=target.position.y;v[2]-=target.position.z;}
+      if(rig){const [x,y]=v;// Boundaries follow PROPORTION in characters.js (head lifted and scaled).
+      const key=(Math.abs(x)>.29||(Math.abs(x)>.19&&y<.83))?(x<0?'armL':'armR'):y>=.83?'head':y<.44?(x<0?'legL':'legR'):'torso';target=rig[key];v[0]-=target.position.x;v[1]-=target.position.y;v[2]-=target.position.z;}
       if (v.length > 8) decalBox(target, v);
       else box(target, ...v);
     }
