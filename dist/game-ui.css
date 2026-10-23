@@ -30,3 +30,10 @@ body.game-ui .bag-item,body.game-ui .bag-empty{border:0!important;border-radius:
 body.game-ui .bag-item[aria-pressed="true"],body.game-ui .bag-item.selected{filter:drop-shadow(0 0 6px #e2b862)}
 @media (prefers-reduced-motion:reduce){body.game-ui.compact-hud #hud-health .hp-track i{transition:none}}
 body.game-ui.compact-hud #combat-tools-toggle,body.game-ui.compact-hud #end,body.game-ui.compact-hud #hud-back{color:#fbecc9!important;opacity:1!important}body.game-ui.compact-hud #combat-tools-toggle *,body.game-ui.compact-hud #end *,body.game-ui.compact-hud #hud-back *{color:inherit!important;opacity:1!important}
+/* Pixel health bar (dist/pixel-hp.js) replaces the image frame. */
+body.game-ui.compact-hud #hud-health{width:216px!important;height:42px!important;background:none!important}
+body.game-ui.compact-hud #hud-health .pixel-hp{position:absolute;left:0;top:0;width:216px;height:42px;image-rendering:pixelated}
+body.game-ui.compact-hud #hud-health .health-copy{position:absolute;left:22%;right:3%;top:38%;bottom:auto;z-index:1}
+body.game-ui.compact-hud #hud-health .hp-track{height:auto!important;background:none!important;box-shadow:none!important}
+body.game-ui.compact-hud #hud-health .hp-track i{display:none!important}
+body.game-ui.compact-hud #hud-health .hp-track small{font:900 11px/1 system-ui!important;color:#fff!important;text-shadow:1px 1px 0 #000,-1px 0 0 #000!important}
