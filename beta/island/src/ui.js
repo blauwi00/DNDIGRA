@@ -153,19 +153,20 @@ function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CL
 // ---------- menus ----------
 let paused=true;
 const mainEl=document.getElementById('mainmenu'),pauseEl=document.getElementById('pause'),edEl=document.getElementById('editor');
-function screen(el){for(const x of [mainEl,pauseEl,edEl])x.hidden=x!==el;paused=!!el;closeWheel();}
+function screen(el){for(const x of [mainEl,pauseEl,edEl])x.hidden=x!==el;paused=!!el;closeWheel();document.body.classList.toggle('inmenu',el===mainEl);}
 function hasSave(){try{return !!localStorage.getItem(SAVE)&&!!HEROSET}catch(e){return false}}
-function mainMenu(){screen(mainEl);document.getElementById('mContinue').hidden=!hasSave();document.getElementById('mSet').hidden=true;}
+function mainMenu(){screen(mainEl);const ok=hasSave(),c=document.getElementById('mContinue');c.disabled=!ok;c.classList.toggle('primary',ok);document.getElementById('mNew').classList.toggle('primary',!ok);
+  document.getElementById('mContSub').textContent=ok?(HEROSET.name+' · '+(RACES[HEROSET.race]||RACES.human).n+' · '+(CLASSES[HEROSET.cls]||CLASSES.fighter).n):'нет сохранения';}
 document.getElementById('mContinue').onclick=()=>screen(null);
 if(window.ISLAND_IN_APP){const x=document.getElementById('mExit');x.hidden=false;x.onclick=()=>{save();location.href='../index.html';};}
 document.getElementById('mNew').onclick=()=>{if(!hasSave())return openEditor();confirmBox('Начать новую игру?','Текущий прогресс на острове будет стёрт: герой, задания, сундуки.','Начать заново',()=>openEditor());};
 function confirmBox(title,text,yes,fn){const box=document.getElementById('confirm');box.hidden=false;box.querySelector('b').textContent=title;box.querySelector('p').textContent=text;const y=box.querySelector('.yes');y.textContent=yes;
   y.onclick=()=>{box.hidden=true;fn();};box.querySelector('.no').onclick=()=>{box.hidden=true;};}
-document.getElementById('mSettings').onclick=()=>{const s=document.getElementById('mSet');s.hidden=!s.hidden;};
+document.getElementById('mSettings').onclick=()=>{sfx('click');openSettings();};
 document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();screen(pauseEl);renderSheet();};
 document.getElementById('pResume').onclick=()=>screen(null);
 document.getElementById('pMain').onclick=()=>{save();mainMenu();};
-for(const id of ['mSound','pSound'])document.getElementById(id).onclick=()=>{sndBtn.onclick();};
+document.getElementById('pSettings').onclick=()=>{sfx('click');openSettings();};
 function renderSheet(){const h=HERO,el=document.getElementById('sheet');
   el.innerHTML='<b></b><span>'+h.n+' · здоровье '+Math.max(0,H0.hp)+' / '+H0.max+' · КД '+heroAC()+'</span><span>Ближний бой +'+h.melee+' · стрельба +'+h.ranged+' · магия +'+h.spell+'</span><span>Скрытность +'+h.stealth+' · Атлетика +'+h.athletics+'</span><small></small>';
   el.querySelector('b').textContent=H0.name;el.querySelector('small').textContent=h.about;}

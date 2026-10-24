@@ -45,7 +45,7 @@ const WX={rain:0,target:0,next:0};
 const rainGeo=new THREE.BufferGeometry(),RN=500,rp=new Float32Array(RN*6);rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3));
 const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0x9ab0c8,transparent:true,opacity:.45}));rain.frustumCulled=false;scene.add(rain);
 for(let i=0;i<RN;i++){rp[i*6]=(Math.random()-.5)*26;rp[i*6+1]=Math.random()*9;rp[i*6+2]=(Math.random()-.5)*22;}
-function weatherTick(dt){if(performance.now()>WX.next){WX.next=performance.now()+(60+Math.random()*120)*1000;WX.target=Math.random()<.3?.6+Math.random()*.4:0;}
+function weatherTick(dt){if(performance.now()>WX.next){WX.next=performance.now()+(60+Math.random()*120)*1000;WX.target=Math.random()<.3?.6+Math.random()*.4:0;}if(window.SET&&!SET.weather)WX.target=0;
   WX.rain+=(WX.target-WX.rain)*Math.min(1,dt*.15);const on=WX.rain>.03&&!room;rain.visible=on;
   if(on){rain.material.opacity=.5*WX.rain;for(let i=0;i<RN;i++){let y=rp[i*6+1]-dt*14;if(y<0){y=7+Math.random()*2;rp[i*6]=(Math.random()-.5)*26;rp[i*6+2]=(Math.random()-.5)*22;}
       rp[i*6+1]=y;rp[i*6+3]=rp[i*6]+.05;rp[i*6+4]=y+.45;rp[i*6+5]=rp[i*6+2];}

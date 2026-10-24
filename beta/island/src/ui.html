@@ -8,12 +8,24 @@
 <div class="wheel" id="wheel" hidden></div><div class="qptr" id="qptr" hidden aria-hidden="true"></div>
 <div class="screen mapview" id="mapview" hidden><div class="mapbox"><h2>Остров Хельги</h2><canvas></canvas><p class="leg"></p><button id="mapClose">Закрыть</button></div></div>
 <div class="screen main" id="mainmenu" hidden>
-  <div class="mm"><h2>За гранью</h2><p>Остров Хельги · бета</p>
-    <button id="mContinue">Продолжить</button><button id="mNew">Новая игра</button><button id="mSettings">Настройки</button><button id="mExit" hidden>Выйти из острова</button>
-    <div class="mset" id="mSet" hidden><button id="mSound">Звук</button><label class="vol">Громкость<input id="mVol" type="range" min="0" max="1" step="0.05"></label></div></div></div>
+  <div class="mm2">
+    <header class="mm-logo"><h1>За гранью</h1><p>Остров Хельги</p></header>
+    <div class="mm-row">
+      <button id="mContinue" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg><b>Продолжить</b><small id="mContSub">нет сохранения</small></button>
+      <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
+      <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
+    </div>
+    <footer class="mm-foot"><span>бета</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button></footer>
+  </div></div>
+<div class="screen settings" id="settings" hidden>
+  <div class="st">
+    <header><h2>Настройки</h2><button id="stClose" class="st-x" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+    <nav class="st-tabs" id="stTabs"><button data-t="sound" class="on">Звук</button><button data-t="gfx">Графика</button><button data-t="game">Игра</button><button data-t="data">Данные</button></nav>
+    <div class="st-body" id="stBody"></div>
+  </div></div>
 <div class="screen pause" id="pause" hidden>
   <div class="mm"><h2>Пауза</h2><div class="sheet" id="sheet"></div>
-    <button id="pResume">Продолжить</button><button id="pMap">Карта острова</button><button id="pSound">Звук</button><button id="pMain">Главное меню</button></div></div>
+    <button id="pResume">Продолжить</button><button id="pMap">Карта острова</button><button id="pSettings">Настройки</button><button id="pMain">Главное меню</button></div></div>
 <div class="screen editor" id="editor" hidden>
   <div class="hc">
     <section class="hc-stage">

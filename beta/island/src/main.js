@@ -6,7 +6,7 @@ const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
 const focus=new THREE.Vector3(8,0,30);
 let camZoom=1,zoomTarget=1,camFocus=null; // the camera leans in while the hero looks at something
-function placeCam(){camera.position.set(focus.x,focus.y+8.2*camZoom,focus.z+6.6*camZoom);camera.lookAt(focus)}
+function placeCam(){const k=camZoom*(window.CAM_SCALE||1);camera.position.set(focus.x,focus.y+8.2*k,focus.z+6.6*k);camera.lookAt(focus)}
 const T={p:[0,1,2,3].map(planks),stone:stoneFloor(),grass:grass(),dirt:dirt(),cobble:cobble(),wall:wallStone(),crate:crate(),leaves:leaves(),bark:bark(),water:water(),gside:grassSide(),moss:moss(),blade:blade(),smoke:smokeTex()};
 const sand=tex(32,(g,s)=>{noise(g,s,['#b8a37a','#c2ad84','#ad9870','#bfa97f']);for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#8f7d5c','#d8c79e']))});
 const lam=(map,extra={})=>new THREE.MeshLambertMaterial(Object.assign({map},extra));
@@ -281,7 +281,7 @@ function say(who,text,choices=[]){clearInterval(typeT);talkEl.hidden=false;talkE
   const p=document.createElement('p');const chars=[...text].map(c=>{const s=document.createElement('span');s.textContent=c;p.append(s);return s;});talkEl.append(h,p);
   const row=document.createElement('div');row.className='choices';for(const [label,fn] of [...choices,[choices.length?'Не сейчас':'Дальше',null]]){const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();talkEl.hidden=true;clearInterval(typeT);fn&&fn();};row.append(b);}
   talkEl.append(row);let i=0;const all=()=>{clearInterval(typeT);chars.forEach(s=>s.classList.add('on'));row.classList.add('on');};
-  if(reduceM)all();else typeT=setInterval(()=>{for(let k=0;k<2&&i<chars.length;k++)chars[i++].classList.add('on');if(i>=chars.length)all();},22);
+  if(reduceM)all();else if(window.TEXT_DELAY===0)all();else typeT=setInterval(()=>{for(let k=0;k<2&&i<chars.length;k++)chars[i++].classList.add('on');if(i>=chars.length)all();},window.TEXT_DELAY||22);
   talkEl.onclick=()=>{if(i<chars.length){i=chars.length;all();}};}
 talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
 let questFocus=null;
@@ -379,7 +379,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
     const o=a.o,b=o.userData.body,walk=a.walkT;const sw=reduce?0:Math.sin(walk),breathe=reduce?0:Math.sin(t*2+a.ph);
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
@@ -396,12 +396,21 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
     T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
   // the camera follows the hero, or an enemy while it takes its turn
-  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();
+  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();if(inMenuBg())menuCam(dt);
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
   const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
   LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});
   moon.target.position.copy(focus);
-  if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}barkTick(now);tutTick();miniTick(now);zoneCheck();renderer.render(scene,camera);requestAnimationFrame(frame)}
+  if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}else if(inMenuBg()){critterTick(dt,t);}barkTick(now);tutTick();miniTick(now);zoneCheck();
+  // at 30 frames a second every other frame is skipped, which keeps phones cooler
+  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;renderer.render(scene,camera);requestAnimationFrame(frame)}
+let lastDraw=0;
+// ---------- the main menu backdrop: a slow flight over the living island ----------
+const inMenuBg=()=>typeof mainEl!=='undefined'&&!mainEl.hidden&&!room;
+let menuT=0;const MENU_PATH=[[Z.dock[0]+4,Z.dock[1]],Z.village,[Z.village[0]+10,Z.village[1]+8],Z.hunter,Z.forest,Z.camp,Z.ruins,Z.grave,[Z.village[0]+6,Z.village[1]-8]];
+function menuCam(dt){menuT+=dt;const seg=16,n=MENU_PATH.length,i=Math.floor(menuT/seg)%n,k=(menuT%seg)/seg,s=k*k*(3-2*k),A=MENU_PATH[i],B=MENU_PATH[(i+1)%n];
+  const fx=A[0]+(B[0]-A[0])*s,fz=A[1]+(B[1]-A[1])*s,fy=groundAt(Math.round(fx),Math.round(fz))*.5,a=menuT*.06;
+  focus.set(fx,fy,fz);camera.position.set(fx+Math.sin(a)*8.5,fy+6.2+Math.sin(menuT*.13)*.6,fz+Math.cos(a)*8.5);camera.lookAt(fx,fy+.4,fz);}
 {EXTRAS}
 // ---------- save: progress lives in this browser only ----------
 const SAVE='helga-island-beta-1';

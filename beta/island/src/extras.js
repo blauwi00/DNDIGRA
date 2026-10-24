@@ -98,7 +98,9 @@ function stepSound(code,soft){if(!audio()||muted)return;const t=AC.currentTime,r
   else if(code==='C'||code==='S'||code==='W'){burst(t,.03,.06*v,'bandpass',1400+r()*600,2,.001,.15);burst(t,.05,.05*v,'lowpass',220,1,.002,.1);} // stone tap
   else if(code==='P'||code==='F'||code==='E'){knockW(t,.07*v,170+r()*60);}                                                  // boards
   else{burst(t,.07,.06*v,'lowpass',300+r()*120,.8,.003,.08);}}                                                              // packed earth
-const sndBtn={};const sndUI=()=>{for(const id of ['mSound','pSound']){const b=document.getElementById(id);if(b)b.textContent=muted?'Звук: выкл':'Звук: вкл';}};sndUI();
+const sndBtn={};const sndUI=()=>{for(const id of []){const b=document.getElementById(id);if(b)b.textContent=muted?'Звук: выкл':'Звук: вкл';}};sndUI();
 let vol=.7;try{const v=parseFloat(localStorage.getItem('helga-vol'));if(v>=0&&v<=1)vol=v;}catch(e){}
 const volEl=document.getElementById('mVol');if(volEl){volEl.value=vol;volEl.oninput=()=>{vol=+volEl.value;try{localStorage.setItem('helga-vol',vol)}catch(e){}if(audio()&&!muted)master.gain.value=vol;};}
 sndBtn.onclick=()=>{muted=!muted;try{localStorage.setItem('helga-sound',muted?'off':'on')}catch(e){}if(audio())master.gain.value=muted?0:vol;sndUI();};
+// the settings screen drives sound through this
+window.snd={muted:()=>muted,setMuted(v){if(muted!==v)sndBtn.onclick();},vol:()=>vol,setVol(v){vol=v;try{localStorage.setItem('helga-vol',vol)}catch(e){}if(audio()&&!muted)master.gain.value=vol;}};
