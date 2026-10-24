@@ -449,12 +449,14 @@ body.inmenu .gold,body.cinematic .gold{opacity:0}
 .quest{top:84px!important}
 .mini{top:62px!important;right:12px!important;width:88px!important;height:88px!important}
 .gold{top:62px!important;right:108px!important}
-.held.l{left:152px!important}.held.r{right:152px!important;left:auto!important}
+.held.l{left:166px!important}.held.r{right:166px!important;left:auto!important}
+/* the whole hand stays on screen, nothing of it is cut by the edge */
+.palm{bottom:10px!important}.palm.l{left:max(14px,env(safe-area-inset-left,0px))!important}.palm.r{right:max(14px,env(safe-area-inset-right,0px))!important}
 @media (max-height:440px){
   .quest{top:58px!important}
   .mini{top:54px!important;width:70px!important;height:70px!important}
   .gold{top:54px!important;right:90px!important}
-  .held.l{left:104px!important}.held.r{right:104px!important}}
+  .held.l{left:118px!important}.held.r{right:118px!important}}
 /* icons sit dead centre in their buttons */
 .menubtn,.hc-icon,.st-x,#hcNameDie{display:grid!important;place-items:center!important;padding:0!important}
 .menubtn svg,.hc-icon svg,.st-x svg,.mmb svg{display:block}
@@ -508,7 +510,7 @@ body.invopen .quest{opacity:0!important;pointer-events:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.35 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.36 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2555,13 +2557,13 @@ function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.
   if(R.ears==='long')for(const s of [-1,1]){H(s*.3,.97,0,.05,.1,.07,skin);H(s*.345,1.03,-.02,.05,.09,.05,skin);H(s*.385,1.1,-.045,.04,.08,.04,shadeC(skin,.92));H(s*.415,1.16,-.06,.03,.06,.03,shadeC(skin,.85));}
   if(R.ears==='pointed')for(const s of [-1,1]){H(s*.3,.96,0,.05,.09,.06,skin);H(s*.34,1.01,-.02,.04,.07,.04,shadeC(skin,.9));}
   if(R.nose)B(0,.9,.27,.07,.07,.06,shadeC(skin,.92));
-  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)D(s*.2,.86+i*.03,.248,.06,.012,.006,shadeC(skin,.55));}
+  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)D(s*.2,.86+i*.03,.224,.06,.012,.006,shadeC(skin,.55));}
   if(R.shell){const c=shadeC(skin,.7);for(const s of [-1,1]){B(s*.26,.7,0,.12,.07,.3,c);B(s*.26,.75,0,.09,.03,.24,shadeC(c,1.2));}for(let i=0;i<3;i++)B(0,.74-i*.13,-.25,.34-i*.04,.11,.05,shadeC(c,1.1-i*.08));}
-  if(R.stoneMarks)for(const [x,y] of [[-.17,1.02],[.15,.86],[-.12,.84],[.19,1.06]])D(x,y,.247,.06,.015,.006,shadeC(skin,.7));
+  if(R.stoneMarks)for(const [x,y] of [[-.17,.83],[.15,.86],[-.12,.8],[.19,.95]])D(x,y,.224,.06,.015,.006,shadeC(skin,.7));
   // echo-bearers carry glowing marks on the face, drawn on the skin: nothing hovers beside the body
-  if(R.motes){const c=0x7fe8ff;
-    for(const s of [-1,1]){D(s*.09,.95,.249,.06,.055,.006,0xaef4ff,true);D(s*.16,.86,.249,.016,.09,.006,c,true);D(s*.16,.81,.249,.04,.016,.006,c,true);}
-    D(0,1.08,.249,.03,.05,.006,c,true);D(0,1.13,.249,.07,.015,.006,c,true);}
+  if(R.motes){const c=0x7fe8ff,l=0xd6f8ff;
+    for(const s of [-1,1]){D(s*.16,.83,.224,.03,.12,.006,c,true);D(s*.16,.77,.224,.07,.02,.006,l,true);D(s*.285,.4,.085,.09,.024,.006,c,true);}
+    D(0,.92,.224,.022,.04,.006,l,true);}
   return out;}
 // height and build are a scale on the finished model, so the skeleton split stays right
 function raceScale(race,model){const R=RACES[race]||RACES.human,sy=R.size,sx=(R.wide||1)*(sy<1?Math.max(.82,sy+.08):sy);model.scale.set(sx,sy,sx);return model;}
@@ -2921,7 +2923,7 @@ function ai(){const now=performance.now();
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
       if(!a.route&&Math.random()<.12)a.face+=(Math.random()-.5)*2.4;} // idle enemies look around, giving chances to slip behind them
     if(a.villager||a.role==='trav'||a.hidden)continue; // the daily routine moves them
-    if(!a.route&&!(a.hold>now)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
+    if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
 function idleLife(a,r,b,t){const p=a.ph;if(a.villager||a.role==='trav')workPose(a,r,b,t);
@@ -3537,7 +3539,9 @@ function hideIn(a){a.hidden=true;a.o.visible=false;a.route=null;a.where='home';}
 function appear(a,[x,z]){a.hidden=false;a.o.visible=true;[a.x,a.z]=nearFree(x,z,3);a.px=a.x+.5;a.pz=a.z+.5;a.where='out';}
 function goTo(a,[x,z],then){const t=nearFree(x,z,3);const p=path(a.x,a.z,t[0],t[1],a,false,3200);if(p&&p.length){a.route=p;a.dest=t;a.arrive=then||null;}else if(then)then();}
 let lifeI=0;
-function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||CB.on)return;const ph=phaseNow();
+// Olav waits on the pier until the new hero has spoken to him: the tutorial sends the player to him
+const waitsForHero=a=>a.talkId==='fisher'&&typeof TUT!=='undefined'&&TUT.step>=0&&TUT.step<=1&&!TUT.flags.olav;
+function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
   if(a.role==='patrol'&&ph!=='home'){if(a.hidden)appear(a,DOOR(a.house));if(!a.route){a.pi=((a.pi||0)+1)%SPOTS.patrol.length;goTo(a,SPOTS.patrol[a.pi]);}a.act=null;return;}
   if(a.route)return;
   if(ph==='home'){if(a.where==='home')return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);goTo(a,DOOR(a.house),()=>hideIn(a));a.where='going';return;}

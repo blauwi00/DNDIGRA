@@ -354,7 +354,7 @@ function ai(){const now=performance.now();
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
       if(!a.route&&Math.random()<.12)a.face+=(Math.random()-.5)*2.4;} // idle enemies look around, giving chances to slip behind them
     if(a.villager||a.role==='trav'||a.hidden)continue; // the daily routine moves them
-    if(!a.route&&!(a.hold>now)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
+    if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
 function idleLife(a,r,b,t){const p=a.ph;if(a.villager||a.role==='trav')workPose(a,r,b,t);

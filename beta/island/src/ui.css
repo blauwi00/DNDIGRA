@@ -344,12 +344,14 @@ body.inmenu .gold,body.cinematic .gold{opacity:0}
 .quest{top:84px!important}
 .mini{top:62px!important;right:12px!important;width:88px!important;height:88px!important}
 .gold{top:62px!important;right:108px!important}
-.held.l{left:152px!important}.held.r{right:152px!important;left:auto!important}
+.held.l{left:166px!important}.held.r{right:166px!important;left:auto!important}
+/* the whole hand stays on screen, nothing of it is cut by the edge */
+.palm{bottom:10px!important}.palm.l{left:max(14px,env(safe-area-inset-left,0px))!important}.palm.r{right:max(14px,env(safe-area-inset-right,0px))!important}
 @media (max-height:440px){
   .quest{top:58px!important}
   .mini{top:54px!important;width:70px!important;height:70px!important}
   .gold{top:54px!important;right:90px!important}
-  .held.l{left:104px!important}.held.r{right:104px!important}}
+  .held.l{left:118px!important}.held.r{right:118px!important}}
 /* icons sit dead centre in their buttons */
 .menubtn,.hc-icon,.st-x,#hcNameDie{display:grid!important;place-items:center!important;padding:0!important}
 .menubtn svg,.hc-icon svg,.st-x svg,.mmb svg{display:block}

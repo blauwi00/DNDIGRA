@@ -56,13 +56,13 @@ function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.
   if(R.ears==='long')for(const s of [-1,1]){H(s*.3,.97,0,.05,.1,.07,skin);H(s*.345,1.03,-.02,.05,.09,.05,skin);H(s*.385,1.1,-.045,.04,.08,.04,shadeC(skin,.92));H(s*.415,1.16,-.06,.03,.06,.03,shadeC(skin,.85));}
   if(R.ears==='pointed')for(const s of [-1,1]){H(s*.3,.96,0,.05,.09,.06,skin);H(s*.34,1.01,-.02,.04,.07,.04,shadeC(skin,.9));}
   if(R.nose)B(0,.9,.27,.07,.07,.06,shadeC(skin,.92));
-  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)D(s*.2,.86+i*.03,.248,.06,.012,.006,shadeC(skin,.55));}
+  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)D(s*.2,.86+i*.03,.224,.06,.012,.006,shadeC(skin,.55));}
   if(R.shell){const c=shadeC(skin,.7);for(const s of [-1,1]){B(s*.26,.7,0,.12,.07,.3,c);B(s*.26,.75,0,.09,.03,.24,shadeC(c,1.2));}for(let i=0;i<3;i++)B(0,.74-i*.13,-.25,.34-i*.04,.11,.05,shadeC(c,1.1-i*.08));}
-  if(R.stoneMarks)for(const [x,y] of [[-.17,1.02],[.15,.86],[-.12,.84],[.19,1.06]])D(x,y,.247,.06,.015,.006,shadeC(skin,.7));
+  if(R.stoneMarks)for(const [x,y] of [[-.17,.83],[.15,.86],[-.12,.8],[.19,.95]])D(x,y,.224,.06,.015,.006,shadeC(skin,.7));
   // echo-bearers carry glowing marks on the face, drawn on the skin: nothing hovers beside the body
-  if(R.motes){const c=0x7fe8ff;
-    for(const s of [-1,1]){D(s*.09,.95,.249,.06,.055,.006,0xaef4ff,true);D(s*.16,.86,.249,.016,.09,.006,c,true);D(s*.16,.81,.249,.04,.016,.006,c,true);}
-    D(0,1.08,.249,.03,.05,.006,c,true);D(0,1.13,.249,.07,.015,.006,c,true);}
+  if(R.motes){const c=0x7fe8ff,l=0xd6f8ff;
+    for(const s of [-1,1]){D(s*.16,.83,.224,.03,.12,.006,c,true);D(s*.16,.77,.224,.07,.02,.006,l,true);D(s*.285,.4,.085,.09,.024,.006,c,true);}
+    D(0,.92,.224,.022,.04,.006,l,true);}
   return out;}
 // height and build are a scale on the finished model, so the skeleton split stays right
 function raceScale(race,model){const R=RACES[race]||RACES.human,sy=R.size,sx=(R.wide||1)*(sy<1?Math.max(.82,sy+.08):sy);model.scale.set(sx,sy,sx);return model;}

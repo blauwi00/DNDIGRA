@@ -59,7 +59,9 @@ function hideIn(a){a.hidden=true;a.o.visible=false;a.route=null;a.where='home';}
 function appear(a,[x,z]){a.hidden=false;a.o.visible=true;[a.x,a.z]=nearFree(x,z,3);a.px=a.x+.5;a.pz=a.z+.5;a.where='out';}
 function goTo(a,[x,z],then){const t=nearFree(x,z,3);const p=path(a.x,a.z,t[0],t[1],a,false,3200);if(p&&p.length){a.route=p;a.dest=t;a.arrive=then||null;}else if(then)then();}
 let lifeI=0;
-function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||CB.on)return;const ph=phaseNow();
+// Olav waits on the pier until the new hero has spoken to him: the tutorial sends the player to him
+const waitsForHero=a=>a.talkId==='fisher'&&typeof TUT!=='undefined'&&TUT.step>=0&&TUT.step<=1&&!TUT.flags.olav;
+function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
   if(a.role==='patrol'&&ph!=='home'){if(a.hidden)appear(a,DOOR(a.house));if(!a.route){a.pi=((a.pi||0)+1)%SPOTS.patrol.length;goTo(a,SPOTS.patrol[a.pi]);}a.act=null;return;}
   if(a.route)return;
   if(ph==='home'){if(a.where==='home')return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);goTo(a,DOOR(a.house),()=>hideIn(a));a.where='going';return;}
