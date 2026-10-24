@@ -20,6 +20,8 @@
  herb:['................','.......kk.......','......kgGk......','..kk..kgGk..kk..','.kgGk.kgk..kgGk.','.kgGGkkgk.kgGk..','..kgGGkgkkgGk...','...kkgGgGgkk....','.....kkgkk......','......kbk.......','......kbk.......','.....kbBk.......','......kk........','................','................','................'],
  bread:['................','................','.....kkkkkk.....','...kkywywywkk...','..kyywywywyyYk..','..kyyyyyyyyyYk..','.kYyyyyyyyyyYYk.','.kYYYYYYYYYYYYk.','..kkkkkkkkkkkk..','................','................','................','................','................','................','................']};
  ITEMS.flour={n:'Мешок муки',max:1,d:'Тодор просил отнести Браму'};
+ ITEMS.parcel={n:'Свёрток',max:1,d:'перевязанный бечёвкой груз, который надо доставить'};
+ ICON.parcel=['................','................','....kkkkkkkk....','...kwwwwwwwwk...','..kwwwyywwwwWk..','..kwwwyywwwwWk..','..kyyyyyyyyyyk..','..kwwwyywwwwWk..','..kwwwyywwwwWk..','..kWWWyyWWWWWk..','...kkkkkkkkkk...','................','................','................','................','................'];
  ICON.flour=['................','.....kkkkk......','....kyeeeyk.....','....kkyyykk.....','...keeeeeeek....','..keeeeeeeeek...','..keeeYeeeeek...','..keeYYYeeeek...','..keeeYeeeeek...','..keeeeeeeeek...','..kYeeeeeeeYk...','...kYYYYYYYk....','....kkkkkkk.....','................','................','................'];
  for(const k in WEAPONS){const V=WEAPONS[k];ITEMS[k]={n:V.n,max:1,two:V.two||0,d:V.d};}
  for(const k in SPECIAL)ITEMS[k]={n:SPECIAL[k].n,max:SPECIAL[k].max,d:SPECIAL[k].d};

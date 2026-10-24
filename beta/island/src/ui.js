@@ -193,11 +193,11 @@ function seenLoad(s){let i=0;for(const part of s.split(',')){const [v,n]=part.sp
 // where the current task points: the nearest foe it needs, the brazier, or whoever gives the reward
 function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
   if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){const b=whoT('bram');return b&&Object.assign(b,{label:'Брам'});}const q=questFocus&&questFocus.state>0&&questFocus.state<3?questFocus:Object.values(Q).find(q=>q.state===1||q.state===2);if(!q)return jobTarget();
-  const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=actors.find(a=>a.talkId===giver);
+  const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=q.giverA||actors.find(a=>a.talkId===giver);
   if(q.state===2){if(who.z>=OUT_H){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
   if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};
   if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
-  const foes=enemies.filter(e=>!e.dead&&e.name===q.need).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
+  const foes=enemies.filter(e=>!e.dead&&e.name===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');
 function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=true;return;}
   let tx=T.x,tz=T.z;if(room&&T.z<OUT_H){tx=room.exit[0];tz=room.exit[1];}

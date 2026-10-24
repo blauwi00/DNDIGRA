@@ -12,7 +12,7 @@ const repName=f=>REP_NAMES[repLevel(f)];
 function repAdd(f,n,why){if(!n)return;const was=repName(f);REP[f]+=n;const now=repName(f);
   if(now!==was)setTimeout(()=>toast(FACTIONS[f]+': теперь вы — '+now+(why?' ('+why+')':'')),900);}
 // what the village feels: the island's shops are all in Заводь
-function repPriceK(){return [1.5,1,.95,.9,.8][repLevel('village')];}
+function repPriceK(f){return [1.5,1,.95,.9,.8][repLevel(f||'village')];}
 // side jobs earn a little standing, up to three times
 function repJob(){if(REP.jobs<3){REP.jobs++;repAdd('village',1,'подработки');}}
 // a bandit learns of a killing only if another bandit saw it

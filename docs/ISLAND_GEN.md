@@ -64,3 +64,15 @@ applied to the island yet.
   diagonal pairs. The wolf used the human skeleton before, so its front and back legs moved together.
 - Kingdom standing (`legend.js`): every bandit killed raises it (up to four times); capital folk greet by it.
 - Actors more than 44 cells from the camera are neither drawn nor moved until the hero comes near.
+
+## Step 4 · trade, work and quests
+- Shops (`economy.js`): the first trader of each settlement (a merchant in the capital). Prices follow the place:
+  the capital sells dear (×1.15) and pays well for goods (×1.1) and buys weapons; a rich village is a little
+  cheaper; the poor settlement sells little and dear (×1.3) and pays little (×0.7). The crown's standing
+  (`repPriceK('kingdom')`) moves all these prices.
+- Side jobs: every village and the quarry send a parcel (`parcel`) to the capital's merchant, the poor
+  settlement to its nearest village; pay grows with the distance (×1.3 rich, ×0.6 poor). A capital guard pays
+  for a round of four crossings around the market.
+- Quests (`life.js`): a capital guard — clear the robbers' camp nearest the capital; the village nearest the
+  boar hills — two boars; the stonecutters — the bear. Kills count only within 14 cells of that place;
+  rewards give gold and the crown's standing.

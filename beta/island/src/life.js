@@ -52,9 +52,23 @@ const TOWN=[];
  for(const p of GEN.places.filter(p=>!p.stamp&&['capital','village','works'].includes(p.type))){
    const kind=p.type==='capital'?'capital':p.type==='works'?'works':p.poorWhy?'poor':'village',n=kind==='capital'?10:kind==='works'?3:kind==='poor'?3:3+Math.round((p.wealth||0)*.6);
    for(let i=0;i<n;i++,k++){const job=JOB[kind][i%JOB[kind].length],fem=/а$|я$|Купчиха|Жрица|Горожанка|Мельничиха|Крестьянка|Старуха/.test(job),nm=(fem?FN:MN)[(k*7+i*3)%16];
-     const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc:job+' '+nm,talkId:'town',place:p,kind,said:0});
+     let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' '+['Младший','Старший','из '+(p.type==='capital'?'столицы':'посёлка')][TOWN.length%3];
+     const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc,job,talkId:'town',place:p,kind,said:0});
      const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
      if(job==='Стражник')setHeld(a.o,'R','spear');TOWN.push(a);}}}
+// big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
+// saved, the stonecutters the bear away from the quarry. Kills count only near that place.
+{const near=(type,from)=>GEN.places.filter(q=>q.type===type).sort((x,y)=>Math.hypot(x.x-from.x,x.z-from.z)-Math.hypot(y.x-from.x,y.z-from.z))[0];
+ const cap=GEN.places.find(p=>p.type==='capital'),G=(p,job)=>TOWN.find(a=>a.place===p&&(!job||a.job===job));
+ const camp=near('bandits',cap),boars=GEN.places.find(p=>p.type==='boars'),bear=GEN.places.find(p=>p.type==='bear'),works=GEN.places.find(p=>p.type==='works');
+ const vil=boars&&GEN.places.filter(p=>p.type==='village'&&!p.stamp).sort((x,y)=>Math.hypot(x.x-boars.x,x.z-boars.z)-Math.hypot(y.x-boars.x,y.z-boars.z))[0];
+ const mk=(key,giver,at,need,left,title,ask,ok,done,items,gold,rep)=>{if(!giver||!at)return;Q[key]={state:0,need,left,title,at,giverA:giver,gold,rep};giver.qk=key;giver.qtext=[ask,ok,done,items];};
+ mk('road',G(cap,'Стражник'),camp,'Разбойник',2,'Разгромить лагерь разбойников у тракта','Купцов грабят на тракте. Лагерь у дороги — двое головорезов. Корона заплатит, а я замолвлю за тебя слово.',
+   'Тракт чист? Держи награду из казны. И вот — моё старое копьё стражи.','Купцы снова ездят без охраны. Твоя работа.',[['potion',1],['spear',1]],30,3);
+ mk('boars',vil&&G(vil),boars,'Кабан',2,'Отогнать кабанов с полей: '+(vil?vil.n:''),'Кабаны с холмов роют наши поля. Два здоровенных секача. Поможешь — отблагодарим.',
+   'Поля целы! Возьми хлеба в дорогу.','Пшеница взошла, кабанов не видно.',[['bread',3]],15,1);
+ mk('bear',works&&G(works),bear,'Медведь',1,'Прогнать медведя от каменоломни','В горах медведь задрал мула. Пока он там — работы нет. Справишься?',
+   'Медведя нет? Каменоломня снова живёт. Держи — заработали вместе.','Стучим молотами без страха.',[['potion',2]],25,2);}
 function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(a.kind==='capital'){L.push(kin==='враг'?'Стража про тебя спрашивала. Ходи тише.':kin==='герой'||kin==='друг'?'Это ты гонял разбойников с тракта? Корона помнит добро.':'Ты не здешний. В столице держись больших улиц.');
     L.push('Во дворце решают, на рынке торгуют, а в бедном квартале у порта лучше не ходить ночью.','Порт кормит всё королевство: соль, рыба, железо — всё идёт через пристань.','Налоги опять подняли. Говорят, на стены. А стены всё те же.');}
@@ -67,7 +81,8 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'По ночам волки воют. Скотину загоняем пораньше.',bear:'В горах медведь. Охотники туда больше не ходят.',boars:'Кабаны роют поля на холмах. Хоть бы кто поохотился.'}[beast.type]);
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
-function townTalk(a,n){const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
+function townTalk(a,n){if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
+  const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
 
 // ---------- weather ----------
 const WX={rain:0,target:0,next:0};

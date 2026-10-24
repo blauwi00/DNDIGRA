@@ -309,10 +309,22 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       if (!r.quad) bad.push('wolf has no four-legged skeleton'); else { quadPose(r, 1, 1, 0, 0); if (!(r.FL.rotation.x === r.BR.rotation.x && r.FL.rotation.x === -r.FR.rotation.x && r.FL.rotation.x !== 0)) bad.push('wolf legs not in diagonal pairs'); }
       for (const m of ['boar', 'bear']) if (!enemies.some((e) => e.model === m && e.o.userData.rig.quad)) bad.push('no ' + m);
       for (const q of GEN.places.filter((q) => !q.stamp && ['capital', 'village', 'works'].includes(q.type))) if (!TOWN.some((t) => t.place === q)) bad.push('nobody lives in ' + q.n);
-      const t = TOWN[0], seenL = new Set(), n = townLines(t).length; t.said = 0;
+      const t = TOWN.find((x) => !x.qk), seenL = new Set(), n = townLines(t).length; t.said = 0;
       for (let i = 0; i < n; i++) { townTalk(t, t.npc); const l = document.querySelector('.talk p').textContent; if (seenL.has(l)) bad.push('town line repeats'); seenL.add(l); }
       document.querySelector('.talk').hidden = true;
       if (!FACTIONS.kingdom) bad.push('no kingdom standing');
+      // trade, work and quests of the big island
+      const shops = Object.entries(SHOPS).filter(([, S]) => S.fac);
+      if (shops.length < 5) bad.push('few shops: ' + shops.length);
+      const capS = shops.find(([, S]) => S.title.includes('столичного'))[1], poorS = shops.find(([, S]) => S.title.includes('Чем богаты'))[1];
+      if (!(priceNow('bread', true, poorS) >= priceNow('bread', true) && priceNow('fish', false, poorS) <= priceNow('fish', false))) bad.push('poor prices');
+      if (!(priceNow('sword_long', false, capS) >= priceNow('sword_long', false))) bad.push('capital buys weapons dear');
+      if (JOBS.filter((j) => j.id.startsWith('gen')).length < 4) bad.push('few jobs');
+      for (const k of ['road', 'boars', 'bear']) if (!Q[k] || !Q[k].giverA || !Q[k].at) bad.push('no quest ' + k);
+      const q = Q.road, st = q.state, left = q.left; q.state = 1;
+      const far = enemies.find((e) => e.name === 'Разбойник' && Math.hypot(e.home[0] - q.at.x, e.home[1] - q.at.z) > 20);
+      if (far) { questKill(far); if (q.left !== left) bad.push('a far bandit counted'); }
+      q.state = st; q.left = left;
       return bad;
     });
     assert.deepEqual(stream, []);
