@@ -108,19 +108,25 @@ const waitsForHero=a=>a.talkId==='fisher'&&typeof TUT!=='undefined'&&TUT.step>=0
 function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
   if(a.role==='patrol'&&ph!=='home'){if(a.hidden)appear(a,DOOR(a.house));if(!a.route){a.pi=((a.pi||0)+1)%SPOTS.patrol.length;goTo(a,SPOTS.patrol[a.pi]);}a.act=null;return;}
   if(a.route)return;
-  if(ph==='home'){if(a.where==='home')return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);goTo(a,DOOR(a.house),()=>hideIn(a));a.where='going';return;}
-  if(ph==='tavern'){if(a.where==='tavern')return;if(a.hidden)appear(a,DOOR(a.house));a.act=null;setHeld(a.o,'R',null);
-    // through the door: appear on the inner threshold and walk to a stool, or stand at the bar with a mug
-    goTo(a,DOOR(0),()=>{a.x=TAV.exit[0];a.z=TAV.exit[1]-1;a.px=a.x+.5;a.pz=a.z+.5;const stools=(TAV.seats||[]).slice().sort(()=>Math.random()-.5).filter(([x,z])=>free(x,z)&&!V.some(v=>v!==a&&v.seat&&v.seat[0]===x&&v.seat[1]===z));
-      const sit=stools.length&&Math.random()<.75,seat=sit?stools[0]:nearFree(TAV.ox+6,TAV.oz+4,2);a.seat=sit?seat:null;a.where='tavern';
-      goTo(a,seat,()=>{if(a.x===TAV.exit[0]&&a.z===TAV.exit[1]-1){[a.x,a.z]=nearFree(TAV.ox+2,TAV.oz+3,3);a.px=a.x+.5;a.pz=a.z+.5;} // never block the door
-        a.act=sit?'sit':'drinkstand';setHeld(a.o,'R',sit&&Math.random()<.5?null:'mug');a.face=sit?Math.atan2(TAV.ox+6.5-a.px,TAV.oz+5-a.pz):Math.PI;});});a.where='going';return;}
+  if(ph==='home'){if(a.where==='home')return;if(a.where==='goingHome'&&a.route)return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);a.where='goingHome';goTo(a,DOOR(a.house),()=>hideIn(a));return;}
+  // evening: about half the village goes to the tavern (a different half each day), the rest go home
+  if(ph==='tavern'&&!goesOut(a)){if(a.where==='home'||a.where==='goingHome')return;if(a.where==='tavern'){leaveTavern(a);return;}
+    a.act=null;a.tool&&setHeld(a.o,'R',null);a.where='goingHome';goTo(a,DOOR(a.house),()=>hideIn(a));return;}
+  if(ph==='tavern'){if(a.where==='tavern'||a.where==='toTavern')return;if(a.hidden)appear(a,DOOR(a.house));a.act=null;setHeld(a.o,'R',null);a.where='toTavern';
+    // through the door: appear on the inner threshold and walk to a free stool, or stand at the bar with a mug
+    const inside=()=>{a.x=TAV.exit[0];a.z=TAV.exit[1]-1;a.px=a.x+.5;a.pz=a.z+.5;a.where='tavern';
+      const stools=(TAV.seats||[]).slice().sort(()=>Math.random()-.5).filter(([x,z])=>free(x,z)&&!V.some(v=>v!==a&&v.seat&&v.seat[0]===x&&v.seat[1]===z));
+      const sit=stools.length>0,seat=sit?stools[0]:nearFree(TAV.ox+6,TAV.oz+4,2);a.seat=sit?seat:null;
+      goTo(a,seat,()=>{a.act=sit?'sit':'drinkstand';setHeld(a.o,'R',sit&&Math.random()<.5?null:'mug');a.face=sit?Math.atan2(TAV.ox+6.5-a.px,TAV.oz+5-a.pz):Math.PI;});};
+    if(a.z>=OUT_H)inside();else goTo(a,DOOR(0),inside);return;}
   // work
   if(a.where==='tavern'){leaveTavern(a);return;}if(a.hidden)appear(a,DOOR(a.house));
   const spot=SPOTS[a.role];if(Math.abs(a.x-spot[0])+Math.abs(a.z-spot[1])>2){a.act=null;goTo(a,spot);a.where='out';return;}
   if(a.act!==a.role){a.act=a.role;if(a.tool)setHeld(a.o,'R',a.tool);
     a.face={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2}[a.role]??a.face;}}
-function leaveTavern(a){a.act=null;a.seat=null;a.where='going';goTo(a,[TAV.exit[0],TAV.exit[1]-1],()=>{appear(a,DOOR(0));a.where='out';});}
+// who goes out tonight: decided per villager and per day
+function goesOut(a){const d=typeof dayN==='number'?dayN:0;return hash2(V.indexOf(a)*7+3,d*13+1)<.5;}
+function leaveTavern(a){a.act=null;a.seat=null;a.where='leaving';goTo(a,[TAV.exit[0],TAV.exit[1]-1],()=>{appear(a,DOOR(0));a.where='out';});}
 // work and leisure motions, called from idleLife when a villager stands still
 // Work motions use the whole body: both arms, the forearms, a lean of the trunk and bent knees, in a rhythm
 // with a quick working stroke and a slower recovery. armL/foreL is the hand that holds the tool.
