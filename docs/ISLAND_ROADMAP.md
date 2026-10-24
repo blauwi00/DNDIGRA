@@ -4,6 +4,17 @@ Owner asked to keep this. The island beta (`beta/island/`) grew fast as a
 prototype; this records what will not scale and the agreed direction.
 Nothing here is implemented yet; it is the plan to discuss and schedule.
 
+## Owner decisions · 2026-10-24
+- **Foundation**: the game starts on Helga's island for now; more islands come
+  later, and this island may grow. Above all it must feel alive.
+- **Peoples**: keep all 15 and add even more (the Notion note about only nine
+  peoples is superseded by this).
+- **First real release** (not beta): procedural islands, trade and a balanced
+  gold economy; every island has its own big problem plus side jobs; more
+  features to be invented along the way.
+- **Money**: most likely paid peoples (races) as purchases. This needs a way to
+  verify purchases (store receipts or accounts) before it ships.
+
 ## What does not scale today
 - **Build**: ~20 source files are glued by text placeholders (`build.py`)
   into one ~800 KB page with a shared global scope. Name clashes and
