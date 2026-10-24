@@ -31,7 +31,7 @@ function preview(){const c=document.getElementById('edCanvas');
       pv.t+=.016;pv.zoom+=(pv.zoomT-pv.zoom)*.12;if(pv.auto)pv.yaw+=.004;
       const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),F=pv.fitB||{d:4.4,y:.62},dist=(F.d-(F.d-2.7)*(1-face))/fit,ly=F.y+(.9*RACES[ED.race].size-F.y)*(1-face);cam.position.set(0,ly+.18*face,dist);cam.lookAt(0,ly,0);
       if(pv.m){pv.m.rotation.y=pv.yaw;const rg=pv.m.userData.rig,b=pv.m.userData.body,br=Math.sin(pv.t*1.8);if(rg){rg.torso.scale.y=1+br*.012;rg.head.rotation.y=Math.sin(pv.t*.6)*.12;
-        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-.12,0,.1);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
+        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.25,0,.05);rg.armR.rotation.set(-br*.04,0,0);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-.12,0,.1);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
         if(pv.pop>0){pv.pop-=.05;b.position.y=Math.sin(pv.pop*Math.PI)*.06;}}
       r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
   if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(raceDecorate(ED.race,C_.build(C_.spec('hero',edState())),ED.ap));raceScale(ED.race,pv.m);pv.pop=1;

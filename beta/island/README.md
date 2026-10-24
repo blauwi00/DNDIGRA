@@ -27,3 +27,12 @@ menus, editor), `hands.js` (inventory), `rig.js`, `tex.js`, `models.js`,
 Not tested on a physical iPhone; checked in desktop Chromium (software GL).
 
 Fonts (Cormorant Garamond, PT Sans; SIL Open Font License) are inlined from `src/fonts.css` so text renders offline. The game's `dist/characters.js` is inlined too; rebuild the island after it changes.
+
+## Rule: a character has exactly two hands
+
+Held items never bring hands of their own. An item is attached to the model's
+arm at its real hand (`HAND` in `rig.js`); a two-handed weapon sits in one real
+hand (staff, polearm or great weapon in the right, bow in the left) and the
+other hand stays free. Long items are tested box by box against the head and
+torso and step aside, then lean, until nothing overlaps (`clearBody`). Weapon
+variants, models and icons live in `weapons.js`.

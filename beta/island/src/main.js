@@ -381,7 +381,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
     if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
-      if(o.userData.twoHand&&kindOf(o.userData.twoHand)!=='bow'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
+      if(o.userData.twoHand&&kindOf(o.userData.twoHand)!=='bow'){r.armL.rotation.set(-.25+breathe*.02,0,.05);r.armR.rotation.set(walk?sw*.5:-breathe*.04,0,0);} // the right hand carries it, the left swings free
       else if(o.userData.twoHand){r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(-.12+breathe*.02,0,.1);} // the bow hangs in the left hand
       else{r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(walk?sw*.5:-breathe*.04,0,0);}
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
