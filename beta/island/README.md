@@ -31,12 +31,12 @@ Fonts (Cormorant Garamond, PT Sans; SIL Open Font License) are inlined from `src
 ## Rule: a character has exactly two hands
 
 Held items never bring hands of their own. The grip of an item sits inside the
-model's own hand (the lowest block of the forearm, found in `buildModel`); a two-handed weapon sits in one real
-hand (staff, polearm or great weapon in the right, bow in the left) and the
-other hand stays free. Long items are tested box by box against the head and
-torso and step aside, then lean, until nothing overlaps (`clearBody`). Weapon
-variants, models and icons live in `weapons.js`.
-
+model's own hand (found in `buildModel` on the arm's own axis). Arms are never
+posed for an item: they hang and swing naturally. Every item lies in the hand
+horizontally, pointing forward; long shafts are gripped near their balance
+point, a bow by the grip in the middle of its arc (never by the string), a
+shield by the strap on its back, face out along the outside of the arm
+(`holdItem` in `rig.js`).
 
 ## Shared site (Netlify)
 
