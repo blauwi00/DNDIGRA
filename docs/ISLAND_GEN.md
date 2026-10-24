@@ -53,3 +53,14 @@ phone. Checked by the «big island» step of `tests/island-beta-browser.cjs`.
 Keep the pier start on the larger island for now: the hero arrives at Заводь's pier as today.
 The home-village start with two peaceful days and the trade carriage (Notion plan) is not
 applied to the island yet.
+
+## Step 3 · people and beasts
+- Townsfolk (`life.js`, `TOWN`): the capital has 10 (guards with spears, traders, a scribe, a priestess…),
+  villages 3–5 by wealth, the quarry 3, the poor settlement 3. They wander their square and talk about their
+  own place (`townLines`): why it is rich or poor, the nearest bandit camp and beast lair, the capital's
+  quarters and taxes; a line is never repeated before all are told.
+- Beasts (`beasts.js`): boar and bear models with texel shading; two boars on the boar hills, a bear at its den.
+- Four-legged skeleton (`buildQuad`, `quadPose` in `rig.js`): body, head, tail and four legs swinging in
+  diagonal pairs. The wolf used the human skeleton before, so its front and back legs moved together.
+- Kingdom standing (`legend.js`): every bandit killed raises it (up to four times); capital folk greet by it.
+- Actors more than 44 cells from the camera are neither drawn nor moved until the hero comes near.

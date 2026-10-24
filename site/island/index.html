@@ -516,7 +516,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.42 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.43 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2198,6 +2198,27 @@ const IslandGen=(()=>{
     const c=places.find(p=>p.type==='capital');if(c&&c.port){x.fillStyle='#ffd36b';x.fillRect(c.port.x*k-k,c.port.z*k-k,k*3,k*3);}}
   return {generate,make,check,drawMap,VERSION};})();
 if(typeof module!=='undefined')module.exports=IslandGen;
+// ---------- beasts of the wild land: boar and bear ----------
+// Built like the wolf: boxes [x,y,z,w,h,d,colour,glow], nose towards +z, feet on y=0, and texel
+// shading as thin patches on the big boxes (CHARACTER_STYLE.md, «Тексели»), never a flat fill.
+(()=>{const sh=(c,k)=>{const r=(c>>16)&255,g=(c>>8)&255,b=c&255;return (Math.min(255,r*k|0)<<16)|(Math.min(255,g*k|0)<<8)|Math.min(255,b*k|0);};
+  function texel(out,b,seed){const[x,y,z,w,h,d,c]=b;let s=seed;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+    // patches on the top and both sides, a little darker or lighter than the fur
+    for(let i=0;i<Math.round(w*d*30)+2;i++){const px=x+(r()-.5)*(w-.06),pz=z+(r()-.5)*(d-.06),k=.8+r()*.35;out.push([px,y+h/2+.004,pz,.04+r()*.05,.008,.04+r()*.05,sh(c,k),false]);}
+    for(const s2 of[-1,1])for(let i=0;i<Math.round(h*d*24)+1;i++){const py=y+(r()-.5)*(h-.06),pz=z+(r()-.5)*(d-.06),k=.78+r()*.3;out.push([x+s2*(w/2+.004),py,pz,.008,.04+r()*.04,.04+r()*.05,sh(c,k),false]);}}
+  function beast(spec){const o=[],B=(x,y,z,w,h,d,c,e)=>{const b=[x,y,z,w,h,d,c,!!e];o.push(b);return b;};
+    const{fur,dark,legH,bodyW,bodyH,bodyL,headS,snout,tusk,ears,tail,seed}=spec,y0=legH+bodyH/2;
+    const body=B(0,y0,0,bodyW,bodyH,bodyL,fur);B(0,y0+bodyH/2+.03,-bodyL*.1,bodyW*.8,.06,bodyL*.6,sh(fur,.85)); // back ridge
+    for(const sx of[-1,1])for(const sz of[-1,1]){const lx=sx*(bodyW/2-.07),lz=sz*(bodyL/2-.1);B(lx,legH/2,lz,.11,legH+.04,.12,dark);B(lx,.03,lz+.02,.12,.06,.14,sh(dark,.7));}
+    const hz=bodyL/2+headS*.35,hy=y0+bodyH*.15;const head=B(0,hy,hz,headS*1.05,headS,headS,fur);
+    B(0,hy-headS*.18,hz+headS/2+snout/2,headS*.62,headS*.5,snout,sh(fur,.9));B(0,hy-headS*.12,hz+headS/2+snout+.01,headS*.4,headS*.26,.02,0x1a1412);
+    for(const sx of[-1,1]){B(sx*headS*.24,hy+headS*.12,hz+headS/2+.005,.05,.05,.02,0x16120e);B(sx*headS*.24+sx*.012,hy+headS*.14,hz+headS/2+.012,.015,.015,.01,0xf0e8d8,true);
+      B(sx*headS*.36,hy+headS/2+ears/2,hz-headS*.15,.08,ears,.07,dark);
+      if(tusk)B(sx*headS*.27,hy-headS*.12,hz+headS/2+snout*.7,.035,tusk,.035,0xf0e8d0);}
+    B(0,y0+bodyH*.2,-bodyL/2-tail/2,.07,.07,tail,dark);
+    texel(o,body,seed);texel(o,head,seed+7);return o;}
+  MODELS.boar=beast({fur:0x6a4a34,dark:0x3e2a1c,legH:.22,bodyW:.42,bodyH:.36,bodyL:.86,headS:.3,snout:.16,tusk:.09,ears:.09,tail:.16,seed:11});
+  MODELS.bear=beast({fur:0x4a3424,dark:0x2a1c12,legH:.3,bodyW:.62,bodyH:.56,bodyL:1.12,headS:.42,snout:.16,tusk:0,ears:.1,tail:.1,seed:23});})();
 window.__chars=1;
 // ---------- renderer / scene ----------
 const canvas=document.getElementById('c'),stage=document.getElementById('stage');
@@ -2565,6 +2586,30 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
     for(const [x,y,z,w,h,d] of hand)bb.union(new THREE.Box3(new THREE.Vector3(x-w/2,y-h/2,z-d/2),new THREE.Vector3(x+w/2,y+h/2,z+d/2)));
     rig['hand'+k]=bb.getCenter(new THREE.Vector3()).sub(o);}
   const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];holder.userData.parts=parts;return holder}
+// ---------- four-legged animals: their own skeleton (body, head, tail and four legs) ----------
+// A quadruped is a model longer than it is wide (wolf, boar, bear). Its legs swing in diagonal pairs.
+const isQuad=boxes=>{const z=boxes.map(b=>b[2]);return Math.max(...z)-Math.min(...z)>1.1;};
+function buildQuad(boxes){const g=new THREE.Group(),rig={quad:true};const legTop=Math.min(...boxes.filter(b=>b[4]>.3&&Math.abs(b[0])<.05).map(b=>b[1]-b[4]/2),.3);
+  const zs=boxes.map(b=>b[2]),zMax=Math.max(...zs),zMin=Math.min(...zs),len=zMax-zMin,neck=zMax-len*.22,tailZ=zMin+len*.22;
+  const legs=boxes.filter(b=>b[1]+b[4]/2<=legTop+.06&&Math.abs(b[0])>.05);const fz=Math.max(...legs.map(b=>b[2])),bz=Math.min(...legs.map(b=>b[2]));
+  const P={body:[0,legTop,0],head:[0,legTop+.15,neck],tail:[0,legTop+.3,tailZ],FL:[-.14,legTop,fz],FR:[.14,legTop,fz],BL:[-.14,legTop,bz],BR:[.14,legTop,bz]};
+  const parts={};for(const k in P){rig[k]=new THREE.Group();rig[k].position.set(...P[k]);g.add(rig[k]);parts[k]=[];}
+  for(const b of boxes){const[x,y,z]=b;let k='body';
+    if(legs.includes(b)||b[1]+b[4]/2<=legTop+.06&&Math.abs(x)>.05&&b[5]<.02)k=(z>(fz+bz)/2?'F':'B')+(x<0?'L':'R');
+    else if(z>=neck)k='head';else if(z<=tailZ)k='tail';parts[k].push(b);}
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  for(const[k,list]of Object.entries(parts))for(const decal of[false,true]){const L=list.filter(b=>(Math.min(b[3],b[4],b[5])<=.012)===decal);if(!L.length)continue;const o=rig[k].position,pos=[],nor=[],cols=[],idx=[];
+    for(const[x,y,z,w,h,d,c,e]of L){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);const base=pos.length/3,Pa=gb.attributes.position.array,N=gb.attributes.normal.array;
+      for(let i=0;i<Pa.length;i++){pos.push(Pa[i]);nor.push(N[i]);}for(let i=0;i<Pa.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);
+    const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;rig[k].add(m);}
+  // the shared code also turns arms, legs and the torso of humans: animals get quiet stand-ins
+  rig.torso=rig.body;for(const k of['armL','armR','foreL','foreR','legL','legR'])rig[k]=new THREE.Group();rig.handL=rig.handR=new THREE.Vector3();
+  const minY=Math.min(...boxes.map(b=>b[1]-b[4]/2));g.position.y=-minY;
+  const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];return holder;}
+// walking: diagonal pairs of legs swing together, the head nods and the tail sways
+function quadPose(r,walk,sw,t,ph){const a=walk?sw*.55:0;r.FL.rotation.x=a;r.BR.rotation.x=a;r.FR.rotation.x=-a;r.BL.rotation.x=-a;
+  r.head.rotation.x=walk?Math.abs(sw)*.08:0;r.tail.rotation.y=Math.sin(t*(walk?6:1.5)+ph)*(walk?.35:.15);r.body.rotation.z=0;}
 // Held item meshes, built around the grip point of a hand (0,0,0 = fist).
 const IM=c=>new THREE.MeshLambertMaterial({color:c});
 const HELD={
@@ -2699,7 +2744,7 @@ function setRoom(R){if(room)room.group.visible=false;room=R;if(R)R.group.visible
 // ---------- characters ----------
 const hero=buildModel(MODELS['fighter-male']);scene.add(hero);setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};
 const actors=[],enemies=[];
-function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(free(x+dx,z+dz))c.push([x+dx,z+dz]);if(c.length){[x,z]=c[0];if(o.home)o.home=[x,z];}}const m=buildModel(MODELS[model]);o.model=model;if(o.scale)m.scale.setScalar(o.scale);scene.add(m);
+function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(free(x+dx,z+dz))c.push([x+dx,z+dz]);if(c.length){[x,z]=c[0];if(o.home)o.home=[x,z];}}const m=(isQuad(MODELS[model])?buildQuad:buildModel)(MODELS[model]);o.model=model;if(o.scale)m.scale.setScalar(o.scale);scene.add(m);
   const a=Object.assign({o:m,x,z,px:x+.5,pz:z+.5,face:hash2(x,z)*6,ph:hash2(z,x)*9,spd:1.8,home:[x,z]},o);actors.push(a);return a;}
 const H0={o:hero,x:Z.dock[0]+1,z:Z.dock[1],face:Math.PI/2,ph:0,spd:2.4,hp:20,max:20,ac:15,name:'Эльдар'};H0.px=H0.x+.5;H0.pz=H0.z+.5;actors.push(H0);
 const tint=(a,c)=>{a.o.userData.mats.forEach(m=>m.color.setHex(c));return a;};
@@ -2713,6 +2758,8 @@ const FOE={
   bandit:{name:'Разбойник',hp:11,ac:12,atk:3,dmg:6,dmgB:1,atkName:'Сабля',speed:6,perc:10,dex:1,wis:0,ath:2},
   goblin:{name:'Гоблин',hp:7,ac:15,atk:4,dmg:6,dmgB:2,atkName:'Короткий лук',range:6,speed:6,perc:9,dex:2,wis:-1,ath:-1,spd:2.6},
   skeleton:{name:'Скелет',hp:13,ac:13,atk:4,dmg:6,dmgB:2,atkName:'Ржавый меч',speed:6,perc:9,dex:2,wis:-1,ath:0},
+  boar:{name:'Кабан',hp:11,ac:11,atk:3,dmg:6,dmgK:1,dmgB:1,atkName:'Клыки',speed:8,perc:9,dex:0,wis:-1,ath:3,spd:2.4},
+  bear:{name:'Медведь',hp:19,ac:11,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Когти',speed:8,perc:13,dex:0,wis:1,ath:4,spd:2.2},
   wolf:{name:'Волк',hp:11,ac:13,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Укус',speed:8,perc:13,dex:2,wis:1,ath:1,spd:2.8}};
 function foe(model,x,z,o){o=Object.assign({},FOE[model],{max:FOE[model].hp},o);const a=actor(model,x,z,Object.assign({enemy:true,wander:3,spd:2.2,cd:0},o));enemies.push(a);
   if(model==='bandit')setHeld(a.o,'R',['dagger_curved','sword_scimitar','axe_hand'][enemies.length%3]);return a;}
@@ -2721,7 +2768,7 @@ foe('goblin',Z.forest[0]-4,Z.forest[1]-6);foe('goblin',Z.hunter[0]+3,Z.hunter[1]
 foe('skeleton',Z.ruins[0]-2,Z.ruins[1]+1);foe('skeleton',Z.ruins[0]+2,Z.ruins[1]-1);foe('skeleton',Z.grave[0],Z.grave[1]+1);
 foe('wolf',Z.forest[0]+3,Z.forest[1]-2,{wander:4});foe('wolf',Z.forest[0]+5,Z.forest[1]-1,{wander:4});
 // the big island's camps and lairs (added after the old ones, so saved kills keep their places)
-for(const p of GPL){if(p.type==='bandits'){foe('bandit',p.x+1,p.z+1);foe('bandit',p.x-1,p.z+1);}if(p.type==='wolves'){foe('wolf',p.x,p.z,{wander:5});foe('wolf',p.x+2,p.z+1,{wander:5});foe('wolf',p.x-1,p.z+2,{wander:5});}}
+for(const p of GPL){if(p.type==='bandits'){foe('bandit',p.x+1,p.z+1);foe('bandit',p.x-1,p.z+1);}if(p.type==='boars'){foe('boar',p.x,p.z,{wander:4});foe('boar',p.x+2,p.z-1,{wander:4});}if(p.type==='bear')foe('bear',p.x,p.z,{wander:3});if(p.type==='wolves'){foe('wolf',p.x,p.z,{wander:5});foe('wolf',p.x+2,p.z+1,{wander:5});foe('wolf',p.x-1,p.z+2,{wander:5});}}
 // enemy health bars: shown once a fight starts
 const barBg=new THREE.MeshBasicMaterial({color:0x14100c,depthTest:false}),barFg=new THREE.MeshBasicMaterial({color:0xd23a30,depthTest:false});
 function addBar(e){const g=new THREE.Group(),bg=new THREE.Mesh(box(.62,.1,.01),barBg),fg=new THREE.Mesh(box(.56,.06,.01),barFg);fg.position.z=.01;bg.renderOrder=fg.renderOrder=9;g.add(bg,fg);g.visible=false;scene.add(g);e.bar={g,fg};}
@@ -3170,6 +3217,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
+  if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
     return say(n,'Травы любят тишину. Береги себя.');}
@@ -3197,7 +3245,7 @@ function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e
   if(!H0.sneak)return spotted();if(e.checked)return false;e.checked=true;
   const sb=HERO.stealth+(HERO.night&&nightness()>.5?2:0),r=d(20),tot=r+sb,ok=tot>=e.perc;dice.hidden=false;dice.innerHTML='Скрытность против '+e.name+': '+r+' + '+sb+' = <b>'+tot+'</b> против '+e.perc+' — '+(ok?'вас не заметили':'<b>замечены!</b>');return ok?false:spotted();}
 function ai(){const now=performance.now();
-  for(const a of actors){if(a===H0||a.dead)continue;
+  for(const a of actors){if(a===H0||a.dead)continue;if(a.far&&!a.inFight)continue; // far away the island rests
     if(a.enemy){if(a.inFight)continue;
       if(!a.aware&&!busy&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
       if(CB.on)continue;
@@ -3235,11 +3283,15 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
   if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
-  for(const a of actors){if(a.dead&&a!==H0)continue;const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
+  for(const a of actors){if(a.dead&&a!==H0)continue;
+    // actors far from the camera are not drawn or moved; they wake as the hero comes near
+    const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
+    const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
     const o=a.o,b=o.userData.body,walk=a.walkT;const sw=reduce?0:Math.sin(walk),breathe=reduce?0:Math.sin(t*2+a.ph);
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
     if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
-    const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
+    const r=o.userData.rig;if(r&&r.quad){quadPose(r,walk,sw,t,a.ph);if(!walk&&!a.off&&a.enemy&&!a.inFight)r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+a.ph))*.35;}
+    else if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       armPose(o,walk,sw,breathe);
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
       if(!walk&&!a.off)idleLife(a,r,b,t);
@@ -3814,6 +3866,35 @@ const V=[];
 {const f=actors.find(a=>a.talkId==='fisher');Object.assign(f,{villager:true,role:'fish1',house:2,tool:'rod'});V.push(f);
  const m=actors.find(a=>a.talkId==='miller');Object.assign(m,{villager:true,role:'field',house:4,tool:'hoe'});V.push(m);}
 
+// ---------- townsfolk of the big island ----------
+// Each generated settlement gets people by its size and wealth; they walk about their square and talk
+// about their own place: why it is rich or poor, the bandits on the road, the capital's quarters.
+const TOWN=[];
+{const MN=['Арвид','Бренн','Гуннар','Даг','Ивар','Кнуд','Лейф','Магнус','Олаф','Ренье','Сигурд','Торвальд','Эйрик','Ян','Бьорн','Готфрид'],
+   FN=['Астрид','Бирта','Гудрун','Дагни','Ингрид','Кайса','Лив','Марит','Ранхильд','Сольвейг','Тора','Хельга','Эльса','Ютта','Сигне','Фрейя'],
+   JOB={capital:['Стражник','Торговец','Писарь','Ремесленник','Горожанка','Жрица','Купчиха','Подмастерье','Глашатай','Нищий'],
+     village:['Пахарь','Пастух','Мельничиха','Пасечник','Крестьянка','Бондарь'],works:['Каменотёс','Каменотёс','Десятник'],poor:['Торфяник','Сборщица клюквы','Старуха','Батрак']};
+ let k=0;
+ for(const p of GEN.places.filter(p=>!p.stamp&&['capital','village','works'].includes(p.type))){
+   const kind=p.type==='capital'?'capital':p.type==='works'?'works':p.poorWhy?'poor':'village',n=kind==='capital'?10:kind==='works'?3:kind==='poor'?3:3+Math.round((p.wealth||0)*.6);
+   for(let i=0;i<n;i++,k++){const job=JOB[kind][i%JOB[kind].length],fem=/а$|я$|Купчиха|Жрица|Горожанка|Мельничиха|Крестьянка|Старуха/.test(job),nm=(fem?FN:MN)[(k*7+i*3)%16];
+     const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc:job+' '+nm,talkId:'town',place:p,kind,said:0});
+     const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
+     if(job==='Стражник')setHeld(a.o,'R','spear');TOWN.push(a);}}}
+function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
+  if(a.kind==='capital'){L.push(kin==='враг'?'Стража про тебя спрашивала. Ходи тише.':kin==='герой'||kin==='друг'?'Это ты гонял разбойников с тракта? Корона помнит добро.':'Ты не здешний. В столице держись больших улиц.');
+    L.push('Во дворце решают, на рынке торгуют, а в бедном квартале у порта лучше не ходить ночью.','Порт кормит всё королевство: соль, рыба, железо — всё идёт через пристань.','Налоги опять подняли. Говорят, на стены. А стены всё те же.');}
+  if(a.kind==='village')L.push(p.wealth>=3?'Земля у нас жирная, до столичного рынка рукой подать — грех жаловаться.':'Живём с поля. Год на год не приходится.','Река рядом — и скотина поена, и мельница крутится.');
+  if(a.kind==='poor')L.push(p.poorWhy==='болото'?'Болото кругом. Хлеб не растёт, только клюква да торф.':'До рынка далеко, дорога плохая. Пока довезёшь — всё сгниёт.','Ни лекаря, ни кузнеца. Всё сами.');
+  if(a.kind==='works')L.push('Камень из наших холмов идёт на столичные стены.','Пыль глотаем с утра до ночи. Зато платят исправно.');
+  const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На тракте опять грабят. Лагерь где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+' от нас.');
+  const beast=GEN.places.filter(q=>['wolves','bear','boars'].includes(q.type)).sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'По ночам волки воют. Скотину загоняем пораньше.',bear:'В горах медведь. Охотники туда больше не ходят.',boars:'Кабаны роют поля на холмах. Хоть бы кто поохотился.'}[beast.type]);
+  return L;}
+// each talk says the next line, so a villager never repeats one before all are told
+function townTalk(a,n){const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
+
 // ---------- weather ----------
 const WX={rain:0,target:0,next:0};
 const rainGeo=new THREE.BufferGeometry(),RN=500,rp=new Float32Array(RN*6);rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3));
@@ -4267,8 +4348,8 @@ function ecoLoad(d){if(!d)return;gold=d.gold??GOLD_START;dayN=d.day||0;for(const
 // The artifact's fate is the player's choice; keeping it makes the only item of its kind,
 // absorbing it gives a power for good. A hero holds at most three unique items and powers.
 const REP_NAMES=['враг','чужак','знакомый','друг','герой'];
-const FACTIONS={village:'Заводь',bandits:'Разбойники'};
-const REP={village:0,bandits:0,jobs:0};
+const FACTIONS={village:'Заводь',kingdom:'Королевство',bandits:'Разбойники'};
+const REP={village:0,kingdom:0,bandits:0,jobs:0,roads:0};
 // points: -3 and below враг, up to 1 чужак, 2-4 знакомый, 5-8 друг, 9 and more герой
 function repLevel(f){const p=REP[f];return p<=-3?0:p<2?1:p<5?2:p<9?3:4;}
 const repName=f=>REP_NAMES[repLevel(f)];
@@ -4280,7 +4361,9 @@ function repPriceK(){return [1.5,1,.95,.9,.8][repLevel('village')];}
 function repJob(){if(REP.jobs<3){REP.jobs++;repAdd('village',1,'подработки');}}
 // a bandit learns of a killing only if another bandit saw it
 function repKill(e){if(e.model!=='bandit')return;const seen=enemies.some(o=>o!==e&&!o.dead&&o.model==='bandit'&&Math.hypot(o.x-e.x,o.z-e.z)<=8);
-  if(seen)repAdd('bandits',-2,'свидетели в лагере');}
+  if(seen)repAdd('bandits',-2,'свидетели в лагере');
+  // the crown is glad of every robber gone from its roads, up to four times
+  if(REP.roads<4){REP.roads++;repAdd('kingdom',1,'тракт стал безопаснее');}}
 
 // ---------- the chapel heart ----------
 const ART={fate:null,powers:[]};const UNIQUE_MAX=3;

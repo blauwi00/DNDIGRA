@@ -304,6 +304,15 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       if (CHUNKS.size < 100) bad.push('world not split into chunks: ' + CHUNKS.size);
       await go(home[0], home[1]);
       if (!near()) bad.push('capital chunks stay after leaving');
+      // animals walk on four legs in diagonal pairs; every settlement has its people; beasts live in their lairs
+      const wolf = enemies.find((e) => e.model === 'wolf'), r = wolf.o.userData.rig;
+      if (!r.quad) bad.push('wolf has no four-legged skeleton'); else { quadPose(r, 1, 1, 0, 0); if (!(r.FL.rotation.x === r.BR.rotation.x && r.FL.rotation.x === -r.FR.rotation.x && r.FL.rotation.x !== 0)) bad.push('wolf legs not in diagonal pairs'); }
+      for (const m of ['boar', 'bear']) if (!enemies.some((e) => e.model === m && e.o.userData.rig.quad)) bad.push('no ' + m);
+      for (const q of GEN.places.filter((q) => !q.stamp && ['capital', 'village', 'works'].includes(q.type))) if (!TOWN.some((t) => t.place === q)) bad.push('nobody lives in ' + q.n);
+      const t = TOWN[0], seenL = new Set(), n = townLines(t).length; t.said = 0;
+      for (let i = 0; i < n; i++) { townTalk(t, t.npc); const l = document.querySelector('.talk p').textContent; if (seenL.has(l)) bad.push('town line repeats'); seenL.add(l); }
+      document.querySelector('.talk').hidden = true;
+      if (!FACTIONS.kingdom) bad.push('no kingdom standing');
       return bad;
     });
     assert.deepEqual(stream, []);

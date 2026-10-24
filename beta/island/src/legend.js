@@ -4,8 +4,8 @@
 // The artifact's fate is the player's choice; keeping it makes the only item of its kind,
 // absorbing it gives a power for good. A hero holds at most three unique items and powers.
 const REP_NAMES=['враг','чужак','знакомый','друг','герой'];
-const FACTIONS={village:'Заводь',bandits:'Разбойники'};
-const REP={village:0,bandits:0,jobs:0};
+const FACTIONS={village:'Заводь',kingdom:'Королевство',bandits:'Разбойники'};
+const REP={village:0,kingdom:0,bandits:0,jobs:0,roads:0};
 // points: -3 and below враг, up to 1 чужак, 2-4 знакомый, 5-8 друг, 9 and more герой
 function repLevel(f){const p=REP[f];return p<=-3?0:p<2?1:p<5?2:p<9?3:4;}
 const repName=f=>REP_NAMES[repLevel(f)];
@@ -17,7 +17,9 @@ function repPriceK(){return [1.5,1,.95,.9,.8][repLevel('village')];}
 function repJob(){if(REP.jobs<3){REP.jobs++;repAdd('village',1,'подработки');}}
 // a bandit learns of a killing only if another bandit saw it
 function repKill(e){if(e.model!=='bandit')return;const seen=enemies.some(o=>o!==e&&!o.dead&&o.model==='bandit'&&Math.hypot(o.x-e.x,o.z-e.z)<=8);
-  if(seen)repAdd('bandits',-2,'свидетели в лагере');}
+  if(seen)repAdd('bandits',-2,'свидетели в лагере');
+  // the crown is glad of every robber gone from its roads, up to four times
+  if(REP.roads<4){REP.roads++;repAdd('kingdom',1,'тракт стал безопаснее');}}
 
 // ---------- the chapel heart ----------
 const ART={fate:null,powers:[]};const UNIQUE_MAX=3;

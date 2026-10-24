@@ -98,6 +98,30 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
     for(const [x,y,z,w,h,d] of hand)bb.union(new THREE.Box3(new THREE.Vector3(x-w/2,y-h/2,z-d/2),new THREE.Vector3(x+w/2,y+h/2,z+d/2)));
     rig['hand'+k]=bb.getCenter(new THREE.Vector3()).sub(o);}
   const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];holder.userData.parts=parts;return holder}
+// ---------- four-legged animals: their own skeleton (body, head, tail and four legs) ----------
+// A quadruped is a model longer than it is wide (wolf, boar, bear). Its legs swing in diagonal pairs.
+const isQuad=boxes=>{const z=boxes.map(b=>b[2]);return Math.max(...z)-Math.min(...z)>1.1;};
+function buildQuad(boxes){const g=new THREE.Group(),rig={quad:true};const legTop=Math.min(...boxes.filter(b=>b[4]>.3&&Math.abs(b[0])<.05).map(b=>b[1]-b[4]/2),.3);
+  const zs=boxes.map(b=>b[2]),zMax=Math.max(...zs),zMin=Math.min(...zs),len=zMax-zMin,neck=zMax-len*.22,tailZ=zMin+len*.22;
+  const legs=boxes.filter(b=>b[1]+b[4]/2<=legTop+.06&&Math.abs(b[0])>.05);const fz=Math.max(...legs.map(b=>b[2])),bz=Math.min(...legs.map(b=>b[2]));
+  const P={body:[0,legTop,0],head:[0,legTop+.15,neck],tail:[0,legTop+.3,tailZ],FL:[-.14,legTop,fz],FR:[.14,legTop,fz],BL:[-.14,legTop,bz],BR:[.14,legTop,bz]};
+  const parts={};for(const k in P){rig[k]=new THREE.Group();rig[k].position.set(...P[k]);g.add(rig[k]);parts[k]=[];}
+  for(const b of boxes){const[x,y,z]=b;let k='body';
+    if(legs.includes(b)||b[1]+b[4]/2<=legTop+.06&&Math.abs(x)>.05&&b[5]<.02)k=(z>(fz+bz)/2?'F':'B')+(x<0?'L':'R');
+    else if(z>=neck)k='head';else if(z<=tailZ)k='tail';parts[k].push(b);}
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  for(const[k,list]of Object.entries(parts))for(const decal of[false,true]){const L=list.filter(b=>(Math.min(b[3],b[4],b[5])<=.012)===decal);if(!L.length)continue;const o=rig[k].position,pos=[],nor=[],cols=[],idx=[];
+    for(const[x,y,z,w,h,d,c,e]of L){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);const base=pos.length/3,Pa=gb.attributes.position.array,N=gb.attributes.normal.array;
+      for(let i=0;i<Pa.length;i++){pos.push(Pa[i]);nor.push(N[i]);}for(let i=0;i<Pa.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);
+    const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;rig[k].add(m);}
+  // the shared code also turns arms, legs and the torso of humans: animals get quiet stand-ins
+  rig.torso=rig.body;for(const k of['armL','armR','foreL','foreR','legL','legR'])rig[k]=new THREE.Group();rig.handL=rig.handR=new THREE.Vector3();
+  const minY=Math.min(...boxes.map(b=>b[1]-b[4]/2));g.position.y=-minY;
+  const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];return holder;}
+// walking: diagonal pairs of legs swing together, the head nods and the tail sways
+function quadPose(r,walk,sw,t,ph){const a=walk?sw*.55:0;r.FL.rotation.x=a;r.BR.rotation.x=a;r.FR.rotation.x=-a;r.BL.rotation.x=-a;
+  r.head.rotation.x=walk?Math.abs(sw)*.08:0;r.tail.rotation.y=Math.sin(t*(walk?6:1.5)+ph)*(walk?.35:.15);r.body.rotation.z=0;}
 // Held item meshes, built around the grip point of a hand (0,0,0 = fist).
 const IM=c=>new THREE.MeshLambertMaterial({color:c});
 const HELD={

@@ -270,7 +270,7 @@ const flies=[];for(let i=0;i<22;i++){const f=new THREE.Mesh(box(.04,.04,.04),new
 // ---------- characters ----------
 const hero=buildModel(MODELS['fighter-male']);scene.add(hero);setHeld(hero,'L','shield');setHeld(hero,'R','sword');
 const actors=[],enemies=[];
-function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(free(x+dx,z+dz))c.push([x+dx,z+dz]);if(c.length){[x,z]=c[0];if(o.home)o.home=[x,z];}}const m=buildModel(MODELS[model]);o.model=model;if(o.scale)m.scale.setScalar(o.scale);scene.add(m);
+function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(free(x+dx,z+dz))c.push([x+dx,z+dz]);if(c.length){[x,z]=c[0];if(o.home)o.home=[x,z];}}const m=(isQuad(MODELS[model])?buildQuad:buildModel)(MODELS[model]);o.model=model;if(o.scale)m.scale.setScalar(o.scale);scene.add(m);
   const a=Object.assign({o:m,x,z,px:x+.5,pz:z+.5,face:hash2(x,z)*6,ph:hash2(z,x)*9,spd:1.8,home:[x,z]},o);actors.push(a);return a;}
 const H0={o:hero,x:Z.dock[0]+1,z:Z.dock[1],face:Math.PI/2,ph:0,spd:2.4,hp:20,max:20,ac:15,name:'Эльдар'};H0.px=H0.x+.5;H0.pz=H0.z+.5;actors.push(H0);
 const tint=(a,c)=>{a.o.userData.mats.forEach(m=>m.color.setHex(c));return a;};
@@ -284,6 +284,8 @@ const FOE={
   bandit:{name:'Разбойник',hp:11,ac:12,atk:3,dmg:6,dmgB:1,atkName:'Сабля',speed:6,perc:10,dex:1,wis:0,ath:2},
   goblin:{name:'Гоблин',hp:7,ac:15,atk:4,dmg:6,dmgB:2,atkName:'Короткий лук',range:6,speed:6,perc:9,dex:2,wis:-1,ath:-1,spd:2.6},
   skeleton:{name:'Скелет',hp:13,ac:13,atk:4,dmg:6,dmgB:2,atkName:'Ржавый меч',speed:6,perc:9,dex:2,wis:-1,ath:0},
+  boar:{name:'Кабан',hp:11,ac:11,atk:3,dmg:6,dmgK:1,dmgB:1,atkName:'Клыки',speed:8,perc:9,dex:0,wis:-1,ath:3,spd:2.4},
+  bear:{name:'Медведь',hp:19,ac:11,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Когти',speed:8,perc:13,dex:0,wis:1,ath:4,spd:2.2},
   wolf:{name:'Волк',hp:11,ac:13,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Укус',speed:8,perc:13,dex:2,wis:1,ath:1,spd:2.8}};
 function foe(model,x,z,o){o=Object.assign({},FOE[model],{max:FOE[model].hp},o);const a=actor(model,x,z,Object.assign({enemy:true,wander:3,spd:2.2,cd:0},o));enemies.push(a);
   if(model==='bandit')setHeld(a.o,'R',['dagger_curved','sword_scimitar','axe_hand'][enemies.length%3]);return a;}
@@ -292,7 +294,7 @@ foe('goblin',Z.forest[0]-4,Z.forest[1]-6);foe('goblin',Z.hunter[0]+3,Z.hunter[1]
 foe('skeleton',Z.ruins[0]-2,Z.ruins[1]+1);foe('skeleton',Z.ruins[0]+2,Z.ruins[1]-1);foe('skeleton',Z.grave[0],Z.grave[1]+1);
 foe('wolf',Z.forest[0]+3,Z.forest[1]-2,{wander:4});foe('wolf',Z.forest[0]+5,Z.forest[1]-1,{wander:4});
 // the big island's camps and lairs (added after the old ones, so saved kills keep their places)
-for(const p of GPL){if(p.type==='bandits'){foe('bandit',p.x+1,p.z+1);foe('bandit',p.x-1,p.z+1);}if(p.type==='wolves'){foe('wolf',p.x,p.z,{wander:5});foe('wolf',p.x+2,p.z+1,{wander:5});foe('wolf',p.x-1,p.z+2,{wander:5});}}
+for(const p of GPL){if(p.type==='bandits'){foe('bandit',p.x+1,p.z+1);foe('bandit',p.x-1,p.z+1);}if(p.type==='boars'){foe('boar',p.x,p.z,{wander:4});foe('boar',p.x+2,p.z-1,{wander:4});}if(p.type==='bear')foe('bear',p.x,p.z,{wander:3});if(p.type==='wolves'){foe('wolf',p.x,p.z,{wander:5});foe('wolf',p.x+2,p.z+1,{wander:5});foe('wolf',p.x-1,p.z+2,{wander:5});}}
 // enemy health bars: shown once a fight starts
 const barBg=new THREE.MeshBasicMaterial({color:0x14100c,depthTest:false}),barFg=new THREE.MeshBasicMaterial({color:0xd23a30,depthTest:false});
 function addBar(e){const g=new THREE.Group(),bg=new THREE.Mesh(box(.62,.1,.01),barBg),fg=new THREE.Mesh(box(.56,.06,.01),barFg);fg.position.z=.01;bg.renderOrder=fg.renderOrder=9;g.add(bg,fg);g.visible=false;scene.add(g);e.bar={g,fg};}
@@ -390,6 +392,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
+  if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
     return say(n,'Травы любят тишину. Береги себя.');}
@@ -417,7 +420,7 @@ function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e
   if(!H0.sneak)return spotted();if(e.checked)return false;e.checked=true;
   const sb=HERO.stealth+(HERO.night&&nightness()>.5?2:0),r=d(20),tot=r+sb,ok=tot>=e.perc;dice.hidden=false;dice.innerHTML='Скрытность против '+e.name+': '+r+' + '+sb+' = <b>'+tot+'</b> против '+e.perc+' — '+(ok?'вас не заметили':'<b>замечены!</b>');return ok?false:spotted();}
 function ai(){const now=performance.now();
-  for(const a of actors){if(a===H0||a.dead)continue;
+  for(const a of actors){if(a===H0||a.dead)continue;if(a.far&&!a.inFight)continue; // far away the island rests
     if(a.enemy){if(a.inFight)continue;
       if(!a.aware&&!busy&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
       if(CB.on)continue;
@@ -455,11 +458,15 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
   if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
-  for(const a of actors){if(a.dead&&a!==H0)continue;const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
+  for(const a of actors){if(a.dead&&a!==H0)continue;
+    // actors far from the camera are not drawn or moved; they wake as the hero comes near
+    const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
+    const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
     const o=a.o,b=o.userData.body,walk=a.walkT;const sw=reduce?0:Math.sin(walk),breathe=reduce?0:Math.sin(t*2+a.ph);
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
     if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
-    const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
+    const r=o.userData.rig;if(r&&r.quad){quadPose(r,walk,sw,t,a.ph);if(!walk&&!a.off&&a.enemy&&!a.inFight)r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+a.ph))*.35;}
+    else if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       armPose(o,walk,sw,breathe);
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
       if(!walk&&!a.off)idleLife(a,r,b,t);

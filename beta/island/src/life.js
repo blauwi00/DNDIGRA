@@ -40,6 +40,35 @@ const V=[];
 {const f=actors.find(a=>a.talkId==='fisher');Object.assign(f,{villager:true,role:'fish1',house:2,tool:'rod'});V.push(f);
  const m=actors.find(a=>a.talkId==='miller');Object.assign(m,{villager:true,role:'field',house:4,tool:'hoe'});V.push(m);}
 
+// ---------- townsfolk of the big island ----------
+// Each generated settlement gets people by its size and wealth; they walk about their square and talk
+// about their own place: why it is rich or poor, the bandits on the road, the capital's quarters.
+const TOWN=[];
+{const MN=['Арвид','Бренн','Гуннар','Даг','Ивар','Кнуд','Лейф','Магнус','Олаф','Ренье','Сигурд','Торвальд','Эйрик','Ян','Бьорн','Готфрид'],
+   FN=['Астрид','Бирта','Гудрун','Дагни','Ингрид','Кайса','Лив','Марит','Ранхильд','Сольвейг','Тора','Хельга','Эльса','Ютта','Сигне','Фрейя'],
+   JOB={capital:['Стражник','Торговец','Писарь','Ремесленник','Горожанка','Жрица','Купчиха','Подмастерье','Глашатай','Нищий'],
+     village:['Пахарь','Пастух','Мельничиха','Пасечник','Крестьянка','Бондарь'],works:['Каменотёс','Каменотёс','Десятник'],poor:['Торфяник','Сборщица клюквы','Старуха','Батрак']};
+ let k=0;
+ for(const p of GEN.places.filter(p=>!p.stamp&&['capital','village','works'].includes(p.type))){
+   const kind=p.type==='capital'?'capital':p.type==='works'?'works':p.poorWhy?'poor':'village',n=kind==='capital'?10:kind==='works'?3:kind==='poor'?3:3+Math.round((p.wealth||0)*.6);
+   for(let i=0;i<n;i++,k++){const job=JOB[kind][i%JOB[kind].length],fem=/а$|я$|Купчиха|Жрица|Горожанка|Мельничиха|Крестьянка|Старуха/.test(job),nm=(fem?FN:MN)[(k*7+i*3)%16];
+     const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc:job+' '+nm,talkId:'town',place:p,kind,said:0});
+     const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
+     if(job==='Стражник')setHeld(a.o,'R','spear');TOWN.push(a);}}}
+function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
+  if(a.kind==='capital'){L.push(kin==='враг'?'Стража про тебя спрашивала. Ходи тише.':kin==='герой'||kin==='друг'?'Это ты гонял разбойников с тракта? Корона помнит добро.':'Ты не здешний. В столице держись больших улиц.');
+    L.push('Во дворце решают, на рынке торгуют, а в бедном квартале у порта лучше не ходить ночью.','Порт кормит всё королевство: соль, рыба, железо — всё идёт через пристань.','Налоги опять подняли. Говорят, на стены. А стены всё те же.');}
+  if(a.kind==='village')L.push(p.wealth>=3?'Земля у нас жирная, до столичного рынка рукой подать — грех жаловаться.':'Живём с поля. Год на год не приходится.','Река рядом — и скотина поена, и мельница крутится.');
+  if(a.kind==='poor')L.push(p.poorWhy==='болото'?'Болото кругом. Хлеб не растёт, только клюква да торф.':'До рынка далеко, дорога плохая. Пока довезёшь — всё сгниёт.','Ни лекаря, ни кузнеца. Всё сами.');
+  if(a.kind==='works')L.push('Камень из наших холмов идёт на столичные стены.','Пыль глотаем с утра до ночи. Зато платят исправно.');
+  const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На тракте опять грабят. Лагерь где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+' от нас.');
+  const beast=GEN.places.filter(q=>['wolves','bear','boars'].includes(q.type)).sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'По ночам волки воют. Скотину загоняем пораньше.',bear:'В горах медведь. Охотники туда больше не ходят.',boars:'Кабаны роют поля на холмах. Хоть бы кто поохотился.'}[beast.type]);
+  return L;}
+// each talk says the next line, so a villager never repeats one before all are told
+function townTalk(a,n){const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
+
 // ---------- weather ----------
 const WX={rain:0,target:0,next:0};
 const rainGeo=new THREE.BufferGeometry(),RN=500,rp=new Float32Array(RN*6);rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3));
