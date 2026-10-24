@@ -126,6 +126,29 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
     });
     assert.deepEqual(piece, []);
 
+    step('nothing passes through: arms, legs and hems clear each other at rest and mid-stride');
+    const through = await p.evaluate(() => {
+      const bad = new Set(), M = .015, v = new THREE.Vector3();
+      const watch = /^(fore[LR]\/(torso|legL|legR|cape|head)|arm[LR]\/(legL|legR|cape)|legL\/legR)$/;
+      for (const race of RACE_ORDER) for (const cls of CLASS_ORDER) for (const g of ['male', 'female']) {
+        const ap = baseLook(cls, race, g), m = buildModel(raceDecorate(race, C_.build(C_.spec('hero', {classId: gidOf(cls), appearance: ap})), ap));
+        const P = m.userData.parts, r = m.userData.rig, ks = Object.keys(P).filter((k) => P[k].length);
+        const org = (k) => k.startsWith('fore') ? r[k].position.clone().add(r[k].parent.position) : r[k].position.clone();
+        for (const [walk, sw] of [[0, 0], [1, 1], [1, -1]]) {
+          armPose(m, walk, sw, 0); r.legL.rotation.x = sw * .5; r.legR.rotation.x = -sw * .5; m.updateMatrixWorld(true);
+          for (const a of ks) for (const b of ks) {
+            const pair = a + '/' + b; if (!watch.test(pair)) continue; const oa = org(a), ob = org(b), inv = r[b].matrixWorld.clone().invert();
+            for (const A of P[a]) if (!A[8]) for (const fx of [-.5, 0, .5]) for (const fy of [-.5, 0, .5]) for (const fz of [-.5, 0, .5]) {
+              v.set(A[0] + fx * A[3] - oa.x, A[1] + fy * A[4] - oa.y, A[2] + fz * A[5] - oa.z).applyMatrix4(r[a].matrixWorld).applyMatrix4(inv).add(ob);
+              if (P[b].some((B) => !B[8] && Math.abs(v.x - B[0]) < B[3] / 2 - M && Math.abs(v.y - B[1]) < B[4] / 2 - M && Math.abs(v.z - B[2]) < B[5] / 2 - M)) bad.add(race + ' ' + cls + ' ' + g + ' ' + pair);
+            }
+          }
+        }
+      }
+      return [...bad];
+    });
+    assert.deepEqual(through, []);
+
     step('peoples: one unique main trait each, and every trait changes the game');
     const peoples = await p.evaluate(() => {
       const bad = [], keys = RACE_ORDER.map((r) => Object.keys(RACES[r].main || {})[0]);
