@@ -5,6 +5,16 @@
 const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Math.min(255,((c>>8)&255)*k|0)<<8)|Math.min(255,(c&255)*k|0);const PIV={cape:[0,.72,-.17],head:[0,.77,0],torso:[0,.45,0],armL:[-.23,.66,0],armR:[.23,.66,0],legL:[-.1,.34,0],legR:[.1,.34,0]};
 function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
+  // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
+  // and a drawn mark that lies on no block is dropped, so nothing hovers beside the body
+  {const gap=(a,b,i)=>Math.abs(a[i]-b[i])-(a[i+3]+b[i+3])/2,near=(a,b)=>Math.max(0,gap(a,b,0))+Math.max(0,gap(a,b,1))+Math.max(0,gap(a,b,2));
+   const solid=boxes.filter(b=>!b[8]&&(b.part||Math.abs(b[0])<=.31));
+   for(const b of solid){let best=null,bd=1e9;for(const c of solid){if(c===b)continue;const d=near(b,c);if(d<bd){bd=d;best=c;}}
+     if(best&&bd>.004)for(let i=0;i<3;i++){const g=gap(b,best,i);if(g>-.004)b[i]+=Math.sign(best[i]-b[i])*(g+.008);}}
+   // a mark belongs to the block it lies closest to: marks of a builder's held item (the shield rim) go with it
+   const dist=(d,list)=>Math.min(1e9,...list.map(b=>near(d,b))),gone=boxes.filter(b=>!b[8]&&!solid.includes(b));
+   const host=d=>{const s=dist(d,solid);return s<.012&&s<dist(d,gone);};
+   boxes=boxes.filter(d=>!d[8]||host(d));}
   for(const [k,p] of Object.entries(PIV)){rig[k]=new THREE.Group();rig[k].position.set(...p);g.add(rig[k]);parts[k]=[];}
   // forearms hang from an elbow joint inside each arm, so arms can bend
   for(const k of ['L','R']){const f=rig['fore'+k]=new THREE.Group();f.position.set(0,ELBOW-PIV['arm'+k][1],0);rig['arm'+k].add(f);parts['fore'+k]=[];}
@@ -22,7 +32,7 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
      const hem=[0,panel[1]-panel[4]/2+.02,back,panel[3],.03,.005,capeShade(cc,.7),false,'f'];hem.part='cape';boxes.push(hem);}}
   // hair that hangs past the shoulders (long, wavy, braids) must stay with the head, not swing with the arms:
   // hair colours are those on top of the head that never appear on the legs and belt
-  {const low=new Set(boxes.filter(b=>!b[8]&&b[1]<.42&&Math.abs(b[0])<.15).map(b=>b[6])),skin=new Set(boxes.filter(b=>!b[8]&&Math.abs(b[0])<.12&&b[1]>.82&&b[1]<1.02&&b[2]>.15).map(b=>b[6])),hairC=new Set(boxes.filter(b=>!b[8]&&b[1]>.8).map(b=>b[6]).filter(c=>!low.has(c)&&!skin.has(c)));
+  {const low=new Set(boxes.filter(b=>!b[8]&&b[1]<.42&&Math.abs(b[0])<.15).map(b=>b[6])),skin=new Set(boxes.filter(b=>!b[8]&&Math.abs(b[0])<.12&&b[1]>.82&&b[1]<1.02&&b[2]>.15).map(b=>b[6])),skull=boxes.filter(b=>!b[8]&&b[1]>.8&&b[1]<1.1&&Math.abs(b[0])<.1).sort((a,b)=>b[3]*b[4]*b[5]-a[3]*a[4]*a[5])[0],hairC=new Set(boxes.filter(b=>!b[8]&&b[1]>.8).map(b=>b[6]).filter(c=>!low.has(c)&&!skin.has(c)&&!(skull&&c===skull[6])));
    for(const b of boxes){if(b.part||b[8]||Math.abs(b[0])>.31||!(Math.abs(b[0])>.29||(Math.abs(b[0])>.19&&b[1]<.74)))continue;
      if(hairC.has(b[6]))b.part='head';else if(b[3]<.1&&b[1]+b[4]/2>.7)b.part='torso';}
    // shading decals follow the box they lie on
@@ -35,6 +45,10 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
     const lo=y-b[4]/2,hi=y+b[4]/2,f='fore'+k.slice(3);
     if(hi<=ELBOW)parts[f].push(b);else if(lo>=ELBOW)parts[k].push(b);
     else{parts[k].push([x,(ELBOW+hi)/2,b[2],b[3],hi-ELBOW,...b.slice(5)]);parts[f].push([x,(lo+ELBOW)/2,b[2],b[3],ELBOW-lo,...b.slice(5)]);}}
+  // legs reach up under the belt, so no gap shows between them and the body, even mid-stride
+  {const solidT=parts.torso.filter(b=>!b[8]);if(solidT.length){const bot=Math.min(...solidT.map(b=>b[1]-b[4]/2))+.02;
+    for(const k of ['legL','legR']){const own=parts[k].filter(b=>!b[8]);if(!own.length)continue;const top=Math.max(...own.map(b=>b[1]+b[4]/2));
+      if(top>=bot)continue;parts[k]=parts[k].map(b=>{if(b[8]||b[1]+b[4]/2<top-.03)return b;const lo=b[1]-b[4]/2;return [b[0],(lo+bot)/2,b[2],b[3],bot-lo,...b.slice(5)];});}}}
   // One merged, vertex-coloured mesh per limb instead of ~100 separate boxes.
   // thin decals (brows, mouth, beard edges, texel shading) lie on other faces: they get their own mesh drawn slightly in front,
   // as in the game's renderer, otherwise they flicker and leave holes
@@ -51,7 +65,7 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
     const own=list.filter(b=>!b[8]&&Math.abs(b[2])<.1&&b[5]<.2);if(!own.length){rig['hand'+k]=new THREE.Vector3(0,-.14,.02);continue;}const lo=Math.min(...own.map(b=>b[1]-b[4]/2)),hand=own.filter(b=>b[1]-b[4]/2<lo+.06),bb=new THREE.Box3();
     for(const [x,y,z,w,h,d] of hand)bb.union(new THREE.Box3(new THREE.Vector3(x-w/2,y-h/2,z-d/2),new THREE.Vector3(x+w/2,y+h/2,z+d/2)));
     rig['hand'+k]=bb.getCenter(new THREE.Vector3()).sub(o);}
-  const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];return holder}
+  const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];holder.userData.parts=parts;return holder}
 // Held item meshes, built around the grip point of a hand (0,0,0 = fist).
 const IM=c=>new THREE.MeshLambertMaterial({color:c});
 const HELD={

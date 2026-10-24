@@ -110,6 +110,22 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
     });
     assert.deepEqual(hands, []);
 
+    step('one piece: no block hovers, hands move with the forearms, legs meet the body');
+    const piece = await p.evaluate(() => {
+      const bad = [], touch = (a, b) => [0, 1, 2].every((i) => Math.abs(a[i] - b[i]) <= (a[i + 3] + b[i + 3]) / 2 + .012);
+      for (const race of RACE_ORDER) for (const cls of CLASS_ORDER) for (const g of ['male', 'female']) {
+        const ap = baseLook(cls, race, g), P = buildModel(raceDecorate(race, C_.build(C_.spec('hero', {classId: gidOf(cls), appearance: ap})), ap)).userData.parts;
+        const all = Object.values(P).flat(), solid = all.filter((b) => !b[8]), id = race + ' ' + cls + ' ' + g;
+        if (all.some((b) => !solid.some((c) => c !== b && touch(b, c)))) bad.push(id + ' floating block');
+        const skin = new THREE.Color(ap.skin).getHex();
+        if (P.head.some((b) => !b[8] && b[1] < .6 && b[6] === skin)) bad.push(id + ' hand on the head');
+        const tb = Math.min(...P.torso.filter((b) => !b[8]).map((b) => b[1] - b[4] / 2));
+        for (const k of ['legL', 'legR']) if (Math.max(...P[k].filter((b) => !b[8]).map((b) => b[1] + b[4] / 2)) < tb) bad.push(id + ' gap at ' + k);
+      }
+      return bad;
+    });
+    assert.deepEqual(piece, []);
+
     step('peoples: one unique main trait each, and every trait changes the game');
     const peoples = await p.evaluate(() => {
       const bad = [], keys = RACE_ORDER.map((r) => Object.keys(RACES[r].main || {})[0]);

@@ -41,7 +41,7 @@ const shadeC=(c,k)=>{const r=(c>>16)&255,g=(c>>8)&255,b=c&255;return (Math.min(2
 function raceAppearance(race,ap){const R=RACES[race]||RACES.human,o=JSON.parse(JSON.stringify(ap));if(R.ears)o.ears=R.ears;if(R.beard&&o.gender!=='female'&&(!o.beard||o.beard==='none'))o.beard=R.beard;
   if(R.marks)o.marks=[...new Set([...(o.marks||[]),...R.marks])];if(R.skins&&!R.skins.includes(o.skin))o.skin=R.skins[0];if(R.bigEyes){o.eyes='big';o.eye=o.eye==='#14141a'?'#8a6af0':o.eye;}return o;}
 // extra boxes for horns, tusks, fins, shells, growths and tails; then the build is scaled
-function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.slice(),skin=hx(ap&&ap.skin||'#e9bf90'),B=(x,y,z,w,h,d,c,e)=>out.push([x,y,z,w,h,d,c,!!e]);
+function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.slice(),skin=hx(ap&&ap.skin||'#e9bf90'),B=(x,y,z,w,h,d,c,e)=>out.push([x,y,z,w,h,d,c,!!e]),D=(x,y,z,w,h,d,c,e)=>out.push([x,y,z,w,h,d,c,!!e,'f']);
   // features that stick out past the hair are pinned to the head, so they are never dropped or hidden
   const H=(x,y,z,w,h,d,c,e)=>{const b=[x,y,z,w,h,d,c,!!e];b.part='head';out.push(b);};
   if(R.horns===true){const c=0x3a2a2a;for(const s of [-1,1]){B(s*.15,1.27,.05,.07,.1,.07,c);B(s*.19,1.35,0,.06,.09,.06,c);B(s*.22,1.42,-.04,.05,.07,.05,shadeC(c,1.4));}}
@@ -56,13 +56,13 @@ function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.
   if(R.ears==='long')for(const s of [-1,1]){H(s*.3,.97,0,.05,.1,.07,skin);H(s*.345,1.03,-.02,.05,.09,.05,skin);H(s*.385,1.1,-.045,.04,.08,.04,shadeC(skin,.92));H(s*.415,1.16,-.06,.03,.06,.03,shadeC(skin,.85));}
   if(R.ears==='pointed')for(const s of [-1,1]){H(s*.3,.96,0,.05,.09,.06,skin);H(s*.34,1.01,-.02,.04,.07,.04,shadeC(skin,.9));}
   if(R.nose)B(0,.9,.27,.07,.07,.06,shadeC(skin,.92));
-  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)B(s*.2,.86+i*.03,.248,.06,.012,.006,shadeC(skin,.55));}
+  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)D(s*.2,.86+i*.03,.248,.06,.012,.006,shadeC(skin,.55));}
   if(R.shell){const c=shadeC(skin,.7);for(const s of [-1,1]){B(s*.26,.7,0,.12,.07,.3,c);B(s*.26,.75,0,.09,.03,.24,shadeC(c,1.2));}for(let i=0;i<3;i++)B(0,.74-i*.13,-.25,.34-i*.04,.11,.05,shadeC(c,1.1-i*.08));}
-  if(R.stoneMarks)for(const [x,y] of [[-.17,1.02],[.15,.86],[-.12,.84],[.19,1.06]])B(x,y,.247,.06,.015,.006,shadeC(skin,.7));
-  if(R.motes){const c=0x7fe8ff;for(let i=0;i<7;i++){const a=i*.9;B(Math.cos(a)*.42,.45+i*.13,Math.sin(a)*.32,.05,.05,.05,i%2?c:0xd6f8ff,true);}
-    for(const s of [-1,1]){B(s*.09,.95,.249,.06,.055,.006,0xaef4ff,true);B(s*.16,.86,.249,.016,.09,.006,c,true);B(s*.16,.81,.249,.04,.016,.006,c,true);}
-    B(0,1.08,.249,.03,.05,.006,c,true);B(0,1.13,.249,.07,.015,.006,c,true);
-    const sh=[-.25,.82,-.05];B(sh[0],sh[1]+.08,sh[2],.06,.12,.06,0x9adfff,true);B(sh[0]-.03,sh[1]+.17,sh[2],.04,.08,.04,0xd6f8ff,true);}
+  if(R.stoneMarks)for(const [x,y] of [[-.17,1.02],[.15,.86],[-.12,.84],[.19,1.06]])D(x,y,.247,.06,.015,.006,shadeC(skin,.7));
+  // echo-bearers carry glowing marks on the face, drawn on the skin: nothing hovers beside the body
+  if(R.motes){const c=0x7fe8ff;
+    for(const s of [-1,1]){D(s*.09,.95,.249,.06,.055,.006,0xaef4ff,true);D(s*.16,.86,.249,.016,.09,.006,c,true);D(s*.16,.81,.249,.04,.016,.006,c,true);}
+    D(0,1.08,.249,.03,.05,.006,c,true);D(0,1.13,.249,.07,.015,.006,c,true);}
   return out;}
 // height and build are a scale on the finished model, so the skeleton split stays right
 function raceScale(race,model){const R=RACES[race]||RACES.human,sy=R.size,sx=(R.wide||1)*(sy<1?Math.max(.82,sy+.08):sy);model.scale.set(sx,sy,sx);return model;}
