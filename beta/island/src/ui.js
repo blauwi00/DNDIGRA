@@ -38,7 +38,7 @@ function showWheel(target,items,title){closeWheel();wheelOf=target;wheelEl.hidde
   const c=document.createElement('button');c.className='wclose';c.innerHTML=svg('close');c.setAttribute('aria-label','Закрыть');c.onclick=ev=>{ev.stopPropagation();closeWheel();};wheelEl.append(c);
   placeWheel();requestAnimationFrame(()=>wheelEl.classList.add('open'));}
 function placeWheel(){if(!wheelOf)return;if(wheelOf.o&&(!wheelOf.o.visible||wheelOf.dead)||!document.getElementById('chestui').hidden)return closeWheel();const o=wheelOf.o||wheelOf.mesh||wheelOf,v=(wheelOf.pos||o.position).clone();v.y+=.6;v.project(camera);const r=canvas.getBoundingClientRect();
-  const m=96;wheelEl.style.left=Math.min(r.width-m,Math.max(m,(v.x+1)/2*r.width))+'px';wheelEl.style.top=Math.min(r.height-m,Math.max(m+20,(1-v.y)/2*r.height))+'px';}
+  const m=96;wheelEl.style.left=Math.min(r.width-m,Math.max(m,(v.x+1)/2*r.width))+'px';const top=Math.min(r.height-m,Math.max(m+20,(1-v.y)/2*r.height));wheelEl.style.top=top+'px';wheelEl.classList.toggle('tbelow',top<210);}
 const count=id=>window.handsCount?window.handsCount(id):0;
 
 function enemyWheel(e){const fight=CB.on,items=[];
@@ -176,7 +176,7 @@ const mapEl=document.getElementById('mapview'),MAPC={'~':'#123040','A':'#b8a37a'
 function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=8;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');
   for(let z=0;z<MAPH;z++)for(let x=0;x<W;x++){const code=at(x,z);let col=MAPC[code]||'#3d5e2e';if(code==='G'&&solid.has(x+','+z))col='#24391e';g.fillStyle=col;g.fillRect(x*k,z*k,k,k);
     if(!seen[z*W+x]&&code!=='~'){g.fillStyle='rgba(8,10,12,.86)';g.fillRect(x*k,z*k,k,k);}}
-  g.font='bold 13px "Pixelify Sans",monospace';g.textAlign='center';
+  g.font='bold 13px "PT Sans",system-ui,sans-serif';g.textAlign='center';
   for(const [key,name] of ZONES){const [x,z]=Z[key];if(!seen[z*W+x])continue;g.fillStyle='#000a';g.fillText(name,x*k+k/2+1,z*k-5);g.fillStyle='#f3e2bd';g.fillText(name,x*k+k/2,z*k-6);}
   if(!chapel.lit&&seen[Z.ruins[1]*W+Z.ruins[0]]){}else if(chapel.lit){g.fillStyle='#ffb347';g.beginPath();g.arc(Z.ruins[0]*k+k/2,Z.ruins[1]*k+k/2,6,0,7);g.fill();}
   const T=questTarget();if(T){const x=T.x*k+k/2,z=T.z*k+k/2;g.strokeStyle='#ff5a4a';g.lineWidth=3;g.beginPath();g.arc(x,z,9,0,7);g.stroke();g.fillStyle='#ff5a4a';g.fillText('!',x,z+5);}

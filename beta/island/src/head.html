@@ -1,7 +1,5 @@
 <title>Эталонный кусок острова</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=PT+Sans:wght@400;700&display=swap">
 <style>
 /* Layout: full-bleed game scene, controls docked in a slim bar beneath; dark-first single look (game screen). */
 :root{
@@ -42,7 +40,7 @@ button[aria-pressed="true"]{background:#3a2c1a;border-color:var(--ember);color:#
 .palm{z-index:6}
 .palm.l.open{transform:rotate(-2deg) translateY(-18px)}
 .palm.r.open{transform:rotate(2deg) translateY(-18px)}
-.inv{position:absolute;bottom:96px;z-index:5;width:212px;padding:10px 10px 12px;background:#1d1611;font-family:"Pixelify Sans","Courier New",monospace;color:#f0e2c2;
+.inv{position:absolute;bottom:96px;z-index:5;width:212px;padding:10px 10px 12px;background:#1d1611;font-family:"PT Sans",system-ui,sans-serif;color:#f0e2c2;
   box-shadow:0 0 0 3px #6a4a2c,0 0 0 6px #120c08,0 0 0 7px #b8923e,0 10px 0 6px #0008;image-rendering:pixelated;
   transform:translateY(40px) scaleY(.2);transform-origin:bottom;opacity:0;pointer-events:none;transition:transform .22s cubic-bezier(.2,1.4,.4,1),opacity .15s}
 .inv.l{left:max(28px,env(safe-area-inset-left,0px))}.inv.r{right:max(28px,env(safe-area-inset-right,0px))}

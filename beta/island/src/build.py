@@ -8,27 +8,27 @@ head=head.replace('</style>','''.zone{position:absolute;left:50%;top:16%;transfo
 @media (prefers-reduced-motion:reduce){.zone.show{animation:none;opacity:1}}
 .fade{position:absolute;inset:0;background:#05070a;opacity:0;pointer-events:none;transition:opacity .25s;z-index:8}.fade.on{opacity:1}
 .talk{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(440px,calc(100% - 340px));min-width:240px;z-index:9;background:#1d1611;color:#f0e2c2;padding:12px 14px;
-  font-family:"Pixelify Sans","Courier New",monospace;box-shadow:inset 0 0 0 2px #b8923e,inset 0 0 0 4px #1d1611,inset 0 0 0 6px #4a3522,0 6px 0 #0008}
+  font-family:"PT Sans",system-ui,sans-serif;box-shadow:inset 0 0 0 2px #b8923e,inset 0 0 0 4px #1d1611,inset 0 0 0 6px #4a3522,0 6px 0 #0008}
 .talk b{color:#f2c14e;font-size:14px;text-shadow:2px 2px 0 #000}.talk p{margin:6px 0 10px;font-size:14px;line-height:1.35}
 .talk div{display:flex;gap:8px;flex-wrap:wrap}.talk button{font:inherit;font-size:13px;color:#f0e2c2;background:#3a2a1a;border:0;padding:8px 12px;min-height:36px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
 .talk button:last-child{background:#0e0a07;box-shadow:inset 0 0 0 2px #4a3522}
-.quest{position:absolute;top:84px;left:max(16px,env(safe-area-inset-left,0px));max-width:300px;font-family:"Pixelify Sans","Courier New",monospace;font-size:12px;color:#e8d8b4;pointer-events:none;text-shadow:1px 1px 0 #000}
+.quest{position:absolute;top:84px;left:max(16px,env(safe-area-inset-left,0px));max-width:300px;font-family:"PT Sans",system-ui,sans-serif;font-size:12px;color:#e8d8b4;pointer-events:none;text-shadow:1px 1px 0 #000}
 .quest div{background:#1d1611cc;padding:5px 8px;margin-bottom:4px;box-shadow:inset 3px 0 0 #f2c14e}.quest div.done{box-shadow:inset 3px 0 0 #7fe08a;color:#bfe8b0}
 [hidden]{display:none!important}
 .hp,.title,.quest{text-shadow:0 1px 2px #000,0 0 6px #000}
 #sneak.on,#stone.on{box-shadow:inset 0 0 0 2px #7fd0ff;color:#cfeeff}
 .cstat{font-size:12px;color:#d8c8a6}
-.order{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:6;font-family:"Pixelify Sans","Courier New",monospace;font-size:11px;max-width:calc(100% - 360px);flex-wrap:wrap;justify-content:center}
+.order{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:6;font-family:"PT Sans",system-ui,sans-serif;font-size:11px;max-width:calc(100% - 360px);flex-wrap:wrap;justify-content:center}
 .order span{background:#1d1611e6;color:#e8d8b4;padding:4px 7px;box-shadow:inset 0 0 0 2px #4a3522}.order .round{color:#f2c14e;box-shadow:none;background:#0e0a07cc}
 .order .now{box-shadow:inset 0 0 0 2px #f2c14e;color:#fff;transform:translateY(2px)}.order .me{color:#9fe0ff}
 .roll{position:absolute;left:50%;top:30%;transform:translateX(-50%);z-index:8;background:#1d1611f0;color:#f0e2c2;padding:10px 16px;text-align:center;min-width:240px;pointer-events:none;
-  font-family:"Pixelify Sans","Courier New",monospace;box-shadow:inset 0 0 0 2px #b8923e,inset 0 0 0 4px #1d1611,inset 0 0 0 6px #4a3522,0 6px 0 #0008}
+  font-family:"PT Sans",system-ui,sans-serif;box-shadow:inset 0 0 0 2px #b8923e,inset 0 0 0 4px #1d1611,inset 0 0 0 6px #4a3522,0 6px 0 #0008}
 .roll small{display:block;color:#f2c14e;font-size:13px}.roll .dz{display:flex;gap:10px;justify-content:center;margin:8px 0}
 .roll .d20{width:46px;height:46px;display:grid;place-items:center;font-size:22px;font-weight:700;color:#fff;background:#3a2a1a;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
 .roll .d20.spin{animation:spin .12s linear infinite}.roll .d20.ok{background:#3c6a34}.roll .d20.no{background:#7a2620}.roll .d20.crit{background:#c8962a;color:#1d1611}.roll .d20.drop{opacity:.35}
 @keyframes spin{50%{transform:rotate(30deg) scale(.9)}}
 .roll p{margin:2px 0;font-size:13px}.roll b.ok{color:#8fe07a}.roll b.no{color:#ff7d6e}.roll .dmg{color:#ffd27a}
-.amenu{position:absolute;z-index:9;background:#1d1611;padding:8px;display:flex;flex-direction:column;gap:5px;min-width:190px;font-family:"Pixelify Sans","Courier New",monospace;
+.amenu{position:absolute;z-index:9;background:#1d1611;padding:8px;display:flex;flex-direction:column;gap:5px;min-width:190px;font-family:"PT Sans",system-ui,sans-serif;
   box-shadow:inset 0 0 0 2px #b8923e,inset 0 0 0 4px #1d1611,inset 0 0 0 6px #4a3522,0 6px 0 #0008}
 .amenu>b{font-size:12px;color:#f2c14e;padding:2px 4px}.amenu button{display:flex;justify-content:space-between;gap:12px;font:inherit;font-size:13px;color:#f0e2c2;background:#3a2a1a;border:0;padding:8px 10px;min-height:38px;box-shadow:inset 0 0 0 2px #6a4a2a;cursor:pointer;text-align:left}
 .amenu button small{color:#8fe07a;font-size:12px}.amenu button:disabled{opacity:.45;cursor:not-allowed}.amenu button:disabled small{color:#a8987a}
@@ -44,6 +44,8 @@ rig=rig.replace("window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:nu
 main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read()).replace('{UI}',open('ui.js').read()).replace('{EDITOR}',open('editor.js').read()).replace('{LIFE}',open('life.js').read()).replace('{INTRO}',open('intro.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
 chars=open('../../../dist/characters.js').read()
 main='window.__chars=1;\n'+main
+# fonts are inlined (SIL Open Font License) so text looks right offline and in the app
+head=head.replace('</style>',open('fonts.css').read()+'\n</style>',1)
 out='<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+stage+'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>\n'+chars+'\n</script>\n<script>\n'+models+tex+main+'\n'+hands+'\n</script>\n'
 open(os.path.join(OUT,'island.html'),'w').write(out)
 # inside the app: a local three.js copy (works offline and in the native shell) and a way back to the game menu

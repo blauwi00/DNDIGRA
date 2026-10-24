@@ -25,3 +25,5 @@ menus, editor), `hands.js` (inventory), `rig.js`, `tex.js`, `models.js`,
 `head.html`/`stage.html`/`ui.html`/`ui.css`.
 
 Not tested on a physical iPhone; checked in desktop Chromium (software GL).
+
+Fonts (Cormorant Garamond, PT Sans; SIL Open Font License) are inlined from `src/fonts.css` so text renders offline. The game's `dist/characters.js` is inlined too; rebuild the island after it changes.
