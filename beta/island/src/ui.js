@@ -209,16 +209,36 @@ function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=
   ptrEl.classList.toggle('l',sx<110);ptrEl.classList.toggle('r',sx>r.width-110);ptrEl.style.left=sx+'px';ptrEl.style.top=sy+'px';ptrEl.dataset.label=room&&T.z<OUT_H?'Выход':T.label;}
 // the map: drawn from the grid, unexplored land stays dark
 const mapEl=document.getElementById('mapview'),MAPC={'~':'#123040','R':'#2f6a8a','M':'#7a7268','N':'#e8eef2','B':'#55603a','A':'#b8a37a','G':'#3d5e2e','D':'#7a6448','C':'#8a8476','S':'#6e6c66','P':'#8a6040','H':'#9a5a30','W':'#4a4a4a'};
-function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=4;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');
+function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=8;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');
   for(let z=0;z<MAPH;z++)for(let x=0;x<W;x++){const code=at(x,z);let col=MAPC[code]||'#3d5e2e';if(code==='G'&&solid.has(x+','+z))col='#24391e';g.fillStyle=col;g.fillRect(x*k,z*k,k,k);
     if(!seen[z*W+x]&&code!=='~'){g.fillStyle='rgba(8,10,12,.86)';g.fillRect(x*k,z*k,k,k);}}
   // the map is drawn large and shown small: labels are sized for the shrunken picture
-  g.font='bold 26px "PT Sans",system-ui,sans-serif';g.textAlign='center';const label=(name,x,z)=>{g.fillStyle='#000c';g.fillText(name,x*k+k/2+2,z*k-6);g.fillStyle='#f3e2bd';g.fillText(name,x*k+k/2,z*k-8);};
+  g.font='bold 44px "PT Sans",system-ui,sans-serif';g.textAlign='center';const label=(name,x,z)=>{g.fillStyle='#000c';g.fillText(name,x*k+k/2+3,z*k-8);g.fillStyle='#f3e2bd';g.fillText(name,x*k+k/2,z*k-11);};
   for(const [key,name] of ZONES){const [x,z]=Z[key];if(seen[z*W+x])label(name,x,z);}
   for(const p of GPL)if(seen[p.z*W+p.x])label(p.n,p.x,p.z-p.r);
   if(!chapel.lit&&seen[Z.ruins[1]*W+Z.ruins[0]]){}else if(chapel.lit){g.fillStyle='#ffb347';g.beginPath();g.arc(Z.ruins[0]*k+k/2,Z.ruins[1]*k+k/2,6,0,7);g.fill();}
-  const T=questTarget();if(T){const x=T.x*k+k/2,z=T.z*k+k/2;g.strokeStyle='#ff5a4a';g.lineWidth=3;g.beginPath();g.arc(x,z,14,0,7);g.stroke();g.fillStyle='#ff5a4a';g.fillText('!',x,z+9);}
-  const hx=(room?ROOMS[room.i].door[0]:H0.x)*k+k/2,hz=(room?ROOMS[room.i].door[1]:H0.z)*k+k/2;g.fillStyle='#f2c14e';g.strokeStyle='#000';g.lineWidth=2;g.beginPath();g.arc(hx,hz,10,0,7);g.fill();g.stroke();
+  const T=questTarget();if(T){const x=T.x*k+k/2,z=T.z*k+k/2;g.strokeStyle='#ff5a4a';g.lineWidth=3;g.beginPath();g.arc(x,z,24,0,7);g.stroke();g.fillStyle='#ff5a4a';g.fillText('!',x,z+15);}
+  const hx=(room?ROOMS[room.i].door[0]:H0.x)*k+k/2,hz=(room?ROOMS[room.i].door[1]:H0.z)*k+k/2;g.fillStyle='#f2c14e';g.strokeStyle='#000';g.lineWidth=2;g.beginPath();g.arc(hx,hz,16,0,7);g.fill();g.stroke();
+  mapFit();
   const leg=mapEl.querySelector('.leg');leg.textContent=T?'Красный круг — цель: '+T.label+'. Жёлтая точка — вы.':'Жёлтая точка — вы. Тёмное — ещё не исследовано.';}
 document.getElementById('mapClose').onclick=()=>{mapEl.hidden=true;paused=false;};
+// zoom and pan: pinch, wheel or the buttons; drag to move. The closest zoom shows one map pixel per screen
+// pixel, never more, so the picture never goes soft.
+const MV={s:1,x:0,y:0,base:1,max:1,pts:new Map(),pinch:null};
+function mapFit(){const c=mapEl.querySelector('canvas'),win=mapEl.querySelector('.mapwin'),aw=Math.min(innerWidth-36,900),ah=innerHeight-150;
+  const b=Math.min(aw/c.width,ah/c.height);MV.base=b;win.style.width=Math.floor(c.width*b)+'px';win.style.height=Math.floor(c.height*b)+'px';
+  c.style.width=c.width*b+'px';c.style.height=c.height*b+'px';MV.max=Math.max(1,1/(b*(window.devicePixelRatio||1)));MV.s=1;MV.x=0;MV.y=0;mapApply();}
+function mapApply(){const win=mapEl.querySelector('.mapwin'),w=win.clientWidth,h=win.clientHeight;MV.s=Math.min(MV.max,Math.max(1,MV.s));
+  MV.x=Math.min(0,Math.max(w-w*MV.s,MV.x));MV.y=Math.min(0,Math.max(h-h*MV.s,MV.y));mapEl.querySelector('canvas').style.transform='translate('+MV.x+'px,'+MV.y+'px) scale('+MV.s+')';
+  document.getElementById('mapIn').disabled=MV.s>=MV.max-1e-3;document.getElementById('mapOut').disabled=MV.s<=1+1e-3;}
+function mapZoom(f,cx,cy){const win=mapEl.querySelector('.mapwin');if(cx==null){cx=win.clientWidth/2;cy=win.clientHeight/2;}const s0=MV.s,s1=Math.min(MV.max,Math.max(1,s0*f));
+  MV.x=cx-(cx-MV.x)*s1/s0;MV.y=cy-(cy-MV.y)*s1/s0;MV.s=s1;mapApply();}
+document.getElementById('mapIn').onclick=()=>{sfx('click');mapZoom(1.6);};document.getElementById('mapOut').onclick=()=>{sfx('click');mapZoom(1/1.6);};
+{const win=mapEl.querySelector('.mapwin'),rel=e=>{const r=win.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
+ win.addEventListener('wheel',e=>{e.preventDefault();mapZoom(e.deltaY<0?1.15:1/1.15,...rel(e));},{passive:false});
+ win.addEventListener('pointerdown',e=>{win.setPointerCapture(e.pointerId);MV.pts.set(e.pointerId,rel(e));MV.pinch=null;});
+ win.addEventListener('pointermove',e=>{if(!MV.pts.has(e.pointerId))return;const p=rel(e),old=MV.pts.get(e.pointerId);MV.pts.set(e.pointerId,p);
+   if(MV.pts.size===2){const[a,b]=[...MV.pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];if(MV.pinch)mapZoom(d/MV.pinch,...m);MV.pinch=d;}
+   else{MV.x+=p[0]-old[0];MV.y+=p[1]-old[1];mapApply();}});
+ const up=e=>{MV.pts.delete(e.pointerId);MV.pinch=null;};win.addEventListener('pointerup',up);win.addEventListener('pointercancel',up);}
 document.getElementById('pMap').onclick=()=>openMap();

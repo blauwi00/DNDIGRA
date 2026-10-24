@@ -109,7 +109,9 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 .screen.mapview{background:#05070aee;z-index:22}
 .mapbox{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:calc(100% - 24px);max-height:calc(100% - 16px)}
 .mapbox h2{margin:0;font-family:var(--display);font-size:22px;color:#f3e2bd}
-.mapbox canvas{max-width:100%;max-height:calc(100vh - 130px);image-rendering:pixelated;box-shadow:0 0 0 2px #b8923e,0 0 0 4px #1d1611,0 0 0 6px #4a3522}
+.mapwin{position:relative;overflow:hidden;touch-action:none;cursor:grab;box-shadow:0 0 0 2px #b8923e,0 0 0 4px #1d1611,0 0 0 6px #4a3522}
+.mapwin canvas{position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:pixelated}
+.maprow{display:flex;gap:10px}.mapbox .mapz{width:40px;padding:0;display:grid;place-items:center}.mapz svg{display:block}
 .mapbox .leg{margin:0;font-size:12px;color:#c8b48a;font-family:"PT Sans",system-ui,sans-serif}
 .mapbox button{font:inherit;font-family:"PT Sans",system-ui,sans-serif;color:#f0e2c2;background:#2a1e14;border:0;padding:8px 18px;min-height:40px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.qptr::before{animation:none}}

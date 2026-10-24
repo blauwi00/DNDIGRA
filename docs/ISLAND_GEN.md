@@ -76,3 +76,10 @@ applied to the island yet.
 - Quests (`life.js`): a capital guard — clear the robbers' camp nearest the capital; the village nearest the
   boar hills — two boars; the stonecutters — the bear. Kills count only within 14 cells of that place;
   rewards give gold and the crown's standing.
+
+## Owner decisions · 2026-10-24
+- Townsfolk, quest givers, traders and job offers speak plainly, like ordinary people; no lofty or
+  bookish phrases. Lines were rewritten accordingly.
+- The island map zooms (pinch, wheel, the − and + buttons) and pans by dragging. The closest zoom shows
+  one map pixel per screen pixel (`MV.max` from the device pixel ratio), so the picture never goes soft.
+  The map is drawn at 8 pixels per cell for that.

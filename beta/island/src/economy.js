@@ -31,10 +31,10 @@ const JOBS=[
 // ---------- the big island's trade and work, from its settlements ----------
 // Each settlement's first trader opens a shop; prices follow the place's wealth and the crown's standing:
 // the capital is dear but pays well, the poor settlement sells little, dear, and pays little for goods.
-{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Столичный товар, столичная цена. Зато без подделок.'},
+{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Товар хороший, но и стоит недёшево.'},
    village:{title:'Деревенский прилавок',sells:['bread','fish','torch','herb'],buys:['fish','herb','bread','stone','flour'],coin:60,k:1,sk:1,line:'Что вырастили — то и продаём.'},
-   works:{title:'Склад каменотёсов',sells:['bread','torch','stone'],buys:['bread','fish','potion'],coin:70,k:1,sk:1.1,line:'Хлеб сюда везут издалека, так что не обессудь.'},
-   poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Последнее отдаю. Дёшево не будет.'}};
+   works:{title:'Склад каменотёсов',sells:['bread','torch','stone'],buys:['bread','fish','potion'],coin:70,k:1,sk:1.1,line:'Хлеб к нам издалека везут, поэтому и дороже.'},
+   poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Много не продам, самим мало.'}};
  const traders=new Map();for(const a of TOWN)if(!traders.has(a.place)&&(a.kind!=='capital'||/Торговец|Купчиха/.test(a.job)))traders.set(a.place,a);
  for(const [p,a] of traders){const S=Object.assign({},shopFor[a.kind]);if(a.kind==='village'&&p.wealth>=3){S.k=.92;S.coin=110;S.sells=S.sells.concat(['potion']);}S.fac='kingdom';S.title+=' · '+p.n;SHOPS[a.npc]=S;}
  // work: rich and middling villages and the quarry send parcels to the capital; the poor settlement to its nearest village;
@@ -42,10 +42,10 @@ const JOBS=[
  const cap=GEN.places.find(p=>p.type==='capital'),capT=TOWN.find(a=>a.place===cap&&/Торговец/.test(a.job)),guard=TOWN.find(a=>a.place===cap&&a.job==='Стражник');let n=0;
  for(const [p,a] of traders){if(p===cap)continue;const poor=a.kind==='poor',to=poor?[...traders].filter(([q])=>q!==p&&q!==cap).sort(([x],[y])=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0]?.[1]:capT;if(!to)continue;
    const d=Math.hypot(to.x-a.x,to.z-a.z),pay=Math.max(4,Math.round((d/12+3)*(poor?.6:p.wealth>=3?1.3:1)));
-   JOBS.push({id:'gen'+(n++),who:a.npc,giver:a.npc,title:'Отнести свёрток: '+to.npc,kind:'deliver',item:'parcel',to:to.npc,pay,recv:'Свёрток из '+(p.n.startsWith('Деревня')?'деревни':p.n.toLowerCase())+'? Наконец-то. Плата твоя.',
-     offer:poor?'Отнеси свёрток в соседнюю деревню, '+to.npc+'. Заплатить много не могу, уж извини.':'Свёрток надо доставить в столицу, '+to.npc+'. Дорога долгая, но плачу честно.',done:'Спасибо!'});}
+   JOBS.push({id:'gen'+(n++),who:a.npc,giver:a.npc,title:'Отнести свёрток: '+to.npc,kind:'deliver',item:'parcel',to:to.npc,pay,recv:'О, свёрток пришёл. Держи, вот твои деньги.',
+     offer:poor?'Отнеси свёрток в соседнюю деревню, отдай '+to.npc+'. Много не дам, сам знаешь, как мы живём.':'Отнеси свёрток в столицу, отдай '+to.npc+'. Далеко, но я заплачу.',done:'Спасибо!'});}
  if(guard){const pts=[[cap.x-5,cap.z],[cap.x,cap.z-5],[cap.x+5,cap.z],[cap.x,cap.z+5]];JOBS.push({id:'gen'+(n++),who:guard.npc,giver:guard.npc,title:'Обойти улицы столицы',kind:'patrol',points:pts,pay:12,
-   offer:'Стражи не хватает. Пройди по четырём перекрёсткам вокруг рынка — двенадцать монет от казны.',done:'Порядок? Казна платит.'});}}
+   offer:'Стражников не хватает. Пройдись по улицам вокруг рынка, а я тебе двенадцать монет дам.',done:'Всё спокойно? Держи.'});}}
 const jobPayFor=j=>HERO.trade?Math.round(j.pay*1.5):j.pay;
 const GOLD_START=12,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
 let gold=GOLD_START,dayN=0,lastT=null;const JOB={};for(const j of JOBS)JOB[j.id]={state:0,day:-1,step:0};

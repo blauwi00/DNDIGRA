@@ -214,7 +214,9 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 .screen.mapview{background:#05070aee;z-index:22}
 .mapbox{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:calc(100% - 24px);max-height:calc(100% - 16px)}
 .mapbox h2{margin:0;font-family:var(--display);font-size:22px;color:#f3e2bd}
-.mapbox canvas{max-width:100%;max-height:calc(100vh - 130px);image-rendering:pixelated;box-shadow:0 0 0 2px #b8923e,0 0 0 4px #1d1611,0 0 0 6px #4a3522}
+.mapwin{position:relative;overflow:hidden;touch-action:none;cursor:grab;box-shadow:0 0 0 2px #b8923e,0 0 0 4px #1d1611,0 0 0 6px #4a3522}
+.mapwin canvas{position:absolute;left:0;top:0;transform-origin:0 0;image-rendering:pixelated}
+.maprow{display:flex;gap:10px}.mapbox .mapz{width:40px;padding:0;display:grid;place-items:center}.mapz svg{display:block}
 .mapbox .leg{margin:0;font-size:12px;color:#c8b48a;font-family:"PT Sans",system-ui,sans-serif}
 .mapbox button{font:inherit;font-family:"PT Sans",system-ui,sans-serif;color:#f0e2c2;background:#2a1e14;border:0;padding:8px 18px;min-height:40px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.qptr::before{animation:none}}
@@ -499,7 +501,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
 <button class="menubtn" id="menuBtn" aria-label="Меню"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zm0 4h12v2H2zm0 4h12v2H2z"/></svg></button>
 <div class="cstat" id="cstat" hidden></div>
 <div class="wheel" id="wheel" hidden></div><div class="qptr" id="qptr" hidden aria-hidden="true"></div>
-<div class="screen mapview" id="mapview" hidden><div class="mapbox"><h2>Остров Хельги</h2><canvas></canvas><p class="leg"></p><button id="mapClose">Закрыть</button></div></div>
+<div class="screen mapview" id="mapview" hidden><div class="mapbox"><h2>Остров Хельги</h2><div class="mapwin"><canvas></canvas></div><p class="leg"></p><div class="maprow"><button id="mapOut" class="mapz" aria-label="Отдалить"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M2 7h12v2H2z"/></svg></button><button id="mapIn" class="mapz" aria-label="Приблизить"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 2h2v5h5v2H9v5H7V9H2V7h5z"/></svg></button><button id="mapClose">Закрыть</button></div></div></div>
 <div class="gold" id="gold" aria-label="Золото"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#f2c14e" stroke="#8a5a14" stroke-width="1.5"/><path d="M6 5h4M6 11h4M8 5v6" stroke="#8a5a14" stroke-width="1.4"/></svg><span>0</span></div>
 <div class="workbar" id="workbar" hidden><b></b><div><i></i></div></div>
 <div class="shop" id="shop" hidden role="dialog"><div class="sh">
@@ -516,7 +518,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.44 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.45 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3653,18 +3655,38 @@ function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=
   ptrEl.classList.toggle('l',sx<110);ptrEl.classList.toggle('r',sx>r.width-110);ptrEl.style.left=sx+'px';ptrEl.style.top=sy+'px';ptrEl.dataset.label=room&&T.z<OUT_H?'Выход':T.label;}
 // the map: drawn from the grid, unexplored land stays dark
 const mapEl=document.getElementById('mapview'),MAPC={'~':'#123040','R':'#2f6a8a','M':'#7a7268','N':'#e8eef2','B':'#55603a','A':'#b8a37a','G':'#3d5e2e','D':'#7a6448','C':'#8a8476','S':'#6e6c66','P':'#8a6040','H':'#9a5a30','W':'#4a4a4a'};
-function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=4;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');
+function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=8;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');
   for(let z=0;z<MAPH;z++)for(let x=0;x<W;x++){const code=at(x,z);let col=MAPC[code]||'#3d5e2e';if(code==='G'&&solid.has(x+','+z))col='#24391e';g.fillStyle=col;g.fillRect(x*k,z*k,k,k);
     if(!seen[z*W+x]&&code!=='~'){g.fillStyle='rgba(8,10,12,.86)';g.fillRect(x*k,z*k,k,k);}}
   // the map is drawn large and shown small: labels are sized for the shrunken picture
-  g.font='bold 26px "PT Sans",system-ui,sans-serif';g.textAlign='center';const label=(name,x,z)=>{g.fillStyle='#000c';g.fillText(name,x*k+k/2+2,z*k-6);g.fillStyle='#f3e2bd';g.fillText(name,x*k+k/2,z*k-8);};
+  g.font='bold 44px "PT Sans",system-ui,sans-serif';g.textAlign='center';const label=(name,x,z)=>{g.fillStyle='#000c';g.fillText(name,x*k+k/2+3,z*k-8);g.fillStyle='#f3e2bd';g.fillText(name,x*k+k/2,z*k-11);};
   for(const [key,name] of ZONES){const [x,z]=Z[key];if(seen[z*W+x])label(name,x,z);}
   for(const p of GPL)if(seen[p.z*W+p.x])label(p.n,p.x,p.z-p.r);
   if(!chapel.lit&&seen[Z.ruins[1]*W+Z.ruins[0]]){}else if(chapel.lit){g.fillStyle='#ffb347';g.beginPath();g.arc(Z.ruins[0]*k+k/2,Z.ruins[1]*k+k/2,6,0,7);g.fill();}
-  const T=questTarget();if(T){const x=T.x*k+k/2,z=T.z*k+k/2;g.strokeStyle='#ff5a4a';g.lineWidth=3;g.beginPath();g.arc(x,z,14,0,7);g.stroke();g.fillStyle='#ff5a4a';g.fillText('!',x,z+9);}
-  const hx=(room?ROOMS[room.i].door[0]:H0.x)*k+k/2,hz=(room?ROOMS[room.i].door[1]:H0.z)*k+k/2;g.fillStyle='#f2c14e';g.strokeStyle='#000';g.lineWidth=2;g.beginPath();g.arc(hx,hz,10,0,7);g.fill();g.stroke();
+  const T=questTarget();if(T){const x=T.x*k+k/2,z=T.z*k+k/2;g.strokeStyle='#ff5a4a';g.lineWidth=3;g.beginPath();g.arc(x,z,24,0,7);g.stroke();g.fillStyle='#ff5a4a';g.fillText('!',x,z+15);}
+  const hx=(room?ROOMS[room.i].door[0]:H0.x)*k+k/2,hz=(room?ROOMS[room.i].door[1]:H0.z)*k+k/2;g.fillStyle='#f2c14e';g.strokeStyle='#000';g.lineWidth=2;g.beginPath();g.arc(hx,hz,16,0,7);g.fill();g.stroke();
+  mapFit();
   const leg=mapEl.querySelector('.leg');leg.textContent=T?'Красный круг — цель: '+T.label+'. Жёлтая точка — вы.':'Жёлтая точка — вы. Тёмное — ещё не исследовано.';}
 document.getElementById('mapClose').onclick=()=>{mapEl.hidden=true;paused=false;};
+// zoom and pan: pinch, wheel or the buttons; drag to move. The closest zoom shows one map pixel per screen
+// pixel, never more, so the picture never goes soft.
+const MV={s:1,x:0,y:0,base:1,max:1,pts:new Map(),pinch:null};
+function mapFit(){const c=mapEl.querySelector('canvas'),win=mapEl.querySelector('.mapwin'),aw=Math.min(innerWidth-36,900),ah=innerHeight-150;
+  const b=Math.min(aw/c.width,ah/c.height);MV.base=b;win.style.width=Math.floor(c.width*b)+'px';win.style.height=Math.floor(c.height*b)+'px';
+  c.style.width=c.width*b+'px';c.style.height=c.height*b+'px';MV.max=Math.max(1,1/(b*(window.devicePixelRatio||1)));MV.s=1;MV.x=0;MV.y=0;mapApply();}
+function mapApply(){const win=mapEl.querySelector('.mapwin'),w=win.clientWidth,h=win.clientHeight;MV.s=Math.min(MV.max,Math.max(1,MV.s));
+  MV.x=Math.min(0,Math.max(w-w*MV.s,MV.x));MV.y=Math.min(0,Math.max(h-h*MV.s,MV.y));mapEl.querySelector('canvas').style.transform='translate('+MV.x+'px,'+MV.y+'px) scale('+MV.s+')';
+  document.getElementById('mapIn').disabled=MV.s>=MV.max-1e-3;document.getElementById('mapOut').disabled=MV.s<=1+1e-3;}
+function mapZoom(f,cx,cy){const win=mapEl.querySelector('.mapwin');if(cx==null){cx=win.clientWidth/2;cy=win.clientHeight/2;}const s0=MV.s,s1=Math.min(MV.max,Math.max(1,s0*f));
+  MV.x=cx-(cx-MV.x)*s1/s0;MV.y=cy-(cy-MV.y)*s1/s0;MV.s=s1;mapApply();}
+document.getElementById('mapIn').onclick=()=>{sfx('click');mapZoom(1.6);};document.getElementById('mapOut').onclick=()=>{sfx('click');mapZoom(1/1.6);};
+{const win=mapEl.querySelector('.mapwin'),rel=e=>{const r=win.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
+ win.addEventListener('wheel',e=>{e.preventDefault();mapZoom(e.deltaY<0?1.15:1/1.15,...rel(e));},{passive:false});
+ win.addEventListener('pointerdown',e=>{win.setPointerCapture(e.pointerId);MV.pts.set(e.pointerId,rel(e));MV.pinch=null;});
+ win.addEventListener('pointermove',e=>{if(!MV.pts.has(e.pointerId))return;const p=rel(e),old=MV.pts.get(e.pointerId);MV.pts.set(e.pointerId,p);
+   if(MV.pts.size===2){const[a,b]=[...MV.pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];if(MV.pinch)mapZoom(d/MV.pinch,...m);MV.pinch=d;}
+   else{MV.x+=p[0]-old[0];MV.y+=p[1]-old[1];mapApply();}});
+ const up=e=>{MV.pts.delete(e.pointerId);MV.pinch=null;};win.addEventListener('pointerup',up);win.addEventListener('pointercancel',up);}
 document.getElementById('pMap').onclick=()=>openMap();
 
 // ---------- hero editor ----------
@@ -3889,22 +3911,22 @@ const TOWN=[];
  const camp=near('bandits',cap),boars=GEN.places.find(p=>p.type==='boars'),bear=GEN.places.find(p=>p.type==='bear'),works=GEN.places.find(p=>p.type==='works');
  const vil=boars&&GEN.places.filter(p=>p.type==='village'&&!p.stamp).sort((x,y)=>Math.hypot(x.x-boars.x,x.z-boars.z)-Math.hypot(y.x-boars.x,y.z-boars.z))[0];
  const mk=(key,giver,at,need,left,title,ask,ok,done,items,gold,rep)=>{if(!giver||!at)return;Q[key]={state:0,need,left,title,at,giverA:giver,gold,rep};giver.qk=key;giver.qtext=[ask,ok,done,items];};
- mk('road',G(cap,'Стражник'),camp,'Разбойник',2,'Разгромить лагерь разбойников у тракта','Купцов грабят на тракте. Лагерь у дороги — двое головорезов. Корона заплатит, а я замолвлю за тебя слово.',
-   'Тракт чист? Держи награду из казны. И вот — моё старое копьё стражи.','Купцы снова ездят без охраны. Твоя работа.',[['potion',1],['spear',1]],30,3);
- mk('boars',vil&&G(vil),boars,'Кабан',2,'Отогнать кабанов с полей: '+(vil?vil.n:''),'Кабаны с холмов роют наши поля. Два здоровенных секача. Поможешь — отблагодарим.',
-   'Поля целы! Возьми хлеба в дорогу.','Пшеница взошла, кабанов не видно.',[['bread',3]],15,1);
- mk('bear',works&&G(works),bear,'Медведь',1,'Прогнать медведя от каменоломни','В горах медведь задрал мула. Пока он там — работы нет. Справишься?',
-   'Медведя нет? Каменоломня снова живёт. Держи — заработали вместе.','Стучим молотами без страха.',[['potion',2]],25,2);}
+ mk('road',G(cap,'Стражник'),camp,'Разбойник',2,'Разгромить лагерь разбойников у тракта','На дороге грабят купцов. Их лагерь недалеко от тракта, там двое. Разгонишь — заплатят из казны.',
+   'Разогнал? Молодец. Вот деньги, и копьё моё старое возьми.','Купцы теперь ездят спокойно. Спасибо.',[['potion',1],['spear',1]],30,3);
+ mk('boars',vil&&G(vil),boars,'Кабан',2,'Отогнать кабанов с полей: '+(vil?vil.n:''),'Кабаны с холмов все поля нам перерыли. Двое здоровых. Поможешь?',
+   'Ну наконец-то! Вот, хлеба возьми.','Кабанов больше не видно. Хорошо.',[['bread',3]],15,1);
+ mk('bear',works&&G(works),bear,'Медведь',1,'Прогнать медведя от каменоломни','В горах медведь мула нашего задрал. Пока он там, работать никто не идёт. Сможешь прогнать?',
+   'Ушёл медведь? Вот спасибо. Держи, это от всех нас.','Работаем спокойно, без оглядки.',[['potion',2]],25,2);}
 function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
-  if(a.kind==='capital'){L.push(kin==='враг'?'Стража про тебя спрашивала. Ходи тише.':kin==='герой'||kin==='друг'?'Это ты гонял разбойников с тракта? Корона помнит добро.':'Ты не здешний. В столице держись больших улиц.');
-    L.push('Во дворце решают, на рынке торгуют, а в бедном квартале у порта лучше не ходить ночью.','Порт кормит всё королевство: соль, рыба, железо — всё идёт через пристань.','Налоги опять подняли. Говорят, на стены. А стены всё те же.');}
-  if(a.kind==='village')L.push(p.wealth>=3?'Земля у нас жирная, до столичного рынка рукой подать — грех жаловаться.':'Живём с поля. Год на год не приходится.','Река рядом — и скотина поена, и мельница крутится.');
-  if(a.kind==='poor')L.push(p.poorWhy==='болото'?'Болото кругом. Хлеб не растёт, только клюква да торф.':'До рынка далеко, дорога плохая. Пока довезёшь — всё сгниёт.','Ни лекаря, ни кузнеца. Всё сами.');
-  if(a.kind==='works')L.push('Камень из наших холмов идёт на столичные стены.','Пыль глотаем с утра до ночи. Зато платят исправно.');
+  if(a.kind==='capital'){L.push(kin==='враг'?'Слушай, шёл бы ты отсюда. Стражники тебя уже искали.':kin==='знакомый'?'А, это ты. Слышал, ты на дороге разбойников погонял.':kin==='друг'||kin==='герой'?'Привет! Говорят, это ты разбойников с дороги прогнал. Спасибо тебе.':'Ты не местный, да? Держись людных улиц, тут всякие ходят.');
+    L.push('Рынок там, посередине. Только цены кусаются.','В порт ночью не ходи, там ворьё.','Опять налоги подняли. А жить на что?');}
+  if(a.kind==='village')L.push(p.wealth>=3?'Земля у нас хорошая, и до города возить недалеко. Не жалуемся.':'Как урожай будет, так и проживём.','Хорошо, что речка рядом. Без неё никак.');
+  if(a.kind==='poor')L.push(p.poorWhy==='болото'?'Болото кругом, ничего не растёт. Клюкву собираем да торф режем.':'До рынка далеко, а дорога — одно название.','Лекаря у нас нет. Заболел — терпи.');
+  if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
-  if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На тракте опять грабят. Лагерь где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+' от нас.');
+  if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');
   const beast=GEN.places.filter(q=>['wolves','bear','boars'].includes(q.type)).sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
-  if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'По ночам волки воют. Скотину загоняем пораньше.',bear:'В горах медведь. Охотники туда больше не ходят.',boars:'Кабаны роют поля на холмах. Хоть бы кто поохотился.'}[beast.type]);
+  if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'Ночью волки воют. Скотину пораньше загоняем.',bear:'В горах медведь ходит. Туда лучше не соваться.',boars:'Кабаны на холмах все поля перерыли.'}[beast.type]);
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
 function townTalk(a,n){if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
@@ -4286,10 +4308,10 @@ const JOBS=[
 // ---------- the big island's trade and work, from its settlements ----------
 // Each settlement's first trader opens a shop; prices follow the place's wealth and the crown's standing:
 // the capital is dear but pays well, the poor settlement sells little, dear, and pays little for goods.
-{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Столичный товар, столичная цена. Зато без подделок.'},
+{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Товар хороший, но и стоит недёшево.'},
    village:{title:'Деревенский прилавок',sells:['bread','fish','torch','herb'],buys:['fish','herb','bread','stone','flour'],coin:60,k:1,sk:1,line:'Что вырастили — то и продаём.'},
-   works:{title:'Склад каменотёсов',sells:['bread','torch','stone'],buys:['bread','fish','potion'],coin:70,k:1,sk:1.1,line:'Хлеб сюда везут издалека, так что не обессудь.'},
-   poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Последнее отдаю. Дёшево не будет.'}};
+   works:{title:'Склад каменотёсов',sells:['bread','torch','stone'],buys:['bread','fish','potion'],coin:70,k:1,sk:1.1,line:'Хлеб к нам издалека везут, поэтому и дороже.'},
+   poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Много не продам, самим мало.'}};
  const traders=new Map();for(const a of TOWN)if(!traders.has(a.place)&&(a.kind!=='capital'||/Торговец|Купчиха/.test(a.job)))traders.set(a.place,a);
  for(const [p,a] of traders){const S=Object.assign({},shopFor[a.kind]);if(a.kind==='village'&&p.wealth>=3){S.k=.92;S.coin=110;S.sells=S.sells.concat(['potion']);}S.fac='kingdom';S.title+=' · '+p.n;SHOPS[a.npc]=S;}
  // work: rich and middling villages and the quarry send parcels to the capital; the poor settlement to its nearest village;
@@ -4297,10 +4319,10 @@ const JOBS=[
  const cap=GEN.places.find(p=>p.type==='capital'),capT=TOWN.find(a=>a.place===cap&&/Торговец/.test(a.job)),guard=TOWN.find(a=>a.place===cap&&a.job==='Стражник');let n=0;
  for(const [p,a] of traders){if(p===cap)continue;const poor=a.kind==='poor',to=poor?[...traders].filter(([q])=>q!==p&&q!==cap).sort(([x],[y])=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0]?.[1]:capT;if(!to)continue;
    const d=Math.hypot(to.x-a.x,to.z-a.z),pay=Math.max(4,Math.round((d/12+3)*(poor?.6:p.wealth>=3?1.3:1)));
-   JOBS.push({id:'gen'+(n++),who:a.npc,giver:a.npc,title:'Отнести свёрток: '+to.npc,kind:'deliver',item:'parcel',to:to.npc,pay,recv:'Свёрток из '+(p.n.startsWith('Деревня')?'деревни':p.n.toLowerCase())+'? Наконец-то. Плата твоя.',
-     offer:poor?'Отнеси свёрток в соседнюю деревню, '+to.npc+'. Заплатить много не могу, уж извини.':'Свёрток надо доставить в столицу, '+to.npc+'. Дорога долгая, но плачу честно.',done:'Спасибо!'});}
+   JOBS.push({id:'gen'+(n++),who:a.npc,giver:a.npc,title:'Отнести свёрток: '+to.npc,kind:'deliver',item:'parcel',to:to.npc,pay,recv:'О, свёрток пришёл. Держи, вот твои деньги.',
+     offer:poor?'Отнеси свёрток в соседнюю деревню, отдай '+to.npc+'. Много не дам, сам знаешь, как мы живём.':'Отнеси свёрток в столицу, отдай '+to.npc+'. Далеко, но я заплачу.',done:'Спасибо!'});}
  if(guard){const pts=[[cap.x-5,cap.z],[cap.x,cap.z-5],[cap.x+5,cap.z],[cap.x,cap.z+5]];JOBS.push({id:'gen'+(n++),who:guard.npc,giver:guard.npc,title:'Обойти улицы столицы',kind:'patrol',points:pts,pay:12,
-   offer:'Стражи не хватает. Пройди по четырём перекрёсткам вокруг рынка — двенадцать монет от казны.',done:'Порядок? Казна платит.'});}}
+   offer:'Стражников не хватает. Пройдись по улицам вокруг рынка, а я тебе двенадцать монет дам.',done:'Всё спокойно? Держи.'});}}
 const jobPayFor=j=>HERO.trade?Math.round(j.pay*1.5):j.pay;
 const GOLD_START=12,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
 let gold=GOLD_START,dayN=0,lastT=null;const JOB={};for(const j of JOBS)JOB[j.id]={state:0,day:-1,step:0};
