@@ -49,10 +49,18 @@ function enemyWheel(e){const fight=CB.on,items=[];
   else if(!e.aware)items.push({icon:'stone',label:'Отвлечь камнем',sub:st?'бросить рядом · камней: '+st:'нет камней',ok:st>0,run:()=>{const [x,z]=noiseCellNear(e);if(Math.hypot(x-H0.x,z-H0.z)>9)return toast('Подойдите ближе, чтобы добросить камень.');stoneNoise(x,z);}});
   items.push({icon:'look',label:'Осмотреть',run:()=>toast(e.name+': здоровье '+Math.max(0,e.hp)+' из '+e.max+', КД '+e.ac+', '+(e.range>1?'стреляет на '+e.range+' клеток':'бьёт вблизи')+(e.aware?'.':'. Вас не видит.'),4000)});
   showWheel(e,items,e.name+' · '+Math.max(0,e.hp)+'/'+e.max);}
-function attackWheel(e){const items=heroAttacks().map(a=>{const adv=advantage(H0,e,a).v,inR=a.range>1?man(e,H0)<=a.range:reachable(e);
-    return {img:a.id?window.handsIconURL(a.id):null,icon:'attack',label:a.n,sub:inR?chance(a.hit,e.ac,adv)+'%'+(adv>0?' ▲':adv<0?' ▼':'')+' · '+a.hand:'далеко',ok:inR,
-      run:()=>doVerb(e,()=>attack(H0,e,a),{adj:a.range===1&&man(e,H0)>1})};});
-  if(HERO.cls==='mage')items.push({icon:'special',label:'Маг. стрела',sub:SP.missiles?'без промаха · '+SP.missiles+' ост.':'нужен отдых',ok:SP.missiles>0&&man(e,H0)<=8,run:()=>doVerb(e,()=>magicMissile(e))});
+function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=man(e,H0)===1;
+  const left=(k,n)=>SP[k]?n+' · '+SP[k]+' ост.':'нужен отдых',bonusOk=()=>!CB.on||heroTurn()&&!CB.bonus;
+  for(const a of heroAttacks()){const adv=advantage(H0,e,a).v,inR=a.range>1?man(e,H0)<=a.range:reachable(e);
+    items.push({img:a.id?window.handsIconURL(a.id):null,icon:a.kind==='spell'?'special':'attack',label:a.n,sub:inR?(a.save?'спасбросок':chance(a.hit,e.ac,adv)+'%'+(adv>0?' ▲':adv<0?' ▼':''))+' · '+a.hand:'далеко',ok:inR,
+      run:()=>doVerb(e,()=>attack(H0,e,a),{adj:a.range===1&&man(e,H0)>1})});
+    if(C==='paladin'&&a.kind==='melee'&&a.id)items.push({icon:'special',label:'Кара: '+a.n.toLowerCase(),sub:left('smite','+2к8'),ok:SP.smite>0&&inR,run:()=>doVerb(e,()=>{SP.smite--;return attack(H0,e,Object.assign({},a,{n:'Божественная кара',smite:true}));},{adj:man(e,H0)>1})});}
+  if(C==='mage'||C==='sorcerer')items.push({icon:'special',label:'Маг. стрела',sub:left('missiles','без промаха'),ok:SP.missiles>0&&man(e,H0)<=8,run:()=>doVerb(e,()=>magicMissile(e))});
+  if(C==='druid')items.push({icon:'special',label:'Опутывание',sub:left('entangle','валит с ног'),ok:SP.entangle>0&&man(e,H0)<=6,run:()=>doVerb(e,()=>entangle(e))});
+  if(C==='monk')items.push({icon:'attack',label:'Шквал ударов',sub:left('flurry','бонус'),ok:SP.flurry>0&&near&&bonusOk(),run:()=>doVerb(e,()=>{SP.flurry--;return attack(H0,e,{n:'Шквал ударов',hit:HERO.melee,die:HERO.unarmed||4,k:1,b:HERO.mb,range:1,kind:'melee'});},{kind:'bonus'})});
+  if(C==='ranger'&&CB.mark!==e)items.push({icon:'look',label:'Метка охотника',sub:'бонус · +1к6',ok:bonusOk(),run:()=>doVerb(e,()=>markTarget(e,'метка'),{kind:'bonus'})});
+  if(C==='warlock'&&CB.mark!==e)items.push({icon:'special',label:'Порча',sub:'бонус · +1к6',ok:bonusOk(),run:()=>doVerb(e,()=>markTarget(e,'порча'),{kind:'bonus'})});
+  if(R.breath)items.push({icon:'special',label:'Дыхание дракона',sub:SP.breath?'2к6 · рядом':'нужен отдых',ok:SP.breath>0&&man(e,H0)<=2,run:()=>doVerb(e,()=>dragonBreath(e))});
   items.push({icon:'back',label:'Назад',keep:true,run:()=>enemyWheel(e)});
   showWheel(e,items,'Чем атаковать');}
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
@@ -60,16 +68,23 @@ function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.o
   showWheel(a,items,a.npc);}
 function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2:d(4);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
   toast((id==='potion'?'Зелье лечения: 2к4 + 2 = ':'Хлеб: 1к4 = ')+v);window.handsConsume&&window.handsConsume(id);}
-function heroWheel(){const f=CB.on,ht=heroTurn(),items=[];
+function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HERO.race]||{};
   if(!f)items.push(H0.sneak?{icon:'stand',label:'Выпрямиться',run:()=>{H0.sneak=false;H0.spd=2.4;}}:{icon:'sneak',label:'Красться',sub:'Скрытность +'+HERO.stealth,run:()=>{H0.sneak=true;H0.spd=1.3;toast('Вы крадётесь: враги замечают только спереди и вблизи.');}});
-  const p=count('potion'),b=count('bread'),full=H0.hp>=H0.max;
-  items.push({icon:'potion',label:'Зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · есть '+p:'нет',ok:p>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,()=>heal('potion'),{kind:'bonus'}):heal('potion')});
+  const p=count('potion'),b=count('bread'),full=H0.hp>=H0.max,bonus=(fn)=>f?doVerb(null,fn,{kind:'bonus'}):fn(),bOk=!f||ht&&!CB.bonus,fightBonus=f&&ht&&!CB.bonus;
+  items.push({icon:'potion',label:'Зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · есть '+p:'нет',ok:p>0&&!full&&bOk,run:()=>bonus(()=>heal('potion'))});
   if(!f)items.push({icon:'bread',label:'Хлеб',sub:b?'1к4 · есть '+b:'нет',ok:b>0&&!full,run:()=>heal('bread')});
-  if(HERO.cls==='fighter')items.push({icon:'special',label:'Второе дыхание',sub:SP.wind?'1к10+2'+(f?' · бонус':''):'нужен отдых',ok:SP.wind>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,secondWind,{kind:'bonus'}):secondWind()});
-  if(HERO.cls==='cleric')items.push({icon:'special',label:'Лечащее слово',sub:SP.word?'1к4+3 · '+SP.word+' ост.':'нужен отдых',ok:SP.word>0&&!full&&(!f||ht&&!CB.bonus),run:()=>f?doVerb(null,healingWord,{kind:'bonus'}):healingWord()});
-  if(HERO.cls==='rogue'&&f)items.push({icon:'special',label:'Рывок',sub:'бонус · +6 клеток',ok:ht&&!CB.bonus,run:()=>doVerb(null,dash,{kind:'bonus'})});
+  const ab=(cond,label,sub,ok,run)=>cond&&items.push({icon:'special',label,sub,ok,run});
+  ab(C==='fighter','Второе дыхание',SP.wind?'1к10+2':'нужен отдых',SP.wind>0&&!full&&bOk,()=>bonus(secondWind));
+  ab(C==='cleric','Лечащее слово',SP.word?'1к4+3 · '+SP.word+' ост.':'нужен отдых',SP.word>0&&!full&&bOk,()=>bonus(healingWord));
+  ab(C==='paladin','Наложение рук',SP.hands?'2к4+4 · действие':'нужен отдых',SP.hands>0&&!full&&(!f||ht&&!CB.acted),()=>f?doVerb(null,layHands):layHands());
+  ab(C==='rogue'&&f,'Рывок','бонус · +6 клеток',fightBonus,()=>bonus(dash));
+  ab(C==='monk'&&f,'Шаг ветра','бонус · +6 клеток',fightBonus,()=>bonus(dash));
+  ab(C==='barbarian'&&f,'Ярость',SP.rage?'бонус · '+SP.rage+' ост.':'нужен отдых',fightBonus&&SP.rage>0&&!CB.rage,()=>bonus(rageOn));
+  ab(C==='bard'&&f,'Вдохновение',SP.inspire?'бонус · преимущество':'нужен отдых',fightBonus&&SP.inspire>0&&!CB.boost,()=>bonus(inspire));
+  ab(R.echo&&f,HERO.race==='elf'?'Якорь памяти':'Проявить фрагмент',SP.echo?'бонус · преимущество':'нужен отдых',fightBonus&&SP.echo>0&&!CB.boost,()=>bonus(memory));
+  ab(R.shell&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
   if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
-  showWheel(H0,items,H0.name);}
+  showWheel(H0,items,H0.name+' · '+HERO.n);}
 const usedRocks=new Set();
 // anything with a description: look closely; some things give an item the first time
 function lookWheel(L,mesh){const p=new THREE.Vector3();mesh.getWorldPosition(p);const x=Math.floor(p.x),z=Math.floor(p.z);
@@ -123,13 +138,13 @@ function recolor(boxes,look){const base={skin:new THREE.Color(0xe9bf90).getHSL({
   return boxes.map(b=>{const c=tmpC.setHex(b[6]).getHSL({}),hue=c.h*360;let g=null;
     if(c.l>.55&&hue>15&&hue<45&&c.s>.3&&c.s<.8)g='skin';else if(hue>190&&hue<235&&c.s>.2)g='cloth';else if(b[8]==='hair')g='hair';
     if(!g)return b;const t=tgt[g],k=c.l/base[g].l;const nc=new THREE.Color().setHSL(t.h,Math.min(1,t.s*(c.s/(base[g].s||1))),Math.min(.95,t.l*k));const out=b.slice();out[6]=nc.getHex();return out;});}
-const heroBoxes=s=>s&&s.game&&window.Characters?Characters.build(Characters.spec('hero',s.game)):recolor(styleHair(MODELS['fighter-male'],s.look.style),s.look);
-function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));const held=hero.userData.held;
+const heroBoxes=s=>s&&s.game&&window.Characters?raceDecorate(s.race,Characters.build(Characters.spec('hero',s.game)),s.game.appearance):recolor(styleHair(MODELS['fighter-male'],s.look.style),s.look);
+function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));raceScale(s&&s.race,hero);const held=hero.userData.held;
   hero.clear();[...m.children].forEach(c=>hero.add(c));Object.assign(hero.userData,m.userData,{held});}
 let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
 function heroFace(s){const c=document.getElementById('hpFace');if(!c||!window.Characters)return;const g=c.getContext('2d');g.clearRect(0,0,40,40);
   const p=s.game?Characters.portrait('hero',s.game,{view:'face',width:40,height:40,pixel:2}):null;if(p){g.imageSmoothingEnabled=false;g.drawImage(p,0,0);}c.hidden=!p;}
-function applyHero(s){heroFace(s);HEROSET=s;HERO=Object.assign({cls:s.cls},CLASSES[s.cls]);H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
+function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
 
 // ---------- menus ----------
 let paused=true;

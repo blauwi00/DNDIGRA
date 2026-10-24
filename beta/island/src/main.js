@@ -381,7 +381,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
     if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
-      if(o.userData.twoHand==='staff'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
+      if(o.userData.twoHand&&o.userData.twoHand!=='bow'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
       else if(o.userData.twoHand){r.armL.rotation.set(-1.0+breathe*.03,0,.5);r.armR.rotation.set(-1.0+breathe*.03,0,-.5);} // both hands meet on the bow
       else{r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(walk?sw*.5:-breathe*.04,0,0);}
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
@@ -422,7 +422,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
 // start: a fresh hero from the editor goes straight in; otherwise the main menu comes first
 setTimeout(()=>{let fresh=false;try{fresh=sessionStorage.getItem('helga-start')==='new';sessionStorage.removeItem('helga-start');}catch(e){}
   if(HEROSET)applyHero(Object.assign({},HEROSET,{fresh}));
-  if(fresh){setTimeout(arrival,50);const [L,R]=CLASSES[HERO.cls].start;const bag=[{id:'potion',n:1},{id:'bread',n:1},{id:'stone',n:3}];if(HERO.cls==='rogue')bag.push({id:'bow',n:1});window.handsLoad&&window.handsLoad({L:L&&{id:L,n:1},R:R&&{id:R,n:1},bag});rest();screen(null);}
+  if(fresh){setTimeout(arrival,50);const kit=CLASSES[HERO.cls].kits[HEROSET.kit||0]||CLASSES[HERO.cls].kits[0],L=kit.L,R=kit.R;const bag=[{id:'potion',n:1},{id:'bread',n:1},{id:'stone',n:3}];for(const id of kit.bag||[])bag.push({id,n:1});window.handsLoad&&window.handsLoad({L:L&&{id:L,n:1},R:R&&{id:R,n:1},bag});rest();screen(null);}
   else{load();mainMenu();}
   setHP();setInterval(save,3000);addEventListener('pagehide',save);setTimeout(()=>document.getElementById('loading').classList.add('gone'),300);},0);
 setHP();requestAnimationFrame(frame);

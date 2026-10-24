@@ -11,27 +11,8 @@ const man=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.z-b.z);
 let busy=false,shake=0;
 const CB={on:false,order:[],i:-1,round:0,move:0,acted:false,bonus:false,sneakUsed:false};
 // class sheets; the editor picks one. melee/ranged/spell are to-hit bonuses, *b are damage bonuses
-const CLASSES={
-  fighter:{n:'Воин',hp:20,ac:13,speed:6,melee:5,mb:3,ranged:3,rb:1,spell:1,stealth:1,athletics:5,dex:1,start:['shield','sword'],
-    about:'Крепкий и надёжный. Второе дыхание: бонусным действием лечит 1к10 + 2 раз до отдыха.'},
-  rogue:{n:'Плут',hp:16,ac:14,speed:6,melee:5,mb:3,ranged:5,rb:3,spell:1,stealth:7,athletics:2,dex:3,start:[null,'dagger'],
-    about:'Тихий и точный. Скрытая атака: +2к6 урона при преимуществе. Рывок: бонусным действием ещё 6 клеток.'},
-  cleric:{n:'Жрец',hp:18,ac:14,speed:6,melee:4,mb:2,ranged:2,rb:0,spell:4,stealth:0,athletics:3,dex:0,start:['shield','sword'],
-    about:'Броня и вера. Лечащее слово: бонусным действием лечит 1к4 + 3, два раза до отдыха.'},
-  mage:{n:'Маг',hp:14,ac:12,speed:6,melee:2,mb:0,ranged:2,rb:0,spell:5,stealth:2,athletics:0,dex:2,start:['staff',null],
-    about:'Хрупкий, но опасный издалека. Искра 1к10 на 6 клеток. Магическая стрела: три снаряда без промаха, 2 раза до отдыха.'}};
-let HERO=Object.assign({cls:'fighter'},CLASSES.fighter);
-const SP={wind:1,missiles:2,word:2};const rest=()=>{SP.wind=1;SP.missiles=2;SP.word=2;};
-// attack options from what the hero holds in each hand
-function heroAttacks(){const h=hero.userData.held||{},o=[],H=HERO;
-  const add=(id,n,hit,die,k,b,range,kind,hand)=>o.push({id,n,hit,die,k,b,range,kind,hand});
-  if(h.two==='bow')add('bow','Лук',H.ranged,8,1,H.rb,8,'bow','обе руки');
-  if(h.two==='staff'){add('staff','Искра',H.spell,10,1,0,6,'spell','посох');add('staff','Посох',H.melee,6,1,H.mb,1,'melee','обе руки');}
-  for(const [side,id] of [['правая',h.R],['левая',h.L]]){if(id==='sword')add(id,'Меч',H.melee,8,1,H.mb,1,'melee',side);if(id==='dagger')add(id,'Кинжал',H.melee,4,1,H.mb,1,'melee',side);
-    if(id==='torch')add(id,'Факел',H.melee-1,4,1,H.mb,1,'melee',side);if(id==='shield'&&!o.length&&!(h.R==='sword'||h.R==='dagger'||h.R==='torch'))add(id,'Щит',H.melee-2,4,1,1,1,'melee',side);}
-  if(!o.length)add(null,'Кулак',H.melee-2,1,1,1,1,'melee','без оружия');
-  return o;}
-function heroAC(){const h=hero.userData.held||{};return HERO.ac+((h.L==='shield'||h.R==='shield')?2:0);}
+{RACES}
+{CLASSES}
 const acOf=a=>a===H0?heroAC():a.ac;
 function hostileNear(a){return a===H0?enemies.some(e=>!e.dead&&e.inFight&&man(e,H0)===1):man(a,H0)===1;}
 function advantage(att,def,opt){let A=[],D=[];
@@ -42,8 +23,8 @@ function chance(mod,dc,adv){const p=Math.min(.95,Math.max(.05,(21-(dc-mod))/20))
 
 // ---------- dice: a slim strip at the top, the scene stays visible ----------
 let rollHide=0;
-async function roll20(label,mod,dc,adv=0,why=''){clearTimeout(rollHide);sfx('dice');
-  const a=d(20),b=adv?d(20):null,r=adv>0?Math.max(a,b):adv<0?Math.min(a,b):a;
+async function roll20(label,mod,dc,adv=0,why='',lucky=false){clearTimeout(rollHide);sfx('dice');
+  let a=d(20),b=adv?d(20):null;if(lucky){if(a===1)a=d(20);if(b===1)b=d(20);}const r=adv>0?Math.max(a,b):adv<0?Math.min(a,b):a;
   rollEl.hidden=false;rollEl.innerHTML='<span class="lbl"></span><span class="d20">20</span>'+(adv?'<span class="d20">20</span>':'')+'<span class="res"></span>';
   rollEl.querySelector('.lbl').textContent=label+(adv?(adv>0?' · преимущество':' · помеха'):'');rollEl.title=why;
   const ds=[...rollEl.querySelectorAll('.d20')],res=rollEl.querySelector('.res');
@@ -53,8 +34,9 @@ async function roll20(label,mod,dc,adv=0,why=''){clearTimeout(rollHide);sfx('dic
   ds.forEach(x=>{if(!x.classList.contains('drop'))x.classList.add(crit?'crit':ok?'ok':'no')});
   res.innerHTML=(mod>=0?'+':'−')+Math.abs(mod)+' = <b>'+total+'</b> / '+dc+' <b class="'+(ok?'ok':'no')+'">'+(crit?'крит!':fumble?'провал':ok?'успех':'мимо')+'</b>';
   await wait(reduceM?300:800);return {r,ok,crit,total};}
-async function rollDamage(opt,crit,extra=0){const n=opt.k*(crit?2:1);let s=opt.b;for(let i=0;i<n;i++)s+=d(opt.die);let ex=0;for(let i=0;i<extra*(crit?2:1);i++)ex+=d(6);s+=ex;
-  const p=document.createElement('span');p.className='dmg';p.innerHTML='урон <b>'+Math.max(1,s)+'</b>'+(ex?' (скрытая +'+ex+')':'');rollEl.append(p);await wait(reduceM?200:550);return Math.max(1,s);}
+async function rollDamage(opt,crit,extra=[]){const n=opt.k*(crit?2:1);let s=opt.b;for(let i=0;i<n;i++)s+=d(opt.die);const notes=[];
+  for(const [k,die,name] of extra){let v=0;for(let i=0;i<k*(crit?2:1);i++)v+=d(die);s+=v;notes.push(name+' +'+v);}
+  const p=document.createElement('span');p.className='dmg';p.innerHTML='урон <b>'+Math.max(1,s)+'</b>'+(notes.length?' ('+notes.join(', ')+')':'');rollEl.append(p);await wait(reduceM?200:550);return Math.max(1,s);}
 function rollDone(ms=1600){clearTimeout(rollHide);rollHide=setTimeout(()=>rollEl.hidden=true,ms);}
 
 // ---------- animation helpers ----------
@@ -75,16 +57,33 @@ function knock(def,att,dmg,col){sfx('hit');flash(def);shake=dmg>6?.2:.12;floatTe
 // ---------- one attack, any attacker ----------
 async function attack(att,def,opt){if(def.dead)return;att.face=Math.atan2(def.px-att.px,def.pz-att.pz);
   const adv=advantage(att,def,opt),isHero=att===H0;
-  const res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why);
+  // inspiration, an elf's memory or an echo fragment grant advantage on this attack
+  if(isHero&&CB.boost){adv.v=adv.v<0?0:1;adv.why=(adv.why?adv.why+', ':'')+CB.boost;CB.boost=null;}
+  if(isHero&&opt.save)return saveSpell(def,opt);
+  const res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
   const ranged=opt.range>1&&man(att,def)>1;let back=null;
   if(ranged)await projectile(att,def,opt.kind);else back=await lunge(att,def);
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
-  let dmg=0;if(res.ok)dmg=await rollDamage(opt,res.crit,sneak);
+  // class riders: rage, smite, hunter's mark and hex
+  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);}
+  if(isHero&&CB.rage&&opt.kind==='melee')opt=Object.assign({},opt,{b:opt.b+2});
+  let dmg=0;if(res.ok)dmg=await rollDamage(opt,res.crit,extra);
   if(dmg)await knock(def,att,dmg,isHero?'#ffd27a':'#ff7d6e');else{sfx('miss');floatText('Промах','#cfc6b4',def.o);}if(back)await back();
   if(def.enemy){def.aware=true;def.distracted=false;}
-  if(dmg)hurt(def,dmg);rollDone();}
-function hurt(def,dmg){def.hp-=dmg;if(def===H0){setHP();if(H0.hp<=0)knockOut();}else if(def.hp<=0)kill(def);}
+  if(dmg)hurt(def,dmg,att);rollDone();}
+// damage taken by the hero passes through rage, shell, stone endurance; an orc stays up once; a tiefling burns back
+function hurt(def,dmg,att){if(def===H0){const R=RACES[HERO.race]||{};
+    if(CB.rage)dmg=Math.ceil(dmg/2);if(CB.shell){dmg=Math.ceil(dmg/2);CB.shell=false;floatText('Панцирь','#c8b890',hero);}
+    if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
+    H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
+    setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0);},450);}
+    if(H0.hp<=0)knockOut();}else{def.hp-=dmg;if(def.hp<=0)kill(def);}}
+// cantrips that call for a saving throw: no attack roll, the target resists
+async function saveSpell(def,opt){const ab={wis:def.wis||0,dex:def.dex||0,str:def.ath||0}[opt.save]||0,dc=8+HERO.spell+2;
+  const res=await roll20(def.name+': спасбросок ('+({wis:'Мудрость',dex:'Ловкость',str:'Сила'})[opt.save]+') · '+opt.n,ab,dc);await projectile(H0,def,'spell');
+  if(!res.ok){const dmg=await rollDamage(opt,false,[]);await knock(def,H0,dmg,'#ffd27a');if(opt.effect==='distract'){def.distracted=true;floatText('Сбит с толку','#9fc3cf',def.o);}def.aware=true;hurt(def,dmg,H0);}
+  else{floatText('Устоял','#cfc6b4',def.o);def.aware=true;}rollDone();}
 function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
 function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
   floatText(e.name+' повержен','#f2c14e',e.o);}
@@ -118,6 +117,15 @@ async function magicMissile(def){SP.missiles--;floatText('Магическая �
   def.aware=true;hurt(def,tot);rollDone();}
 function secondWind(){SP.wind=0;const heal=d(10)+2;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#7fe08a',hero);toast('Второе дыхание: 1к10 + 2 = '+heal);}
 function healingWord(){SP.word--;const heal=d(4)+3;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Лечащее слово: 1к4 + 3 = '+heal);}
+function rageOn(){SP.rage--;CB.rage=true;floatText('Ярость!','#ff5a4a',hero);sfx('fight');shake=.2;}
+function inspire(){SP.inspire--;CB.boost='вдохновение';floatText('Вдохновение','#f2c14e',hero);sfx('heal');}
+function memory(){SP.echo=0;CB.boost=HERO.race==='elf'?'якорь памяти':'фрагмент эха';floatText(HERO.race==='elf'?'Якорь памяти':'Эхо','#9ae0ff',hero);}
+function shellUp(){SP.shellUp=0;CB.shell=true;floatText('В панцирь','#c8b890',hero);}
+function layHands(){SP.hands=0;const heal=d(4)+d(4)+4;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Наложение рук: 2к4 + 4 = '+heal);}
+function markTarget(e,name){CB.mark=e;CB.markName=name;floatText(name,'#c8a8ff',e.o);sfx('spell');}
+async function entangle(e){SP.entangle=0;const res=await roll20(e.name+': спасбросок Силы · Опутывание',e.ath||0,8+HERO.spell+2);if(!res.ok){e.prone=true;e.lean=-1.3;floatText('Опутан','#6aaa4a',e.o);}else floatText('Вырвался','#cfc6b4',e.o);e.aware=true;rollDone();}
+async function dragonBreath(e){SP.breath=0;const res=await roll20(e.name+': спасбросок Ловкости · Дыхание',e.dex||0,13);await projectile(H0,e,'spell');let dmg=d(6)+d(6);if(res.ok)dmg=Math.floor(dmg/2);
+  await knock(e,H0,dmg,'#ff9a3a');e.aware=true;hurt(e,dmg,H0);rollDone();}
 function dash(){CB.move+=6;floatText('Рывок','#9fe0ff',hero);showMoves();}
 
 // ---------- doing a chosen verb (from the wheel) ----------
@@ -151,7 +159,7 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
 function liveFoes(){return CB.order.filter(a=>a!==H0&&!a.dead);}
-function endCombat(text){CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
+function endCombat(text){CB.rage=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
   for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}if(text){banner(text);toast(text);}}
 const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров зачищен.':'Победа.');
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();

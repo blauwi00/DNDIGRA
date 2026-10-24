@@ -28,6 +28,10 @@ const HELD={
   staff:[[0,.18,0,.05,.9,.05,0x6a4426],[0,.65,0,.12,.05,.12,0xd0a94a],[0,.74,0,.09,.12,.09,0x7fd0ff,1]],
   potion:[[0,.05,.04,.13,.15,.13,0xd23a30],[0,.15,.04,.06,.06,.06,0xe8c27a]],
   bread:[[0,.03,.05,.22,.1,.13,0xd6a95a]],
+  spear:[[0,.3,0,.04,1.1,.04,0x6a4426],[0,.9,0,.07,.16,.03,0xc8ccd2]],
+  mace:[[0,.08,0,.05,.32,.05,0x6a4426],[0,.28,0,.13,.12,.13,0x8a8e94],[0,.28,0,.16,.04,.04,0x8a8e94]],
+  greataxe:[[0,.25,0,.05,.95,.05,0x6a4426],[.1,.66,0,.2,.22,.03,0xa8adb5],[.2,.66,0,.04,.26,.03,0xd8dde4]],
+  warhammer:[[0,.25,0,.05,.95,.05,0x6a4426],[0,.7,0,.24,.13,.13,0x7a7e86]],
   fish:[[0,.04,.04,.07,.06,.22,0x7a9ab0],[0,.04,-.08,.03,.08,.06,0x5a7a90]],
   herb:[[0,.06,0,.03,.14,.03,0x3f6a2e],[.03,.13,0,.08,.06,.08,0x5a9a4a],[-.03,.11,.02,.07,.05,.07,0x6aaa5a]],
   stone:[[0,.03,0,.12,.08,.1,0x8a8e94],[.07,.025,.05,.08,.06,.07,0x9a9ea4],[-.05,.02,.06,.06,.05,.05,0x7a7e84]]};
@@ -37,7 +41,7 @@ function setHeld(holder,side,id){const arm=holder.userData.rig[side==='R'?'armL'
   grp.add(fist());grp.scale.setScalar(1.5);grp.position.set((side==='R'?-.34:.34)-arm.position.x,.42-arm.position.y,.12);arm.add(grp);arm.userData.item=grp;}
 // Two-handed items (bow, staff) are one object held in front of the chest;
 // both arms reach forward to it instead of each hand getting a copy.
-const TWO=new Set(['bow','staff']);
+const TWO=new Set(['bow','staff','greataxe','warhammer']);
 // a small fist wrapped around the handle so the item reads as gripped, not glued
 const FIST_MAT=new THREE.MeshLambertMaterial({color:0xd9a27a}),FIST_DARK=new THREE.MeshLambertMaterial({color:0xb07a58});
 function fist(){const g=new THREE.Group(),m=new THREE.Mesh(box(.085,.08,.085),FIST_MAT),k=new THREE.Mesh(box(.09,.02,.03),FIST_DARK);k.position.set(0,.01,.045);g.add(m,k);return g;}
@@ -47,6 +51,6 @@ function setTwoHanded(holder,id){const t=holder.userData.rig.torso;if(t.userData
   const f1=fist(),f2=fist();if(id==='bow'){f2.position.set(0,0,-.02);}else{f1.position.y=.05;f2.position.y=.32;}grp.add(f1,f2);
   grp.scale.setScalar(1.4);grp.position.set(0,.02-t.position.y+.45,.3);if(id==='bow')grp.rotation.z=.15;
   // the staff stands at the right side like a walking staff, clear of the face
-  if(id==='staff'){grp.position.set(-.24,.02-t.position.y+.3,.16);grp.rotation.z=-.08;}t.add(grp);t.userData.item=grp;}
+  if(id!=='bow'){grp.position.set(-.24,.02-t.position.y+.3,.16);grp.rotation.z=-.08;}t.add(grp);t.userData.item=grp;}
 window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;
   setHeld(hero,'L',two?null:L);setHeld(hero,'R',two?null:R);setTwoHanded(hero,two);};
