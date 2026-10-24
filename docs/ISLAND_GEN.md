@@ -40,9 +40,14 @@ walls when rich, shabby when poor), the quarry, bandit camps with tents, fires a
 pack of three, and the old fort's broken walls. Houses outside Заводь are locked for now; their people,
 the bear and the boars (no models yet) come next.
 
-Rendering: terrain and props are drawn in 16×16 pieces; only pieces within 34 cells of the camera are
-visible (`streamTick`), static pieces never recompute their matrices. Measured in software-rendered
-Chromium: render 7.3 ms (old island 5.7 ms). Not measured on a phone.
+Rendering: chunk streaming as in Minecraft. The island stays in memory as data (cells, heights, props);
+meshes exist only for 16×16 chunks near the camera (`CHUNKS`, `defer`, `streamTick` in `main.js`).
+Chunks within 40 cells are built nearest first, three per frame (all at once on the first frame);
+chunks beyond 58 cells are removed and their own geometry freed; shared materials and base geometry are
+never disposed. Picking lists (`pickable`, rock meshes) only hold built meshes. Interiors, actors and the
+Заводь houses are not streamed. Measured in software-rendered Chromium: ~330 scene objects instead of
+~2300, page ready 3.3 s (old small island 2.9 s), JS heap 42 MB (18 MB), render 7.2 ms. Not measured on a
+phone. Checked by the «big island» step of `tests/island-beta-browser.cjs`.
 
 ## Owner decision · 2026-10-24
 Keep the pier start on the larger island for now: the hero arrives at Заводь's pier as today.

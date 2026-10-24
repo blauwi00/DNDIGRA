@@ -289,6 +289,24 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
     assert.ok(await until(async () => (await tut()).includes('деревни')));
     await p.evaluate(() => { const g = __game; g.H0.x = g.Z.village[0]; g.H0.z = g.Z.village[1] + 3; g.H0.px = g.H0.x + .5; g.H0.pz = g.H0.z + .5; });
     assert.ok(await until(async () => (await tut()).includes('Браму')));
+    step('big island: chunks load near the hero and unload behind, the road leads from the pier to the capital');
+    const stream = await p.evaluate(async () => {
+      const bad = [], frames = (n) => new Promise((r) => { const f = () => (--n > 0 ? requestAnimationFrame(f) : r()); requestAnimationFrame(f); });
+      const cap = GEN.places.find((q) => q.type === 'capital'), g = __game, home = [g.H0.x, g.H0.z];
+      if (!path(Z.dock[0] + 3, Z.dock[1], cap.x, cap.z + 3, H0, true, 200000) && !path(Z.dock[0] + 3, Z.dock[1], cap.x + 3, cap.z, H0, true, 200000)) bad.push('no way to the capital');
+      const near = () => [...CHUNKS.values()].filter((c) => c.on).every((c) => Math.hypot(c.cx - focus.x, c.cz - focus.z) <= UNLOAD_R);
+      const go = async (x, z) => { g.H0.x = x; g.H0.z = z; g.H0.px = x + .5; g.H0.pz = z + .5; focus.set(x + .5, 0, z + .5); await frames(90); };
+      await go(cap.x, cap.z + 3);
+      const under = pickable.some((m) => m.userData.cells && m.userData.cells.some(([x, z]) => Math.abs(x - cap.x) < 2 && Math.abs(z - cap.z - 3) < 2));
+      if (!under) bad.push('no ground under the hero in the capital');
+      if (!near()) bad.push('far chunks stay loaded');
+      if (loadedChunks() > 40) bad.push('too many chunks: ' + loadedChunks());
+      if (CHUNKS.size < 100) bad.push('world not split into chunks: ' + CHUNKS.size);
+      await go(home[0], home[1]);
+      if (!near()) bad.push('capital chunks stay after leaving');
+      return bad;
+    });
+    assert.deepEqual(stream, []);
     step('layout in play: the HUD with the goal card and the hands');
     assert.deepEqual(await p.evaluate(([fn, hud]) => eval(fn)(hud), [overlaps.toString(), HUD]), []);
     for (const side of ['R', 'L']) {

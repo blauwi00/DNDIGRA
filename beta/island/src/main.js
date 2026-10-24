@@ -91,13 +91,27 @@ const groundAt=(x,z)=>{x=Math.floor(x);z=Math.floor(z);const c=at(x,z);return c=
 // ---------- chunking: the island is drawn in 16x16 pieces so off-screen ones are culled ----------
 const CH=16;
 function chunk(list){const m=new Map();for(const c of list){const k=Math.floor(c[0]/CH)+','+Math.floor(c[1]/CH);if(!m.has(k))m.set(k,[]);m.get(k).push(c);}return [...m.values()];}
-// on the big island only the pieces near the camera are drawn: the rest are hidden, not even tested for culling
-const STREAMED=[],STREAM_R=34;let streamAt=null;
-function streamTick(force){const fx=Math.floor(focus.x/8),fz=Math.floor(focus.z/8),k=fx+','+fz;if(!force&&k===streamAt)return;streamAt=k;
-  for(const m of STREAMED){const[cx,cz]=m.userData.cc;m.visible=Math.abs(cx-focus.x)<STREAM_R+CH&&Math.abs(cz-focus.z)<STREAM_R+CH;}}
+// ---------- chunk streaming, as in Minecraft: the world is data, meshes exist only near the hero ----------
+// Every 16x16 chunk keeps builders for its terrain and props. Chunks within LOAD_R of the camera are built
+// (a few per frame, nearest first); chunks beyond UNLOAD_R are taken down and their own geometry freed.
+// Shared materials and base geometries belong to the world and are never disposed here.
+const CHUNKS=new Map(),LOAD_R=40,UNLOAD_R=58,BUILDS_PER_FRAME=3;
+const chunkKey=(x,z)=>Math.floor(x/CH)+','+Math.floor(z/CH);
+function defer(key,build){let c=CHUNKS.get(key);if(!c){const[a,b]=key.split(',').map(Number);c={cx:(a+.5)*CH,cz:(b+.5)*CH,builders:[],live:[],on:false};CHUNKS.set(key,c);}
+  c.builders.push(build);if(c.on)c.live.push(...[].concat(build()));}
+function chunkOn(c){c.on=true;for(const b of c.builders)c.live.push(...[].concat(b()));}
+function chunkOff(c){c.on=false;for(const o of c.live){scene.remove(o);for(const L of o.userData.lists||[]){const k=L.indexOf(o);if(k>=0)L.splice(k,1);}
+    if(o.isInstancedMesh){o.geometry.dispose();o.dispose&&o.dispose();}}c.live=[];}
+let streamAt=null,streamQueue=[];
+function streamTick(all){const fx=focus.x,fz=focus.z,k=Math.floor(fx/4)+','+Math.floor(fz/4);
+  if(k!==streamAt){streamAt=k;streamQueue=[];
+    for(const c of CHUNKS.values()){const d=Math.hypot(c.cx-fx,c.cz-fz);if(c.on&&d>UNLOAD_R)chunkOff(c);else if(!c.on&&d<=LOAD_R)streamQueue.push([d,c]);}
+    streamQueue.sort((a,b)=>a[0]-b[0]);}
+  let n=all?1e9:BUILDS_PER_FRAME;while(n-->0&&streamQueue.length){const c=streamQueue.shift()[1];if(!c.on)chunkOn(c);}}
+const loadedChunks=()=>[...CHUNKS.values()].filter(c=>c.on).length;
 function fitBounds(im,cells,top){let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;for(const [x,z] of cells){x0=Math.min(x0,x);z0=Math.min(z0,z);x1=Math.max(x1,x+1);z1=Math.max(z1,z+1);}
   im.geometry=im.geometry.clone();im.geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3((x0+x1)/2,top/2,(z0+z1)/2),Math.hypot(x1-x0,z1-z0,top)/2+1);
-  im.frustumCulled=true;im.matrixAutoUpdate=false;im.updateMatrix();im.userData.cc=[(x0+x1)/2,(z0+z1)/2];STREAMED.push(im);
+  im.frustumCulled=true;im.matrixAutoUpdate=false;im.updateMatrix();
   // the chunk-wide sphere is for culling only; instance raycasts need the local one
   const g=im.geometry,cull=g.boundingSphere,loc=g.clone();loc.computeBoundingSphere();const local=loc.boundingSphere;loc.dispose();
   const rc=im.raycast;im.raycast=function(r,out){g.boundingSphere=local;try{rc.call(this,r,out)}finally{g.boundingSphere=cull}};}
@@ -106,10 +120,10 @@ const SURF={M:{top:T.stone,side:T.stone},N:{top:T.stone,side:T.stone,tint:0xe8ee
 const pickable=[],tmpCol=new THREE.Color();const m4=new THREE.Matrix4(),q0=new THREE.Quaternion(),v1=new THREE.Vector3(),v2=new THREE.Vector3();
 for(const [code,s] of Object.entries(SURF)){const cells=[];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)===code)cells.push([x,z]);if(!cells.length)continue;
   const side=lam(s.side,code==='G'?{}:{color:s.tint||0xb8b0a8}),mats=[side,side,lam(s.top,s.tint?{color:s.tint}:{}),side,side,side];
-  for(const part of chunk(cells)){const im=new THREE.InstancedMesh(BOX,mats,part.length);im.receiveShadow=true;
+  for(const part of chunk(cells))defer(chunkKey(...part[0]),()=>{const im=new THREE.InstancedMesh(BOX,mats,part.length);im.receiveShadow=true;
     part.forEach(([x,z],i)=>{const h=code==='P'?.08:height[z][x];m4.compose(v1.set(x+.5,code==='P'?h+.18:h/2,z+.5),q0,v2.set(1,h,1));im.setMatrixAt(i,m4);
       const v=.86+.22*vnoise(x,z,6)+(hash2(x*3,z*5)-.5)*.08,w=code==='G'?(vnoise(x+40,z,9)-.5)*.14:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
-    fitBounds(im,part,2);im.userData.cells=part;scene.add(im);pickable.push(im);}}
+    fitBounds(im,part,2);im.userData.cells=part;im.userData.lists=[pickable];scene.add(im);pickable.push(im);return im;});}
 // dock posts
 {const posts=[];for(let x=0;x<=Z.dock[0]+3;x+=2)for(const z of [Z.dock[1]-.05,Z.dock[1]+2.05])posts.push([x+.5,z]);
  const im=new THREE.InstancedMesh(BOX,lam(T.bark),posts.length);posts.forEach(([x,z],i)=>{m4.compose(v1.set(x,.2,z),q0,v2.set(.14,.6,.14));im.setMatrixAt(i,m4)});im.castShadow=true;scene.add(im);}
@@ -144,8 +158,9 @@ for(const c of [...treeCells,...rockCells,...bushCells])blockCell(...c);
    if(!end)continue;for(let c=end;c;c=prev.get(K(c[0],c[1])))if(!free(c[0],c[1])){solid.delete(K(c[0],c[1]));cut.add(K(c[0],c[1]));}
    flood(x,z);}
  for(const L of [treeCells,rockCells,bushCells])for(let i=L.length-1;i>=0;i--)if(cut.has(K(...L[i])))L.splice(i,1);}
-function instanced(geo,mat,list,place,shadow=true){const out=[];if(!list.length)return out;for(const part of chunk(list)){const im=new THREE.InstancedMesh(geo,mat,part.length);
-  part.forEach((c,i)=>{place(c,i,m4);im.setMatrixAt(i,m4);const v=.82+hash2(c[0]*7,c[1]*3)*.3;im.setColorAt(i,tmpCol.setRGB(v,v*(.95+hash2(c[1],c[0])*.1),v*.95));});im.castShadow=shadow;im.receiveShadow=true;fitBounds(im,part,3);im.userData.cells=part;scene.add(im);out.push(im);}return out;}
+// props stream with their chunk; the returned list is live: it holds only the meshes built right now
+function instanced(geo,mat,list,place,shadow=true){const out=[];if(!list.length)return out;for(const part of chunk(list))defer(chunkKey(Math.floor(part[0][0]),Math.floor(part[0][1])),()=>{const im=new THREE.InstancedMesh(geo,mat,part.length);
+  part.forEach((c,i)=>{place(c,i,m4);im.setMatrixAt(i,m4);const v=.82+hash2(c[0]*7,c[1]*3)*.3;im.setColorAt(i,tmpCol.setRGB(v,v*(.95+hash2(c[1],c[0])*.1),v*.95));});im.castShadow=shadow;im.receiveShadow=true;fitBounds(im,part,3);im.userData.cells=part;im.userData.lists=[out];scene.add(im);out.push(im);return im;});return out;}
 const qY=a=>new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),a);
 const WIND={value:0};
 function sway(mat,amp,topOnly){mat.onBeforeCompile=sh=>{sh.uniforms.uWind=WIND;sh.vertexShader='uniform float uWind;\n'+sh.vertexShader.replace('#include <begin_vertex>',
@@ -187,19 +202,19 @@ HOUSES.forEach(([hx,hz,hw,hd],hi)=>{const g=new THREE.Group(),y=.3;g.userData.ho
   scene.add(g);});
 // generated houses: the same plank house, its door shut; a richer place gets lighter walls
 const wallRich=lam(T.p[0],{color:0xe0d4bc}),wallPoor=lam(T.p[1],{color:0x8a7a64}),roofPoor=lam(T.p[2],{color:0x6a5040});
-for(const [hx,hz,hw,hd,p] of GEN_HOUSES){const g=new THREE.Group(),y=groundAt(hx,hz),rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital';
+for(const [hx,hz,hw,hd,p] of GEN_HOUSES)defer(chunkKey(hx,hz),()=>{const g=new THREE.Group(),y=groundAt(hx,hz),rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital';
   const w=new THREE.Mesh(BOX,rich?wallRich:poor?wallPoor:wallMat);w.scale.set(hw-.1,1.3,hd-.1);w.position.set(hx+hw/2,y+.65,hz+hd/2);w.castShadow=w.receiveShadow=true;g.add(w);
   for(const sg of [-1,1]){const r=new THREE.Mesh(BOX,poor?roofPoor:roofMat);r.scale.set(hw+.3,.12,hd/2+.35);r.position.set(hx+hw/2,y+1.62,hz+hd/2+sg*hd/4);r.rotation.x=sg*.55;r.castShadow=true;g.add(r);}
   const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);
   if(!poor){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+(hw/2-.9),y+.85,hz+hd);g.add(win);}
-  scene.add(g);}
+  g.traverse(o=>{o.matrixAutoUpdate=false;o.updateMatrix();});scene.add(g);return g;});
 // ruin walls of the old fort
 instanced(BOX,lam(T.wall),(()=>{const o=[];for(const p of GPL)if(p.type==='ruins')for(let z=p.z-p.r-1;z<=p.z+p.r+1;z++)for(let x=p.x-p.r-1;x<=p.x+p.r+1;x++)if(at(x,z)==='W')o.push([x,z]);return o;})(),
   ([x,z],i,m)=>{const h=.5+hash2(x,z)*1.4;m.compose(v1.set(x+.5,groundAt(x,z)+h/2,z+.5),q0,v2.set(1,h,1))});
 // bandit camps: two lean-to tents and a fire pit
 for(const p of GPL.filter(p=>p.type==='bandits')){const tentM=lam(T.p[1],{color:0x6a5a44});
-  for(const [dx,dz] of [[-2,-1],[2,-1]]){const x=p.x+dx,z=p.z+dz;if(!['D','G'].includes(at(x,z)))continue;
-    for(const sg of [-1,1]){const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);}blockCell(x,z);}}
+  for(const [dx,dz] of [[-2,-1],[2,-1]]){const x=p.x+dx,z=p.z+dz;if(!['D','G'].includes(at(x,z)))continue;blockCell(x,z);
+    defer(chunkKey(x,z),()=>[-1,1].map(sg=>{const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);return m;}));}}
 // ruin walls (varying heights) and gravestones
 instanced(BOX,lam(T.wall),RW.filter(([x,z])=>at(x,z)==='W'),([x,z],i,m)=>{const h=.4+hash2(x,z)*1.2;m.compose(v1.set(x+.5,.3+h/2,z+.5),q0,v2.set(1,h,1))});
 const graves=[];for(let z=Z.grave[1]-3;z<=Z.grave[1]+3;z+=2)for(let x=Z.grave[0]-4;x<=Z.grave[0]+4;x+=2)if(at(x,z)==='G'&&hash2(x,z)<.8){graves.push([x,z]);blockCell(x,z);}
@@ -456,7 +471,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
     T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
   // the camera follows the hero, or an enemy while it takes its turn
-  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();if(inMenuBg())menuCam(dt);streamTick();
+  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();if(inMenuBg())menuCam(dt);streamTick(firstStream);firstStream=false;
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
   const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
   LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});
@@ -467,7 +482,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
 let lastDraw=0;
 // ---------- the main menu backdrop: a slow flight over the living island ----------
 const inMenuBg=()=>typeof mainEl!=='undefined'&&!mainEl.hidden&&!room;
-let menuT=0;const MENU_PATH=[[Z.dock[0]+4,Z.dock[1]],Z.village,[Z.village[0]+10,Z.village[1]+8],Z.hunter,Z.forest,Z.camp,Z.ruins,Z.grave,[Z.village[0]+6,Z.village[1]-8]];
+let menuT=0,firstStream=true;const MENU_PATH=[[Z.dock[0]+4,Z.dock[1]],Z.village,[Z.village[0]+10,Z.village[1]+8],Z.hunter,Z.forest,Z.camp,Z.ruins,Z.grave,[Z.village[0]+6,Z.village[1]-8]];
 function menuCam(dt){menuT+=dt;const seg=16,n=MENU_PATH.length,i=Math.floor(menuT/seg)%n,k=(menuT%seg)/seg,s=k*k*(3-2*k),A=MENU_PATH[i],B=MENU_PATH[(i+1)%n];
   const fx=A[0]+(B[0]-A[0])*s,fz=A[1]+(B[1]-A[1])*s,fy=groundAt(Math.round(fx),Math.round(fz))*.5,a=menuT*.06;
   focus.set(fx,fy,fz);camera.position.set(fx+Math.sin(a)*8.5,fy+6.2+Math.sin(menuT*.13)*.6,fz+Math.cos(a)*8.5);camera.lookAt(fx,fy+.4,fz);}
