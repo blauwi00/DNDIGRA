@@ -1,0 +1,44 @@
+# Island beta: from prototype to a large project · 2026-10-24
+
+Owner asked to keep this. The island beta (`beta/island/`) grew fast as a
+prototype; this records what will not scale and the agreed direction.
+Nothing here is implemented yet; it is the plan to discuss and schedule.
+
+## What does not scale today
+- **Build**: ~20 source files are glued by text placeholders (`build.py`)
+  into one ~800 KB page with a shared global scope. Name clashes and
+  use-before-declare already happened (`wmat`, `W`, `tint`, `shadeC`).
+- **Two games**: the main game (`src/`) and the island beta evolve apart;
+  characters, weapons and rules are partly duplicated.
+- **Content in code**: villager lines, weapons, peoples and classes live in
+  JS instead of validated data that a generator can combine.
+- **Checks**: browser test scripts live outside the repo and are run by
+  hand; there is no CI for the island.
+- **Process**: all work goes to one branch; version = number of island
+  changes, not deliberate releases; decisions live in chat, not in issues.
+
+## Target
+1. Design document and staged plan (what is in the first release, what not).
+2. One code base with modules and the existing esbuild pipeline.
+3. Content as data (peoples, classes, weapons, villagers, quests, lines),
+   validated and combined by the island generator (islands 10x larger,
+   100+ villagers each).
+4. Work tracked in GitHub Issues; each change on its own branch with a PR.
+5. Island tests in the repo, run in CI on every change.
+6. Releases: a stable build for players and a test build for the owner.
+
+## Next steps (proposed)
+- Move the island to modules and the shared build; keep behaviour identical.
+- Move content to data files; keep the people-card format from `people.js`
+  as the seed for generated villagers (role, temper, topics, lines).
+- Bring the browser checks (tutorial, story, chaos, editor, all-looks,
+  hair-on-arms, talk repeats) into `tests/` and CI.
+- Decide with the owner how the island and the main game merge.
+- AI villagers later: a server proxy with limits, the model only for the
+  villager being talked to, people cards and short memories as context.
+
+## Delivery today
+- Shared site: Netlify publishes `site/island/` from branch
+  `claude/affectionate-ritchie-sbvta3` on every push (see `netlify.toml`).
+  A phone may show the old page until the tab is fully closed.
+- Private Claude artifact for the owner; the repository is private.
