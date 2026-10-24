@@ -30,8 +30,8 @@ Fonts (Cormorant Garamond, PT Sans; SIL Open Font License) are inlined from `src
 
 ## Rule: a character has exactly two hands
 
-Held items never bring hands of their own. An item is attached to the model's
-arm at its real hand (`HAND` in `rig.js`); a two-handed weapon sits in one real
+Held items never bring hands of their own. The grip of an item sits inside the
+model's own hand (the lowest block of the forearm, found in `buildModel`); a two-handed weapon sits in one real
 hand (staff, polearm or great weapon in the right, bow in the left) and the
 other hand stays free. Long items are tested box by box against the head and
 torso and step aside, then lean, until nothing overlaps (`clearBody`). Weapon
