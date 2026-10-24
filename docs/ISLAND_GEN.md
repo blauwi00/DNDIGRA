@@ -83,3 +83,10 @@ applied to the island yet.
 - The island map zooms (pinch, wheel, the − and + buttons) and pans by dragging. The closest zoom shows
   one map pixel per screen pixel (`MV.max` from the device pixel ratio), so the picture never goes soft.
   The map is drawn at 8 pixels per cell for that.
+
+## Capital and castle · 2026-10-24
+Owner: the king's castle must be far bigger than the tavern. The capital now has radius 18 (was 10) and may
+stand on its river; the royal castle is a walled court of 28 × 17 cells north of the market: curtain walls
+with battlements, round corner towers, a gatehouse with two towers, a keep of 12 × 7 with two more towers,
+lit windows and banners. City blocks start on a street line so every block gets houses. Changing the
+capital's size moves the island's places: a hero saved on the big island may wake somewhere else.

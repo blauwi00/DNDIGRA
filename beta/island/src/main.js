@@ -78,13 +78,14 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
  const house=(hx,hz,hw,hd,p)=>{for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');GEN_HOUSES.push([hx,hz,hw,hd,p]);};
  for(const p of GPL){const disc=(r,c)=>{for(let z=p.z-r;z<=p.z+r;z++)for(let x=p.x-r;x<=p.x+r;x++)if(Math.hypot(x-p.x,z-p.z)<=r&&okCell(x,z))set(x,z,c);};
    // the capital: cobbled streets every five cells, a market square in the middle, houses filling the blocks
-   // the royal castle fills the north of the capital: 15 x 8 cells of stone, the market square below its gate
-   if(p.type==='capital'){const pal=[p.x-7,p.z-p.r+1,15,8];PALACE.push(Object.assign(pal,{p}));
+   // the royal castle fills the north of the capital: a walled court 28 x 17 cells with a keep, the market below its gate
+   if(p.type==='capital'){let pal=null,bestR=1e9;for(let ox=-5;ox<=5;ox++){const c=[p.x-14+ox,p.z-p.r+1,28,17];let r=0;for(let z=c[1];z<c[1]+c[3];z++)for(let x=c[0];x<c[0]+c[2];x++)if(!okCell(x,z)&&at(x,z)!=='C')r++;if(r<bestR){bestR=r;pal=c;}}
+     PALACE.push(Object.assign(pal,{p}));
      for(let z=pal[1]-1;z<pal[1]+pal[3]+1;z++)for(let x=pal[0]-1;x<pal[0]+pal[2]+1;x++)if(okCell(x,z)||at(x,z)==='C')set(x,z,x>=pal[0]&&x<pal[0]+pal[2]&&z>=pal[1]&&z<pal[1]+pal[3]?'H':'C');
      for(let z=p.z-p.r;z<=p.z+p.r;z++)for(let x=p.x-p.r;x<=p.x+p.r;x++){if(Math.hypot(x-p.x,z-p.z)>p.r||!okCell(x,z))continue;
        if((x-p.x)%5===0||(z-p.z)%5===0)set(x,z,'C');}
-     for(let bz=p.z-p.r;bz<p.z+p.r;bz+=5)for(let bx=p.x-p.r;bx<p.x+p.r;bx+=5){if(Math.hypot(bx+2.5-p.x,bz+2.5-p.z)<4)continue;for(const[hw,hd]of[[4,4],[3,4],[4,3],[3,3]])if(fits(bx+1-((p.x-p.r)%5===0?0:0),bz+1,hw,hd)){house(bx+1,bz+1,hw,hd,p);break;}}
-     disc(2,'C');}
+     const b0=Math.floor(p.r/5)*5;for(let bz=p.z-b0;bz<p.z+p.r;bz+=5)for(let bx=p.x-b0;bx<p.x+p.r;bx+=5){if(Math.hypot(bx+2.5-p.x,bz+2.5-p.z)<4)continue;for(const[hw,hd]of[[4,4],[3,4],[4,3],[3,3]])if(fits(bx+1-((p.x-p.r)%5===0?0:0),bz+1,hw,hd)){house(bx+1,bz+1,hw,hd,p);break;}}
+     {const m=p.z+5;for(let z=m-3;z<=m+3;z++)for(let x=p.x-4;x<=p.x+4;x++)if(okCell(x,z))set(x,z,'C');}}
    if(p.type==='village'||p.type==='works'){disc(p.type==='capital'?4:2,p.type==='works'?'S':'C');
      // houses on a ring around the square, more and bigger in richer places
      const want=p.type==='works'?3:3+Math.round((p.wealth||0)*.8),big=p.type==='capital'||p.wealth>=3;let n=0;
@@ -243,17 +244,27 @@ for(const [hx,hz,hw,hd,p] of GEN_HOUSES)defer(chunkKey(hx,hz),()=>{const g=new T
   const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);
   if(!poor){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+(hw/2-.9),y+.85,hz+hd);g.add(win);}
   g.traverse(o=>{o.matrixAutoUpdate=false;o.updateMatrix();});scene.add(g);return g;});
-// the royal castle: curtain walls with battlements, four corner towers with pointed roofs, a keep, a gate and banners
-for(const [px,pz,pw,pd] of PALACE)defer(chunkKey(px+7,pz+4),()=>{const g=new THREE.Group(),y=groundAt(px,pz),stone=lam(T.wall,{color:0xb8b2a6}),dark=lam(T.wall,{color:0x8a847a}),roofM=lam(T.p[2],{color:0x3a4a7a});
+// the royal castle: a curtain wall with battlements round a paved court, round corner towers, a gatehouse
+// with two towers, and the great keep with its own towers, roofs, windows and banners
+for(const [px,pz,pw,pd] of PALACE)defer(chunkKey(px+pw/2,pz+pd/2),()=>{const g=new THREE.Group(),y=groundAt(px+pw/2,pz+pd/2),stone=lam(T.wall,{color:0xc0baae}),dark=lam(T.wall,{color:0x8a847a}),roofM=lam(T.p[2],{color:0x34467a}),gold=new THREE.MeshLambertMaterial({color:0xd8b04a}),red=new THREE.MeshLambertMaterial({color:0x8e2a24}),glow=new THREE.MeshBasicMaterial({color:0xffc66a});
   const B=(m,x,yy,z,sx,sy,sz)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,yy,z);o.castShadow=o.receiveShadow=true;g.add(o);return o;};
-  const cx=px+pw/2,cz=pz+pd/2,wh=2.6;B(stone,cx,y+wh/2,cz,pw-.2,wh,pd-.2);
-  for(let x=px+.5;x<px+pw;x+=1)for(const z of[pz+.15,pz+pd-.15])if(Math.round(x-px-.5)%2===0)B(dark,x,y+wh+.18,z,.5,.36,.3);
-  for(let z=pz+.5;z<pz+pd;z+=1)for(const x of[px+.15,px+pw-.15])if(Math.round(z-pz-.5)%2===0)B(dark,x,y+wh+.18,z,.3,.36,.5);
-  for(const[x,z]of[[px+.6,pz+.6],[px+pw-.6,pz+.6],[px+.6,pz+pd-.6],[px+pw-.6,pz+pd-.6]]){B(stone,x,y+2,z,1.6,4,1.6);B(roofM,x,y+4.4,z,1.8,.8,1.8);B(roofM,x,y+5,z,1.1,.6,1.1);B(roofM,x,y+5.4,z,.5,.4,.5);}
-  B(stone,cx,y+2.4,cz-1,5,4.8,3.4);B(roofM,cx,y+5.1,cz-1,5.4,.7,3.8);B(roofM,cx,y+5.6,cz-1,3.6,.5,2.4);
-  B(lam(T.bark),cx,y+.9,pz+pd-.05,1.6,1.8,.12);B(dark,cx,y+1.95,pz+pd-.02,2.2,.3,.18); // the gate
-  for(const sg of[-1,1]){B(lam(T.bark),cx+sg*2.2,y+2.2,pz+pd+.02,.06,1.4,.06);B(new THREE.MeshLambertMaterial({color:0x8e2a24}),cx+sg*2.2,y+2.2,pz+pd+.06,.5,1,.02);B(new THREE.MeshLambertMaterial({color:0xd8b04a}),cx+sg*2.2,y+2.3,pz+pd+.075,.18,.18,.01);}
-  for(const sg of[-1,1])B(new THREE.MeshBasicMaterial({color:0xffc66a}),cx+sg*1,y+3.4,cz-1+1.71,.3,.4,.02);
+  const wh=3.6,t=1.2,x0=px,x1=px+pw,z0=pz,z1=pz+pd,cx=(x0+x1)/2;
+  B(lam(T.cobble),cx,y+.32,(z0+z1)/2,pw-2,.04,pd-2); // the court
+  const wall=(ax,az,bx,bz)=>{const len=Math.hypot(bx-ax,bz-az),hor=az===bz;B(stone,(ax+bx)/2,y+wh/2,(az+bz)/2,hor?len:t,wh,hor?t:len);
+    for(let k=.5;k<len;k+=1.2){const x=hor?ax+k:ax,z=hor?az:az+k;B(dark,x,y+wh+.25,z,hor?.6:t+.05,.5,hor?t+.05:.6);}};
+  wall(x0+1,z0+.6,x1-1,z0+.6);wall(x0+.6,z0+1,x0+.6,z1-1);wall(x1-.6,z0+1,x1-.6,z1-1);wall(x0+1,z1-.6,cx-2.4,z1-.6);wall(cx+2.4,z1-.6,x1-1,z1-.6);
+  const tower=(x,z,r,h)=>{B(stone,x,y+h/2,z,r,h,r);B(dark,x,y+h+.2,z,r+.3,.4,r+.3);B(roofM,x,y+h+.8,z,r+.2,.8,r+.2);B(roofM,x,y+h+1.5,z,r*.65,.7,r*.65);B(roofM,x,y+h+2.1,z,r*.3,.6,r*.3);
+    B(glow,x,y+h*.7,z+r/2+.01,.3,.4,.02);};
+  for(const[x,z]of[[x0+1,z0+1],[x1-1,z0+1],[x0+1,z1-1],[x1-1,z1-1]])tower(x,z,2.6,5.4);
+  for(const sg of[-1,1])tower(cx+sg*2.6,z1-.8,2.2,5); // the gatehouse
+  B(lam(T.bark),cx,y+1.3,z1-.55,2.4,2.6,.2);B(dark,cx,y+2.8,z1-.55,3,.4,.6);
+  // the keep at the back of the court
+  const kz=z0+5.5;B(stone,cx,y+3.5,kz,12,7,7);B(roofM,cx,y+7.6,kz,12.6,1.2,7.6);B(roofM,cx,y+8.6,kz,9,1,5);
+  for(const sg of[-1,1])tower(cx+sg*6.4,kz+.5,2.4,8.5);
+  for(let k=-2;k<=2;k++)for(const yy of[2.2,4.6])B(glow,cx+k*2,y+yy,kz+3.51,.4,.6,.02);
+  B(lam(T.bark),cx,y+1.3,kz+3.55,1.6,2.4,.12);
+  for(const sg of[-1,1]){B(lam(T.bark),cx+sg*3.6,y+3.2,z1+.05,.08,2.2,.08);B(red,cx+sg*3.6,y+3.4,z1+.1,.7,1.6,.03);B(gold,cx+sg*3.6,y+3.6,z1+.12,.26,.26,.01);}
+  B(lam(T.bark),cx,y+11.3,kz,.1,2.6,.1);B(red,cx+.5,y+12.2,kz,.9,.6,.03);
   g.traverse(o=>{o.matrixAutoUpdate=false;o.updateMatrix();});scene.add(g);return g;});
 // ruin walls of the old fort
 instanced(BOX,lam(T.wall),(()=>{const o=[];for(const p of GPL)if(p.type==='ruins')for(let z=p.z-p.r-1;z<=p.z+p.r+1;z++)for(let x=p.x-p.r-1;x<=p.x+p.r+1;x++)if(at(x,z)==='W')o.push([x,z]);return o;})(),

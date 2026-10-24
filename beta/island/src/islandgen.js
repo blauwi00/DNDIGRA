@@ -82,14 +82,15 @@ const IslandGen=(()=>{
     // ---- places ----
     const places=[];
     const clearOf=(x,z,r,g)=>places.every(p=>Math.hypot(p.x-x,p.z-z)>p.r+r+Math.max(p.g,g));
-    const solidLand=(x,z,r)=>{for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dz*dz>r*r)continue;if(!inb(x+dx,z+dz))return false;const i=I(x+dx,z+dz);if(!walkable(i)||river[i])return false;}return true;};
-    const best=(score,r,g,step=3)=>{let bx=-1,bz=-1,bs=-1e8;for(let z=r+3;z<H-r-3;z+=step)for(let x=r+3;x<W-r-3;x+=step){if(!solidLand(x,z,Math.max(2,r-2))||!clearOf(x,z,r,g))continue;const s=score(x,z);if(s>bs){bs=s;bx=x;bz=z;}}return bx<0?null:{x:bx,z:bz,s:bs};};
+    const solidLand=(x,z,r,rivers)=>{for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dz*dz>r*r)continue;if(!inb(x+dx,z+dz))return false;const i=I(x+dx,z+dz);if(rivers&&river[i])continue;if(!walkable(i)||river[i])return false;}return true;};
+    // a city may stand on its river (bridges cross it); other places need dry ground
+    const best=(score,r,g,step=3,rivers)=>{let bx=-1,bz=-1,bs=-1e8;for(let z=r+3;z<H-r-3;z+=step)for(let x=r+3;x<W-r-3;x+=step){if(!solidLand(x,z,Math.max(2,r-2),rivers)||!clearOf(x,z,r,g))continue;const s=score(x,z);if(s>bs){bs=s;bx=x;bz=z;}}return bx<0?null:{x:bx,z:bz,s:bs};};
     const add=(type,n,at,r,g,why,extra)=>{const p=Object.assign({type,n,x:at.x,z:at.z,r,g,why},extra||{});places.push(p);return p;};
     const home=ST?add('village','Заводь',{x:ST.cx,z:ST.cz},ST.r,0,'рыбный промысел у удобного берега; деревня, с которой всё начинается',{home:1,stamp:1}):null;
     // capital: a river mouth or a sheltered coast with fertile land around; a port on its shore
-    const cap=best((x,z)=>{const i=I(x,z);return around(x,z,14,fert)*3+(freshD[i]>=0&&freshD[i]<8?1.5:freshD[i]>=0&&freshD[i]<=10?0:-1e9)+(seaD[i]<16&&seaD[i]>6?2:-1)-Math.abs(height[i]-.15)*2;},10,6,4);
+    const cap=best((x,z)=>{const i=I(x,z);return around(x,z,20,fert)*3+(freshD[i]>=0&&freshD[i]<8?1.5:freshD[i]>=0&&freshD[i]<=10?0:-1e9)+(seaD[i]<30&&seaD[i]>18?2:-1)-Math.abs(height[i]-.15)*2;},18,6,4,true);
     if(!cap)return null;
-    const capital=add('capital','Столица королевства',cap,10,6,'устье реки у моря, плодородные поля вокруг',{wealth:4,districts:['дворец','рынок','ремесленники','порт','храм','жилые кварталы','бедный квартал']});
+    const capital=add('capital','Столица королевства',cap,18,6,'устье реки у моря, плодородные поля вокруг',{wealth:4,districts:['дворец','рынок','ремесленники','порт','храм','жилые кварталы','бедный квартал']});
     // the port: nearest sea cell to the capital
     let port=null;{let bd=1e9;for(let z=0;z<H;z++)for(let x=0;x<W;x++){const i=I(x,z);if(land(i)||seaD[i]!==0)continue;let coast=false;for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]])if(inb(x+dx,z+dz)&&land(I(x+dx,z+dz)))coast=true;if(!coast)continue;const d=Math.hypot(x-cap.x,z-cap.z);if(d<bd){bd=d;port={x,z};}}}
     capital.port=port;
