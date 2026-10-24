@@ -46,7 +46,7 @@ chars=open('../../../dist/characters.js').read()
 main='window.__chars=1;\n'+main
 # fonts are inlined (SIL Open Font License) so text looks right offline and in the app
 head=head.replace('</style>',open('fonts.css').read()+'\n</style>',1)
-out='<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+stage+'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>\n'+chars+'\n</script>\n<script>\n'+models+tex+main+'\n'+hands+'\n</script>\n'
+out='<!-- За гранью · Остров Хельги. Copyright (c) 2026 blauwi00. Все права защищены. Копирование, распространение и изменение без разрешения запрещены. three.js — MIT, шрифты — SIL OFL 1.1. -->\n<meta name="copyright" content="© 2026 blauwi00. Все права защищены.">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'+head+stage+'<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>\n'+chars+'\n</script>\n<script>\n'+models+tex+main+'\n'+hands+'\n</script>\n'
 open(os.path.join(OUT,'island.html'),'w').write(out)
 # inside the app: a local three.js copy (works offline and in the native shell) and a way back to the game menu
 APP=os.environ.get('APP')
