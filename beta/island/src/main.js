@@ -275,12 +275,19 @@ function useConsumable(target){const h=hero.userData.held||{},id=['potion','brea
 
 // ---------- dialogue and quests ----------
 const talkEl=document.getElementById('talk'),questEl=document.getElementById('quest');
-function say(who,text,choices=[]){talkEl.hidden=false;talkEl.replaceChildren();const h=document.createElement('b');h.textContent=who;const p=document.createElement('p');p.textContent=text;talkEl.append(h,p);
-  const row=document.createElement('div');for(const [label,fn] of [...choices,['Уйти',null]]){const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();talkEl.hidden=true;fn&&fn();};row.append(b);}talkEl.append(row);}
+let typeT=0;
+function say(who,text,choices=[]){clearInterval(typeT);talkEl.hidden=false;talkEl.replaceChildren();const h=document.createElement('b');h.className='who';h.textContent=who;
+  // every letter is laid out from the start and only fades in, so lines never jump while typing
+  const p=document.createElement('p');const chars=[...text].map(c=>{const s=document.createElement('span');s.textContent=c;p.append(s);return s;});talkEl.append(h,p);
+  const row=document.createElement('div');row.className='choices';for(const [label,fn] of [...choices,[choices.length?'Не сейчас':'Дальше',null]]){const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();talkEl.hidden=true;clearInterval(typeT);fn&&fn();};row.append(b);}
+  talkEl.append(row);let i=0;const all=()=>{clearInterval(typeT);chars.forEach(s=>s.classList.add('on'));row.classList.add('on');};
+  if(reduceM)all();else typeT=setInterval(()=>{for(let k=0;k<2&&i<chars.length;k++)chars[i++].classList.add('on');if(i>=chars.length)all();},22);
+  talkEl.onclick=()=>{if(i<chars.length){i=chars.length;all();}};}
 talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
 let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
-function questUI(){const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;questEl.innerHTML=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>').join('');}
+function questUI(){if(tutUI())return;
+  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div>Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;questEl.innerHTML=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>').join('');}
 function questKill(e){for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
 function reward(q,items,line,who){q.state=3;window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
@@ -288,6 +295,15 @@ function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
   say(who,ask,[['Берусь',()=>{q.state=1;questFocus=q;questUI();say(who,'Да хранит тебя море.');}]]);}
 function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
+  // the tutorial's own lines first
+  if(tutOn()){const s=TUT.step;
+    if(a.talkId==='fisher'&&!TUT.flags.olav){TUT.flags.olav=1;window.handsGive([['fish',1]],'Подарок');return say(n,'Добро пожаловать на Хельгу! Я Олав. Будь другом, отнеси эту рыбу Браму в таверну — он ждёт с утра. Деревня прямо по дороге.');}
+    if(a.talkId==='bram'&&s===5){if(window.handsCount('fish'))window.handsConsume('fish');TUT.flags.bram=1;window.handsGive([['bread',1]],'Спасибо');
+      return say(n,'Рыба от Олава? Вот спасибо! Слушай, раз уж ты здесь: в амбаре через площадь завелась крыса размером с собаку. Прогонишь — расскажу, что творится на острове.');}
+    if(a.talkId==='bram'&&s===7){TUT.flags.bram2=1;window.handsGive([['potion',1]],'Награда');
+      return say(n,'Крыса удрала? Значит, рука у тебя крепкая. А теперь о главном: по ночам из руин часовни встают мертвецы. Поговори со мной ещё раз, когда будешь готов.');}
+    if(a.talkId==='bram')return say(n,s<5?'Заходи, путник! Кружка эля найдётся.':'Крыса в амбаре, через площадь. Не бойся, она больше шумит, чем кусает.');}
+  if(a.talkId==='herb'&&Q.herb.state<3)return herbTalk(n);
   if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
     if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
     if(q.state===1)return say(n,'Жаровня в руинах всё ещё холодная. Факел — в моём ящике с припасами.');
@@ -382,29 +398,30 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
   LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});
   moon.target.position.copy(focus);
-  if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}barkTick(now);zoneCheck();renderer.render(scene,camera);requestAnimationFrame(frame)}
+  if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}barkTick(now);tutTick();miniTick(now);zoneCheck();renderer.render(scene,camera);requestAnimationFrame(frame)}
 {EXTRAS}
 // ---------- save: progress lives in this browser only ----------
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,seen:seenRLE(),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   const cs=interact.filter(i=>i.chest);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
-  if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
+  if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
 {UI}
 {LIFE}
+{INTRO}
 // start: a fresh hero from the editor goes straight in; otherwise the main menu comes first
 setTimeout(()=>{let fresh=false;try{fresh=sessionStorage.getItem('helga-start')==='new';sessionStorage.removeItem('helga-start');}catch(e){}
   if(HEROSET)applyHero(Object.assign({},HEROSET,{fresh}));
-  if(fresh){const [L,R]=CLASSES[HERO.cls].start;const bag=[{id:'potion',n:1},{id:'bread',n:1},{id:'stone',n:3}];if(HERO.cls==='rogue')bag.push({id:'bow',n:1});window.handsLoad&&window.handsLoad({L:L&&{id:L,n:1},R:R&&{id:R,n:1},bag});rest();screen(null);toast('Нажмите на землю, чтобы идти. Нажмите на себя, врага или жителя — откроется колесо действий.',6000);}
+  if(fresh){setTimeout(arrival,50);const [L,R]=CLASSES[HERO.cls].start;const bag=[{id:'potion',n:1},{id:'bread',n:1},{id:'stone',n:3}];if(HERO.cls==='rogue')bag.push({id:'bow',n:1});window.handsLoad&&window.handsLoad({L:L&&{id:L,n:1},R:R&&{id:R,n:1},bag});rest();screen(null);}
   else{load();mainMenu();}
-  setHP();setInterval(save,3000);addEventListener('pagehide',save);},0);
+  setHP();setInterval(save,3000);addEventListener('pagehide',save);setTimeout(()=>document.getElementById('loading').classList.add('gone'),300);},0);
 setHP();requestAnimationFrame(frame);
 window.__game={V,critters,WX,phaseNow,lifeTick,get EV(){return EV},setEvNext:v=>evNext=v,chapel,setChapel,openMap,looks,lookWheel,houseWheel,heroPose,interact,enemyWheel,attackWheel,heroWheel,screen,applyHero,openEditor,get paused(){return paused},setTime:v=>worldTime=v,CB,startCombat,endHeroTurn,heroMove,stoneNoise,noiseCellNear,sees,get busy(){return busy},tapActor,ROOMS,interact,enterRoom,leaveRoom,talk,Q,get room(){return room},H0,enemies,actors,free,path,at,Z,camera,useConsumable};

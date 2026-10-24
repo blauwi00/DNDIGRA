@@ -192,20 +192,22 @@ function markSeen(){if(room)return;for(let z=H0.z-7;z<=H0.z+7;z++)for(let x=H0.x
 function seenRLE(){let out='',c=seen[0],n=0;for(const v of seen){if(v===c)n++;else{out+=c+':'+n+',';c=v;n=1;}}return out+c+':'+n;}
 function seenLoad(s){let i=0;for(const part of s.split(',')){const [v,n]=part.split(':').map(Number);seen.fill(v,i,i+n);i+=n;}}
 // where the current task points: the nearest foe it needs, the brazier, or whoever gives the reward
-function questTarget(){const q=questFocus&&questFocus.state>0&&questFocus.state<3?questFocus:Object.values(Q).find(q=>q.state===1||q.state===2);if(!q)return null;
+function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
+  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){const b=whoT('bram');return b&&Object.assign(b,{label:'Брам'});}const q=questFocus&&questFocus.state>0&&questFocus.state<3?questFocus:Object.values(Q).find(q=>q.state===1||q.state===2);if(!q)return null;
   const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=actors.find(a=>a.talkId===giver);
   if(q.state===2){if(who.z>=90){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
   if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};
+  if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
   const foes=enemies.filter(e=>!e.dead&&e.name===q.need).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');
 function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=true;return;}
-  let tx=T.x,tz=T.z;if(room){if(T.inRoom===room){const who=actors.find(a=>a.npc===T.label);tx=who.x;tz=who.z;}else{tx=room.exit[0];tz=room.exit[1];}}
+  let tx=T.x,tz=T.z;if(room&&T.z<90){tx=room.exit[0];tz=room.exit[1];}
   const v=new THREE.Vector3(tx+.5,groundAt(tx,tz)+1.3,tz+.5).project(camera),r=canvas.getBoundingClientRect();
   let sx=(v.x+1)/2*r.width,sy=(1-v.y)/2*r.height;const m=46,on=v.z<1&&sx>m&&sx<r.width-m&&sy>m&&sy<r.height-m;
   ptrEl.hidden=false;ptrEl.classList.toggle('edge',!on);
   if(!on){const cx=r.width/2,cy=r.height/2;let dx=sx-cx,dy=sy-cy;if(v.z>1){dx=-dx;dy=-dy;}const k=Math.min((cx-m)/Math.abs(dx||1),(cy-m)/Math.abs(dy||1));sx=cx+dx*k;sy=cy+dy*k;
     ptrEl.style.setProperty('--a',Math.atan2(dy,dx)+'rad');}
-  ptrEl.classList.toggle('l',sx<110);ptrEl.classList.toggle('r',sx>r.width-110);ptrEl.style.left=sx+'px';ptrEl.style.top=sy+'px';ptrEl.dataset.label=room&&T.inRoom!==room?'Выход':T.label;}
+  ptrEl.classList.toggle('l',sx<110);ptrEl.classList.toggle('r',sx>r.width-110);ptrEl.style.left=sx+'px';ptrEl.style.top=sy+'px';ptrEl.dataset.label=room&&T.z<90?'Выход':T.label;}
 // the map: drawn from the grid, unexplored land stays dark
 const mapEl=document.getElementById('mapview'),MAPC={'~':'#123040','A':'#b8a37a','G':'#3d5e2e','D':'#7a6448','C':'#8a8476','S':'#6e6c66','P':'#8a6040','H':'#9a5a30','W':'#4a4a4a'};
 function openMap(){screen(null);paused=true;mapEl.hidden=false;const c=mapEl.querySelector('canvas'),k=8;c.width=W*k;c.height=MAPH*k;const g=c.getContext('2d');

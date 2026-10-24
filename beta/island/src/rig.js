@@ -28,6 +28,8 @@ const HELD={
   staff:[[0,.18,0,.05,.9,.05,0x6a4426],[0,.65,0,.12,.05,.12,0xd0a94a],[0,.74,0,.09,.12,.09,0x7fd0ff,1]],
   potion:[[0,.05,.04,.13,.15,.13,0xd23a30],[0,.15,.04,.06,.06,.06,0xe8c27a]],
   bread:[[0,.03,.05,.22,.1,.13,0xd6a95a]],
+  fish:[[0,.04,.04,.07,.06,.22,0x7a9ab0],[0,.04,-.08,.03,.08,.06,0x5a7a90]],
+  herb:[[0,.06,0,.03,.14,.03,0x3f6a2e],[.03,.13,0,.08,.06,.08,0x5a9a4a],[-.03,.11,.02,.07,.05,.07,0x6aaa5a]],
   stone:[[0,.03,0,.12,.08,.1,0x8a8e94],[.07,.025,.05,.08,.06,.07,0x9a9ea4],[-.05,.02,.06,.06,.05,.05,0x7a7e84]]};
 function setHeld(holder,side,id){const arm=holder.userData.rig[side==='R'?'armL':'armR'];
   if(arm.userData.item){arm.remove(arm.userData.item);arm.userData.item=null;}if(!id)return;
