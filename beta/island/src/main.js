@@ -339,9 +339,12 @@ function step(a,dt){if(!a.route)return 0;const[nx,nz]=a.route[0];
   if(dd<.05){a.x=nx;a.z=nz;a.px=tx;a.pz=tz;a.route.shift();if(!a.route.length){a.route=null;if(a.arrive){const f=a.arrive;a.arrive=null;f();}}return 0;}const s=Math.min(dd,dt*a.spd);a.px+=dx/dd*s;a.pz+=dz/dd*s;return 1;}
 // can this enemy see the hero? a cone in front, shorter while sneaking; very close and loud always counts
 function sees(e){if(room||H0.dead)return false;const dx=H0.px-e.px,dz=H0.pz-e.pz,dist=Math.hypot(dx,dz);
-  if(dist>(H0.sneak?3.6:6.5)*(1-.25*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
-function notices(e){if(!sees(e)){e.checked=false;return false;}if(!H0.sneak)return true;if(e.checked)return false;e.checked=true;
-  const r=d(20),tot=r+HERO.stealth,ok=tot>=e.perc;dice.hidden=false;dice.innerHTML='Скрытность против '+e.name+': '+r+' + '+HERO.stealth+' = <b>'+tot+'</b> против '+e.perc+' — '+(ok?'вас не заметили':'<b>замечены!</b>');return !ok;}
+  if(dist>(H0.sneak?3.6*(HERO.sneakK||1):6.5)*(1-(HERO.night?.5:.25)*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
+function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e.checked=false;return false;}
+  // a goblin slips away once per rest: five seconds unseen and already crouching
+  const spotted=()=>{if(RACES[HERO.race]?.slip&&SP.slip){SP.slip=0;e.slipUntil=performance.now()+5000;H0.sneak=true;H0.spd=1.3;floatText('Ускользнул!','#9fe0a0',hero);toast('Гоблин успел скрыться — '+e.name+' вас не заметил. Вы крадётесь.');e.checked=true;return false;}return true;};
+  if(!H0.sneak)return spotted();if(e.checked)return false;e.checked=true;
+  const sb=HERO.stealth+(HERO.night&&nightness()>.5?2:0),r=d(20),tot=r+sb,ok=tot>=e.perc;dice.hidden=false;dice.innerHTML='Скрытность против '+e.name+': '+r+' + '+sb+' = <b>'+tot+'</b> против '+e.perc+' — '+(ok?'вас не заметили':'<b>замечены!</b>');return ok?false:spotted();}
 function ai(){const now=performance.now();
   for(const a of actors){if(a===H0||a.dead)continue;
     if(a.enemy){if(a.inFight)continue;
@@ -440,4 +443,4 @@ setTimeout(()=>{let fresh=false;try{fresh=sessionStorage.getItem('helga-start')=
   else{load();mainMenu();}
   setHP();setInterval(save,3000);addEventListener('pagehide',save);setTimeout(()=>document.getElementById('loading').classList.add('gone'),300);},0);
 setHP();requestAnimationFrame(frame);
-window.__game={V,critters,WX,phaseNow,lifeTick,get EV(){return EV},setEvNext:v=>evNext=v,chapel,setChapel,openMap,looks,lookWheel,houseWheel,heroPose,interact,enemyWheel,attackWheel,heroWheel,screen,applyHero,openEditor,get paused(){return paused},setTime:v=>worldTime=v,CB,startCombat,endHeroTurn,heroMove,stoneNoise,noiseCellNear,sees,get busy(){return busy},tapActor,ROOMS,interact,enterRoom,leaveRoom,talk,Q,get room(){return room},H0,enemies,actors,free,path,at,Z,camera,useConsumable};
+window.__game={V,critters,WX,phaseNow,lifeTick,get EV(){return EV},setEvNext:v=>evNext=v,chapel,setChapel,openMap,looks,lookWheel,houseWheel,heroPose,interact,enemyWheel,attackWheel,heroWheel,screen,applyHero,openEditor,get paused(){return paused},setTime:v=>worldTime=v,CB,startCombat,endHeroTurn,heroMove,stoneNoise,noiseCellNear,sees,notices,get busy(){return busy},tapActor,ROOMS,interact,enterRoom,leaveRoom,talk,Q,get room(){return room},H0,enemies,actors,free,path,at,Z,camera,useConsumable};

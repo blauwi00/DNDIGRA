@@ -89,7 +89,9 @@ function raceTab(body){const strip=el('div','hc-carousel');
     const pic=tile3D(ap,k,'head');pic.className='hc-pic';
     b.append(pic,el('b',null,R.n),el('small',null,R.group));b.onclick=()=>{if(ED.race===k)return;ED.race=k;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};strip.append(b);}
   body.append(el('div','hc-lab','Народ · проведите по ряду'),strip);const R=RACES[ED.race];
-  const card=el('div','hc-racecard');card.append(el('b',null,R.n),el('p',null,R.passive),el('p',null,R.edge),el('small',null,'Чаще выбирают: '+R.pref+'. Любой класс доступен.'));body.append(card);
+  // each trait shows its name in bold, then what it really does in the game
+  const trait=(tag,t)=>{const p=el('p','hc-trait');const [nm,...rest]=t.split(':');p.append(el('small',null,tag),el('b',null,nm),document.createTextNode(':'+rest.join(':')));return p;};
+  const card=el('div','hc-racecard');card.append(el('b',null,R.n),trait('Главное',R.passive),trait('Особенность',R.edge),el('small',null,'Чаще выбирают: '+R.pref+'. Любой класс доступен.'));body.append(card);
   strip.addEventListener('scroll',()=>{ED.raceScroll=strip.scrollLeft;},{passive:true});
   requestAnimationFrame(()=>{if(ED.raceScroll!=null){strip.scrollLeft=ED.raceScroll;return;}const on=strip.querySelector('.on');if(on)strip.scrollLeft=on.offsetLeft-strip.clientWidth/2+on.clientWidth/2;ED.raceScroll=strip.scrollLeft;});}
 function classTab(body){const g=el('div','hc-classes');

@@ -59,8 +59,13 @@ async function attack(att,def,opt){if(def.dead)return;att.face=Math.atan2(def.px
   const adv=advantage(att,def,opt),isHero=att===H0;
   // inspiration, an elf's memory or an echo fragment grant advantage on this attack
   if(isHero&&CB.boost){adv.v=adv.v<0?0:1;adv.why=(adv.why?adv.why+', ':'')+CB.boost;CB.boost=null;}
+  if(def===H0&&RACES[HERO.race]?.readMove&&!CB.readUsed){CB.readUsed=true;adv.v=adv.v>0?0:-1;adv.why=(adv.why?adv.why+', ':'')+'чтение движения';}
+  // tidal folk strike truer by the sea and in the rain
+  if(isHero&&RACES[HERO.race]?.surf&&(WX.rain>.4||((seaDist[H0.z]||[])[H0.x]??99)<=4)){opt=Object.assign({},opt,{hit:opt.hit+1});adv.why=(adv.why?adv.why+', ':'')+'дитя прибоя';}
   if(isHero&&opt.save)return saveSpell(def,opt);
-  const res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
+  let res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
+  if(isHero&&!res.ok&&RACES[HERO.race]?.reroll&&SP.frag){SP.frag=0;floatText('Фрагмент эха','#9ae0ff',hero);rollDone();await wait(350);
+    res=await roll20(opt.n+' → '+def.name+' · переброс',opt.hit,acOf(def),adv.v,adv.why);}
   const ranged=opt.range>1&&man(att,def)>1;let back=null;
   if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else back=await lunge(att,def);
   // rogue: sneak attack once per turn when attacking with advantage
@@ -73,7 +78,7 @@ async function attack(att,def,opt){if(def.dead)return;att.face=Math.atan2(def.px
   if(def.enemy){def.aware=true;def.distracted=false;}
   if(dmg)hurt(def,dmg,att);rollDone();}
 // damage taken by the hero passes through rage, shell, stone endurance; an orc stays up once; a tiefling burns back
-function hurt(def,dmg,att){if(def===H0){const R=RACES[HERO.race]||{};
+function hurt(def,dmg,att){if(def===H0){const R=RACES[HERO.race]||{};if(HERO.dr&&dmg>0){dmg=Math.max(1,dmg-HERO.dr);}
     if(CB.rage)dmg=Math.ceil(dmg/2);if(CB.shell){dmg=Math.ceil(dmg/2);CB.shell=false;floatText('Панцирь','#c8b890',hero);}
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
     H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
@@ -101,11 +106,11 @@ async function stoneAt(x,z){window.handsConsume&&window.handsConsume('stone');co
   await tween(ms,k=>s.position.set(H0.px+(x+.5-H0.px)*k,y0+(y1-y0)*k+Math.sin(k*Math.PI)*1.2,H0.pz+(z+.5-H0.pz)*k));setTimeout(()=>scene.remove(s),1500);}
 // in a fight: a Wisdom save or the target loses its next move and the next hit on it has advantage
 async function stoneFoe(def){await stoneAt(def.x,def.z);const res=await roll20(def.name+': спасбросок Мудрости',def.wis||0,12);
-  if(!res.ok){def.distracted=true;floatText('Отвлечён','#9fc3cf',def.o);}else floatText('Не повёлся','#cfc6b4',def.o);rollDone();}
+  if(!res.ok){def.distracted=RACES[HERO.race]?.clever?2:1;floatText(def.distracted>1?'Отвлечён надолго':'Отвлечён','#9fc3cf',def.o);}else floatText('Не повёлся','#cfc6b4',def.o);rollDone();}
 // out of a fight: throw past the enemy, to its side; a Stealth check decides if it goes to look
 function noiseCellNear(e){const sx=Math.sign(e.x-H0.x)||1,sz=Math.sign(e.z-H0.z)||1;
   for(const [dx,dz] of [[sz*3,-sx*3],[-sz*3,sx*3],[sx*3,sz*3],[sz*2,-sx*2],[-sz*2,sx*2]]){const x=e.x+dx,z=e.z+dz;if(free(x,z))return [x,z];}return [e.x+sx*2,e.z+sz*2];}
-async function stoneNoise(x,z){busy=true;await stoneAt(x,z);const near=enemies.filter(e=>!e.dead&&!e.aware&&Math.hypot(e.x-x,e.z-z)<=7&&!room);
+async function stoneNoise(x,z){busy=true;await stoneAt(x,z);const near=enemies.filter(e=>!e.dead&&!e.aware&&Math.hypot(e.x-x,e.z-z)<=(RACES[HERO.race]?.clever?14:7)&&!room);
   const dc=near.length?Math.max(...near.map(e=>e.perc)):10;const res=await roll20('Бросок камня: Скрытность',HERO.stealth,dc);busy=false;rollDone();
   if(!near.length){toast('Камень упал. Рядом никого.');return;}
   if(res.ok){for(const e of near){e.investigate={x,z,t:0};e.route=null;floatText('?','#9fc3cf',e.o);}toast('Враги идут проверить шум. Зайдите со спины.');}
@@ -116,12 +121,12 @@ async function magicMissile(def){SP.missiles--;floatText('Магическая �
   rollEl.hidden=false;rollEl.innerHTML='<span class="lbl">Магическая стрела → '+def.name+'</span><span class="res">3 × (1к4 + 1) = <b>'+tot+'</b> без промаха</span>';
   def.aware=true;hurt(def,tot);rollDone();}
 function secondWind(){SP.wind=0;const heal=d(10)+2;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#7fe08a',hero);toast('Второе дыхание: 1к10 + 2 = '+heal);}
-function healingWord(){SP.word--;const heal=d(4)+3;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Лечащее слово: 1к4 + 3 = '+heal);}
+function healingWord(){SP.word--;const heal=d(4)+3+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Лечащее слово: 1к4 + 3 = '+heal);}
 function rageOn(){SP.rage--;CB.rage=true;floatText('Ярость!','#ff5a4a',hero);sfx('fight');shake=.2;}
 function inspire(){SP.inspire--;CB.boost='вдохновение';floatText('Вдохновение','#f2c14e',hero);sfx('heal');}
 function memory(){SP.echo=0;CB.boost=HERO.race==='elf'?'якорь памяти':'фрагмент эха';floatText(HERO.race==='elf'?'Якорь памяти':'Эхо','#9ae0ff',hero);}
 function shellUp(){SP.shellUp=0;CB.shell=true;floatText('В панцирь','#c8b890',hero);}
-function layHands(){SP.hands=0;const heal=d(4)+d(4)+4;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Наложение рук: 2к4 + 4 = '+heal);}
+function layHands(){SP.hands=0;const heal=d(4)+d(4)+4+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Наложение рук: 2к4 + 4 = '+heal);}
 function markTarget(e,name){CB.mark=e;CB.markName=name;floatText(name,'#c8a8ff',e.o);sfx('spell');}
 async function entangle(e){SP.entangle=0;const res=await roll20(e.name+': спасбросок Силы · Опутывание',e.ath||0,8+HERO.spell+2);if(!res.ok){e.prone=true;e.lean=-1.3;floatText('Опутан','#6aaa4a',e.o);}else floatText('Вырвался','#cfc6b4',e.o);e.aware=true;rollDone();}
 async function dragonBreath(e){SP.breath=0;const res=await roll20(e.name+': спасбросок Ловкости · Дыхание',e.dex||0,13);await projectile(H0,e,'spell');let dmg=d(6)+d(6);if(res.ok)dmg=Math.floor(dmg/2);
@@ -149,10 +154,10 @@ const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
 async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
   const foes=enemies.filter(e=>!e.dead&&e.o.visible&&(e===trigger||Math.hypot(e.x-trigger.x,e.z-trigger.z)<=5));
   for(const e of foes){e.route=null;e.investigate=null;e.inFight=true;if(!surprise||e!==trigger)e.aware=true;}
-  const ini=[{a:H0,v:d(20)+HERO.dex},...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
+  const ini=[{a:H0,v:d(20)+HERO.dex+(HERO.init||0)},...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
   if(heroFirst){const k=ini.findIndex(o=>o.a===H0);ini.unshift(ini.splice(k,1)[0]);}
   if(surprise)trigger.surprised=true;
-  CB.order=ini.map(o=>o.a);CB.round=1;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
+  CB.order=ini.map(o=>o.a);CB.round=1;CB.readUsed=false;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
   document.body.classList.add('fight');sfx('fight');banner(surprise?'Внезапная атака!':'Бой!');renderOrder();
   toast('Инициатива: '+ini.map(o=>(o.a===H0?'вы':o.a.name)+' '+o.v).join(', ')+(surprise?'. Враг застигнут врасплох.':''),3500);
   if(!heroFirst){await wait(1100);nextTurn();}}
@@ -175,7 +180,7 @@ function endHeroTurn(){if(!heroTurn()||busy)return;clearMoves();closeWheel();
 async function enemyTurn(e){if(man(e,H0)>3){camFocus=e;await wait(450);}try{await enemyTurnBody(e);}finally{await wait(250);camFocus=null;}}
 async function enemyTurnBody(e){
   if(e.prone){e.prone=false;e.lean=0;floatText('Встаёт','#cfc6b4',e.o);await wait(600);}
-  if(e.distracted){e.distracted=false;e.face+=Math.PI;floatText('Отвлёкся на шум','#9fc3cf',e.o);await wait(900);return;}
+  if(e.distracted){e.distracted=e.distracted>1?e.distracted-1:false;e.face+=Math.PI;floatText('Отвлёкся на шум','#9fc3cf',e.o);await wait(900);return;}
   const range=e.range||1,mv=e.speed||6;
   if(man(e,H0)>range){const p=path(e.x,e.z,H0.x,H0.z,e,true,2000);if(p&&p.length){let route=p.slice(0,mv);
     if(range>1){const k=p.findIndex(c=>Math.abs(c[0]-H0.x)+Math.abs(c[1]-H0.z)<=range);if(k>=0)route=p.slice(0,Math.min(mv,k+1));}await walk(e,route);}}

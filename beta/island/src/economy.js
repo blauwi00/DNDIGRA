@@ -5,7 +5,7 @@
 const PRICE={potion:14,bread:3,fish:5,herb:4,stone:1,flour:6,torch:3};
 const priceOf=id=>{const w=WEAPONS[id];if(w){if(w.kind==='shield')return 18+(id==='shield'?0:6);return Math.round(w.die*3+(w.hb||0)*6+(w.db||0)*5+(w.two?4:0)+(w.spark?8:0));}return PRICE[id]||2;};
 // the island's state moves prices: bread is dear while bandits rob the mill, fish while wolves tear the nets
-function priceNow(id,buying){let p=priceOf(id);if(id==='bread'&&Q.band.state!==3)p=Math.ceil(p*1.5);if(id==='fish'&&Q.wolf.state!==3)p=Math.ceil(p*1.4);return buying?p:Math.max(1,Math.floor(p*.4));}
+function priceNow(id,buying){let p=priceOf(id);const tr=typeof HERO!=='undefined'&&HERO.trade;if(id==='bread'&&Q.band.state!==3)p=Math.ceil(p*1.5);if(id==='fish'&&Q.wolf.state!==3)p=Math.ceil(p*1.4);return buying?Math.max(1,Math.round(p*(tr?.8:1))):Math.max(1,Math.floor(p*.4*(tr?1.25:1)));}
 // shops: who trades, what they sell, what they buy and how much coin they hold
 const SHOPS={
   'Торговка Марта':{title:'Лавка Марты',sells:['bread','fish','stone','torch'],buys:['fish','herb','bread','stone','flour'],coin:80,line:'Что берёшь, милый? У меня всё свежее.'},
@@ -26,6 +26,7 @@ const JOBS=[
     offer:'Мешок муки для таверны, а у меня ноги не те. Отнесёшь Браму — семь монет.',done:'Мука на месте? Брам доволен, держи плату.'},
   {id:'patrol',who:'Бьорну',giver:'Стражник Бьорн',title:'Обойти деревню дозором',kind:'patrol',points:[[26,33],[36,30],[50,22]],pay:10,evening:true,
     offer:'Вечером один не справляюсь. Пройди дозором: площадь, восточная дорога, развилка к руинам. Десять монет.',done:'Всё тихо? Хорошо. Держи жалованье.'}];
+const jobPayFor=j=>HERO.trade?Math.round(j.pay*1.5):j.pay;
 const GOLD_START=12,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
 let gold=GOLD_START,dayN=0,lastT=null;const JOB={};for(const j of JOBS)JOB[j.id]={state:0,day:-1,step:0};
 const goldEl=document.getElementById('gold');
@@ -66,14 +67,14 @@ function jobOffer(a){const j=jobsOf(a).find(j=>JOB[j.id].state>0)||jobsOf(a)[0];
   if(st.state===1)return say(a.npc,j.kind==='fetch'?'Жду '+j.n+' шт. Пока у тебя '+window.handsCount(j.item)+'.':'Работа ждёт: '+j.title.toLowerCase()+'.');
   if(st.day===dayN)return say(a.npc,'На сегодня всё. Приходи завтра.');
   if(j.evening&&nightness()<=.2)return say(a.npc,'Днём я сам справляюсь. Приходи под вечер.');
-  say(a.npc,j.offer+' Плата: '+j.pay+' золота.',[['Взяться',()=>jobStart(j)]]);}
+  say(a.npc,j.offer+' Плата: '+jobPayFor(j)+' золота.',[['Взяться',()=>jobStart(j)]]);}
 function jobStart(j){const st=JOB[j.id];st.state=1;st.step=0;if(j.kind==='deliver'&&!window.handsAdd(j.item,1)){st.state=0;return toast('Освободите руки или сумку для груза.');}
   if(j.kind==='work'||j.kind==='fetch')st.spot=spotOf(j);questUI();toast('Подработка: '+j.title);jobMarkers();}
 function jobPay(j){const st=JOB[j.id];if(j.kind==='fetch'){for(let i=0;i<j.n;i++)window.handsConsume(j.item);}st.state=0;st.day=dayN;st.step=0;
-  say(j.giver,j.done);addGold(j.pay,j.title);questUI();jobMarkers();}
+  say(j.giver,j.done);addGold(jobPayFor(j),j.title);questUI();jobMarkers();}
 // deliveries finish at the receiver; other kinds come back to the giver
 function jobDeliverTo(a){const j=JOBS.find(j=>j.kind==='deliver'&&j.to===a.npc&&JOB[j.id].state===1&&window.handsCount(j.item)>0);if(!j)return false;
-  window.handsConsume(j.item);const st=JOB[j.id];st.state=0;st.day=dayN;say(a.npc,'Мука от Тодора? Вот спасибо. Тодор велел заплатить тебе.');addGold(j.pay,j.title);questUI();return true;}
+  window.handsConsume(j.item);const st=JOB[j.id];st.state=0;st.day=dayN;say(a.npc,'Мука от Тодора? Вот спасибо. Тодор велел заплатить тебе.');addGold(jobPayFor(j),j.title);questUI();return true;}
 // working at a spot: stand on the ring and the hero gets on with it
 let workT=0,workJob=null;const barEl=document.getElementById('workbar');
 function jobTick(dt){for(const j of JOBS){const st=JOB[j.id];if(st.state!==1)continue;

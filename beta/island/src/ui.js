@@ -71,7 +71,7 @@ function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.o
   if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
   const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
-function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2:d(4);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
+function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2+(HERO.heal||0):d(4)+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
   toast((id==='potion'?'Зелье лечения: 2к4 + 2 = ':'Хлеб: 1к4 = ')+v);window.handsConsume&&window.handsConsume(id);}
 function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HERO.race]||{};
   if(!f)items.push(H0.sneak?{icon:'stand',label:'Выпрямиться',run:()=>{H0.sneak=false;H0.spd=2.4;}}:{icon:'sneak',label:'Красться',sub:'Скрытность +'+HERO.stealth,run:()=>{H0.sneak=true;H0.spd=1.3;toast('Вы крадётесь: враги замечают только спереди и вблизи.');}});

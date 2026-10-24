@@ -46,19 +46,19 @@ const CLASS_ORDER=['fighter','barbarian','paladin','monk','ranger','rogue','bard
 for(const k in CLASSES)CLASSES[k].start=[CLASSES[k].kits[0].L,CLASSES[k].kits[0].R];
 let HERO=Object.assign({cls:'fighter'},CLASSES.fighter);
 // per-rest uses; refilled by entering any house
-const SP={};const rest=()=>Object.assign(SP,{wind:1,missiles:2,word:2,rage:2,inspire:2,smite:2,flurry:2,hands:1,entangle:1,breath:1,echo:1,shellUp:1,stone:1,relentless:1,rebuke:1});rest();
+const SP={};const rest=()=>Object.assign(SP,{wind:1,missiles:2,word:2,rage:2,inspire:2,smite:2,flurry:2,hands:1,entangle:1,breath:1,echo:1,shellUp:1,stone:1,relentless:1,rebuke:1,slip:1,frag:1});rest();
 const WEAP={torch:{n:'Факел',die:4,hb:-1,db:0,reach:1,kind:'torch'}};
 const wpn=id=>WEAPONS[id]||WEAP[id];
 // attack options: weapons in hand, then the class's cantrips
 function heroAttacks(){const h=hero.userData.held||{},o=[],H=HERO;
   const add=(id,n,hit,die,k,b,range,kind,hand,extra)=>o.push(Object.assign({id,n,hit,die,k,b,range,kind,hand},extra||{}));
-  const melee=(id,hand)=>{const w=wpn(id);add(id,w.n,H.melee+w.hb,w.die,1,H.mb+w.db,w.reach,'melee',hand);};
+  const melee=(id,hand)=>{const w=wpn(id);add(id,w.n,H.melee+w.hb,w.die,1,H.mb+w.db+(H.mdmg||0),w.reach,'melee',hand);};
   const t=h.two&&WEAPONS[h.two];
   if(t){if(t.kind==='bow')add(h.two,t.n,H.ranged+t.hb,t.die,1,H.rb+t.db,t.range,'bow','обе руки');
     else{if(t.spark)add(h.two,t.spark[0],H.spell+t.hb,t.spark[1],1,t.spark[3],t.spark[2],'spell',t.n.toLowerCase());melee(h.two,'обе руки');}}
   for(const [side,id] of [['правая',h.R],['левая',h.L]]){const w=wpn(id);if(w&&w.kind!=='shield'&&!w.two)melee(id,side);}
   if(!o.length&&(kindOf(h.L)==='shield'||kindOf(h.R)==='shield'))add(kindOf(h.L)==='shield'?h.L:h.R,'Удар щитом',H.melee-2,4,1,1,1,'melee','левая');
-  if(!o.some(a=>a.kind==='melee'))add(null,H.unarmed?'Удар рукой':'Кулак',H.unarmed?H.melee:H.melee-2,H.unarmed||1,1,H.unarmed?H.mb:1,1,'melee','без оружия');
+  if(!o.some(a=>a.kind==='melee'))add(null,H.unarmed?'Удар рукой':'Кулак',H.unarmed?H.melee:H.melee-2,H.unarmed||1,1,(H.unarmed?H.mb:1)+(H.mdmg||0),1,'melee','без оружия');
   for(const c of H.cantrips||[])add(null,c.n,H.spell,c.die,1,0,c.range,'spell','заклинание',c.save?{save:c.save,effect:c.effect}:null);
   return o;}
-function heroAC(){const h=hero.userData.held||{};return HERO.ac+((kindOf(h.L)==='shield'||kindOf(h.R)==='shield')?2:0)+(HERO.race==='dwarf'&&room==null&&Math.hypot(H0.x-Z.ruins[0],H0.z-Z.ruins[1])<9?1:0);}
+function heroAC(){const h=hero.userData.held||{};return HERO.ac+((kindOf(h.L)==='shield'||kindOf(h.R)==='shield')?2:0)+(HERO.race==='dwarf'&&(room!=null||Math.hypot(H0.x-Z.ruins[0],H0.z-Z.ruins[1])<9||Math.hypot(H0.x-Z.grave[0],H0.z-Z.grave[1])<8)?1:0);}

@@ -356,3 +356,11 @@ body.inmenu .gold,body.cinematic .gold{opacity:0}
 /* the dialog sits between the palms and their item badges */
 .talk{box-sizing:border-box!important;width:min(460px,calc(100% - 420px))!important;min-width:0!important;left:50%!important;transform:translateX(-50%)!important}
 @media (max-height:440px){.talk{width:min(440px,calc(100% - 300px))!important}}
+/* while the hands or a chest are open, the minimap and gold step aside so nothing overlaps */
+body.invopen .mini,body.invopen .gold,body.invopen #minimap{opacity:0!important;pointer-events:none!important}
+.hc-trait{display:block}.hc-trait small{display:inline-block;min-width:86px;margin-right:6px;color:#a8987a;font-size:11px;letter-spacing:1px;text-transform:uppercase}.hc-trait b{color:#f2c14e;font-weight:700}
+.hc-racecard .hc-trait b{font:inherit;font-size:13px;font-weight:700;color:#f2c14e}
+/* the open bag floats above its open palm, never on it */
+.inv{bottom:167px!important}
+@media (max-height:440px){.inv{bottom:120px!important}}
+body.invopen .quest{opacity:0!important;pointer-events:none!important}

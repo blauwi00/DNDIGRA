@@ -29,7 +29,7 @@
  // ---------- slots: two hands, a bag of 8 and, when one is open, a chest ----------
  // Every slot is null or {id,n}. Weapons are unique; consumables stack to their own limit,
  // counting everything the hero carries (hands and bag together).
- const BAG=8,C={L:[null],R:[null],bag:Array(BAG).fill(null),chest:[]};let chestRef=null,sel=null;
+ const BAG=(()=>{try{const h=JSON.parse(localStorage.getItem('helga-hero'));return h&&h.race==='halfling'?10:8}catch(e){return 8}})(),C={L:[null],R:[null],bag:Array(BAG).fill(null),chest:[]};let chestRef=null,sel=null;
  const st={open:null},pose={L:'grip',R:'grip'};
  const wait=ms=>new Promise(r=>setTimeout(r,ms)),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const S=k=>C[k];const hand=s=>C[s][0];const isTwo=x=>x&&ITEMS[x.id].two;
@@ -93,7 +93,7 @@
  async function doMove(ak,ai,bk,bi){sel=null;const before=JSON.stringify([hand('L'),hand('R')]);if(move(ak,ai,bk,bi)){window.sfx&&sfx(ak==='chest'&&bk!=='chest'?'pickup':'click');
      if(ak==='chest'||bk==='chest')saveChest();}render();
    if(JSON.stringify([hand('L'),hand('R')])!==before){sync();for(const s of ['L','R'])if(hand(s)&&st.open!==s)await animate(s,['open','half','grip']);await settle();}}
- async function toggle(s){st.open=st.open===s?null:s;sel=null;render();window.sfx&&sfx('click');
+ async function toggle(s){st.open=st.open===s?null:s;sel=null;render();document.body.classList.toggle('invopen',!!st.open);window.sfx&&sfx('click');
    if(st.open===s)await animate(s,['half','open']);await settle();}
  for(const s of ['L','R']){const p=document.getElementById('palm'+s);const t=e=>{e.stopPropagation();toggle(s);};p.onclick=t;p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t(e);}};
    document.getElementById('inv'+s).onpointerdown=e=>e.stopPropagation();setPose(s,'grip');}
@@ -114,9 +114,9 @@
  function saveChest(){if(chestRef)chestRef.items=C.chest.map(x=>x&&{id:x.id,n:x.n});}
  function takeAll(){const got=[];C.chest.forEach((x,i)=>{if(!x)return;const k=add(x.id,x.n);if(k){got.push([x.id,k]);x.n-=k;if(!x.n)C.chest[i]=null;}});saveChest();
    if(got.length){window.sfx&&sfx('pickup');flyIn(got);}if(C.chest.some(Boolean))say2('Не всё поместилось: сумка полна или достигнут предел.');render();sync();settle();}
- async function openChest(ref){chestRef=ref;C.chest=Array(Math.max(4,ref.items.length)).fill(null).map((_,i)=>ref.items[i]?{...ref.items[i]}:null);sel=null;st.open=null;render();
+ async function openChest(ref){chestRef=ref;document.body.classList.add('invopen');C.chest=Array(Math.max(4,ref.items.length)).fill(null).map((_,i)=>ref.items[i]?{...ref.items[i]}:null);sel=null;st.open=null;render();
    document.body.classList.add('chest-open');for(const s of ['L','R'])animate(s,['half','open']);}
- function closeChest(){saveChest();if(chestRef&&chestRef.close)chestRef.close();chestRef=null;sel=null;document.body.classList.remove('chest-open');render();settle();}
+ function closeChest(){saveChest();if(chestRef&&chestRef.close)chestRef.close();chestRef=null;sel=null;document.body.classList.remove('chest-open');document.body.classList.toggle('invopen',!!st.open);render();settle();}
 
  // ---------- "you got" card that flies into the hand ----------
  function flyIn(list,title='Получено'){const card=document.createElement('div');card.className='gotcard';const h=document.createElement('b');h.textContent=title;card.append(h);
