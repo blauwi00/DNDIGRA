@@ -71,10 +71,17 @@ function setHeld(holder,side,id){const arm=holder.userData.rig[side==='R'?'foreL
   const up=holder.userData.upright||(holder.userData.upright={});up[side]=k==='spear';
   up['shield'+side]=k==='shield';
   // a shield is strapped along the forearm, which is raised across the body; its face looks forward
-  if(k==='shield'){grp.scale.setScalar(1.35);grp.position.y+=.05;const z=side==='R'?SHIELD.arm[2]:-SHIELD.arm[2],chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(SHIELD.arm[0],0,z)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...SHIELD.fore)));
-    grp.quaternion.copy(chain.invert());grp.position.x+=side==='R'?.02:-.02;}else if(up[side]){const z=side==='R'?-.12:.12,chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(UPRIGHT.arm[0],0,z)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...UPRIGHT.fore)));grp.quaternion.copy(chain.invert());}else if(isWeapon(id)||k==='torch')grp.rotation.x=k==='torch'?.6:1.9;
+  if(k==='shield'){grp.scale.setScalar(1.35);arm.add(grp);arm.userData.item=grp;holder.userData.shieldMode=null;placeShield(holder,side,'rest');return;}else if(up[side]){const z=side==='R'?-.12:.12,chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(UPRIGHT.arm[0],0,z)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...UPRIGHT.fore)));grp.quaternion.copy(chain.invert());}else if(isWeapon(id)||k==='torch')grp.rotation.x=k==='torch'?.6:1.9;
   arm.add(grp);arm.userData.item=grp;}
-const UPRIGHT={arm:[-.05,0,0],fore:[-.75,0,0]},SHIELD={arm:[-.2,0,-.18],fore:[-1.15,0,0]};
+const UPRIGHT={arm:[-.05,0,0],fore:[-.75,0,0]};
+// a shield rests on the outside of the forearm, face out, where the camera above can see it;
+// in a fight it comes up across the chest. Angles are for the hero's left arm (armR) and mirrored.
+const SHIELD={rest:{arm:[-.05,0,.2],fore:[-.35,0,0],yaw:Math.PI/2,tilt:.55,out:.05},guard:{arm:[-.2,0,.18],fore:[-1.15,0,0],yaw:0,tilt:0,out:.02}};
+function shieldPose(side,mode){const P=SHIELD[mode],m=side==='R'?-1:1;return {arm:[P.arm[0],0,P.arm[2]*m],fore:P.fore,yaw:P.yaw*m,tilt:P.tilt*m,out:P.out*m};}
+function placeShield(holder,side,mode){if(holder.userData.shieldMode===mode)return;const r=holder.userData.rig,f=r[side==='R'?'foreL':'foreR'],grp=f.userData.item;if(!grp)return;
+  holder.userData.shieldMode=mode;const P=shieldPose(side,mode),h=r['hand'+(side==='R'?'L':'R')];
+  const chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(...P.arm)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...P.fore)));
+  const want=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,P.tilt)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,P.yaw,0)));grp.quaternion.copy(chain.invert().multiply(want));grp.position.copy(h);grp.position.y+=.06;grp.position.x+=P.out;}
 // Two-handed items live in one real hand: a staff, polearm or great weapon in the right hand
 // like a walking staff, a bow in the left; the other hand stays free. Only one copy exists.
 const TWO={has:id=>!!(id&&WEAPONS[id]&&WEAPONS[id].two)};
@@ -87,7 +94,7 @@ function armPose(o,walk,sw,breathe){const r=o.userData.rig,two=o.userData.twoHan
     A.rotation.set(P.arm[0]+b,P.arm[1],P.arm[2]);F.rotation.set(P.fore[0]-b,0,0);free(oA,oF,s);}
   else{free(r.armL,r.foreL,-1);free(r.armR,r.foreR,1);}
   if(r.cape)r.cape.rotation.x=.06+(walk?Math.abs(sw)*.22:0)+breathe*.015;
-  const up=o.userData.upright;if(up)for(const [s,A,F] of [['R',r.armL,r.foreL],['L',r.armR,r.foreR]])if(up['shield'+s]&&!two){A.rotation.set(SHIELD.arm[0]+b,0,A===r.armL?SHIELD.arm[2]:-SHIELD.arm[2]);F.rotation.set(SHIELD.fore[0]-b*.5,0,0);}
+  const up=o.userData.upright;if(up)for(const [s,A,F] of [['R',r.armL,r.foreL],['L',r.armR,r.foreR]])if(up['shield'+s]&&!two){const mode=o===hero&&CB.on?'guard':'rest';placeShield(o,s,mode);const P=shieldPose(s,mode);A.rotation.set(P.arm[0]+b,0,P.arm[2]);F.rotation.set(P.fore[0]-b*.5,0,0);}
     else if(up[s]&&!(two&&o.userData.rig[s==='R'?'foreL':'foreR'].userData.two)){A.rotation.set(UPRIGHT.arm[0]+b,0,A===r.armL?-.12:.12);F.rotation.set(UPRIGHT.fore[0]-b,0,0);}}
 function setTwoHanded(holder,id){const rig=holder.userData.rig;for(const k of ['foreL','foreR','armL','armR','torso']){const p=rig[k];if(p.userData.two){p.remove(p.userData.two);p.userData.two=null;}}
   holder.userData.twoHand=id||null;holder.userData.twoPose=null;if(!id)return;
