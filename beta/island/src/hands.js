@@ -19,6 +19,8 @@
  fish:['................','................','................','..........kk....','...kkkkkkkkok...','..kccCCCCCCok...','.kcpcCCCCCCCok..','.kccCCCCCCCok...','..kkCCCCCCok....','....kkkkkkk.....','................','................','................','................','................','................'],
  herb:['................','.......kk.......','......kgGk......','..kk..kgGk..kk..','.kgGk.kgk..kgGk.','.kgGGkkgk.kgGk..','..kgGGkgkkgGk...','...kkgGgGgkk....','.....kkgkk......','......kbk.......','......kbk.......','.....kbBk.......','......kk........','................','................','................'],
  bread:['................','................','.....kkkkkk.....','...kkywywywkk...','..kyywywywyyYk..','..kyyyyyyyyyYk..','.kYyyyyyyyyyYYk.','.kYYYYYYYYYYYYk.','..kkkkkkkkkkkk..','................','................','................','................','................','................','................']};
+ ITEMS.flour={n:'Мешок муки',max:1,d:'Тодор просил отнести Браму'};
+ ICON.flour=['................','.....kkkkk......','....kyeeeyk.....','....kkyyykk.....','...keeeeeeek....','..keeeeeeeeek...','..keeeYeeeeek...','..keeYYYeeeek...','..keeeYeeeeek...','..keeeeeeeeek...','..kYeeeeeeeYk...','...kYYYYYYYk....','....kkkkkkk.....','................','................','................'];
  for(const k in WEAPONS){const V=WEAPONS[k];ITEMS[k]={n:V.n,max:1,two:V.two||0,d:V.d};}
  function icon(c,id){c.width=c.height=16;const x=c.getContext('2d');x.clearRect(0,0,16,16);if(!id)return c;
   const V=WEAPONS[id],P=V&&V.pal?Object.assign({},PAL,V.pal):PAL,shape=ICON[id]||(V&&WICON[V.icon])||ICON[V?Object.keys(WEAPONS).find(k=>WEAPONS[k].kind===V.kind&&ICON[k]):id];

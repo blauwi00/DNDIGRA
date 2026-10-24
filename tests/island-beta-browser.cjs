@@ -113,6 +113,20 @@ const step = (name) => console.log('· ' + name);
       return bad;
     });
     assert.deepEqual(talks, []);
+    step('economy: buy and sell, and a side job from offer to pay');
+    const eco = await p.evaluate(async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      openShop(__game.actors.find((a) => a.npc === 'Торговка Марта'));
+      const g0 = gold, b0 = handsCount('bread'); document.querySelector('.sh-buy .sh-item').click();
+      const bought = gold < g0 && handsCount('bread') === b0 + 1; closeShop();
+      const j = JOBS.find((j) => j.id === 'sweep'); jobOffer(__game.actors.find((a) => a.npc === j.giver));
+      [...document.querySelectorAll('#talk .choices button')].find((b) => b.textContent === 'Взяться').click();
+      const sp = JOB.sweep.spot, H = __game.H0; H.x = sp[0]; H.z = sp[1]; H.px = sp[0] + .5; H.pz = sp[1] + .5; H.route = null;
+      for (let i = 0; i < 40 && JOB.sweep.state !== 2; i++) await wait(250);
+      const g1 = gold; jobOffer(__game.actors.find((a) => a.npc === j.giver)); document.querySelector('#talk .choices button:last-child').click();
+      return {bought, ready: JOB.sweep.state === 0 && JOB.sweep.day === dayN, paid: gold - g1};
+    });
+    assert.deepEqual(eco, {bought: true, ready: true, paid: 3});
     await p.close();
 
     // ---------- a new game: editor, then the whole tutorial ----------

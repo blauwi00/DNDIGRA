@@ -13,6 +13,8 @@ const ICONS={ // 16x16 pixel glyphs, drawn with currentColor
   stone:'M4 6l4-3 5 2 2 5-3 4H5l-3-3z',
   look:'M1 8c2-4 5-5 7-5s5 1 7 5c-2 4-5 5-7 5s-5-1-7-5zm7-3a3 3 0 100 6 3 3 0 000-6z',
   talk:'M2 2h12v9H7l-4 3v-3H2z',
+  trade:'M3 4h10l-1 9H4zM6 4a2 2 0 014 0',
+  job:'M2 6h12v8H2zM6 3h4v3H6z',
   potion:'M6 1h4v2H9v3l4 4v4H3v-4l4-4V3H6z',
   bread:'M2 8c0-3 3-5 6-5s6 2 6 5v4H2z',
   sneak:'M3 9h4v5H3zm6-6h4v5H9zM3 6h3v2H3zm6-5h3v1H9z',
@@ -64,7 +66,10 @@ function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=ma
   items.push({icon:'back',label:'Назад',keep:true,run:()=>enemyWheel(e)});
   showWheel(e,items,'Чем атаковать');}
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
-  {icon:'look',label:'Осмотреть',run:()=>toast(a.npc+'. Житель острова.')}];
+  {icon:'look',label:'Осмотреть',run:()=>toast(a.npc+(PEOPLE[a.npc]?'. '+PEOPLE[a.npc].role[0].toUpperCase()+PEOPLE[a.npc].role.slice(1)+', '+PEOPLE[a.npc].temper+'.':'. Житель острова.'))}];
+  // shopkeepers trade; villagers with side jobs offer paid work
+  if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
+  const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
 function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2:d(4);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
   toast((id==='potion'?'Зелье лечения: 2к4 + 2 = ':'Хлеб: 1к4 = ')+v);window.handsConsume&&window.handsConsume(id);}
@@ -178,7 +183,7 @@ function seenRLE(){let out='',c=seen[0],n=0;for(const v of seen){if(v===c)n++;el
 function seenLoad(s){let i=0;for(const part of s.split(',')){const [v,n]=part.split(':').map(Number);seen.fill(v,i,i+n);i+=n;}}
 // where the current task points: the nearest foe it needs, the brazier, or whoever gives the reward
 function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
-  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){const b=whoT('bram');return b&&Object.assign(b,{label:'Брам'});}const q=questFocus&&questFocus.state>0&&questFocus.state<3?questFocus:Object.values(Q).find(q=>q.state===1||q.state===2);if(!q)return null;
+  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){const b=whoT('bram');return b&&Object.assign(b,{label:'Брам'});}const q=questFocus&&questFocus.state>0&&questFocus.state<3?questFocus:Object.values(Q).find(q=>q.state===1||q.state===2);if(!q)return jobTarget();
   const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=actors.find(a=>a.talkId===giver);
   if(q.state===2){if(who.z>=90){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
   if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};

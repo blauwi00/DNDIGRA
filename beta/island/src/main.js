@@ -287,18 +287,19 @@ talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
 let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
 function questUI(){if(tutUI())return;
-  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div class="one">Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;
-  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>');
+  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div class="one">Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2).concat(jobQuests());questEl.hidden=!act.length;
+  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
 function questKill(e){for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
-function reward(q,items,line,who){q.state=3;window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
+function reward(q,items,line,who){q.state=3;{const k=Object.keys(Q).find(k=>Q[k]===q);if(QUEST_GOLD[k])setTimeout(()=>addGold(QUEST_GOLD[k],'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
   say(who,ask,[['Берусь',()=>{q.state=1;questFocus=q;questUI();say(who,'Да хранит тебя море.');}]]);}
 function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
+  if(!tutOn()&&jobDeliverTo(a))return;
   // the tutorial's own lines first
   if(tutOn()){const s=TUT.step;
     if(a.talkId==='fisher'&&!TUT.flags.olav){TUT.flags.olav=1;window.handsGive([['fish',1]],'Подарок');return say(n,'Добро пожаловать на Хельгу! Я Олав. Будь другом, отнеси эту рыбу Браму в таверну — он ждёт с утра. Деревня прямо по дороге.');}
@@ -417,9 +418,10 @@ const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
   q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
-  herb:actors.find(a=>a.talkId==='herb').gave||0,met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
+  herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
+  ecoLoad(d.eco);
   for(const [nm,k] of d.met||[]){const v=V.find(v=>v.npc===nm);if(v)v.met=k;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   const cs=interact.filter(i=>i.chest);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});

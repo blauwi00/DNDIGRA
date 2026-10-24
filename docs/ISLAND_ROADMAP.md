@@ -48,6 +48,9 @@ Nothing here is implemented yet; it is the plan to discuss and schedule.
   `tests/island-build-fresh.mjs` (shipped pages match the sources) and
   `tests/island-beta-browser.cjs` (menu, settings, every look, two hands,
   kits, villager talks, tutorial).
+- [x] Living island, part 1 · 2026-10-24: gold, four shops with state-driven
+  prices, five repeatable side jobs (work, fetch, deliver, patrol) and gold
+  rewards for quests — all as data in `beta/island/src/economy.js`.
 - [ ] Step 2: content as data.
 - [ ] Step 3: modules and the shared esbuild build.
 - [ ] Step 4: decide how the island and the main game merge.
