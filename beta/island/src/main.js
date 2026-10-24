@@ -5,7 +5,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
 const focus=new THREE.Vector3(8,0,30);
-let camZoom=1,zoomTarget=1; // the camera leans in while the hero looks at something
+let camZoom=1,zoomTarget=1,camFocus=null; // the camera leans in while the hero looks at something
 function placeCam(){camera.position.set(focus.x,focus.y+8.2*camZoom,focus.z+6.6*camZoom);camera.lookAt(focus)}
 const T={p:[0,1,2,3].map(planks),stone:stoneFloor(),grass:grass(),dirt:dirt(),cobble:cobble(),wall:wallStone(),crate:crate(),leaves:leaves(),bark:bark(),water:water(),gside:grassSide(),moss:moss(),blade:blade(),smoke:smokeTex()};
 const sand=tex(32,(g,s)=>{noise(g,s,['#b8a37a','#c2ad84','#ad9870','#bfa97f']);for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#8f7d5c','#d8c79e']))});
@@ -393,7 +393,8 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});
     flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
     T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
-  focus.x+=(H0.px-focus.x)*Math.min(1,dt*3);focus.z+=(H0.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(H0.px,H0.pz)*.5;placeCam();
+  // the camera follows the hero, or an enemy while it takes its turn
+  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
   const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
   LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});

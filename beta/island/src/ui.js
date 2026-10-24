@@ -127,7 +127,9 @@ const heroBoxes=s=>s&&s.game&&window.Characters?Characters.build(Characters.spec
 function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));const held=hero.userData.held;
   hero.clear();[...m.children].forEach(c=>hero.add(c));Object.assign(hero.userData,m.userData,{held});}
 let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
-function applyHero(s){HEROSET=s;HERO=Object.assign({cls:s.cls},CLASSES[s.cls]);H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
+function heroFace(s){const c=document.getElementById('hpFace');if(!c||!window.Characters)return;const g=c.getContext('2d');g.clearRect(0,0,40,40);
+  const p=s.game?Characters.portrait('hero',s.game,{view:'face',width:40,height:40,pixel:2}):null;if(p){g.imageSmoothingEnabled=false;g.drawImage(p,0,0);}c.hidden=!p;}
+function applyHero(s){heroFace(s);HEROSET=s;HERO=Object.assign({cls:s.cls},CLASSES[s.cls]);H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
 
 // ---------- menus ----------
 let paused=true;

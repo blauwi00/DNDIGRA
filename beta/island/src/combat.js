@@ -164,7 +164,8 @@ function afterHeroAct(){if(!CB.on)return;if(!liveFoes().length)return victory();
   if(CB.acted&&CB.move<=0)setTimeout(()=>heroTurn()&&!busy&&endHeroTurn(),900);}
 function endHeroTurn(){if(!heroTurn()||busy)return;clearMoves();closeWheel();
   if(liveFoes().every(e=>man(e,H0)>12)){for(const e of liveFoes())e.aware=false;return endCombat('Вы оторвались от погони.');}nextTurn();}
-async function enemyTurn(e){
+async function enemyTurn(e){if(man(e,H0)>3){camFocus=e;await wait(450);}try{await enemyTurnBody(e);}finally{await wait(250);camFocus=null;}}
+async function enemyTurnBody(e){
   if(e.prone){e.prone=false;e.lean=0;floatText('Встаёт','#cfc6b4',e.o);await wait(600);}
   if(e.distracted){e.distracted=false;e.face+=Math.PI;floatText('Отвлёкся на шум','#9fc3cf',e.o);await wait(900);return;}
   const range=e.range||1,mv=e.speed||6;

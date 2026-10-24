@@ -24,7 +24,7 @@ function worldTick(dt){const talking=!document.getElementById('talk').hidden;if(
 // impulses into resonators, steps and swings are shaped noise. A short generated
 // reverb gives rooms some air.
 let AC=null,master=null,dry=null,verb=null,muted=false;try{muted=localStorage.getItem('helga-sound')==='off'}catch(e){}
-function audio(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=muted?0:.7;
+function audio(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=muted?0:vol;
   const comp=AC.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;master.connect(comp).connect(AC.destination);
   dry=AC.createGain();dry.connect(master);verb=AC.createConvolver();verb.buffer=impulse(1.6,2.6);const vg=AC.createGain();vg.gain.value=.22;verb.connect(vg).connect(master);ambient();}catch(e){AC=null}return AC;}
 addEventListener('pointerdown',()=>{audio();if(AC&&AC.state==='suspended')AC.resume();},{capture:true});
@@ -99,4 +99,6 @@ function stepSound(code,soft){if(!audio()||muted)return;const t=AC.currentTime,r
   else if(code==='P'||code==='F'||code==='E'){knockW(t,.07*v,170+r()*60);}                                                  // boards
   else{burst(t,.07,.06*v,'lowpass',300+r()*120,.8,.003,.08);}}                                                              // packed earth
 const sndBtn={};const sndUI=()=>{for(const id of ['mSound','pSound']){const b=document.getElementById(id);if(b)b.textContent=muted?'Звук: выкл':'Звук: вкл';}};sndUI();
-sndBtn.onclick=()=>{muted=!muted;try{localStorage.setItem('helga-sound',muted?'off':'on')}catch(e){}if(audio())master.gain.value=muted?0:.7;sndUI();};
+let vol=.7;try{const v=parseFloat(localStorage.getItem('helga-vol'));if(v>=0&&v<=1)vol=v;}catch(e){}
+const volEl=document.getElementById('mVol');if(volEl){volEl.value=vol;volEl.oninput=()=>{vol=+volEl.value;try{localStorage.setItem('helga-vol',vol)}catch(e){}if(audio()&&!muted)master.gain.value=vol;};}
+sndBtn.onclick=()=>{muted=!muted;try{localStorage.setItem('helga-sound',muted?'off':'on')}catch(e){}if(audio())master.gain.value=muted?0:vol;sndUI();};
