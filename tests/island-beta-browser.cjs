@@ -149,37 +149,39 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
     });
     assert.deepEqual(through, []);
 
-    step('peoples: one unique main trait each, and every trait changes the game');
+    step('peoples: no plus to rolls or sheet, one unique ability each that changes the game');
     const peoples = await p.evaluate(() => {
-      const bad = [], keys = RACE_ORDER.map((r) => Object.keys(RACES[r].main || {})[0]);
-      if (new Set(keys).size !== keys.length) bad.push('main traits repeat: ' + keys.join(','));
+      const bad = [], FL = ['boost', 'reroll', 'stone', 'slip', 'wave', 'shellUp', 'mend', 'readMove', 'scream', 'lucky', 'clever', 'might', 'relentless', 'rebuke', 'breath'];
+      const own = RACE_ORDER.map((r) => FL.filter((f) => RACES[r][f]));
+      if (own.some((o) => o.length !== 1) || new Set(own.flat()).size !== RACE_ORDER.length) bad.push('abilities: ' + JSON.stringify(own));
+      if (new Set(RACE_ORDER.map((r) => RACES[r].ab)).size !== RACE_ORDER.length) bad.push('ability texts repeat');
       const as = (race, cls = 'fighter') => { HERO = applyRace(Object.assign({cls}, CLASSES[cls]), race); rest(); return HERO; };
-      const base = as('human'), H = __game.H0;
+      const H = __game.H0;
       const foe = __game.enemies.find((e) => !e.dead) || __game.enemies[0];
-      const look = (dist, sneak, night) => { __game.setTime(night ? .95 : .5); H.sneak = sneak; H.px = foe.px + dist; H.pz = foe.pz; foe.face = Math.PI / 2; return __game.sees(foe); };
+      const look = (dist, sneak) => { __game.setTime(.5); H.sneak = sneak; H.px = foe.px + dist; H.pz = foe.pz; foe.face = Math.PI / 2; return __game.sees(foe); };
+      // the sheet and every attack come from the class alone
+      for (const cls of ['fighter', 'rogue', 'mage']) {
+        as('human', cls); equipHero(null, null); const ref = JSON.stringify(heroAttacks().map((o) => [o.hit, o.b])), acRef = heroAC();
+        for (const r of RACE_ORDER) {
+          const h = as(r, cls);
+          for (const k of ['hp', 'ac', 'melee', 'ranged', 'spell', 'stealth', 'athletics', 'speed', 'dex']) if (h[k] !== CLASSES[cls][k]) bad.push(r + ' ' + cls + ' ' + k);
+          if (JSON.stringify(heroAttacks().map((o) => [o.hit, o.b])) !== ref || heroAC() !== acRef || h.init || h.mdmg || h.dr || h.heal) bad.push(r + ' ' + cls + ' bonus');
+        }
+      }
       // human: better prices and pay
       as('human'); const hp1 = priceNow('potion', true); HERO.trade = false; if (!(hp1 < priceNow('potion', true))) bad.push('human price');
       as('human'); if (jobPayFor(JOBS[0]) <= JOBS[0].pay) bad.push('human pay');
-      if (as('elf').ranged !== CLASSES.fighter.ranged + 2) bad.push('elf ranged');
-      if (as('dwarf').hp !== CLASSES.fighter.hp + 5) bad.push('dwarf hp');
-      // goblin: seen closer while sneaking, and slips away once
-      as('human'); const humanSees = look(3.0, true, false); as('goblin'); const goblinSees = look(3.0, true, false);
-      if (!(humanSees && !goblinSees)) bad.push('goblin stealth ' + humanSees + goblinSees);
-      as('human'); foe.slipUntil = 0; look(1.2, false, false); const humanSpotted = __game.notices(foe);
-      as('goblin'); foe.slipUntil = 0; look(1.2, false, false); const slip1 = __game.notices(foe), slip2 = __game.notices(foe);
+      // goblin slips away once
+      as('human'); foe.slipUntil = 0; look(1.2, false); const humanSpotted = __game.notices(foe);
+      as('goblin'); foe.slipUntil = 0; look(1.2, false); const slip1 = __game.notices(foe), slip2 = __game.notices(foe);
       if (!(humanSpotted && !slip1 && !slip2 && H.sneak)) bad.push('goblin slip ' + humanSpotted + slip1 + slip2);
       foe.slipUntil = 0; foe.aware = false; H.sneak = false;
-      if (as('tidal').athletics !== CLASSES.fighter.athletics + 3) bad.push('tidal athletics');
-      if (as('shell').ac !== CLASSES.fighter.ac + 2) bad.push('shell ac');
-      as('symbiont'); H.hp = 1; heal('bread'); const healed = H.hp - 1; H.hp = H.max; if (healed < 4) bad.push('symbiont heal ' + healed);
-      // twilight: at night enemies see you half as far
-      as('human'); const hn = look(4.5, false, true); as('twilight'); const tn = look(4.5, false, true); if (!(hn && !tn)) bad.push('twilight night ' + hn + tn);
-      if (as('echo').spell !== CLASSES.fighter.spell + 2 || !RACES.echo.reroll) bad.push('echo');
-      if (as('gnome').init !== 5) bad.push('gnome init');
-      as('goliath'); equipHero('shield', 'sword'); const gm = heroAttacks().find((o) => o.kind === 'melee'); as('human'); const hm = heroAttacks().find((o) => o.kind === 'melee'); if (gm.b !== hm.b + 2) bad.push('goliath dmg');
-      as('orc'); const om = heroAttacks().find((o) => o.kind === 'melee'); if (om.hit !== hm.hit + 2) bad.push('orc hit');
-      if (as('tiefling').speed !== CLASSES.fighter.speed + 2) bad.push('tiefling speed');
-      as('dragonborn'); H.hp = 20; hurt(H, 5, null); if (H.hp !== 16) bad.push('dragonborn dr ' + H.hp); H.hp = H.max;
+      // dragonborn: fire hurts half, other blows in full
+      as('dragonborn'); H.hp = 20; hurt(H, 6, null, 'fire'); hurt(H, 5, null); if (H.hp !== 12) bad.push('dragonborn fire ' + H.hp); H.hp = H.max;
+      as('symbiont'); H.hp = 1; livingMend(); if (H.hp < 5 || SP.mend) bad.push('symbiont mend'); H.hp = H.max;
+      as('goliath'); giantMight(); if (!CB.might) bad.push('goliath might'); CB.might = false;
+      for (const f of [dragonBreath, tideWave, echoScream]) if (typeof f !== 'function') bad.push('strike missing');
+      if (as('halfling').bag !== 2) bad.push('halfling bag');
       __game.setTime(.5); H.sneak = false; as('human');
       return bad;
     });

@@ -62,7 +62,9 @@ function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=ma
   if(C==='monk')items.push({icon:'attack',label:'Шквал ударов',sub:left('flurry','бонус'),ok:SP.flurry>0&&near&&bonusOk(),run:()=>doVerb(e,()=>{SP.flurry--;return attack(H0,e,{n:'Шквал ударов',hit:HERO.melee,die:HERO.unarmed||4,k:1,b:HERO.mb,range:1,kind:'melee'});},{kind:'bonus'})});
   if(C==='ranger'&&CB.mark!==e)items.push({icon:'look',label:'Метка охотника',sub:'бонус · +1к6',ok:bonusOk(),run:()=>doVerb(e,()=>markTarget(e,'метка'),{kind:'bonus'})});
   if(C==='warlock'&&CB.mark!==e)items.push({icon:'special',label:'Порча',sub:'бонус · +1к6',ok:bonusOk(),run:()=>doVerb(e,()=>markTarget(e,'порча'),{kind:'bonus'})});
-  if(R.breath)items.push({icon:'special',label:'Дыхание дракона',sub:SP.breath?'2к6 · рядом':'нужен отдых',ok:SP.breath>0&&man(e,H0)<=2,run:()=>doVerb(e,()=>dragonBreath(e))});
+  // a people's own strike, once per rest
+  const blast=(on,key,label,range,fn)=>on&&items.push({icon:'special',label,sub:SP[key]?'2к6 · до '+range+' кл.':'нужен отдых',ok:SP[key]>0&&man(e,H0)<=range,run:()=>doVerb(e,()=>fn(e))});
+  blast(R.breath,'breath','Огненный шар',4,dragonBreath);blast(R.wave,'wave','Удар волны',3,tideWave);blast(R.scream,'scream','Эхо-крик',5,echoScream);
   items.push({icon:'back',label:'Назад',keep:true,run:()=>enemyWheel(e)});
   showWheel(e,items,'Чем атаковать');}
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
@@ -86,8 +88,10 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HER
   ab(C==='monk'&&f,'Шаг ветра','бонус · +6 клеток',fightBonus,()=>bonus(dash));
   ab(C==='barbarian'&&f,'Ярость',SP.rage?'бонус · '+SP.rage+' ост.':'нужен отдых',fightBonus&&SP.rage>0&&!CB.rage,()=>bonus(rageOn));
   ab(C==='bard'&&f,'Вдохновение',SP.inspire?'бонус · преимущество':'нужен отдых',fightBonus&&SP.inspire>0&&!CB.boost,()=>bonus(inspire));
-  ab(R.echo&&f,HERO.race==='elf'?'Якорь памяти':'Проявить фрагмент',SP.echo?'бонус · преимущество':'нужен отдых',fightBonus&&SP.echo>0&&!CB.boost,()=>bonus(memory));
-  ab(R.shell&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
+  ab(R.boost&&f,'Собраться',SP.echo?'бонус · преимущество':'нужен отдых',fightBonus&&SP.echo>0&&!CB.boost,()=>bonus(memory));
+  ab(R.might&&f,'Сила великана',SP.might?'бонус · +1к8 к удару':'нужен отдых',fightBonus&&SP.might>0&&!CB.might,()=>bonus(giantMight));
+  ab(R.mend,'Живая ткань',SP.mend?(f?'бонус · ':'')+'2к4+2':'нужен отдых',SP.mend>0&&!full&&bOk,()=>bonus(livingMend));
+  ab(R.shellUp&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
   if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
   showWheel(H0,items,H0.name+' · '+HERO.n);}
 const usedRocks=new Set();

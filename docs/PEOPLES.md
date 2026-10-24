@@ -1,30 +1,31 @@
 # Peoples of the islands · 2026-10-24
 
-Owner rule: a people's trait is a real game mechanic, not just a number on the
-sheet, and no two peoples share the same main trait. Each people has exactly
-one **main trait** (unique) and one **signature** (unique). Code:
-`beta/island/src/races.js` (data and `applyRace`), hooks in `combat.js`,
-`main.js` (`sees`, `notices`), `classes.js`, `economy.js`, `hands.js`, `ui.js`.
+Owner rule (2026-10-24, replaces the earlier main-trait/signature table): a people
+gives **no plus to any roll or to the sheet**. Health, defence, hit, damage, stealth,
+athletics, speed and initiative come from the class alone. Each people instead has
+exactly one **ability** of its own (no two share it) and at most a small natural
+**perk** that is not a roll bonus. Strikes are 2d6 against a save DC 13 for every
+class. Code: `beta/island/src/races.js` (`ab`, `perk`, ability flags, `applyRace`),
+`combat.js` (`raceBlast`, `hurt`), `ui.js` wheels, `main.js` (`notices`), `economy.js`, `hands.js`.
 Checked by `tests/island-beta-browser.cjs` («peoples» step).
 
-| People | Main trait (what changes) | Signature (what changes) |
+| People | Ability (once per rest unless noted) | Perk |
 |---|---|---|
-| Человек | Торговая жилка: shops sell 20% cheaper, buy 25% dearer (`priceNow`) | Свой среди своих: side jobs pay ×1.5 (`jobPayFor`) |
-| Эльф | Меткий глаз: +2 to bow hits (`ranged`) | Якорь памяти: once per rest the next attack has advantage |
-| Дворф | Плотное тело: +5 health | Резонанс камня: +1 AC in ruins, graveyard and indoors (`heroAC`) |
-| Гоблин | Юркость: +3 Stealth and, while sneaking, enemies see 30% closer (`sees`) | Ускользнуть: once per rest a sighting is ignored; 5 s unseen, crouching (`notices`) |
-| Приливный народ | Сила прилива: +3 Athletics (shove) | Дитя прибоя: +1 to hit by the sea (≤4 cells) or in rain |
-| Панцирный народ | Природные пластины: +2 AC | Спрятаться в панцирь: once per rest damage halved |
-| Народ-симбионт | Симбиоз: all healing +3 (potion, bread, healing word, lay on hands) | Живая ткань: +1 health every 20 s out of combat |
-| Сумеречный народ | Глаза сумерек: at night enemies see you at half distance, Stealth +2 | Чтение движения: the first enemy attack each fight has disadvantage |
-| Эхоносец | Резонанс: +2 to spells | Проявить фрагмент: once per rest a missed attack is rerolled automatically |
-| Полурослик | Глубокие карманы: bag of 10 slots instead of 8 | Везение: natural 1 on d20 is rerolled |
-| Гном | Быстрый ум: +5 initiative | Смекалка: stones heard twice as far (14 cells); a distracted foe loses two turns |
-| Голиаф | Мощь: +2 melee damage | Каменная стойкость: once per rest a blow is softened by 1d12+2 |
-| Орк | Натиск: +2 melee hit | Неукротимость: once per rest stays up at 1 health |
-| Тифлинг | Адская прыть: +2 cells of movement per combat turn | Адский отпор: once per rest answers a blow with 2d6 fire |
-| Драконорождённый | Чешуя: every blow taken is 1 weaker (min 1) | Дыхание дракона: once per rest 2d6 fire on an adjacent foe |
+| Человек | Собраться: bonus action, next attack with advantage | Торговая жилка: prices 20%/25% better, side jobs ×1.5 |
+| Эльф | Эльфийская точность: a missed attack is rerolled automatically | — |
+| Дворф | Каменная стойкость: a blow of 5+ is softened by 1d12+2 | — |
+| Гоблин | Ускользнуть: a sighting is ignored; 5 s unseen, crouching | — |
+| Приливный народ | Удар волны: action, 2d6 up to 3 cells and knocks prone; Str save halves, stays up | — |
+| Панцирный народ | В панцирь: bonus action, the next blow is halved | — |
+| Народ-симбионт | Живая ткань: bonus action, heals 2d4+2 | +1 health every 20 s out of combat |
+| Сумеречный народ | Чтение движения: the first enemy attack each fight has disadvantage (every fight) | — |
+| Эхоносец | Эхо-крик: action, 2d6 up to 5 cells; Wis save halves | — |
+| Полурослик | Везение: a natural 1 on d20 is rerolled (always) | Глубокие карманы: bag of 10 slots |
+| Гном | Смекалка: stones heard twice as far; a distracted foe loses two turns (always) | — |
+| Голиаф | Сила великана: bonus action, next melee hit +1d8 | — |
+| Орк | Неукротимость: stays up at 1 health | — |
+| Тифлинг | Адский отпор: answers a blow with 2d6 fire | — |
+| Драконорождённый | Огненный шар: action, 2d6 fire up to 4 cells; Dex save halves | Огнестойкость: fire damage taken is halved |
 
-Free main-trait slot for future peoples: walking speed outside combat.
 Proposals for new peoples (owner to choose) must use mechanics that exist;
 jumping and swimming do not exist yet.

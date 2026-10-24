@@ -510,7 +510,7 @@ body.invopen .quest{opacity:0!important;pointer-events:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.36 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.37 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2499,41 +2499,40 @@ let busy=false,shake=0;
 const CB={on:false,order:[],i:-1,round:0,move:0,acted:false,bonus:false,sneakUsed:false};
 // class sheets; the editor picks one. melee/ranged/spell are to-hit bonuses, *b are damage bonuses
 // ---------- peoples of the world ----------
-// The nine DNDIGRA peoples from the design plan (humans, elves, dwarves, goblins,
-// tidal, shelled, symbiont, twilight and echo folk) plus the remaining rulebook
-// ancestries. Each has one passive trait and one situational edge, its own build
-// and look (height, ears, horns, tusks, scales, growths), and no locked class.
+// The nine DNDIGRA peoples from the design plan plus the remaining rulebook ancestries.
+// Owner rule: a people gives no plus to rolls or the sheet - those come from the class.
+// Each people has its own ability (ab), at most a small natural perk, its own build and look.
 const RACES={
-  human:{n:'Человек',group:'Народы мира',size:1,skins:null,main:{trade:1},
-    passive:'Торговая жилка: торговцы продают на 20% дешевле и покупают на 25% дороже.',edge:'Свой среди своих: подработки у жителей платят в полтора раза больше.',pref:'любой класс'},
-  elf:{n:'Эльф',group:'Народы мира',size:1.04,ears:'long',skins:['#f2d4b4','#e3bb8a','#c58d64'],main:{ranged:2},
-    passive:'Меткий глаз: +2 к попаданию из лука.',edge:'Якорь памяти: раз до отдыха следующая атака с преимуществом.',pref:'следопыт, маг, бард',echo:true},
-  dwarf:{n:'Дворф',group:'Народы мира',size:.82,wide:1.12,beard:'full',skins:['#e9bf90','#d9a577','#a8714d'],main:{hp:5},
-    passive:'Плотное тело: +5 к здоровью.',edge:'Резонанс камня: в руинах, на кладбище и в домах +1 к защите.',pref:'воин, жрец, паладин'},
-  goblin:{n:'Гоблин',group:'Народы мира',size:.72,ears:'long',skins:['#7a9a4a','#8aa85a','#6a8a5a'],main:{stealth:3,sneakK:.7},
-    passive:'Юркость: +3 к Скрытности, а крадущегося гоблина враги видят на 30% ближе.',edge:'Ускользнуть: раз до отдыха, когда враг вас замечает, вы успеваете скрыться.',pref:'плут, следопыт, бард',slip:true},
-  tidal:{n:'Приливный народ',group:'Народы мира',size:1,skins:['#6a9aa8','#5a8a9a','#7aaab0'],fins:true,main:{athletics:3},
-    passive:'Сила прилива: +3 к Атлетике — толчок валит почти любого.',edge:'Дитя прибоя: у моря и под дождём +1 к попаданию.',pref:'воин, друид, следопыт',surf:true},
-  shell:{n:'Панцирный народ',group:'Народы мира',size:1.02,shell:true,skins:['#a89a80','#8a7a62','#b8a888'],main:{ac:2},
-    passive:'Природные пластины: +2 к защите.',edge:'Спрятаться в панцирь: раз до отдыха урон по вам вдвое меньше.',pref:'воин, паладин, монах'},
-  symbiont:{n:'Народ-симбионт',group:'Народы мира',size:1,sprouts:true,skins:['#c8b890','#a8b880','#d8c8a0'],main:{heal:3},
-    passive:'Симбиоз: любое лечение — зелья, хлеб, заклинания — даёт +3 здоровья.',edge:'Живая ткань: вне боя восстанавливает 1 здоровье каждые 20 секунд.',pref:'друид, жрец, следопыт',regen:true},
-  twilight:{n:'Сумеречный народ',group:'Народы мира',size:.96,ears:'small',bigEyes:true,skins:['#c8c4d8','#a8a4c0','#d8d0e0'],main:{night:1},
-    passive:'Глаза сумерек: ночью враги видят вас вдвое ближе, а Скрытность +2.',edge:'Чтение движения: первая атака врага по вам в каждом бою — с помехой.',pref:'плут, колдун, следопыт',readMove:true},
-  echo:{n:'Эхоносец',group:'Народы мира',size:1,motes:true,skins:['#d8d0c8','#c8c0d0','#b8b0c0'],main:{spell:2},
-    passive:'Резонанс: +2 к заклинаниям — точнее и труднее устоять.',edge:'Проявить фрагмент: раз до отдыха проваленная атака перебрасывается сама.',pref:'бард, колдун, чародей',reroll:true},
-  halfling:{n:'Полурослик',group:'Из книги правил',size:.7,skins:['#f2d4b4','#e9bf90','#c58d64'],main:{bag:2},
-    passive:'Глубокие карманы: в сумке 10 мест вместо 8.',edge:'Везение: выпавшая единица на d20 перебрасывается.',pref:'плут, бард, следопыт',lucky:true},
-  gnome:{n:'Гном',group:'Из книги правил',size:.68,ears:'pointed',nose:true,skins:['#f2d4b4','#e3bb8a','#c58d64'],main:{init:5},
-    passive:'Быстрый ум: +5 к инициативе — чаще ходит первым.',edge:'Смекалка: камень слышно вдвое дальше, а отвлечённый враг теряет два хода.',pref:'маг, бард, плут',clever:true},
-  goliath:{n:'Голиаф',group:'Из книги правил',size:1.16,wide:1.08,stoneMarks:true,marks:['warpaint'],skins:['#a8a4a0','#8a8680','#b8b0a8'],main:{mdmg:2},
-    passive:'Мощь: +2 к урону в ближнем бою.',edge:'Каменная стойкость: раз до отдыха удар слабее на 1к12 + 2.',pref:'варвар, воин, монах',stone:true},
-  orc:{n:'Орк',group:'Из книги правил',size:1.06,tusks:true,skins:['#7a8a5a','#6a7a52','#8a9a6a','#9a8a7a'],main:{melee:2},
-    passive:'Натиск: +2 к попаданию в ближнем бою.',edge:'Неукротимость: раз до отдыха остаётся на ногах с 1 здоровья.',pref:'варвар, воин, паладин',relentless:true},
-  tiefling:{n:'Тифлинг',group:'Из книги правил',size:1,horns:true,tail:true,skins:['#b0453f','#8a3a5a','#a85a8a','#c86a5a'],main:{speed:2},
-    passive:'Адская прыть: в бою на 2 клетки дальше за ход.',edge:'Адский отпор: раз до отдыха отвечает на удар огнём 2к6.',pref:'колдун, чародей, бард',rebuke:true},
-  dragonborn:{n:'Драконорождённый',group:'Из книги правил',size:1.04,snout:true,horns:'ridge',tail:true,skins:['#b8862a','#3a8a5a','#a83a2a','#3a6aa8','#c8c8d0'],main:{dr:1},
-    passive:'Чешуя: любой удар по вам на 1 слабее.',edge:'Дыхание дракона: раз до отдыха 2к6 огня по врагу рядом.',pref:'паладин, воин, чародей',breath:true}};
+  human:{n:'Человек',group:'Народы мира',size:1,skins:null,main:{},trade:1,boost:true,
+    ab:'Собраться (бонус, раз до отдыха): следующая атака с преимуществом.',perk:'Торговая жилка: торговцы продают на 20% дешевле и покупают на 25% дороже, подработки платят в полтора раза больше.',pref:'любой класс'},
+  elf:{n:'Эльф',group:'Народы мира',size:1.04,ears:'long',skins:['#f2d4b4','#e3bb8a','#c58d64'],main:{},reroll:true,
+    ab:'Эльфийская точность (раз до отдыха): промах сам перебрасывается.',perk:'',pref:'следопыт, маг, бард'},
+  dwarf:{n:'Дворф',group:'Народы мира',size:.82,wide:1.12,beard:'full',skins:['#e9bf90','#d9a577','#a8714d'],main:{},stone:true,
+    ab:'Каменная стойкость (раз до отдыха): сильный удар по вам слабее на 1к12 + 2.',perk:'',pref:'воин, жрец, паладин'},
+  goblin:{n:'Гоблин',group:'Народы мира',size:.72,ears:'long',skins:['#7a9a4a','#8aa85a','#6a8a5a'],main:{},slip:true,
+    ab:'Ускользнуть (раз до отдыха): когда враг вас замечает, вы успеваете скрыться.',perk:'',pref:'плут, следопыт, бард'},
+  tidal:{n:'Приливный народ',group:'Народы мира',size:1,skins:['#6a9aa8','#5a8a9a','#7aaab0'],fins:true,main:{},wave:true,
+    ab:'Удар волны (действие, раз до отдыха): 2к6 по врагу до 3 клеток и валит с ног; спасбросок Силы — половина и устоял.',perk:'',pref:'воин, друид, следопыт'},
+  shell:{n:'Панцирный народ',group:'Народы мира',size:1.02,shell:true,skins:['#a89a80','#8a7a62','#b8a888'],main:{},shellUp:true,
+    ab:'В панцирь (бонус, раз до отдыха): следующий удар по вам вдвое слабее.',perk:'',pref:'воин, паладин, монах'},
+  symbiont:{n:'Народ-симбионт',group:'Народы мира',size:1,sprouts:true,skins:['#c8b890','#a8b880','#d8c8a0'],main:{},regen:true,mend:true,
+    ab:'Живая ткань (бонус, раз до отдыха): лечит 2к4 + 2.',perk:'Вне боя восстанавливает 1 здоровье каждые 20 секунд.',pref:'друид, жрец, следопыт'},
+  twilight:{n:'Сумеречный народ',group:'Народы мира',size:.96,ears:'small',bigEyes:true,skins:['#c8c4d8','#a8a4c0','#d8d0e0'],main:{},readMove:true,
+    ab:'Чтение движения: первая атака врага по вам в каждом бою — с помехой.',perk:'',pref:'плут, колдун, следопыт'},
+  echo:{n:'Эхоносец',group:'Народы мира',size:1,motes:true,skins:['#d8d0c8','#c8c0d0','#b8b0c0'],main:{},scream:true,
+    ab:'Эхо-крик (действие, раз до отдыха): 2к6 по врагу до 5 клеток; спасбросок Мудрости — половина.',perk:'',pref:'бард, колдун, чародей'},
+  halfling:{n:'Полурослик',group:'Из книги правил',size:.7,skins:['#f2d4b4','#e9bf90','#c58d64'],main:{},lucky:true,
+    ab:'Везение: выпавшая единица на d20 перебрасывается.',perk:'Глубокие карманы: в сумке 10 мест вместо 8.',pref:'плут, бард, следопыт'},
+  gnome:{n:'Гном',group:'Из книги правил',size:.68,ears:'pointed',nose:true,skins:['#f2d4b4','#e3bb8a','#c58d64'],main:{},clever:true,
+    ab:'Смекалка: брошенный камень слышно вдвое дальше, а отвлечённый враг теряет два хода.',perk:'',pref:'маг, бард, плут'},
+  goliath:{n:'Голиаф',group:'Из книги правил',size:1.16,wide:1.08,stoneMarks:true,marks:['warpaint'],skins:['#a8a4a0','#8a8680','#b8b0a8'],main:{},might:true,
+    ab:'Сила великана (бонус, раз до отдыха): следующий удар в ближнем бою +1к8 урона.',perk:'',pref:'варвар, воин, монах'},
+  orc:{n:'Орк',group:'Из книги правил',size:1.06,tusks:true,skins:['#7a8a5a','#6a7a52','#8a9a6a','#9a8a7a'],main:{},relentless:true,
+    ab:'Неукротимость (раз до отдыха): остаётся на ногах с 1 здоровьем.',perk:'',pref:'варвар, воин, паладин'},
+  tiefling:{n:'Тифлинг',group:'Из книги правил',size:1,horns:true,tail:true,skins:['#b0453f','#8a3a5a','#a85a8a','#c86a5a'],main:{},rebuke:true,
+    ab:'Адский отпор (раз до отдыха): отвечает на удар огнём 2к6.',perk:'',pref:'колдун, чародей, бард'},
+  dragonborn:{n:'Драконорождённый',group:'Из книги правил',size:1.04,snout:true,horns:'ridge',tail:true,skins:['#b8862a','#3a8a5a','#a83a2a','#3a6aa8','#c8c8d0'],main:{},breath:true,fireRes:true,
+    ab:'Огненный шар (действие, раз до отдыха): 2к6 огня по врагу до 4 клеток; спасбросок Ловкости — половина.',perk:'Огнестойкость: урон от огня по вам вдвое меньше.',pref:'паладин, воин, чародей'}};
 const RACE_ORDER=['human','elf','dwarf','goblin','tidal','shell','symbiont','twilight','echo','halfling','gnome','goliath','orc','tiefling','dragonborn'];
 const hx=c=>parseInt(String(c).replace('#',''),16);
 const shadeC=(c,k)=>{const r=(c>>16)&255,g=(c>>8)&255,b=c&255;return (Math.min(255,r*k)<<16)|(Math.min(255,g*k)<<8)|Math.min(255,b*k);};
@@ -2566,11 +2565,9 @@ function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.
   return out;}
 // height and build are a scale on the finished model, so the skeleton split stays right
 function raceScale(race,model){const R=RACES[race]||RACES.human,sy=R.size,sx=(R.wide||1)*(sy<1?Math.max(.82,sy+.08):sy);model.scale.set(sx,sy,sx);return model;}
-// race numbers onto the hero sheet
-function applyRace(H,race){const R=RACES[race]||RACES.human,m=R.main||{};H.race=race;H.raceName=R.n;
-  for(const k of ['hp','ac','melee','ranged','spell','stealth','athletics','speed'])if(m[k])H[k]=(H[k]||0)+m[k];
-  // traits that are not plain sheet numbers live on the hero and are read by the systems that use them
-  Object.assign(H,{mdmg:m.mdmg||0,dr:m.dr||0,heal:m.heal||0,init:m.init||0,trade:!!m.trade,night:!!m.night,sneakK:m.sneakK||1,bag:m.bag||0});return H;}
+// a people adds nothing to the sheet: only flags the systems read (prices, bag)
+function applyRace(H,race){const R=RACES[race]||RACES.human;H.race=race;H.raceName=R.n;
+  Object.assign(H,{mdmg:0,dr:0,heal:0,init:0,trade:!!R.trade,night:false,sneakK:1,bag:race==='halfling'?2:0});return H;}
 // symbiont: living tissue knits outside a fight, one health every 20 seconds
 setInterval(()=>{if(typeof H0==='undefined'||paused||CB.on||H0.dead)return;if(RACES[HERO.race]?.regen&&H0.hp<H0.max){H0.hp++;setHP();floatText('+1','#7fe08a',hero);}},20000);
 
@@ -2622,7 +2619,7 @@ const CLASS_ORDER=['fighter','barbarian','paladin','monk','ranger','rogue','bard
 for(const k in CLASSES)CLASSES[k].start=[CLASSES[k].kits[0].L,CLASSES[k].kits[0].R];
 let HERO=Object.assign({cls:'fighter'},CLASSES.fighter);
 // per-rest uses; refilled by entering any house
-const SP={};const rest=()=>Object.assign(SP,{wind:1,missiles:2,word:2,rage:2,inspire:2,smite:2,flurry:2,hands:1,entangle:1,breath:1,echo:1,shellUp:1,stone:1,relentless:1,rebuke:1,slip:1,frag:1});rest();
+const SP={};const rest=()=>Object.assign(SP,{wind:1,missiles:2,word:2,rage:2,inspire:2,smite:2,flurry:2,hands:1,entangle:1,breath:1,wave:1,scream:1,might:1,mend:1,echo:1,shellUp:1,stone:1,relentless:1,rebuke:1,slip:1,frag:1});rest();
 const WEAP={torch:{n:'Факел',die:4,hb:-1,db:0,reach:1,kind:'torch'}};
 const wpn=id=>WEAPONS[id]||WEAP[id];
 // attack options: weapons in hand, then the class's cantrips
@@ -2637,7 +2634,7 @@ function heroAttacks(){const h=hero.userData.held||{},o=[],H=HERO;
   if(!o.some(a=>a.kind==='melee'))add(null,H.unarmed?'Удар рукой':'Кулак',H.unarmed?H.melee:H.melee-2,H.unarmed||1,1,(H.unarmed?H.mb:1)+(H.mdmg||0),1,'melee','без оружия');
   for(const c of H.cantrips||[])add(null,c.n,H.spell,c.die,1,0,c.range,'spell','заклинание',c.save?{save:c.save,effect:c.effect}:null);
   return o;}
-function heroAC(){const h=hero.userData.held||{};return HERO.ac+((kindOf(h.L)==='shield'||kindOf(h.R)==='shield')?2:0)+(HERO.race==='dwarf'&&(room!=null||Math.hypot(H0.x-Z.ruins[0],H0.z-Z.ruins[1])<9||Math.hypot(H0.x-Z.grave[0],H0.z-Z.grave[1])<8)?1:0);}
+function heroAC(){const h=hero.userData.held||{};return HERO.ac+((kindOf(h.L)==='shield'||kindOf(h.R)==='shield')?2:0);}
 
 const acOf=a=>a===H0?heroAC():a.ac;
 function hostileNear(a){return a===H0?enemies.some(e=>!e.dead&&e.inFight&&man(e,H0)===1):man(a,H0)===1;}
@@ -2686,29 +2683,27 @@ async function attack(att,def,opt){if(def.dead)return;att.face=Math.atan2(def.px
   // inspiration, an elf's memory or an echo fragment grant advantage on this attack
   if(isHero&&CB.boost){adv.v=adv.v<0?0:1;adv.why=(adv.why?adv.why+', ':'')+CB.boost;CB.boost=null;}
   if(def===H0&&RACES[HERO.race]?.readMove&&!CB.readUsed){CB.readUsed=true;adv.v=adv.v>0?0:-1;adv.why=(adv.why?adv.why+', ':'')+'чтение движения';}
-  // tidal folk strike truer by the sea and in the rain
-  if(isHero&&RACES[HERO.race]?.surf&&(WX.rain>.4||((seaDist[H0.z]||[])[H0.x]??99)<=4)){opt=Object.assign({},opt,{hit:opt.hit+1});adv.why=(adv.why?adv.why+', ':'')+'дитя прибоя';}
   if(isHero&&opt.save)return saveSpell(def,opt);
   let res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
-  if(isHero&&!res.ok&&RACES[HERO.race]?.reroll&&SP.frag){SP.frag=0;floatText('Фрагмент эха','#9ae0ff',hero);rollDone();await wait(350);
+  if(isHero&&!res.ok&&RACES[HERO.race]?.reroll&&SP.frag){SP.frag=0;floatText('Эльфийская точность','#9ae0ff',hero);rollDone();await wait(350);
     res=await roll20(opt.n+' → '+def.name+' · переброс',opt.hit,acOf(def),adv.v,adv.why);}
   const ranged=opt.range>1&&man(att,def)>1;let back=null;
   if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else back=await lunge(att,def);
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex
-  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);}
+  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);if(CB.might&&opt.kind==='melee'){CB.might=false;extra.push([1,8,'сила великана']);}}
   if(isHero&&CB.rage&&opt.kind==='melee')opt=Object.assign({},opt,{b:opt.b+2});
   let dmg=0;if(res.ok)dmg=await rollDamage(opt,res.crit,extra);
   if(dmg)await knock(def,att,dmg,isHero?'#ffd27a':'#ff7d6e');else{sfx('miss');floatText('Промах','#cfc6b4',def.o);}if(back)await back();
   if(def.enemy){def.aware=true;def.distracted=false;}
   if(dmg)hurt(def,dmg,att);rollDone();}
 // damage taken by the hero passes through rage, shell, stone endurance; an orc stays up once; a tiefling burns back
-function hurt(def,dmg,att){if(def===H0){const R=RACES[HERO.race]||{};if(HERO.dr&&dmg>0){dmg=Math.max(1,dmg-HERO.dr);}
+function hurt(def,dmg,att,kind){if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
     if(CB.rage)dmg=Math.ceil(dmg/2);if(CB.shell){dmg=Math.ceil(dmg/2);CB.shell=false;floatText('Панцирь','#c8b890',hero);}
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
     H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
-    setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0);},450);}
+    setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0,'fire');},450);}
     if(H0.hp<=0)knockOut();}else{def.hp-=dmg;if(def.hp<=0)kill(def);}}
 // cantrips that call for a saving throw: no attack roll, the target resists
 async function saveSpell(def,opt){const ab={wis:def.wis||0,dex:def.dex||0,str:def.ath||0}[opt.save]||0,dc=8+HERO.spell+2;
@@ -2750,13 +2745,19 @@ function secondWind(){SP.wind=0;const heal=d(10)+2;sfx('heal');H0.hp=Math.min(H0
 function healingWord(){SP.word--;const heal=d(4)+3+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Лечащее слово: 1к4 + 3 = '+heal);}
 function rageOn(){SP.rage--;CB.rage=true;floatText('Ярость!','#ff5a4a',hero);sfx('fight');shake=.2;}
 function inspire(){SP.inspire--;CB.boost='вдохновение';floatText('Вдохновение','#f2c14e',hero);sfx('heal');}
-function memory(){SP.echo=0;CB.boost=HERO.race==='elf'?'якорь памяти':'фрагмент эха';floatText(HERO.race==='elf'?'Якорь памяти':'Эхо','#9ae0ff',hero);}
+function memory(){SP.echo=0;CB.boost='собраться';floatText('Собраться','#f2e0a0',hero);}
+function giantMight(){SP.might=0;CB.might=true;floatText('Сила великана','#d8c8b0',hero);sfx('fight');}
+function livingMend(){SP.mend=0;const v=d(4)+d(4)+2;sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);toast('Живая ткань: 2к4 + 2 = '+v);}
 function shellUp(){SP.shellUp=0;CB.shell=true;floatText('В панцирь','#c8b890',hero);}
 function layHands(){SP.hands=0;const heal=d(4)+d(4)+4+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+heal);setHP();floatText('+'+heal,'#ffe9a0',hero);toast('Наложение рук: 2к4 + 4 = '+heal);}
 function markTarget(e,name){CB.mark=e;CB.markName=name;floatText(name,'#c8a8ff',e.o);sfx('spell');}
 async function entangle(e){SP.entangle=0;const res=await roll20(e.name+': спасбросок Силы · Опутывание',e.ath||0,8+HERO.spell+2);if(!res.ok){e.prone=true;e.lean=-1.3;floatText('Опутан','#6aaa4a',e.o);}else floatText('Вырвался','#cfc6b4',e.o);e.aware=true;rollDone();}
-async function dragonBreath(e){SP.breath=0;const res=await roll20(e.name+': спасбросок Ловкости · Дыхание',e.dex||0,13);await projectile(H0,e,'spell');let dmg=d(6)+d(6);if(res.ok)dmg=Math.floor(dmg/2);
-  await knock(e,H0,dmg,'#ff9a3a');e.aware=true;hurt(e,dmg,H0);rollDone();}
+// a people's own strike: 2d6 at range, the foe's save halves it (DC 13 for everyone, the class adds nothing)
+async function raceBlast(e,key,name,save,mod,col,kind,after){SP[key]=0;const res=await roll20(e.name+': спасбросок '+save+' · '+name,mod||0,13);await projectile(H0,e,'spell');
+  let dmg=d(6)+d(6);if(res.ok)dmg=Math.floor(dmg/2);await knock(e,H0,dmg,col);e.aware=true;if(after&&!res.ok)after(e);hurt(e,dmg,H0,kind);rollDone();}
+const dragonBreath=e=>raceBlast(e,'breath','Огненный шар','Ловкости',e.dex,'#ff9a3a','fire');
+const tideWave=e=>raceBlast(e,'wave','Удар волны','Силы',e.ath,'#7ac8e8','water',e=>{e.prone=true;e.lean=-1.3;floatText('Сбит с ног','#7ac8e8',e.o);});
+const echoScream=e=>raceBlast(e,'scream','Эхо-крик','Мудрости',e.wis,'#9ae0ff','psychic');
 function dash(){CB.move+=6;floatText('Рывок','#9fe0ff',hero);showMoves();}
 
 // ---------- doing a chosen verb (from the wheel) ----------
@@ -2790,7 +2791,7 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
 function liveFoes(){return CB.order.filter(a=>a!==H0&&!a.dead);}
-function endCombat(text){CB.rage=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
+function endCombat(text){CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
   for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}if(text){banner(text);toast(text);}}
 const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров зачищен.':'Победа.');
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
@@ -3170,7 +3171,9 @@ function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=ma
   if(C==='monk')items.push({icon:'attack',label:'Шквал ударов',sub:left('flurry','бонус'),ok:SP.flurry>0&&near&&bonusOk(),run:()=>doVerb(e,()=>{SP.flurry--;return attack(H0,e,{n:'Шквал ударов',hit:HERO.melee,die:HERO.unarmed||4,k:1,b:HERO.mb,range:1,kind:'melee'});},{kind:'bonus'})});
   if(C==='ranger'&&CB.mark!==e)items.push({icon:'look',label:'Метка охотника',sub:'бонус · +1к6',ok:bonusOk(),run:()=>doVerb(e,()=>markTarget(e,'метка'),{kind:'bonus'})});
   if(C==='warlock'&&CB.mark!==e)items.push({icon:'special',label:'Порча',sub:'бонус · +1к6',ok:bonusOk(),run:()=>doVerb(e,()=>markTarget(e,'порча'),{kind:'bonus'})});
-  if(R.breath)items.push({icon:'special',label:'Дыхание дракона',sub:SP.breath?'2к6 · рядом':'нужен отдых',ok:SP.breath>0&&man(e,H0)<=2,run:()=>doVerb(e,()=>dragonBreath(e))});
+  // a people's own strike, once per rest
+  const blast=(on,key,label,range,fn)=>on&&items.push({icon:'special',label,sub:SP[key]?'2к6 · до '+range+' кл.':'нужен отдых',ok:SP[key]>0&&man(e,H0)<=range,run:()=>doVerb(e,()=>fn(e))});
+  blast(R.breath,'breath','Огненный шар',4,dragonBreath);blast(R.wave,'wave','Удар волны',3,tideWave);blast(R.scream,'scream','Эхо-крик',5,echoScream);
   items.push({icon:'back',label:'Назад',keep:true,run:()=>enemyWheel(e)});
   showWheel(e,items,'Чем атаковать');}
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
@@ -3194,8 +3197,10 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HER
   ab(C==='monk'&&f,'Шаг ветра','бонус · +6 клеток',fightBonus,()=>bonus(dash));
   ab(C==='barbarian'&&f,'Ярость',SP.rage?'бонус · '+SP.rage+' ост.':'нужен отдых',fightBonus&&SP.rage>0&&!CB.rage,()=>bonus(rageOn));
   ab(C==='bard'&&f,'Вдохновение',SP.inspire?'бонус · преимущество':'нужен отдых',fightBonus&&SP.inspire>0&&!CB.boost,()=>bonus(inspire));
-  ab(R.echo&&f,HERO.race==='elf'?'Якорь памяти':'Проявить фрагмент',SP.echo?'бонус · преимущество':'нужен отдых',fightBonus&&SP.echo>0&&!CB.boost,()=>bonus(memory));
-  ab(R.shell&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
+  ab(R.boost&&f,'Собраться',SP.echo?'бонус · преимущество':'нужен отдых',fightBonus&&SP.echo>0&&!CB.boost,()=>bonus(memory));
+  ab(R.might&&f,'Сила великана',SP.might?'бонус · +1к8 к удару':'нужен отдых',fightBonus&&SP.might>0&&!CB.might,()=>bonus(giantMight));
+  ab(R.mend,'Живая ткань',SP.mend?(f?'бонус · ':'')+'2к4+2':'нужен отдых',SP.mend>0&&!full&&bOk,()=>bonus(livingMend));
+  ab(R.shellUp&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
   if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
   showWheel(H0,items,H0.name+' · '+HERO.n);}
 const usedRocks=new Set();
@@ -3414,7 +3419,7 @@ function raceTab(body){const strip=el('div','hc-carousel');
   body.append(el('div','hc-lab','Народ · проведите по ряду'),strip);const R=RACES[ED.race];
   // each trait shows its name in bold, then what it really does in the game
   const trait=(tag,t)=>{const p=el('p','hc-trait');const [nm,...rest]=t.split(':');p.append(el('small',null,tag),el('b',null,nm),document.createTextNode(':'+rest.join(':')));return p;};
-  const card=el('div','hc-racecard');card.append(el('b',null,R.n),trait('Главное',R.passive),trait('Особенность',R.edge),el('small',null,'Чаще выбирают: '+R.pref+'. Любой класс доступен.'));body.append(card);
+  const card=el('div','hc-racecard');card.append(el('b',null,R.n),trait('Способность',R.ab),...(R.perk?[trait('Свойство',R.perk)]:[]),el('small',null,'Чаще выбирают: '+R.pref+'. Любой класс доступен.'));body.append(card);
   strip.addEventListener('scroll',()=>{ED.raceScroll=strip.scrollLeft;},{passive:true});
   requestAnimationFrame(()=>{if(ED.raceScroll!=null){strip.scrollLeft=ED.raceScroll;return;}const on=strip.querySelector('.on');if(on)strip.scrollLeft=on.offsetLeft-strip.clientWidth/2+on.clientWidth/2;ED.raceScroll=strip.scrollLeft;});}
 function classTab(body){const g=el('div','hc-classes');
