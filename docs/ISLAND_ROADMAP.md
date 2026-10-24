@@ -51,6 +51,9 @@ Nothing here is implemented yet; it is the plan to discuss and schedule.
 - [x] Living island, part 1 · 2026-10-24: gold, four shops with state-driven
   prices, five repeatable side jobs (work, fetch, deliver, patrol) and gold
   rewards for quests — all as data in `beta/island/src/economy.js`.
+- [x] Bigger island, step 1 · 2026-10-24: seeded generator of relief, rivers,
+  biomes, roads and logically placed settlements, camps, wild land and ruins
+  (`beta/island/src/islandgen.js`, docs/ISLAND_GEN.md, `tests/island-gen.mjs`).
 - [ ] Step 2: content as data.
 - [ ] Step 3: modules and the shared esbuild build.
 - [ ] Step 4: decide how the island and the main game merge.

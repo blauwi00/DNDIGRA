@@ -41,6 +41,7 @@ jobs:
         run: |
           node tests/island-beta.mjs
           node tests/island-build-fresh.mjs
+          node tests/island-gen.mjs
       - name: Install Chromium for the browser checks
         run: |
           npm install --no-save playwright@1.56.1
