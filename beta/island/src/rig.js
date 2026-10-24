@@ -2,7 +2,7 @@
 // Limbs get their own pivot groups (same split as the game's menu rig) so legs
 // and arms can swing; boxes held at the hands (|x|>.31) are dropped and real
 // items are attached to the hands from the two-hand inventory instead.
-const ELBOW=.52;const PIV={head:[0,.77,0],torso:[0,.45,0],armL:[-.23,.66,0],armR:[.23,.66,0],legL:[-.1,.34,0],legR:[.1,.34,0]};
+const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Math.min(255,((c>>8)&255)*k|0)<<8)|Math.min(255,(c&255)*k|0);const PIV={cape:[0,.72,-.17],head:[0,.77,0],torso:[0,.45,0],armL:[-.23,.66,0],armR:[.23,.66,0],legL:[-.1,.34,0],legR:[.1,.34,0]};
 function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   for(const [k,p] of Object.entries(PIV)){rig[k]=new THREE.Group();rig[k].position.set(...p);g.add(rig[k]);parts[k]=[];}
@@ -12,6 +12,14 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
   // on phone GPUs, show holes: smaller boxes are grown by a hair so the detail always wins
   {const vol=b=>b[3]*b[4]*b[5],order=boxes.filter(b=>!b[8]).sort((a,b)=>vol(b)-vol(a));order.forEach((b,i)=>{const e=.0004+.0026*i/order.length;b._e=e;});
     boxes=boxes.map(b=>{if(!b._e)return b;const n=[b[0],b[1],b[2],b[3]+b._e,b[4]+b._e,b[5]+b._e,...b.slice(6)];n.part=b.part;return n;});}
+  // the cape hangs from the shoulders on its own joint: its back panel, side flaps, hem and shading,
+  // with folds drawn on the outside so it is not a flat board, and it swings when walking
+  {const panel=boxes.find(b=>!b[8]&&b[3]>.4&&b[2]<-.16&&b[1]<.74&&b[4]>.2);
+   if(panel){const cc=panel[6];for(const b of boxes){if(b[1]>=.74)continue;
+       if((!b[8]&&b[6]===cc&&(b[2]<-.14||(Math.abs(b[0])>.22&&b[5]>=.15&&b[2]<0)))||(b[2]<-.16&&Math.abs(b[0])<.3)||(b[8]&&b[2]<-.135&&Math.abs(b[0])<.26))b.part='cape';}
+     const back=panel[2]-panel[5]/2-.003,n=Math.round(panel[3]/.09);
+     for(let i=0;i<n;i++){const x=-panel[3]/2+(i+.5)*panel[3]/n,f=[x,panel[1],back,.03,panel[4]*.96,.005,capeShade(cc,i%2?.78:1.14),false,'f'];f.part='cape';boxes.push(f);}
+     const hem=[0,panel[1]-panel[4]/2+.02,back,panel[3],.03,.005,capeShade(cc,.7),false,'f'];hem.part='cape';boxes.push(hem);}}
   for(const b of boxes){const[x,y]=b;if(Math.abs(x)>.31&&!b.part)continue;
     const k=b.part||((Math.abs(x)>.29||(Math.abs(x)>.19&&y<.74))?(x<0?'armL':'armR'):y>=.74?'head':y<.4?(x<0?'legL':'legR'):'torso');
     if(k[0]!=='a'){parts[k].push(b);continue;}
@@ -69,6 +77,7 @@ function armPose(o,walk,sw,breathe){const r=o.userData.rig,two=o.userData.twoHan
   if(two){const P=o.userData.twoPose||TWO_POSE[kindOf(two)==='bow'?'bow':'stand'],[A,F,oA,oF,s]=kindOf(two)==='bow'?[r.armR,r.foreR,r.armL,r.foreL,-1]:[r.armL,r.foreL,r.armR,r.foreR,1];
     A.rotation.set(P.arm[0]+b,P.arm[1],P.arm[2]);F.rotation.set(P.fore[0]-b,0,0);free(oA,oF,s);}
   else{free(r.armL,r.foreL,-1);free(r.armR,r.foreR,1);}
+  if(r.cape)r.cape.rotation.x=.06+(walk?Math.abs(sw)*.22:0)+breathe*.015;
   const up=o.userData.upright;if(up)for(const [s,A,F] of [['R',r.armL,r.foreL],['L',r.armR,r.foreR]])if(up['shield'+s]&&!two){A.rotation.set(SHIELD.arm[0]+b,0,A===r.armL?SHIELD.arm[2]:-SHIELD.arm[2]);F.rotation.set(SHIELD.fore[0]-b*.5,0,0);}
     else if(up[s]&&!(two&&o.userData.rig[s==='R'?'foreL':'foreR'].userData.two)){A.rotation.set(UPRIGHT.arm[0]+b,0,A===r.armL?-.12:.12);F.rotation.set(UPRIGHT.fore[0]-b,0,0);}}
 function setTwoHanded(holder,id){const rig=holder.userData.rig;for(const k of ['foreL','foreR','armL','armR','torso']){const p=rig[k];if(p.userData.two){p.remove(p.userData.two);p.userData.two=null;}}

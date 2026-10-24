@@ -113,7 +113,11 @@ async function lightChapel(){if(chapel.lit)return;heroPose('open',900);await wai
   banner('Огонь часовни горит');note('Жаровня часовни','Пламя вспыхивает белым, потом золотым. Над руинами разносится тихий звон — будто колокол, которого здесь давно нет.');
   if(Q.fire.state===1){Q.fire.state=2;questUI();}else if(Q.fire.state===0)Q.fire.state=2;}
 for(const [ms,n,t,loot] of OUT){const L={n,t,loot,meshes:ms};looks.push(L);ms.forEach(m=>m.userData.look=L);}
-itemProp(scene,Z.dock[0]+3.5,groundAt(Z.dock[0]+3,Z.dock[1]+2)+.04,Z.dock[1]+2.5,'stone',2,'Гладкие камни','Обкатанные морем голыши. Удобно бросать.',0);
+// the tutorial stones lie in the open: nothing tall within two cells, so they are seen from every side
+{const tall=new Set([...treeCells,...bushCells].map(([x,z])=>x+','+z)),clear=(x,z)=>{for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){const k=(x+dx)+','+(z+dz);if(tall.has(k)||(Math.abs(dx)+Math.abs(dz)<=2&&solid.has(k)))return false;}return free(x,z);};
+ let best=null;for(let r=0;r<8&&!best;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){const x=Z.dock[0]+5+dx,z=Z.dock[1]+2+dz;if(!best&&clear(x,z)&&at(x,z)!=='P')best=[x,z];}
+ const [sx,sz]=best||[Z.dock[0]+3,Z.dock[1]+2];window.__tutStones=[sx,sz];
+ const L=itemProp(scene,sx+.5,groundAt(sx,sz)+.06,sz+.5,'stone',2,'Гладкие камни','Обкатанные морем голыши. Удобно бросать.',0);L.grp.scale.setScalar(3.4);}
 function rockWheel(x,z){const k=x+','+z,pos=new THREE.Vector3(x+.5,groundAt(x,z),z+.5);
   showWheel({pos},[{icon:'pick',label:'Поднять камни',sub:usedRocks.has(k)?'уже пусто':'+2 камня',ok:!usedRocks.has(k)&&!CB.on,
     run:()=>goDo(x,z,false,()=>{heroPose('pickup',900);window.handsGesture&&window.handsGesture('pickup');setTimeout(()=>{if(window.handsAdd('stone',2))usedRocks.add(k);},450);})}],'Камни');}

@@ -260,3 +260,12 @@ body.cinematic .palm,body.cinematic .held,body.cinematic .menubtn,body.cinematic
 
 .hc-icon.on{color:#1d1611;background:#f2c14e}
 #edCanvas{touch-action:none}
+
+/* goal card: folds to one line */
+.quest{pointer-events:auto}
+.quest .tut{cursor:pointer}.quest .tut small{display:flex;align-items:center;gap:6px}
+.qchev{transition:transform .2s;opacity:.8}.fold .qchev{transform:rotate(-90deg)}
+.quest .tut.fold{max-width:230px;padding:5px 9px}.quest .tut.fold span,.quest .tut.fold button{display:none}
+.quest .tut.fold b,.quest .one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;font-size:12px}
+.quest .qhead{display:flex;align-items:center;gap:6px;font-size:10px;color:#f2c14e;background:#1d1611e6;padding:4px 8px;margin-bottom:3px;cursor:pointer;box-shadow:inset 3px 0 0 #f2c14e;width:max-content}
+.quest .one{display:block}

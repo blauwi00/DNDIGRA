@@ -10,7 +10,9 @@ const TSTEPS=[
   {t:'Сойдите с причала',h:'Нажмите на доски впереди: герой пойдёт туда. Золотое кольцо — куда он идёт.',target:()=>({x:10,z:31,label:'Сюда'}),done:()=>H0.x>=9},
   {t:'Поговорите с рыбаком Олавом',h:'Нажмите на Олава — вокруг него появится колесо. Выберите «Говорить».',target:()=>whoT('fisher'),done:()=>TUT.flags.olav},
   {t:'Загляните в свои руки',h:'Ладони внизу — ваши руки и сумка. Нажмите на правую ладонь.',coach:'#palmR',done:()=>window.handsIsOpen&&window.handsIsOpen()},
-  {t:'Подберите камни на берегу',h:'Нажмите на камни и выберите «Взять». Камнем можно отвлечь врага.',target:()=>{const L=stonesLook();return L&&!L.taken?{x:Math.floor(L.grp.position.x),z:Math.floor(L.grp.position.z),label:'Камни'}:null;},done:()=>{const L=stonesLook();return !L||L.taken;}},
+  {t:'Подберите камни',h:'Красная стрелка показывает камни у причала. Подойдут и любые другие: у дороги или в ящике. Нажмите на них и выберите «Взять». Камнем можно отвлечь врага.',target:()=>{const L=stonesLook();return L&&!L.taken?{x:Math.floor(L.grp.position.x),z:Math.floor(L.grp.position.z),label:'Камни'}:null;},done:()=>{const L=stonesLook(),n=window.handsCount?window.handsCount('stone'):0;if(TUT.stone0==null)TUT.stone0=n;
+    // any stones count: the ones on the shore, a crate, a rock by the road; a full pouch counts too
+    return !L||L.taken||n>TUT.stone0||n>=5;}},
   {t:'Дойдите до деревни Заводь',h:'Красная стрелка всегда ведёт к цели. Круглая карта в углу открывает большую.',target:()=>({x:Z.village[0],z:Z.village[1]+3,label:'Деревня'}),done:()=>Math.hypot(H0.x-Z.village[0],H0.z-Z.village[1])<7},
   {t:'Отнесите рыбу Браму',h:'Таверна — дом с вывеской. Нажмите на дом → «Войти», потом на Брама → «Говорить».',target:()=>whoT('bram'),done:()=>TUT.flags.bram},
   {t:'Прогоните крысу из амбара',h:'Бой идёт по ходам. Нажмите на крысу → «Атаковать» → оружие. Синие клетки — куда можно шагнуть. Нажмите на себя → «Конец хода».',
@@ -19,9 +21,16 @@ const TSTEPS=[
 const tutOn=()=>TUT.step>=0&&TUT.step<TSTEPS.length;
 function tutTarget(){return tutOn()?TSTEPS[TUT.step].target?.()||null:null;}
 const coachEl=document.getElementById('coach');
-function tutUI(){const q=document.getElementById('quest');if(!tutOn())return false;const S=TSTEPS[TUT.step];q.hidden=false;
-  q.innerHTML='<div class="tut"><small>Обучение · '+(TUT.step+1)+' из '+TSTEPS.length+'</small><b></b><span></span><button id="tutSkip">Пропустить обучение</button></div>';
-  q.querySelector('b').textContent=S.t;q.querySelector('span').textContent=S.h;q.querySelector('#tutSkip').onclick=e=>{e.stopPropagation();endTutorial(true);};return true;}
+// the goal card folds to one line: tap it to open or close; a new step opens it for a few seconds, then it folds again
+const QF={fold:(()=>{try{return localStorage.getItem('helga-qfold')!=='0'}catch(e){return true}})(),peek:false,step:-2,timer:0};
+const CHEV='<svg class="qchev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M2 4h8L6 9z"/></svg>';
+function qFolded(){return QF.fold&&!QF.peek;}
+function qToggle(){QF.peek=false;QF.fold=!QF.fold;try{localStorage.setItem('helga-qfold',QF.fold?'1':'0')}catch(e){}sfx('click');questUI();}
+function qPeek(){QF.peek=true;clearTimeout(QF.timer);QF.timer=setTimeout(()=>{QF.peek=false;questUI();},7000);}
+function tutUI(){const q=document.getElementById('quest');if(!tutOn())return false;const S=TSTEPS[TUT.step];q.hidden=false;if(QF.step!==TUT.step){QF.step=TUT.step;qPeek();}
+  q.innerHTML='<div class="tut'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'"><small>Обучение · '+(TUT.step+1)+' из '+TSTEPS.length+CHEV+'</small><b></b><span></span><button id="tutSkip">Пропустить обучение</button></div>';
+  q.querySelector('b').textContent=S.t;q.querySelector('span').textContent=S.h;q.querySelector('#tutSkip').onclick=e=>{e.stopPropagation();endTutorial(true);};
+  q.querySelector('.tut').onclick=qToggle;return true;}
 function tutTick(){if(!tutOn()||paused)return;const S=TSTEPS[TUT.step];
   if(S.coach){const el=document.querySelector(S.coach);const r=el&&el.getBoundingClientRect(),sr=stage.getBoundingClientRect();if(r){coachEl.hidden=false;coachEl.style.left=(r.left-sr.left+r.width/2)+'px';coachEl.style.top=(r.top-sr.top+r.height/2)+'px';}}else coachEl.hidden=true;
   if(S.done()){TUT.step++;sfx('pickup');if(TUT.step===6)spawnRat();if(!tutOn())return endTutorial(false);questUI();toast('Готово! Дальше: '+TSTEPS[TUT.step].t,3000);}}

@@ -287,7 +287,11 @@ talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
 let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
 function questUI(){if(tutUI())return;
-  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div>Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;questEl.innerHTML=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>').join('');}
+  if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div class="one">Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2);questEl.hidden=!act.length;
+  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?' · осталось '+q.left:' · вернитесь за наградой')+'</div>');
+  // folded: one line with the first task and how many there are; tap opens the list
+  questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
+  const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
 function questKill(e){for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
 function reward(q,items,line,who){q.state=3;window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);

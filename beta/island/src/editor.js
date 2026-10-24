@@ -8,7 +8,10 @@ const NAMES={male:['Эльдар','Бран','Торвин','Ларс','Арде
 const ED={name:'Эльдар',cls:'fighter',race:'human',kit:0,gender:'male',ap:null,tab:'race',view:'full',game:null};
 const gidOf=k=>CLASSES[k].look.g,gid=()=>gidOf(ED.cls);
 // a class's starting look: the builder's default for its base, the class patch, then the people's features
-const baseLook=(k=ED.cls,race=ED.race,g=ED.gender)=>raceAppearance(race,Object.assign(C_.defaultLook(gidOf(k),g),JSON.parse(JSON.stringify(CLASSES[k].look.p))));
+// a cape left on "same as clothes" would melt into the outfit: give it a contrasting palette colour
+const CAPE_TONE={fighter:'#6a2330',wizard:'#24456b',rogue:'#2d4f2c',cleric:'#e6dcc4'};
+const baseLook=(k=ED.cls,race=ED.race,g=ED.gender)=>{const o=raceAppearance(race,Object.assign(C_.defaultLook(gidOf(k),g),JSON.parse(JSON.stringify(CLASSES[k].look.p))));
+  if(!o.capeColor)o.capeColor=CAPE_TONE[gidOf(k)]===o.cloth?'#2a2a30':CAPE_TONE[gidOf(k)];return o;};
 function edReset(keepName){ED.ap=baseLook();if(!keepName)ED.name=NAMES[ED.gender][0];ED.game=null;}
 edReset();
 const edState=()=>({classId:gid(),appearance:ED.ap});
