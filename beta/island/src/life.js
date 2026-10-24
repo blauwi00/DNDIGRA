@@ -106,7 +106,7 @@ function barkTick(now){for(let i=bubbles.length-1;i>=0;i--){const B=bubbles[i],a
   // one voice at a time, never over a conversation, no line twice in a row
   if(CB.on||paused||!talkEl.hidden||bubbles.length)return;
   for(const a of actors){if(!a.npc||a.hidden||!a.o.visible||a.barkT>now-22000)continue;const d=Math.hypot(a.px-H0.px,a.pz-H0.pz);
-    if(d<3.2&&Math.random()<.02){const L=barkLines(a).filter(l=>l!==lastLine);speak(a,lastLine=L[Math.floor(Math.random()*L.length)]);a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);break;}}
+    if(d<3.2&&Math.random()<.02){speak(a,lastLine=PEOPLE[a.npc]?personBark(a):pickLine(a,'b',barkLines(a)));a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);break;}}
   // villagers chatting with each other nearby
   const pair=[V.find(v=>v.act==='chat1'),V.find(v=>v.act==='chat2')];if(pair[0]&&pair[1]&&Math.hypot(pair[0].px-H0.px,pair[0].pz-H0.pz)<9&&Math.random()<.006){const s=pair[Math.random()<.5?0:1];
     if(s.barkT<now-6000||!s.barkT){const L=['А рыбак-то, слышала, снова сети порвал!','Брам новое пиво сварил.','Травница говорит, скоро шторм.','Ох, мои колени к дождю…','Чужак-то наш, видать, не робкого десятка.'];speak(s,L[Math.floor(Math.random()*L.length)]);}}

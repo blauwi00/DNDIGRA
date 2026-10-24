@@ -2784,7 +2784,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2]]);
   if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери.','Мельница снова мелет спокойно.',[['bread',3]]);
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани.','Море спокойно, рыба идёт.',[['potion',1],['bread',1]]);
-  if(a.talkId==='villager'){const L=barkLines(a);return say(n,L[Math.floor(Math.random()*L.length)]);}
+  if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
     return say(n,'Травы любят тишину. Береги себя.');}
@@ -2990,9 +2990,10 @@ const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
   q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
-  herb:actors.find(a=>a.talkId==='herb').gave||0,time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
+  herb:actors.find(a=>a.talkId==='herb').gave||0,met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
+  for(const [nm,k] of d.met||[]){const v=V.find(v=>v.npc===nm);if(v)v.met=k;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   const cs=interact.filter(i=>i.chest);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
@@ -3468,7 +3469,7 @@ function barkTick(now){for(let i=bubbles.length-1;i>=0;i--){const B=bubbles[i],a
   // one voice at a time, never over a conversation, no line twice in a row
   if(CB.on||paused||!talkEl.hidden||bubbles.length)return;
   for(const a of actors){if(!a.npc||a.hidden||!a.o.visible||a.barkT>now-22000)continue;const d=Math.hypot(a.px-H0.px,a.pz-H0.pz);
-    if(d<3.2&&Math.random()<.02){const L=barkLines(a).filter(l=>l!==lastLine);speak(a,lastLine=L[Math.floor(Math.random()*L.length)]);a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);break;}}
+    if(d<3.2&&Math.random()<.02){speak(a,lastLine=PEOPLE[a.npc]?personBark(a):pickLine(a,'b',barkLines(a)));a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);break;}}
   // villagers chatting with each other nearby
   const pair=[V.find(v=>v.act==='chat1'),V.find(v=>v.act==='chat2')];if(pair[0]&&pair[1]&&Math.hypot(pair[0].px-H0.px,pair[0].pz-H0.pz)<9&&Math.random()<.006){const s=pair[Math.random()<.5?0:1];
     if(s.barkT<now-6000||!s.barkT){const L=['А рыбак-то, слышала, снова сети порвал!','Брам новое пиво сварил.','Травница говорит, скоро шторм.','Ох, мои колени к дождю…','Чужак-то наш, видать, не робкого десятка.'];speak(s,L[Math.floor(Math.random()*L.length)]);}}
@@ -3529,6 +3530,100 @@ function eventTick(now){if(CB.on||room||paused)return;
   const [x,z]=cand[Math.floor(Math.random()*cand.length)];const trav=villager('Путник',LOOKS2[Math.floor(Math.random()*LOOKS2.length)],{role:'trav',home:[x,z],house:0});trav.act='chat1';trav.villager=false;
   const foes=[];for(const [dx,dz] of [[2,1],[-2,1]]){const [fx,fz]=nearFree(x+dx,z+dz,3);const w=foe('wolf',fx,fz,{wander:0,temp:true});addBar(w);w.face=Math.atan2(trav.px-w.px,trav.pz-w.pz);foes.push(w);}
   EV={trav,foes,t:now};questFocus=null;}
+
+// ---------- the people of the island: a role, a temper and their own words ----------
+// Every villager has a card: what they do, how they talk, what they know. Talking opens
+// a small conversation (who are you, news, rumours, work); answers depend on the island's
+// state, the weather, the hour, the hero's people and class, and whether you have met.
+// Lines come from a shuffled deck per person and topic, so nothing repeats until the deck runs out.
+const W_=()=>({tod:worldTime,night:nightness()>.5,rain:WX.rain>.4,fire:chapel.lit,band:Q.band.state===3,wolf:Q.wolf.state===3,dead:Q.dead.state===3,
+  race:(RACES[HEROSET&&HEROSET.race]||RACES.human),cls:(CLASSES[HEROSET&&HEROSET.cls]||CLASSES.fighter),hurt:H0.hp<H0.max*.5,name:H0.name});
+const PEOPLE={
+ 'Свен-лесоруб':{role:'лесоруб',temper:'немногословный, гордится своим топором',
+   hello:['А, это ты.','Здорово.','Чего тебе? Говори, пока топор отдыхает.'],
+   who:['Свен. Рублю лес для всей деревни. Без меня Брам бы пиво на холодной печи варил.','Лесоруб я. Тридцать зим этим топором машу — ни одной зазубрины.'],
+   news:w=>[w.wolf?'Волков поменьше стало — спасибо тебе. Теперь хоть в лес без оглядки хожу.':'Волки у опушки совсем обнаглели. Я с топором — и то оглядываюсь.',
+     w.rain?'В дождь дерево тяжёлое, сырое. Не люблю.':'Сухо — самое время валить сосну.','Кузнец обещал наточить топор, да всё некогда ему.'],
+   rumor:['Говорят, в Тёмном лесу есть дуб, которого никто не рубил со времён Хельги. Я к нему не подхожу.','Охотник с южной опушки странный. Сам с собой говорит.'],
+   work:w=>[w.wolf?'Работы? Разве что дров наколоть. Шучу.':'Олав с пристани волками мается. Сходи к нему, он платит честно.'],
+   bark:['Дерево само себя не нарубит.','Хорош топор, хорош…','Эх, спина…','Раз — и пополам.'],
+   race:{goliath:'Вот это плечи! Тебе бы топор, а не то, что у тебя в руках.',dwarf:'Гном… то есть дворф, прости. Ваши топоры, говорят, лучше наших.'}},
+ 'Торговка Марта':{role:'торговка',temper:'бойкая, любит поторговаться и посплетничать',
+   hello:['Ой, покупатель! Заходи, заходи!','Опять ты! Ну что, надумал купить?','Добрый человек, глянь товар!'],
+   who:['Марта я, всё на этом острове через мои руки проходит: рыба, яблоки, нитки, новости.','Торгую, милый. Отец торговал, дед торговал, и я торгую.'],
+   news:w=>[w.band?'Разбойников прогнали — мука снова дешёвая! Тодор сам не свой от радости.':'Разбойники в лесу муку у Тодора отбирают, а цены кто поднимает? Я!',
+     w.fire?'С тех пор как в часовне горит огонь, ночью торговать не страшно.':'По ночам из руин стучат кости. Я лавку закрываю засветло.',w.rain?'В дождь никто не покупает. Сижу, считаю медяки.':'Солнце — покупатель идёт!'],
+   rumor:['Агна-то, слышал, на Нильса заглядывается. Только тсс!','Брам пиво разбавляет. Не говори, что от меня.','Ульф старый клад на кладбище ищет, все знают.'],
+   work:w=>['Мне помощь не нужна, мне покупатели нужны! А вот травнице Ивве мята нужна, она просила.'],
+   bark:['Свежая рыба! Яблоки!','Подходи, не стесняйся!','Нитки, иголки, пуговицы!','Дёшево — как даром!'],
+   race:{halfling:'Ой, какой маленький! Тебе скидка, у нас таких редко встретишь.',tiefling:'Рожки-то настоящие? Ладно-ладно, деньги у всех одинаковые.'}},
+ 'Агна':{role:'служанка в таверне',temper:'застенчивая, мечтательная, всё время метёт',
+   hello:['Ой… здравствуй.','Ты опять пришёл… То есть, привет.','Осторожно, тут подметено.'],
+   who:['Я Агна. Помогаю Браму: мою, мету, ношу. Мечтаю увидеть большую землю.','Я… просто Агна. Метлу видишь? Вот, это я.'],
+   news:w=>[w.dead?'Мёртвые больше не бродят. Я наконец сплю без свечи.':'Мне снилось, что огонь в часовне снова горит. Хорошо бы правда.','Брам сегодня добрый, даже не ворчал.',w.night?'Поздно уже… Мне ещё полы мыть.':'С утра столько пыли натаскали!'],
+   rumor:['Говорят, корабли с большой земли приходят раз в год. Я каждый раз смотрю на море.','Нильс… нет, ничего. Забудь.'],
+   work:w=>['Брам говорил, что ему нужен смелый человек. Поговори с ним, он в таверне.'],
+   bark:['Опять натоптали…','Мету-мету…','Ой, извини.','Чистота — это порядок.']},
+ 'Старик Ульф':{role:'старожил, рассказчик',temper:'ворчливый, помнит всё и всех',
+   hello:['А, молодёжь пожаловала.','Садись, послушай старика.','Ты кто такой? А, помню, помню.'],
+   who:['Ульф. Я на этом острове родился, когда часовню ещё строили. Всё помню.','Я тут старше всех деревьев, кроме того дуба в лесу.'],
+   news:w=>[w.fire?'Огонь в часовне горит, как при моём деде. Значит, Хельга снова смотрит на нас.':'Огонь в часовне погас — к беде. Так всегда было.',w.rain?'Колени ноют — значит, дождь надолго.':'Хорошая погода, а к вечеру — поглядим.'],
+   rumor:['Хельга была ведьмой-хранительницей. Она зажгла огонь, чтобы мёртвые не вставали. Пока он горит — спим спокойно.','В руинах была крепость. Вниз ведут ступени, но туда никто не ходит.','Кладбище старше деревни. Там лежат те, кто приплыл первым.'],
+   work:w=>[w.fire?'Работы нет, а вот совет есть: береги огонь.':'Работа одна: зажги огонь в часовне. Жаровня в руинах. Только мёртвые не дадут просто так.'],
+   bark:['А я ей и говорю…','В мои годы…','Эх, молодёжь…','Помню, помню…'],
+   race:{echo:'Эхоносец! Мой дед рассказывал про таких. Вы слышите прошлое, да?',elf:'Эльф… Последний эльф был тут, когда я был мальчишкой.'}},
+ 'Хильда':{role:'жена рыбака, сплетница',temper:'весёлая, болтливая, всё про всех знает',
+   hello:['Ой, привет-привет!','А я как раз про тебя говорила!','Ну наконец-то новое лицо!'],
+   who:['Хильда я, жена Нильса. Он рыбачит, а я знаю всё, что на острове делается.','Хильда! Спроси любого — меня все знают.'],
+   news:w=>[w.wolf?'Сети больше не рвут! Нильс прямо помолодел.':'Волки сети рвут, Нильс злой как чёрт.',w.band?'Говорят, это ты разбойников выгнал? Ой, расскажи!':'Разбойники в лесу, а стражник наш только ходит туда-сюда.','Брам новое пиво сварил. Вкусное!'],
+   rumor:['Травница Ивва когда-то жила на большой земле. Говорят, сбежала оттуда.','Кузнец Горан в молодости был наёмником. Видел шрам на руке?','Бьорн влюблён в Марту, только сказать боится.'],
+   work:w=>['Ой, работа — это к мужчинам. Тодор вот разбойниками жалуется, мельник наш.'],
+   bark:['Да ты что!','Вот и я говорю!','Ой, не могу!','А она ему…']},
+ 'Нильс':{role:'рыбак, сосед Олава',temper:'спокойный, любит тишину и море',
+   hello:['Тише. Клюёт.','А… это ты.','Садись рядом, только не шуми.'],
+   who:['Нильс. Рыбак. Мы с Олавом сети делим, а море — на двоих.','Я рыбу ловлю. Больше ничего не умею, да и не надо.'],
+   news:w=>[w.rain?'Дождь — рыбе радость. Сегодня с уловом буду.':'Тихая вода сегодня.',w.wolf?'Сети целые. Это ты помог? Спасибо.':'Опять сеть порвана. Волки за рыбой ходят.'],
+   rumor:['В штиль ночью из-под воды светятся огоньки. Олав говорит — утопленники. Я думаю — медузы.','Корабль с большой земли запаздывает. Странно.'],
+   work:w=>[w.wolf?'Всё спокойно. Можешь порыбачить со мной.':'Олав просил помочь с волками. Он на пристани.'],
+   bark:['Тише, рыбу распугаешь.','Клюёт…','Ушла, зараза.','Море шепчет.']},
+ 'Стражник Бьорн':{role:'стражник деревни',temper:'строгий, но добрый, любит порядок',
+   hello:['Стой. А, это ты. Проходи.','Порядок на острове. Чем могу помочь?','Здравия!'],
+   who:['Бьорн, стражник Заводи. Один на всю деревню, вот и хожу кругами.','Я слежу за порядком. Алебарда тяжёлая, служба тяжелее.'],
+   news:w=>[w.band?'Лагерь разбойников пуст. Хорошая работа, боец.':'Двое разбойников засели в лесном лагере. Я один, деревню оставить не могу.',w.dead?'Кладбище тихое. Наконец-то.':'Ночью на кладбище скелеты. Не ходи туда без оружия.',w.night?'Ночная смена. Не люблю.':'Днём спокойно.'],
+   rumor:['Разбойники приплыли с большой земли на лодке. Лодку я сжёг, теперь им не уйти.','Говорят, в руинах ступени ведут вниз. Я туда не спускался. И тебе не советую.'],
+   work:w=>[w.band?'Работы нет — и слава морю.':'Помоги мельнику Тодору с разбойниками. Лагерь на востоке, у леса.'],
+   bark:['Порядок на острове.','Не балуй.','Всё спокойно.','Служба.'],
+   cls:{paladin:'Паладин! Рад видеть настоящего воина света.',rogue:'Плут, значит… Я за тобой присмотрю.'}},
+ 'Рыбак Олав':{role:'старший рыбак пристани',temper:'добродушный, встречает всех приезжих',
+   bark:['Клюёт плохо сегодня.','Море даёт, море берёт.','Эх, сети…','Ветер с севера — к шторму.']},
+ 'Мельник Тодор':{role:'мельник',temper:'хозяйственный, тревожится о муке',
+   bark:['Земля в этом году добрая.','Мука-мука…','Жернова скрипят — значит, живём.','Эх, разбойники…']}};
+
+// a deck per person and topic: lines come in shuffled order and never repeat until all are used
+function pickLine(a,key,list){a.decks=a.decks||{};let d=a.decks[key];const sig=list.join('|');
+  if(!d||d.sig!==sig||!d.left.length){const left=list.map((_,i)=>i);for(let i=left.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[left[i],left[j]]=[left[j],left[i]];}
+    if(d&&d.last!=null&&left.length>1&&left[left.length-1]===d.last)left.unshift(left.pop());d=a.decks[key]={sig,left,last:d?d.last:null};}
+  const i=d.left.pop();d.last=i;return list[i];}
+const asList=(v,w)=>typeof v==='function'?v(w):v||[];
+// a topic is spent once every line of it was heard; it then leaves the list instead of repeating
+const hasMore=(a,key,list)=>{const d=a.decks&&a.decks[key];return !d||d.sig!==list.join('|')||d.left.length>0;};
+// a passing remark: mostly their own words, sometimes about the island or the weather
+function personBark(a){const P=PEOPLE[a.npc];const w=W_();const L=[];
+  if(w.rain)L.push('Ну и льёт…','Скорей бы под крышу.');if(w.hurt)L.push('Ты весь в крови! Сходи к травнице.');
+  if(w.fire)L.push('Огонь в часовне горит — и на душе светло.');else L.push('Не ходи ночью к кладбищу.');
+  L.push(w.tod<.4?'Доброе утро!':w.tod<.72?'Добрый день.':'Доброго вечера.');
+  if(P&&P.bark&&Math.random()<.7)return pickLine(a,'bark',P.bark);return pickLine(a,'world',L);}
+// a conversation: greeting, then topics until the hero says goodbye
+function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);return say(n,L[Math.floor(Math.random()*L.length)]);}
+  // a new conversation refills spent topics (the last line said never comes first again)
+  for(const d of Object.values(a.decks||{}))if(!d.left.length)d.sig='';
+  const w=W_(),first=!a.met;a.met=(a.met||0)+1;
+  let open=first?pickLine(a,'who',P.who):pickLine(a,'hello',P.hello);
+  const special=(P.race&&P.race[HEROSET&&HEROSET.race])||(P.cls&&P.cls[HEROSET&&HEROSET.cls]);if(special&&first)open=special+' '+open;
+  else if(w.hurt&&Math.random()<.5)open='Ты ранен! '+open;
+  const T=[['Кто ты?','who',()=>P.who],['Что нового?','news',()=>asList(P.news,W_())],['Какие слухи?','rumor',()=>P.rumor],['Есть работа?','work',()=>asList(P.work,W_())]];
+  const topics=()=>T.filter(([,k,f])=>hasMore(a,k,f())).map(([label,k,f])=>[label,()=>{const line=pickLine(a,k,f()),next=topics();say(n,next.length?line:line+' Ну, вот и всё, что я знаю.',next);}]);
+  say(n,open,topics());}
 
 // ---------- arrival, tutorial, first easy tasks, minimap ----------
 // A new game opens at dawn on the pier: a short cinematic, then a guided path that
