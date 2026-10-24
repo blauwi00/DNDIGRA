@@ -18,10 +18,15 @@ function preview(){const c=document.getElementById('edCanvas');
   if(!pv){const r=new THREE.WebGLRenderer({canvas:c,antialias:false,alpha:true});r.setPixelRatio(Math.min(devicePixelRatio,2));const s=new THREE.Scene(),cam=new THREE.PerspectiveCamera(28,1,.1,30);
     s.add(new THREE.HemisphereLight(0xdfe8ff,0x3a2a1a,.95));const key=new THREE.DirectionalLight(0xffe2b8,.9);key.position.set(2,3,3);s.add(key);const rim=new THREE.DirectionalLight(0x8ab0ff,.55);rim.position.set(-2.5,2,-2.5);s.add(rim);
     const ped=new THREE.Group();const st=lam(T.stone,{color:0xb8b0a4});for(const [rr,h,y] of [[.62,.1,-.05],[.52,.06,.03]]){const m=new THREE.Mesh(new THREE.CylinderGeometry(rr,rr+.04,h,16),st);m.position.y=y;m.receiveShadow=true;ped.add(m);}s.add(ped);
-    pv={r,s,cam,m:null,t:0,yaw:.35,drag:null,zoom:1,zoomT:1,auto:true};
-    c.addEventListener('pointerdown',e=>{pv.drag={x:e.clientX,yaw:pv.yaw};pv.auto=false;c.setPointerCapture(e.pointerId);});
-    c.addEventListener('pointermove',e=>{if(pv.drag)pv.yaw=pv.drag.yaw+(e.clientX-pv.drag.x)*.012;});
-    c.addEventListener('pointerup',()=>{pv.drag=null;});c.addEventListener('pointercancel',()=>{pv.drag=null;});
+    pv={r,s,cam,m:null,t:0,yaw:.35,drag:null,zoom:1,zoomT:1,auto:false,pts:new Map()};
+    // one finger turns the hero, two fingers pinch to zoom, the mouse wheel zooms too
+    const pinch=()=>{const [a,b]=[...pv.pts.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
+    c.addEventListener('pointerdown',e=>{pv.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});c.setPointerCapture(e.pointerId);setAuto(false);
+      if(pv.pts.size===2){pv.drag=null;pv.pinch={d:pinch(),z:pv.zoomT};}else if(pv.pts.size===1)pv.drag={x:e.clientX,yaw:pv.yaw};});
+    c.addEventListener('pointermove',e=>{if(!pv.pts.has(e.pointerId))return;pv.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pv.pinch&&pv.pts.size===2)pv.zoomT=Math.max(0,Math.min(1,pv.pinch.z-(pinch()-pv.pinch.d)/220));else if(pv.drag)pv.yaw=pv.drag.yaw+(e.clientX-pv.drag.x)*.012;});
+    const up=e=>{pv.pts.delete(e.pointerId);if(pv.pts.size<2)pv.pinch=null;pv.drag=null;};c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
+    c.addEventListener('wheel',e=>{e.preventDefault();pv.zoomT=Math.max(0,Math.min(1,pv.zoomT+e.deltaY*.0012));},{passive:false});
     const loop=()=>{if(edEl.hidden){pv.raf=0;return;}const w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*r.getPixelRatio())||c.height!==Math.round(h*r.getPixelRatio())){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
       pv.t+=.016;pv.zoom+=(pv.zoomT-pv.zoom)*.12;if(pv.auto)pv.yaw+=.004;
       const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),dist=(4.4-1.7*(1-face))/fit,ly=.62+.28*(1-face);cam.position.set(0,ly+.35*face,dist);cam.lookAt(0,ly,0);
@@ -38,6 +43,30 @@ function tilePortrait(ap,view,back){const k=gid()+'|'+view+'|'+(back?1:0)+'|'+JS
   if(!cv){cv=C_.portrait('hero',{classId:gid(),appearance:ap},{view,width:64,height:64,pixel:2,back});if(pCache.size>400)pCache.clear();pCache.set(k,cv);}
   const out=document.createElement('canvas');out.width=cv.width;out.height=cv.height;const g=out.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(cv,0,0);return out;}
 const clone=o=>JSON.parse(JSON.stringify(o));
+// ---- 3D tiles: the real model with the people's horns, tusks, fins and growths ----
+let tR=null;const tCache=new Map();
+function tile3D(ap,race,view,cls){const k=(cls||ED.cls)+'|'+race+'|'+view+'|'+JSON.stringify(ap);let cv=tCache.get(k);
+  if(!cv){if(!tR){const r=new THREE.WebGLRenderer({antialias:false,alpha:true,preserveDrawingBuffer:true});r.setSize(96,96);r.setPixelRatio(1);const s=new THREE.Scene();
+      s.add(new THREE.HemisphereLight(0xdfe8ff,0x3a2a1a,1));const key=new THREE.DirectionalLight(0xffe2b8,.85);key.position.set(2,3,3);s.add(key);tR={r,s,cam:new THREE.PerspectiveCamera(26,1,.1,30)};}
+    const m=buildModel(raceDecorate(race,C_.build(C_.spec('hero',{classId:gidOf(cls||ED.cls),appearance:ap})),ap));raceScale(race,m);m.rotation.y=.4;tR.s.add(m);
+    const head=view==='head',y=head?1.0*RACES[race].size:.62;tR.cam.position.set(0,y+(head?.05:.12),head?1.9:3.05);tR.cam.lookAt(0,y,0);tR.r.render(tR.s,tR.cam);tR.s.remove(m);
+    m.traverse(o=>{if(o.geometry)o.geometry.dispose();});cv=document.createElement('canvas');cv.width=cv.height=96;cv.getContext('2d').drawImage(tR.r.domElement,0,0);if(tCache.size>300)tCache.clear();tCache.set(k,cv);}
+  const out=document.createElement('canvas');out.width=out.height=96;out.getContext('2d').drawImage(cv,0,0);return out;}
+// ---- ready looks for every class and people: six faces in the class outfit ----
+const PRESET_NAMES={fighter:['Страж ворот','Ветеран','Наёмница','Щитоносица','Капитан','Молодой рекрут'],barbarian:['Северянин','Буревестник','Дочь бури','Медвежья кровь','Вождь','Дикарка'],
+  paladin:['Рыцарь зари','Хранитель клятвы','Белая дева','Мститель','Странствующий рыцарь','Знаменосица'],monk:['Тихий ученик','Мастер ветра','Сестра пути','Отшельник','Наставник','Странница'],
+  ranger:['Охотник','Лесная тень','Следопытка','Страж границы','Зверолов','Разведчица'],rogue:['Карманник','Тень порта','Ловкачка','Взломщик','Контрабандист','Лиса'],
+  bard:['Менестрель','Сказитель','Певица','Шут','Поэт','Танцовщица'],cleric:['Брат-хранитель','Целитель','Жрица света','Паломник','Отец-настоятель','Послушница'],
+  druid:['Хранитель рощи','Старый дуб','Травница','Говорящий с волками','Шаман','Дочь леса'],sorcerer:['Наследник огня','Буйная кровь','Искра','Пламенный','Изгнанник','Ведьма грозы'],
+  warlock:['Должник','Тёмный договор','Ведьма','Голос бездны','Книжник','Проклятая'],mage:['Звездочёт','Учёный','Чародейка','Архивариус','Старый маг','Ученица']};
+const GENDERS=['male','male','female','male','male','female'];
+function seeded(seed,fn){const old=Math.random;let x=seed>>>0||1;Math.random=()=>((x=Math.imul(x^x>>>15,2246822507)^Math.imul(x^x>>>13,3266489909),x=(x^x>>>16)>>>0)/4294967296);try{return fn();}finally{Math.random=old;}}
+const FACE_KEYS=['hairStyle','hair','hair2','brows','brow','eyes','eye','mouth','beard','beardColor','marks','accessories'];
+function lookPresets(cls,race){const names=PRESET_NAMES[cls]||PRESET_NAMES.fighter,h=[...(cls+race)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7);
+  return names.map((n,i)=>{const g=GENDERS[i],base=baseLook(cls,race,g),rnd=seeded(h+i*977,()=>C_.randomLook(gidOf(cls),g)),ap=clone(base);
+    for(const k of FACE_KEYS)if(rnd[k]!==undefined)ap[k]=rnd[k];if(i===4){ap.hair='#c7c4bf';if(g==='male'&&ap.beard==='none')ap.beard='full';}
+    if(i%3===2&&rnd.headgear)ap.headgear=rnd.headgear;if(i===1&&rnd.cape)ap.cape=rnd.cape;
+    return {name:n,gender:g,ap:raceAppearance(race,C_.normalize(ap,gidOf(cls)))};});}
 function setAp(key,val){ED.ap=Object.assign(clone(ED.ap),{[key]:val});ED.game=null;sfx('click');openEditor(true);}
 // ---- panel ----
 const STATS=k=>{const c=CLASSES[k];return [['Здоровье',c.hp/20],['Защита',(c.ac-10)/6],['Ближний бой',c.melee/5],['Дальний бой',Math.max(c.ranged,c.spell)/5],['Скрытность',c.stealth/7]];};
@@ -51,11 +80,12 @@ function openEditor(keep){if(!keep){screen(edEl);}const body=document.getElement
   body.scrollTop=keep?scroll:0;renderGameHeroes();preview();}
 function raceTab(body){const strip=el('div','hc-carousel');
   for(const k of RACE_ORDER){const R=RACES[k],b=el('button','hc-race'+(ED.race===k?' on':''));const ap=raceAppearance(k,C_.defaultLook(gid(),ED.gender));
-    const pic=C_.portrait('hero',{classId:gid(),appearance:ap},{view:'head',width:64,height:64,pixel:2});pic.className='hc-pic';
+    const pic=tile3D(ap,k,'head');pic.className='hc-pic';
     b.append(pic,el('b',null,R.n),el('small',null,R.group));b.onclick=()=>{if(ED.race===k)return;ED.race=k;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};strip.append(b);}
   body.append(el('div','hc-lab','Народ · проведите по ряду'),strip);const R=RACES[ED.race];
   const card=el('div','hc-racecard');card.append(el('b',null,R.n),el('p',null,R.passive),el('p',null,R.edge),el('small',null,'Чаще выбирают: '+R.pref+'. Любой класс доступен.'));body.append(card);
-  requestAnimationFrame(()=>{const on=strip.querySelector('.on');if(on)strip.scrollLeft=on.offsetLeft-strip.clientWidth/2+on.clientWidth/2;});}
+  strip.addEventListener('scroll',()=>{ED.raceScroll=strip.scrollLeft;},{passive:true});
+  requestAnimationFrame(()=>{if(ED.raceScroll!=null){strip.scrollLeft=ED.raceScroll;return;}const on=strip.querySelector('.on');if(on)strip.scrollLeft=on.offsetLeft-strip.clientWidth/2+on.clientWidth/2;ED.raceScroll=strip.scrollLeft;});}
 function classTab(body){const g=el('div','hc-classes');
   for(const k of CLASS_ORDER){const c=CLASSES[k],b=el('button','hc-class'+(ED.cls===k?' on':''));
     const pic=C_.portrait('hero',{classId:gidOf(k),appearance:k===ED.cls?ED.ap:baseLook(k)},{view:'body',width:60,height:60,pixel:2});pic.className='hc-pic';
@@ -72,10 +102,10 @@ function classTab(body){const g=el('div','hc-classes');
   for(const [n,v] of [['Здоровье',H.hp/26],['Защита',(H.ac-10)/7],['Ближний бой',H.melee/6],['Дальний бой и магия',Math.max(H.ranged,H.spell)/6],['Скрытность',H.stealth/9]]){const r=el('div','hc-stat');r.append(el('span',null,n));const bar=el('i');bar.style.setProperty('--v',Math.max(.08,Math.min(1,v)));r.append(bar);st.append(r);}
   body.append(el('div','hc-lab','Сильные стороны · '+RACES[ED.race].n+' '+CLASSES[ED.cls].n.toLowerCase()),st,el('p','hc-about',CLASSES[ED.cls].about));}
 function looksTab(body){const g=el('div','hc-tiles big');
-  const rb=el('button','hc-wide');rb.append(el('span','hc-die','?'),document.createTextNode(' Случайный облик для класса «'+CLASSES[ED.cls].n+'»'));rb.onclick=()=>randomHero(false);body.append(rb);
-  for(const p of C_.PRESETS[gid()]){const ap=C_.presetLook(gid(),p),b=el('button','hc-tile');b.append(tilePortrait(ap,'full'),el('small',null,p.name));
-    b.onclick=()=>{ED.gender=p.gender;ED.ap=ap;ED.game=null;sfx('click');openEditor(true);};g.append(b);}
-  body.append(el('div','hc-lab','Готовые образы'),g);}
+  const rb=el('button','hc-wide');rb.append(el('span','hc-die','?'),document.createTextNode(' Случайный облик: '+RACES[ED.race].n.toLowerCase()+', '+CLASSES[ED.cls].n.toLowerCase()));rb.onclick=()=>randomHero(false);body.append(rb);
+  for(const p of lookPresets(ED.cls,ED.race)){const b=el('button','hc-tile');b.append(tile3D(p.ap,ED.race,'full',ED.cls),el('small',null,p.name));
+    b.onclick=()=>{if(ED.gender!==p.gender&&!NAMES[p.gender].includes(ED.name))ED.name=NAMES[p.gender][Math.floor(Math.random()*NAMES[p.gender].length)],document.getElementById('edName').value=ED.name;ED.gender=p.gender;ED.ap=clone(p.ap);ED.game=null;sfx('click');openEditor(true);};g.append(b);}
+  body.append(el('div','hc-lab','Готовые образы · '+RACES[ED.race].n+' · '+CLASSES[ED.cls].n),g);}
 function groupTab(body,tab){for(const G of C_.GROUPS[tab]){const key=G.key;
     if(G.type==='swatch'){const pal=C_.PALETTES[C_.COLOR_FIELDS[key]];const row=el('div','hc-swatches');
       if(G.follow){const b=el('button','hc-sw auto'+(ED.ap[key]==null?' on':''),'');b.title=G.follow;b.setAttribute('aria-label',G.title+': '+G.follow);b.onclick=()=>setAp(key,null);row.append(b);}
@@ -94,8 +124,10 @@ document.getElementById('hcTabs').addEventListener('click',e=>{const b=e.target.
 document.getElementById('hcRandom').onclick=()=>randomHero(true);
 document.getElementById('hcNameDie').onclick=()=>{ED.name=NAMES[ED.gender][Math.floor(Math.random()*NAMES[ED.gender].length)];document.getElementById('edName').value=ED.name;sfx('dice');};
 document.getElementById('edName').oninput=e=>ED.name=e.target.value.slice(0,16);
-document.getElementById('hcZoom').onclick=()=>{pv.zoomT=pv.zoomT>.5?0:1;sfx('click');};
-document.getElementById('hcTurn').onclick=()=>{pv.auto=!pv.auto;sfx('click');};
+document.getElementById('hcZoomIn').onclick=()=>{pv.zoomT=Math.max(0,pv.zoomT-.34);sfx('click');};
+document.getElementById('hcZoomOut').onclick=()=>{pv.zoomT=Math.min(1,pv.zoomT+.34);sfx('click');};
+function setAuto(on){if(!pv)return;pv.auto=on;const b=document.getElementById('hcTurn');b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Остановить вращение':'Включить вращение');}
+document.getElementById('hcTurn').onclick=()=>{setAuto(!pv.auto);sfx('click');};
 // heroes from the main game: offline profile in IndexedDB, or the Site's API when signed in
 let gameHeroes=null;
 async function loadGameHeroes(){if(gameHeroes)return gameHeroes;const list=[];
