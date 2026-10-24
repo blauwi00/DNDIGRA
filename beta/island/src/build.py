@@ -1,6 +1,6 @@
 import re,os
 OUT=os.environ.get('OUT','..')  # where island.html goes; the local-three preview is only written for scratch testing
-head=open('head.html').read();stage=open('stage.html').read();models=open('models.js').read();tex=open('tex.js').read()+open('weapons.js').read();rig=open('rig.js').read();hands=open('hands.js').read();main=open('main.js').read()
+head=open('head.html').read();stage=open('stage.html').read();models=open('models.js').read();tex=open('tex.js').read()+open('weapons.js').read()+open('islandgen.js').read();rig=open('rig.js').read();hands=open('hands.js').read();main=open('main.js').read()
 head=head.replace('<title>Эталонный кусок острова</title>','<title>Остров Хельги</title>')
 head=head.replace('</style>','''.zone{position:absolute;left:50%;top:16%;transform:translateX(-50%);font-family:var(--display);font-size:clamp(20px,3.4vw,30px);color:#f3e2bd;text-shadow:0 2px 8px #000;opacity:0;pointer-events:none}
 .zone.show{animation:zone 2.6s ease}

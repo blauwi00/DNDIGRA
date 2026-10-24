@@ -13,14 +13,23 @@ const lam=(map,extra={})=>new THREE.MeshLambertMaterial(Object.assign({map},extr
 const box=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
 const BOX=box(1,1,1);
 
-// ---------- island generation, 80 x 60 cells ----------
-// Codes: F room floor, X room wall (solid), E room exit; ~ sea, A sand, G grass, D dirt road, C cobble, S ruin floor, P planks (dock), H house (solid), W ruin wall (solid)
-const W=80,H=106,grid=[],height=[];
+// ---------- the island: a generated 300 x 220 island with the hand-made Заводь district in its north-west ----------
+// Codes: F room floor, X room wall (solid), E room exit; ~ sea, A sand, G grass, D dirt road, C cobble, S ruin floor, P planks (dock),
+// H house (solid), W ruin wall (solid), M mountain rock (solid), N snow (solid), B bog (wet ground), K field
+// Rooms lie south of the island (rows ROOM_Z+), beyond the camera's reach. The seed is fixed: saves rely on the same island.
+const grid=[],height=[];
 const hash2=(x,z)=>{let h=(x*374761393+z*668265263)>>>0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296};
 const vnoise=(x,z,s)=>{const X=Math.floor(x/s),Z=Math.floor(z/s),fx=x/s-X,fz=z/s-Z,l=(a,b,t)=>a+(b-a)*t*t*(3-2*t);
   return l(l(hash2(X,Z),hash2(X+1,Z),fx),l(hash2(X,Z+1),hash2(X+1,Z+1),fx),fz)};
-for(let z=0;z<H;z++){grid.push([]);for(let x=0;x<W;x++){
-  const d=((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;grid[z].push(d<1?'G':'~');}}
+const OLD_D=(x,z)=>((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;
+const GEN=IslandGen.make('helga',300,220,{stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
+const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,H=ROOM_Z+10,GB=GEN.B;
+const inStamp=(x,z)=>x<80&&z<60&&OLD_D(x,z)<1;
+const genCode=(x,z)=>{if(z>=OUT_H)return '~';const i=z*W+x,b=GEN.biome[i];
+  if(GEN.road[i]&&!inStamp(x,z))return GEN.river[i]||b===GB.LAKE||b===GB.SEA?'P':'D';
+  if(b===GB.SEA)return '~';if(GEN.river[i]||b===GB.LAKE)return 'R';
+  return b===GB.BEACH?'A':b===GB.MOUNTAIN?'M':b===GB.SNOW?'N':b===GB.SWAMP?'B':'G';};
+for(let z=0;z<H;z++){grid.push([]);for(let x=0;x<W;x++)grid[z].push(z>=OUT_H?'~':inStamp(x,z)?'G':x<80&&z<60&&OLD_D(x,z)<2.4&&!(x>40||z>45)?'~':genCode(x,z));}
 const at=(x,z)=>(grid[z]||[])[x]||'~',set=(x,z,c)=>{if(grid[z]&&grid[z][x]!==undefined)grid[z][x]=c};
 // beach ring
 const near=(x,z,c,r)=>{for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(at(x+dx,z+dz)===c)return true;return false};
@@ -39,8 +48,8 @@ for(let z=Z.ruins[1]-5;z<=Z.ruins[1]+5;z++)for(let x=Z.ruins[0]-6;x<=Z.ruins[0]+
 // houses (footprints, solid) around the plaza
 const HOUSES=[[18,23,5,4],[30,22,6,4],[18,35,5,4],[31,35,6,5],[38,27,4,4],[13,28,4,4]];
 const HOUSE_INFO=[['tavern','Таверна «Пьяный угорь»'],['forge','Кузница'],['home','Дом рыбака'],['hall','Дом старосты'],['barn','Амбар'],['herb','Хижина травницы']];
-// Each house has a room far south of the island (rows 96+), beyond the camera's reach.
-const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const iw=Math.min(9,hw+3),id=7,ox=2+i*13,oz=96;
+// Each house has a room far south of the island (rows ROOM_Z+), beyond the camera's reach.
+const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const iw=Math.min(9,hw+3),id=7,ox=2+i*13,oz=ROOM_Z;
   return {i,type:HOUSE_INFO[i][0],name:HOUSE_INFO[i][1],ox,oz,iw,id,door:[hx+Math.floor(hw/2),hz+hd],exit:[ox+Math.floor(iw/2),oz+id-1]};});
 for(const R of ROOMS){for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++)set(x,z,(x===R.ox||x===R.ox+R.iw-1||z===R.oz||z===R.oz+R.id-1)?'X':'F');set(...R.exit,'E');}
 for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');
@@ -48,27 +57,55 @@ for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;
 const RW=[];for(let x=Z.ruins[0]-5;x<=Z.ruins[0]+5;x++)for(const z of [Z.ruins[1]-4,Z.ruins[1]+4])if(hash2(x,z*3)<.7&&Math.abs(x-Z.ruins[0])>1)RW.push([x,z]);
 for(let z=Z.ruins[1]-4;z<=Z.ruins[1]+4;z++)for(const x of [Z.ruins[0]-5,Z.ruins[0]+5])if(hash2(x*3,z)<.7)RW.push([x,z]);
 for(const [x,z] of RW)if(at(x,z)!=='~')set(x,z,'W');
+// ---------- generated places: squares, houses, the quarry, camps and the old fort ----------
+// Houses here are lived in but locked for now; their people and work come in the next step.
+const GPL=GEN.places.filter(p=>!p.stamp),GEN_HOUSES=[];
+const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Math.hypot(x-p.x,z-p.z)<=p.r+1);
+{const okCell=(x,z)=>['G','A','B','D'].includes(at(x,z));
+ const fits=(hx,hz,hw,hd)=>{for(let z=hz-1;z<=hz+hd;z++)for(let x=hx-1;x<=hx+hw;x++){const c=at(x,z),inside=x>=hx&&x<hx+hw&&z>=hz&&z<hz+hd;if(inside?!['G','A','B'].includes(c):['H','~','R','M','N','W'].includes(c))return false;}return true;};
+ const house=(hx,hz,hw,hd,p)=>{for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');GEN_HOUSES.push([hx,hz,hw,hd,p]);};
+ for(const p of GPL){const disc=(r,c)=>{for(let z=p.z-r;z<=p.z+r;z++)for(let x=p.x-r;x<=p.x+r;x++)if(Math.hypot(x-p.x,z-p.z)<=r&&okCell(x,z))set(x,z,c);};
+   // the capital: cobbled streets every five cells, a market square in the middle, houses filling the blocks
+   if(p.type==='capital'){for(let z=p.z-p.r;z<=p.z+p.r;z++)for(let x=p.x-p.r;x<=p.x+p.r;x++){if(Math.hypot(x-p.x,z-p.z)>p.r||!okCell(x,z))continue;
+       if((x-p.x)%5===0||(z-p.z)%5===0)set(x,z,'C');}
+     for(let bz=p.z-p.r;bz<p.z+p.r;bz+=5)for(let bx=p.x-p.r;bx<p.x+p.r;bx+=5){if(Math.hypot(bx+2.5-p.x,bz+2.5-p.z)<4)continue;for(const[hw,hd]of[[4,4],[3,4],[4,3],[3,3]])if(fits(bx+1-((p.x-p.r)%5===0?0:0),bz+1,hw,hd)){house(bx+1,bz+1,hw,hd,p);break;}}
+     disc(2,'C');}
+   if(p.type==='village'||p.type==='works'){disc(p.type==='capital'?4:2,p.type==='works'?'S':'C');
+     // houses on a ring around the square, more and bigger in richer places
+     const want=p.type==='works'?3:3+Math.round((p.wealth||0)*.8),big=p.type==='capital'||p.wealth>=3;let n=0;
+     for(let k=0;k<80&&n<want;k++){const a=k*2.39996+hash2(p.x,p.z)*6,rr=3+(k%5)*(p.r>6?1.6:.8),hw=big?4+(k%2):3,hd=big?4:3;
+       const hx=Math.round(p.x+Math.cos(a)*rr-hw/2),hz=Math.round(p.z+Math.sin(a)*rr-hd/2);
+       if(!fits(hx,hz,hw,hd))continue;house(hx,hz,hw,hd,p);n++;}}
+   if(p.type==='works')disc(p.r,'S');
+   if(p.type==='bandits')disc(2,'D');
+   if(p.type==='ruins'){disc(p.r,'S');for(let k=0;k<26;k++){const a=k/26*Math.PI*2,x=Math.round(p.x+Math.cos(a)*p.r),z=Math.round(p.z+Math.sin(a)*p.r);if(hash2(x*5,z*7)<.7&&at(x,z)==='S')set(x,z,'W');}}}}
 for(let z=0;z<H;z++){height.push([]);for(let x=0;x<W;x++){const c=at(x,z);
-  height[z].push(c==='F'||c==='E'||c==='X'?.3:c==='~'?0:c==='A'?.24:c==='P'?.3:c==='D'?.27:c==='C'?.29:c==='S'?.3:.3+vnoise(x,z,5)*.08);}}
+  // outside the old district the land rises with the generated relief: hills, then rock and snow
+  const gh=inStamp(x,z)||z>=OUT_H?0:Math.max(0,GEN.height[z*W+x]-.3)*1.6;
+  height[z].push(c==='F'||c==='E'||c==='X'?.3:c==='~'||c==='R'?0:c==='A'?.24:c==='P'?.3:c==='D'?.27+gh*.5:c==='C'?.29:c==='S'?.3:c==='M'?.7+gh:c==='N'?1.1+gh:c==='B'?.26:.3+vnoise(x,z,5)*.08+gh);}}
 // cells from each land cell to the nearest sea, so the surf is only heard near water
-const seaDist=[];{const q=[];for(let z=0;z<90;z++){seaDist.push([]);for(let x=0;x<W;x++){const s=at(x,z)==='~';seaDist[z].push(s?0:99);if(s)q.push([x,z]);}}
-  for(let i=0;i<q.length;i++){const[x,z]=q[i];for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const nx=x+dx,nz=z+dz;if(nz<0||nz>=90||nx<0||nx>=W)continue;if(seaDist[nz][nx]>seaDist[z][x]+1){seaDist[nz][nx]=seaDist[z][x]+1;q.push([nx,nz]);}}}}
-const groundAt=(x,z)=>{x=Math.floor(x);z=Math.floor(z);return at(x,z)==='~'?.12:height[z][x]};
+const seaDist=[];{const q=[];for(let z=0;z<OUT_H;z++){seaDist.push([]);for(let x=0;x<W;x++){const s=at(x,z)==='~';seaDist[z].push(s?0:99);if(s)q.push([x,z]);}}
+  for(let i=0;i<q.length;i++){const[x,z]=q[i];for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const nx=x+dx,nz=z+dz;if(nz<0||nz>=OUT_H||nx<0||nx>=W)continue;if(seaDist[nz][nx]>seaDist[z][x]+1){seaDist[nz][nx]=seaDist[z][x]+1;q.push([nx,nz]);}}}}
+const groundAt=(x,z)=>{x=Math.floor(x);z=Math.floor(z);const c=at(x,z);return c==='~'||c==='R'?.12:height[z][x]};
 
 // ---------- chunking: the island is drawn in 16x16 pieces so off-screen ones are culled ----------
 const CH=16;
 function chunk(list){const m=new Map();for(const c of list){const k=Math.floor(c[0]/CH)+','+Math.floor(c[1]/CH);if(!m.has(k))m.set(k,[]);m.get(k).push(c);}return [...m.values()];}
+// on the big island only the pieces near the camera are drawn: the rest are hidden, not even tested for culling
+const STREAMED=[],STREAM_R=34;let streamAt=null;
+function streamTick(force){const fx=Math.floor(focus.x/8),fz=Math.floor(focus.z/8),k=fx+','+fz;if(!force&&k===streamAt)return;streamAt=k;
+  for(const m of STREAMED){const[cx,cz]=m.userData.cc;m.visible=Math.abs(cx-focus.x)<STREAM_R+CH&&Math.abs(cz-focus.z)<STREAM_R+CH;}}
 function fitBounds(im,cells,top){let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;for(const [x,z] of cells){x0=Math.min(x0,x);z0=Math.min(z0,z);x1=Math.max(x1,x+1);z1=Math.max(z1,z+1);}
   im.geometry=im.geometry.clone();im.geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3((x0+x1)/2,top/2,(z0+z1)/2),Math.hypot(x1-x0,z1-z0,top)/2+1);
-  im.frustumCulled=true;
+  im.frustumCulled=true;im.matrixAutoUpdate=false;im.updateMatrix();im.userData.cc=[(x0+x1)/2,(z0+z1)/2];STREAMED.push(im);
   // the chunk-wide sphere is for culling only; instance raycasts need the local one
   const g=im.geometry,cull=g.boundingSphere,loc=g.clone();loc.computeBoundingSphere();const local=loc.boundingSphere;loc.dispose();
   const rc=im.raycast;im.raycast=function(r,out){g.boundingSphere=local;try{rc.call(this,r,out)}finally{g.boundingSphere=cull}};}
 // ---------- terrain: one instanced mesh per surface and chunk ----------
-const SURF={G:{top:T.grass,side:T.gside},A:{top:sand,side:sand},D:{top:T.dirt,side:T.dirt},C:{top:T.cobble,side:T.stone},S:{top:T.stone,side:T.stone},H:{top:T.dirt,side:T.dirt},W:{top:T.stone,side:T.stone},P:{top:T.p[0],side:T.p[1]}};
+const SURF={M:{top:T.stone,side:T.stone},N:{top:T.stone,side:T.stone,tint:0xe8eef2},B:{top:T.moss,side:T.dirt},G:{top:T.grass,side:T.gside},A:{top:sand,side:sand},D:{top:T.dirt,side:T.dirt},C:{top:T.cobble,side:T.stone},S:{top:T.stone,side:T.stone},H:{top:T.dirt,side:T.dirt},W:{top:T.stone,side:T.stone},P:{top:T.p[0],side:T.p[1]}};
 const pickable=[],tmpCol=new THREE.Color();const m4=new THREE.Matrix4(),q0=new THREE.Quaternion(),v1=new THREE.Vector3(),v2=new THREE.Vector3();
 for(const [code,s] of Object.entries(SURF)){const cells=[];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)===code)cells.push([x,z]);if(!cells.length)continue;
-  const side=lam(s.side,code==='G'?{}:{color:0xb8b0a8}),mats=[side,side,lam(s.top),side,side,side];
+  const side=lam(s.side,code==='G'?{}:{color:s.tint||0xb8b0a8}),mats=[side,side,lam(s.top,s.tint?{color:s.tint}:{}),side,side,side];
   for(const part of chunk(cells)){const im=new THREE.InstancedMesh(BOX,mats,part.length);im.receiveShadow=true;
     part.forEach(([x,z],i)=>{const h=code==='P'?.08:height[z][x];m4.compose(v1.set(x+.5,code==='P'?h+.18:h/2,z+.5),q0,v2.set(1,h,1));im.setMatrixAt(i,m4);
       const v=.86+.22*vnoise(x,z,6)+(hash2(x*3,z*5)-.5)*.08,w=code==='G'?(vnoise(x+40,z,9)-.5)*.14:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
@@ -78,28 +115,29 @@ for(const [code,s] of Object.entries(SURF)){const cells=[];for(let z=0;z<H;z++)f
  const im=new THREE.InstancedMesh(BOX,lam(T.bark),posts.length);posts.forEach(([x,z],i)=>{m4.compose(v1.set(x,.2,z),q0,v2.set(.14,.6,.14));im.setMatrixAt(i,m4)});im.castShadow=true;scene.add(im);}
 // sea
 const wmat=lam(T.water,{transparent:true,opacity:.92});T.water.wrapS=T.water.wrapT=THREE.RepeatWrapping;T.water.repeat.set(70,55);
-const sea=new THREE.Mesh(new THREE.PlaneGeometry(140,110),wmat);sea.rotation.x=-Math.PI/2;sea.position.set(W/2,.12,H/2);scene.add(sea);
+T.water.repeat.set(W*.9,OUT_H*.9);const sea=new THREE.Mesh(new THREE.PlaneGeometry(W+120,OUT_H+120),wmat);sea.rotation.x=-Math.PI/2;sea.position.set(W/2,.12,OUT_H/2);scene.add(sea);
 // shore foam
 {const f=[];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)==='~'&&near(x,z,'A',1))f.push([x,z]);
  const im=new THREE.InstancedMesh(box(1,.02,1),new THREE.MeshBasicMaterial({color:0x9fc3cf,transparent:true,opacity:.22}),f.length);f.forEach(([x,z],i)=>{m4.compose(v1.set(x+.5,.14,z+.5),q0,v2.set(1,1,1));im.setMatrixAt(i,m4)});scene.add(im);window.foam=im;}
 
 // ---------- props: instanced trees, rocks, grass; solid cells block walking ----------
-const solid=new Set(),blockCell=(x,z)=>solid.add(Math.floor(x)+','+Math.floor(z)),free=(x,z)=>!solid.has(x+','+z)&&!['~','H','W','X'].includes(at(x,z));
-for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(['H','W','X'].includes(at(x,z)))blockCell(x,z);
+const solid=new Set(),blockCell=(x,z)=>solid.add(Math.floor(x)+','+Math.floor(z)),free=(x,z)=>!solid.has(x+','+z)&&!['~','R','M','N','H','W','X'].includes(at(x,z));
+for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(['H','W','X','M','N','R'].includes(at(x,z)))blockCell(x,z);
 const nearZone=(x,z,name,r)=>Math.hypot(x-Z[name][0],z-Z[name][1])<r;
 const treeCells=[],rockCells=[],bushCells=[],grassCells=[],mushCells=[];
-for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){if(at(x,z)!=='G')continue;
-  if(ROOMS.some(R=>Math.abs(x-R.door[0])<=2&&z-R.door[1]>=-1&&z-R.door[1]<=2))continue; /* keep doorways clear */const r=hash2(x*7,z*13),dens=x>44?.42:x>36?.18:.08;
+for(let z=1;z<OUT_H-1;z++)for(let x=1;x<W-1;x++){if(at(x,z)!=='G'&&at(x,z)!=='B')continue;
+  if(ROOMS.some(R=>Math.abs(x-R.door[0])<=2&&z-R.door[1]>=-1&&z-R.door[1]<=2))continue; /* keep doorways clear */const r=hash2(x*7,z*13),gb=GEN.biome[z*W+x],wild=!inStamp(x,z),dens=!wild?(x>44?.42:x>36?.18:.08):gb===GB.FOREST?.5:gb===GB.HILLS?.16:gb===GB.SWAMP?.05:.04;
+  if(wild&&genBusy(x,z)){if(r<.05)grassCells.push([x,z]);continue;}
   if(nearZone(x,z,'village',9)||nearZone(x,z,'camp',3)||nearZone(x,z,'hunter',3)||nearZone(x,z,'grave',6)||nearZone(x,z,'ruins',7))
     {if(r<.06)grassCells.push([x,z]);continue;}
   if([[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>['D','C','P'].includes(at(x+a,z+b)))){if(r<.12)bushCells.push([x,z]);else if(r<.5)grassCells.push([x,z]);continue;}
-  if(r<dens)treeCells.push([x,z]);else if(r<dens+.04)rockCells.push([x,z]);else if(r<dens+.08)bushCells.push([x,z]);else if(x>44&&r<dens+.1)mushCells.push([x,z]);else if(r<dens+.45)grassCells.push([x,z]);}
+  if(r<dens)treeCells.push([x,z]);else if(r<dens+.04)rockCells.push([x,z]);else if(r<dens+.08)bushCells.push([x,z]);else if((x>44||wild&&(gb===GB.FOREST||gb===GB.SWAMP))&&r<dens+.1)mushCells.push([x,z]);else if(r<dens+.45)grassCells.push([x,z]);}
 for(const c of [...treeCells,...rockCells,...bushCells])blockCell(...c);
 // no sealed pockets: every open land cell must connect to the dock; cut the fewest props to link any that don't
-{const K=(x,z)=>x+','+z,land=(x,z)=>z<90&&!['~','H','W','X'].includes(at(x,z)),seen=new Set();
- const flood=(x0,z0)=>{const q=[[x0,z0]];seen.add(K(x0,z0));while(q.length){const[x,z]=q.pop();for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(seen.has(K(nx,nz))||!free(nx,nz)||nz>=90)continue;seen.add(K(nx,nz));q.push([nx,nz]);}}};
+{const K=(x,z)=>x+','+z,land=(x,z)=>z<OUT_H&&!['~','R','M','N','H','W','X'].includes(at(x,z)),seen=new Set();
+ const flood=(x0,z0)=>{const q=[[x0,z0]];seen.add(K(x0,z0));while(q.length){const[x,z]=q.pop();for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(seen.has(K(nx,nz))||!free(nx,nz)||nz>=OUT_H)continue;seen.add(K(nx,nz));q.push([nx,nz]);}}};
  flood(Z.dock[0]+1,Z.dock[1]);const cut=new Set();
- for(let z=0;z<90;z++)for(let x=0;x<W;x++){if(!free(x,z)||seen.has(K(x,z)))continue;
+ for(let z=0;z<OUT_H;z++)for(let x=0;x<W;x++){if(!free(x,z)||seen.has(K(x,z)))continue;
    const prev=new Map([[K(x,z),null]]),dq=[[x,z]];let end=null;   // 0-1 BFS: open cells cost 0, props cost 1
    while(dq.length){const[cx,cz]=dq.shift();if(seen.has(K(cx,cz))){end=[cx,cz];break;}
      for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,nz=cz+dz;if(prev.has(K(nx,nz))||!land(nx,nz))continue;prev.set(K(nx,nz),[cx,cz]);free(nx,nz)?dq.unshift([nx,nz]):dq.push([nx,nz]);}}
@@ -120,7 +158,7 @@ const rockMeshes=instanced(BOX,lam(T.stone),rockCells,([x,z],i,m)=>m.compose(v1.
 instanced(BOX,lam(T.leaves,{color:0xa8c090}),bushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.22,z+.5),qY(hash2(x,z)*3),v2.set(.62,.44,.56)));
 const bladeMat=sway(new THREE.MeshLambertMaterial({map:T.blade,transparent:true,alphaTest:.5,side:THREE.DoubleSide}),.07,1);
 // meadow flowers: little petal clusters on stems, three colours
-{const fl=[];for(let z=1;z<89;z++)for(let x=1;x<W-1;x++)if(at(x,z)==='G'&&!solid.has(x+','+z)&&hash2(x*11,z*17)<.09&&!nearZone(x,z,'grave',7)&&!nearZone(x,z,'ruins',8))fl.push([x,z]);
+{const fl=[];for(let z=1;z<OUT_H-1;z++)for(let x=1;x<W-1;x++)if(at(x,z)==='G'&&!solid.has(x+','+z)&&hash2(x*11,z*17)<.09&&!nearZone(x,z,'grave',7)&&!nearZone(x,z,'ruins',8))fl.push([x,z]);
  const stem=new THREE.MeshLambertMaterial({color:0x3f6a2e});[0xe8d06a,0xd88ab0,0xe8e8f0].forEach((c,ci)=>{const list=fl.filter(([x,z])=>Math.floor(hash2(z,x)*3)===ci);
    instanced(box(.02,.16,.02),sway(stem,.04,1),list,([x,z],i,m)=>m.compose(v1.set(x+.25+hash2(x,z)*.5,groundAt(x,z)+.08,z+.3+hash2(z,x)*.4),q0,v2.set(1,1,1)),false);
    instanced(box(.08,.05,.08),sway(new THREE.MeshLambertMaterial({color:c,emissive:c,emissiveIntensity:.15}),.04,0),list,([x,z],i,m)=>m.compose(v1.set(x+.25+hash2(x,z)*.5,groundAt(x,z)+.17,z+.3+hash2(z,x)*.4),qY(hash2(x,z)*3),v2.set(1,1,1)),false);});}
@@ -147,6 +185,21 @@ HOUSES.forEach(([hx,hz,hw,hd],hi)=>{const g=new THREE.Group(),y=.3;g.userData.ho
   for(const s of [-1,1]){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+s*(hw/2-.9),y+.85,hz+hd);g.add(win);}
   {const cx=hx+hw-1.2,cz=hz+hd*.3;const ch=new THREE.Mesh(BOX,lam(T.wall,{color:0x9a948a}));ch.scale.set(.4,.9,.4);ch.position.set(cx,y+1.9,cz);ch.castShadow=true;g.add(ch);g.userData.chimney=new THREE.Vector3(cx,y+2.4,cz);}
   scene.add(g);});
+// generated houses: the same plank house, its door shut; a richer place gets lighter walls
+const wallRich=lam(T.p[0],{color:0xe0d4bc}),wallPoor=lam(T.p[1],{color:0x8a7a64}),roofPoor=lam(T.p[2],{color:0x6a5040});
+for(const [hx,hz,hw,hd,p] of GEN_HOUSES){const g=new THREE.Group(),y=groundAt(hx,hz),rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital';
+  const w=new THREE.Mesh(BOX,rich?wallRich:poor?wallPoor:wallMat);w.scale.set(hw-.1,1.3,hd-.1);w.position.set(hx+hw/2,y+.65,hz+hd/2);w.castShadow=w.receiveShadow=true;g.add(w);
+  for(const sg of [-1,1]){const r=new THREE.Mesh(BOX,poor?roofPoor:roofMat);r.scale.set(hw+.3,.12,hd/2+.35);r.position.set(hx+hw/2,y+1.62,hz+hd/2+sg*hd/4);r.rotation.x=sg*.55;r.castShadow=true;g.add(r);}
+  const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);
+  if(!poor){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+(hw/2-.9),y+.85,hz+hd);g.add(win);}
+  scene.add(g);}
+// ruin walls of the old fort
+instanced(BOX,lam(T.wall),(()=>{const o=[];for(const p of GPL)if(p.type==='ruins')for(let z=p.z-p.r-1;z<=p.z+p.r+1;z++)for(let x=p.x-p.r-1;x<=p.x+p.r+1;x++)if(at(x,z)==='W')o.push([x,z]);return o;})(),
+  ([x,z],i,m)=>{const h=.5+hash2(x,z)*1.4;m.compose(v1.set(x+.5,groundAt(x,z)+h/2,z+.5),q0,v2.set(1,h,1))});
+// bandit camps: two lean-to tents and a fire pit
+for(const p of GPL.filter(p=>p.type==='bandits')){const tentM=lam(T.p[1],{color:0x6a5a44});
+  for(const [dx,dz] of [[-2,-1],[2,-1]]){const x=p.x+dx,z=p.z+dz;if(!['D','G'].includes(at(x,z)))continue;
+    for(const sg of [-1,1]){const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);}blockCell(x,z);}}
 // ruin walls (varying heights) and gravestones
 instanced(BOX,lam(T.wall),RW.filter(([x,z])=>at(x,z)==='W'),([x,z],i,m)=>{const h=.4+hash2(x,z)*1.2;m.compose(v1.set(x+.5,.3+h/2,z+.5),q0,v2.set(1,h,1))});
 const graves=[];for(let z=Z.grave[1]-3;z<=Z.grave[1]+3;z+=2)for(let x=Z.grave[0]-4;x<=Z.grave[0]+4;x+=2)if(at(x,z)==='G'&&hash2(x,z)<.8){graves.push([x,z]);blockCell(x,z);}
@@ -179,7 +232,7 @@ function torch(x,z,fire=false){blockCell(x,z);const g=new THREE.Group(),y=ground
   g.position.set(x+.5,y,z+.5);scene.add(g);const T_={fl,g,ph:hash2(x,z)*9,base:fire?3.2:2.4,dist:fire?8:6.5,pos:new THREE.Vector3(x+.5,y+(fire?.6:.95),z+.5)};torches.push(T_);return T_;}
 // Only three real lights exist; each frame they move to the fires nearest the hero.
 const LIGHTS=[0,1,2].map(()=>{const L=new THREE.PointLight(0xff9a40,0,6,1.6);scene.add(L);return L;});
-torch(23,27);torch(30,33);torch(Z.dock[0]+3,Z.dock[1]-1);torch(Z.camp[0],Z.camp[1],true);torch(Z.hunter[0],Z.hunter[1],true);
+torch(23,27);torch(30,33);torch(Z.dock[0]+3,Z.dock[1]-1);torch(Z.camp[0],Z.camp[1],true);torch(Z.hunter[0],Z.hunter[1],true);for(const p of GEN.places)if(p.type==='bandits')torch(p.x,p.z,true);
 // the chapel brazier in the ruins starts cold: relighting it is the end of the prologue
 const chapel=torch(Z.ruins[0],Z.ruins[1],true);chapel.lit=false;chapel.fl.visible=false;
 function setChapel(lit){chapel.lit=lit;chapel.fl.visible=lit;chapel.base=lit?4:0;}
@@ -223,6 +276,8 @@ foe('bandit',Z.camp[0]+1,Z.camp[1]-1);foe('bandit',Z.camp[0]-1,Z.camp[1]+1);
 foe('goblin',Z.forest[0]-4,Z.forest[1]-6);foe('goblin',Z.hunter[0]+3,Z.hunter[1]-2);
 foe('skeleton',Z.ruins[0]-2,Z.ruins[1]+1);foe('skeleton',Z.ruins[0]+2,Z.ruins[1]-1);foe('skeleton',Z.grave[0],Z.grave[1]+1);
 foe('wolf',Z.forest[0]+3,Z.forest[1]-2,{wander:4});foe('wolf',Z.forest[0]+5,Z.forest[1]-1,{wander:4});
+// the big island's camps and lairs (added after the old ones, so saved kills keep their places)
+for(const p of GPL){if(p.type==='bandits'){foe('bandit',p.x+1,p.z+1);foe('bandit',p.x-1,p.z+1);}if(p.type==='wolves'){foe('wolf',p.x,p.z,{wander:5});foe('wolf',p.x+2,p.z+1,{wander:5});foe('wolf',p.x-1,p.z+2,{wander:5});}}
 // enemy health bars: shown once a fight starts
 const barBg=new THREE.MeshBasicMaterial({color:0x14100c,depthTest:false}),barFg=new THREE.MeshBasicMaterial({color:0xd23a30,depthTest:false});
 function addBar(e){const g=new THREE.Group(),bg=new THREE.Mesh(box(.62,.1,.01),barBg),fg=new THREE.Mesh(box(.56,.06,.01),barFg);fg.position.z=.01;bg.renderOrder=fg.renderOrder=9;g.add(bg,fg);g.visible=false;scene.add(g);e.bar={g,fg};}
@@ -401,7 +456,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
     T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
   // the camera follows the hero, or an enemy while it takes its turn
-  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();if(inMenuBg())menuCam(dt);
+  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();if(inMenuBg())menuCam(dt);streamTick();
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
   const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
   LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});
@@ -432,7 +487,8 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
-  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
+  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&d.z>=96&&d.z<96+10&&ROOM_Z!==96)d.z+=ROOM_Z-96; // saves from the small island kept rooms at row 96
+  if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
 {UI}
 {EDITOR}
 {LIFE}

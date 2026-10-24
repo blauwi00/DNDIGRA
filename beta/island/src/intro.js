@@ -3,7 +3,7 @@
 // teaches walking, the action wheel, the hands, picking things up, following the
 // pointer, entering a house and one small fight. Each step has a clear goal card.
 const TUT={step:-1,flags:{}};let rat=null;
-const personTarget=a=>{if(!a||a.hidden)return null;if(a.z>=90){const R=ROOMS.find(R=>a.x>=R.ox&&a.x<R.ox+R.iw);return room===R?{x:a.x,z:a.z,label:a.npc}:{x:R.door[0],z:R.door[1],label:a.npc,inRoom:R};}return {x:a.x,z:a.z,label:a.npc};};
+const personTarget=a=>{if(!a||a.hidden)return null;if(a.z>=OUT_H){const R=ROOMS.find(R=>a.x>=R.ox&&a.x<R.ox+R.iw);return room===R?{x:a.x,z:a.z,label:a.npc}:{x:R.door[0],z:R.door[1],label:a.npc,inRoom:R};}return {x:a.x,z:a.z,label:a.npc};};
 const whoT=id=>personTarget(actors.find(a=>a.talkId===id));
 const stonesLook=()=>looks.find(l=>l.n==='Гладкие камни');
 const TSTEPS=[
@@ -63,10 +63,10 @@ async function arrival(){busy=true;cineEl.hidden=false;document.body.classList.a
 const miniEl=document.getElementById('mini'),mg=miniEl.getContext('2d');let miniT=0;
 function miniTick(now){if(now-miniT<250)return;miniT=now;const hide=room||paused||!document.getElementById('cine').hidden;miniEl.hidden=hide;if(hide)return;
   const R=12,k=miniEl.width/(R*2+1);mg.clearRect(0,0,miniEl.width,miniEl.height);
-  for(let z=-R;z<=R;z++)for(let x=-R;x<=R;x++){const cx=H0.x+x,cz=H0.z+z;if(cz<0||cz>=MAPH||cx<0||cx>=W)continue;const code=at(cx,cz);let col=MAPC[code]||'#3d5e2e';if(code==='G'&&solid.has(cx+','+cz))col='#24391e';
+  for(let z=-R;z<=R;z++)for(let x=-R;x<=R;x++){const cx=H0.x+x,cz=H0.z+z;if(cz<0||cz>=OUT_H||cx<0||cx>=W)continue;const code=at(cx,cz);let col=MAPC[code]||'#3d5e2e';if(code==='G'&&solid.has(cx+','+cz))col='#24391e';
     if(!seen[cz*W+cx]&&code!=='~')col='#0b0d0f';mg.fillStyle=col;mg.fillRect((x+R)*k,(z+R)*k,k+.5,k+.5);}
   const dot=(x,z,c,s=3)=>{const px=(x-H0.x+R+.5)*k,pz=(z-H0.z+R+.5)*k;if(px<0||pz<0||px>miniEl.width||pz>miniEl.height)return;mg.fillStyle=c;mg.fillRect(px-s/2,pz-s/2,s,s);};
-  for(const a of actors)if(a!==H0&&!a.dead&&!a.hidden&&a.z<90)dot(a.x,a.z,a.enemy?'#ff5a4a':'#f0e2c2',a.enemy?4:3);
+  for(const a of actors)if(a!==H0&&!a.dead&&!a.hidden&&a.z<OUT_H)dot(a.x,a.z,a.enemy?'#ff5a4a':'#f0e2c2',a.enemy?4:3);
   const T=questTarget();if(T&&!T.inRoom||T&&T.inRoom){let tx=T.x-H0.x,tz=T.z-H0.z;const d=Math.hypot(tx,tz);if(d>R-1){tx=tx/d*(R-1);tz=tz/d*(R-1);}
     mg.fillStyle='#ff5a4a';mg.beginPath();mg.arc((tx+R+.5)*k,(tz+R+.5)*k,4,0,7);mg.fill();}
   mg.fillStyle='#f2c14e';mg.strokeStyle='#000';mg.beginPath();mg.arc((R+.5)*k,(R+.5)*k,4,0,7);mg.fill();mg.stroke();}

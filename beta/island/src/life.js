@@ -155,7 +155,7 @@ function critterTick(dt,t){const hx=H0.px,hz=H0.pz,fx=focus.x,fz=focus.z;
     c.g.position.set(c.x,groundAt(c.x,c.z)+(c.y||0)+hop,c.z);}}
 
 // ---------- events on the roads ----------
-const ROADS=[];for(let z=0;z<90;z++)for(let x=0;x<W;x++)if(at(x,z)==='D'&&!solid.has(x+','+z))ROADS.push([x,z]);
+const ROADS=[];for(let z=0;z<OUT_H;z++)for(let x=0;x<W;x++)if(at(x,z)==='D'&&!solid.has(x+','+z))ROADS.push([x,z]);
 let EV=null,evNext=performance.now()+90000;
 function eventTick(now){if(CB.on||room||paused)return;
   if(EV){const tr=EV.trav,alive=EV.foes.filter(e=>!e.dead);

@@ -19,7 +19,7 @@ const IslandGen=(()=>{
   const B={SEA:0,BEACH:1,MEADOW:2,FIELD:3,FOREST:4,SWAMP:5,HILLS:6,MOUNTAIN:7,SNOW:8,LAKE:9};
   const BIOME_N=['море','берег','луг','пашня','лес','болото','холмы','горы','снега','озеро'];
 
-  function generate(seed='helga',W=300,H=220){
+  function generate(seed='helga',W=300,H=220,opt={}){const ST=opt.stamp||null;
     const s0=hashStr(seed),rnd=mulberry(s0),nH=noise2(s0^1),nM=noise2(s0^2),nW=noise2(s0^3);
     const N=W*H,I=(x,z)=>z*W+x,inb=(x,z)=>x>=0&&z>=0&&x<W&&z<H;
     const height=new Float32Array(N),moist=new Float32Array(N),biome=new Uint8Array(N);
@@ -31,6 +31,11 @@ const IslandGen=(()=>{
       const along=Math.abs(-Math.sin(ang)*wx+Math.cos(ang)*wz),spine=Math.max(0,.35-along)*1.1;
       height[I(x,z)]=mask*(.55*nH(x*.025,z*.025,5)+.45)+spine*mask-.42;
       moist[I(x,z)]=nM(x*.03,z*.03,4);}
+    // an authored stamp (the hand-made Заводь district) sits in the north-west corner: its own coast
+    // stays as drawn, and its eastern and southern shores grow into the big island
+    if(ST)for(let z=0;z<H;z++)for(let x=0;x<W;x++){const i=I(x,z),inS=x<ST.w&&z<ST.h,own=ST.land(x,z),big=ST.near(x,z);
+      if(inS)height[i]=own?Math.max(.05,Math.min(.2,height[i])):big?Math.max(height[i],.06):-.2;
+      else if(big)height[i]=Math.max(height[i],.06);}
     // a 2-cell ring of sea always surrounds the island
     for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(x<3||z<3||x>W-4||z>H-4)height[I(x,z)]=Math.min(height[I(x,z)],-.2);
     // keep only the largest landmass: one connected island
@@ -54,10 +59,10 @@ const IslandGen=(()=>{
         for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!inb(nx,nz))continue;const k=I(nx,nz);if(path.includes(k))continue;
           const hh=height[k]+(nM(nx*.2,nz*.2,1)-.5)*.004;if(hh<nh){nh=hh;nb=k;}}
         if(nb<0)break;if(height[nb]>=height[c]){ // a pit: fill a small lake and carve through its lowest rim
-          const lx=c%W,lz=(c/W)|0;for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++)if(dx*dx+dz*dz<=5&&inb(lx+dx,lz+dz))lake[I(lx+dx,lz+dz)]=1;
+          const lx=c%W,lz=(c/W)|0;for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++)if(dx*dx+dz*dz<=5&&inb(lx+dx,lz+dz)&&!(ST&&lx+dx<ST.w&&lz+dz<ST.h))lake[I(lx+dx,lz+dz)]=1;
           height[nb]=height[c]-.0005;}
         c=nb;}
-      if(path.length>12)for(const p of path)river[p]=1;}
+      if(path.length>12)for(const p of path)if(!ST||(p%W)>=ST.w||((p/W)|0)>=ST.h)river[p]=1;}
 
     // ---- biomes ----
     for(let i=0;i<N;i++){const h=height[i],m=moist[i],x=i%W,z=(i/W)|0,cold=1-z/H*.4;let b;
@@ -80,6 +85,7 @@ const IslandGen=(()=>{
     const solidLand=(x,z,r)=>{for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dz*dz>r*r)continue;if(!inb(x+dx,z+dz))return false;const i=I(x+dx,z+dz);if(!walkable(i)||river[i])return false;}return true;};
     const best=(score,r,g,step=3)=>{let bx=-1,bz=-1,bs=-1e8;for(let z=r+3;z<H-r-3;z+=step)for(let x=r+3;x<W-r-3;x+=step){if(!solidLand(x,z,Math.max(2,r-2))||!clearOf(x,z,r,g))continue;const s=score(x,z);if(s>bs){bs=s;bx=x;bz=z;}}return bx<0?null:{x:bx,z:bz,s:bs};};
     const add=(type,n,at,r,g,why,extra)=>{const p=Object.assign({type,n,x:at.x,z:at.z,r,g,why},extra||{});places.push(p);return p;};
+    const home=ST?add('village','Заводь',{x:ST.cx,z:ST.cz},ST.r,0,'рыбный промысел у удобного берега; деревня, с которой всё начинается',{home:1,stamp:1}):null;
     // capital: a river mouth or a sheltered coast with fertile land around; a port on its shore
     const cap=best((x,z)=>{const i=I(x,z);return around(x,z,14,fert)*3+(freshD[i]>=0&&freshD[i]<8?1.5:freshD[i]>=0&&freshD[i]<=10?0:-1e9)+(seaD[i]<16&&seaD[i]>6?2:-1)-Math.abs(height[i]-.15)*2;},10,6,4);
     if(!cap)return null;
@@ -105,7 +111,8 @@ const IslandGen=(()=>{
     for(let k=0;k<4;k++){const v=best((x,z)=>{const i=I(x,z),dc=Math.hypot(x-cap.x,z-cap.z);return around(x,z,8,fert)*4+(freshD[i]>=0&&freshD[i]<5?1.5:freshD[i]>=0&&freshD[i]<=10?0:-1e9)+(dc>26&&dc<90?1:-2)-villages.reduce((t,o)=>t+(Math.hypot(o.x-x,o.z-z)<34?3:0),0)+rnd()*.3;},5,8,3);
       if(!v)break;const p=add('village','Деревня',v,5,8,'плодородная земля и пресная вода');villages.push(p);route(cap,p);}
     // a fishing village on the coast: the hero's Заводь, with its pier
-    const fish=best((x,z)=>{const i=I(x,z);return (seaD[i]>=4&&seaD[i]<=7?3:-1e9)+(freshD[i]>=0&&freshD[i]<10?1:0)+Math.min(1,Math.hypot(x-cap.x,z-cap.z)/60)*2+rnd()*.3;},5,8,3);
+    const fish=ST?null:best((x,z)=>{const i=I(x,z);return (seaD[i]>=4&&seaD[i]<=7?3:-1e9)+(freshD[i]>=0&&freshD[i]<10?1:0)+Math.min(1,Math.hypot(x-cap.x,z-cap.z)/60)*2+rnd()*.3;},5,8,3);
+    if(ST){villages.push(home);route(cap,{x:ST.gate[0],z:ST.gate[1]});}
     if(fish){const p=add('village','Заводь',fish,5,8,'рыбный промысел у удобного берега',{home:1});villages.push(p);route(cap,p);}
     // ---- working settlement: by a quarry in the hills, with water nearby ----
     const work=best((x,z)=>{const i=I(x,z);let hills=around(x,z,8,k=>biome[k]===B.HILLS||biome[k]===B.MOUNTAIN?1:0);return hills*4+(freshD[i]>=0&&freshD[i]<7?1:freshD[i]>=0&&freshD[i]<=10?0:-1e9)-(hills>.8?2:0);},4,8,3);
@@ -114,8 +121,10 @@ const IslandGen=(()=>{
     // ---- the poor settlement: needs a cause; here poor wet land far from the market ----
     const poor=best((x,z)=>{const i=I(x,z),sw=around(x,z,8,k=>biome[k]===B.SWAMP?1:0);return sw*5+(freshD[i]>=0&&freshD[i]<6?1:freshD[i]>=0&&freshD[i]<=10?0:-1e9)+Math.min(2,Math.hypot(x-cap.x,z-cap.z)/40)+rnd()*.2;},4,8,3);
     if(poor){const sw=around(poor.x,poor.z,8,k=>biome[k]===B.SWAMP?1:0);const p=add('village','Бедный посёлок',poor,4,8,sw>.15?'болотистая земля и долгий путь до рынка':'скудная земля и долгий путь до рынка',{poorWhy:sw>.15?'болото':'изоляция'});villages.push(p);route(cap,p);}
+    // the authored district is entered at its gate, never through its middle
+    const at=p=>p.stamp?{x:ST.gate[0],z:ST.gate[1]}:p;
     // join neighbouring villages so the network is not a star
-    for(const v of villages){let o=null,bd=1e9;for(const w of villages)if(w!==v){const d=Math.hypot(w.x-v.x,w.z-v.z);if(d<bd){bd=d;o=w;}}if(o&&bd<70)route(v,o);}
+    for(const v of villages){let o=null,bd=1e9;for(const w of villages)if(w!==v){const d=Math.hypot(w.x-v.x,w.z-v.z);if(d<bd){bd=d;o=w;}}if(o&&bd<70)route(at(v),at(o));}
     const rd=roadD();
     // ---- bandit camps: close to a road worth robbing, out of reach of patrols ----
     for(let k=0;k<2;k++){const c=best((x,z)=>{const i=I(x,z),d=rd[i];const safe=Math.hypot(x-cap.x,z-cap.z)>40&&villages.every(v=>Math.hypot(v.x-x,v.z-z)>22);
@@ -128,7 +137,7 @@ const IslandGen=(()=>{
     wild('bear','Берлога',[B.MOUNTAIN,B.HILLS],4,'скалы у горного леса');
     // ---- ruins: an old hill fort, far from today's settlements ----
     const ruin=best((x,z)=>{const i=I(x,z);return (biome[i]===B.HILLS?3:0)+Math.min(3,places.filter(p=>p.type!=='wolves').reduce((m,p)=>Math.min(m,Math.hypot(p.x-x,p.z-z)),1e9)/20)+rnd()*.3;},4,6,4);
-    if(ruin){const p=add('ruins','Руины старой крепости',ruin,4,6,'крепость на холме времён прежнего королевства');route(p,places.reduce((a,b)=>b.type==='village'&&Math.hypot(b.x-p.x,b.z-p.z)<Math.hypot(a.x-p.x,a.z-p.z)?b:a,capital));}
+    if(ruin){const p=add('ruins','Руины старой крепости',ruin,4,6,'крепость на холме времён прежнего королевства');route(p,at(places.reduce((a,b)=>b.type==='village'&&Math.hypot(b.x-p.x,b.z-p.z)<Math.hypot(a.x-p.x,a.z-p.z)?b:a,capital)));}
     // ---- wealth: fertility, water, trade, safety and craft, minus threats ----
     const threats=places.filter(p=>['bandits','wolves','bear'].includes(p.type));
     for(const p of places.filter(p=>p.type==='village'||p.type==='works')){const i=I(p.x,p.z);
@@ -138,7 +147,7 @@ const IslandGen=(()=>{
     const vs=places.filter(p=>p.type==='village'&&!p.poorWhy&&!p.home).sort((a,b)=>b.wealth-a.wealth);
     if(vs[0]){vs[0].n='Богатая деревня';vs[0].why+=', близко к рынку столицы';vs[0].wealth=Math.max(vs[0].wealth,3);}
     const names=['Ольховка','Медвяный Брод','Ясень','Овсяная Поляна'];vs.slice(1).forEach((v,k)=>v.n='Деревня '+names[k%names.length]);
-    for(const p of places){p.water=freshD[I(p.x,p.z)]>=0&&freshD[I(p.x,p.z)]<=16||!!p.home&&seaD[I(p.x,p.z)]<=8;}
+    for(const p of places){p.water=!!p.stamp||freshD[I(p.x,p.z)]>=0&&freshD[I(p.x,p.z)]<=16||!!p.home&&seaD[I(p.x,p.z)]<=8;}
     return {v:VERSION,seed:String(seed),W,H,height,biome,river,lake,road,bridge,seaD,freshD,places,B,BIOME_N};}
 
   // ---- the logic check of every place (also used by the tests) ----
@@ -160,7 +169,7 @@ const IslandGen=(()=>{
     return bad;}
   // a place that fails its logic is rebuilt: the island is laid out again from a derived seed,
   // a bounded number of times, so the same seed still always gives the same island
-  function make(seed='helga',W,H){let last=null;for(let k=0;k<12;k++){const g=generate(k?seed+'#'+k:seed,W,H);if(!g)continue;g.seed=String(seed);g.attempt=k;last=g;if(!check(g).length)return g;}return last;}
+  function make(seed='helga',W,H,opt){let last=null;for(let k=0;k<12;k++){const g=generate(k?seed+'#'+k:seed,W,H,opt);if(!g)continue;g.seed=String(seed);g.attempt=k;last=g;if(!check(g).length)return g;}return last;}
   // the island seen from above: biomes, rivers, roads, bridges, zones and names (any 2D canvas context)
   const BIOME_C=['#173a52','#d8c48a','#7aa04a','#c8b45a','#3f6a2e','#55603a','#8a8a5a','#7a7268','#eef2f4','#2f6a8a'];
   const ICON_C={capital:'#ffd36b',village:'#f2e0b0',works:'#c8b8a0',bandits:'#e0453b',wolves:'#9aa0ab',boars:'#a8784a',bear:'#6a4426',ruins:'#b8a8d8'};
