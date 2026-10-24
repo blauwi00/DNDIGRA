@@ -518,7 +518,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.46 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.47 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -1794,8 +1794,15 @@ let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/214748364
 const pick=a=>a[Math.floor(rnd()*a.length)];
 
 // ---------- original pixel textures, drawn in code ----------
-function tex(size,paint){const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');paint(g,size);
-  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;return t}
+// Textures stay pixel art up close but are calmed: each pixel is pulled towards the average of its
+// neighbours (CALM), so single bright or dark specks no longer flicker, while shapes (planks, stones,
+// clumps) keep their outline. Far away mipmaps blend the pixels instead of sparkling.
+const CALM=.5;
+function calm(g,s,k=CALM){const im=g.getImageData(0,0,s,s),d=im.data,src=new Uint8ClampedArray(d);
+  for(let y=0;y<s;y++)for(let x=0;x<s;x++){const i=(y*s+x)*4;for(let ch=0;ch<3;ch++){let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)m+=src[(((y+dy+s)%s)*s+(x+dx+s)%s)*4+ch];m/=9;d[i+ch]=m+(src[i+ch]-m)*(1-k);}}
+  g.putImageData(im,0,0);}
+function tex(size,paint,k){const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');paint(g,size);calm(g,size,k);
+  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=4;return t}
 const px=(g,x,y,col,w=1,h=1)=>{g.fillStyle=col;g.fillRect(x,y,w,h)};
 const noise=(g,s,cols,density=1)=>{for(let y=0;y<s;y++)for(let x=0;x<s;x++)if(rnd()<density)px(g,x,y,pick(cols))};
 
@@ -1808,7 +1815,7 @@ function planks(variant){return tex(32,(g,s)=>{
   for(let i=0;i<6;i++){const y=Math.floor(rnd()*s),x=Math.floor(rnd()*20);px(g,x,y,'#3f3026',6+Math.floor(rnd()*6),1);}
   if(variant===2){for(let y=10;y<22;y++){const w=Math.max(0,8-Math.abs(y-16)*1.4+rnd()*2);px(g,20,y,'#1a1310',Math.floor(w),1)}}
   if(variant===3){for(let y=2;y<12;y++)px(g,4+(y>>1),y,'#3b2c22',2,1)}
-  for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#4d6b34','#5d7d3c','#3f5a2c']))})}
+  for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#4d6b34','#5d7d3c','#3f5a2c']))},.25)} // planks keep their grain lines
 function stoneFloor(){return tex(32,(g,s)=>{px(g,0,0,'#2c2f31',s,s);
   const blocks=[[0,0,13,9],[14,0,18,9],[0,10,8,10],[9,10,13,10],[23,10,9,10],[0,21,16,11],[17,21,15,11]];
   for(const[x,y,w,h]of blocks){const b=pick([['#6d6a62','#64625b','#77736a'],['#5f6260','#575a59','#6a6c69'],['#6b665c','#625d54','#746f64']]);
@@ -2347,7 +2354,7 @@ for(const [code,s] of Object.entries(SURF)){const cells=[];for(let z=0;z<H;z++)f
   const side=lam(s.side,code==='G'?{}:{color:s.tint||0xb8b0a8}),mats=[side,side,lam(s.top,s.tint?{color:s.tint}:{}),side,side,side];
   for(const part of chunk(cells))defer(chunkKey(...part[0]),()=>{const im=new THREE.InstancedMesh(BOX,mats,part.length);im.receiveShadow=true;
     part.forEach(([x,z],i)=>{const h=code==='P'?.08:height[z][x];m4.compose(v1.set(x+.5,code==='P'?h+.18:h/2,z+.5),q0,v2.set(1,h,1));im.setMatrixAt(i,m4);
-      const v=.86+.22*vnoise(x,z,6)+(hash2(x*3,z*5)-.5)*.08,w=code==='G'?(vnoise(x+40,z,9)-.5)*.14:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
+      const v=.9+.14*vnoise(x,z,7)+(hash2(x*3,z*5)-.5)*.025,w=code==='G'?(vnoise(x+40,z,11)-.5)*.12:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
     fitBounds(im,part,2);im.userData.cells=part;im.userData.lists=[pickable];scene.add(im);pickable.push(im);return im;});}
 // dock posts
 {const posts=[];for(let x=0;x<=Z.dock[0]+3;x+=2)for(const z of [Z.dock[1]-.05,Z.dock[1]+2.05])posts.push([x+.5,z]);

@@ -3,8 +3,15 @@ let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/214748364
 const pick=a=>a[Math.floor(rnd()*a.length)];
 
 // ---------- original pixel textures, drawn in code ----------
-function tex(size,paint){const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');paint(g,size);
-  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;return t}
+// Textures stay pixel art up close but are calmed: each pixel is pulled towards the average of its
+// neighbours (CALM), so single bright or dark specks no longer flicker, while shapes (planks, stones,
+// clumps) keep their outline. Far away mipmaps blend the pixels instead of sparkling.
+const CALM=.5;
+function calm(g,s,k=CALM){const im=g.getImageData(0,0,s,s),d=im.data,src=new Uint8ClampedArray(d);
+  for(let y=0;y<s;y++)for(let x=0;x<s;x++){const i=(y*s+x)*4;for(let ch=0;ch<3;ch++){let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)m+=src[(((y+dy+s)%s)*s+(x+dx+s)%s)*4+ch];m/=9;d[i+ch]=m+(src[i+ch]-m)*(1-k);}}
+  g.putImageData(im,0,0);}
+function tex(size,paint,k){const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');paint(g,size);calm(g,size,k);
+  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=4;return t}
 const px=(g,x,y,col,w=1,h=1)=>{g.fillStyle=col;g.fillRect(x,y,w,h)};
 const noise=(g,s,cols,density=1)=>{for(let y=0;y<s;y++)for(let x=0;x<s;x++)if(rnd()<density)px(g,x,y,pick(cols))};
 
@@ -17,7 +24,7 @@ function planks(variant){return tex(32,(g,s)=>{
   for(let i=0;i<6;i++){const y=Math.floor(rnd()*s),x=Math.floor(rnd()*20);px(g,x,y,'#3f3026',6+Math.floor(rnd()*6),1);}
   if(variant===2){for(let y=10;y<22;y++){const w=Math.max(0,8-Math.abs(y-16)*1.4+rnd()*2);px(g,20,y,'#1a1310',Math.floor(w),1)}}
   if(variant===3){for(let y=2;y<12;y++)px(g,4+(y>>1),y,'#3b2c22',2,1)}
-  for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#4d6b34','#5d7d3c','#3f5a2c']))})}
+  for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#4d6b34','#5d7d3c','#3f5a2c']))},.25)} // planks keep their grain lines
 function stoneFloor(){return tex(32,(g,s)=>{px(g,0,0,'#2c2f31',s,s);
   const blocks=[[0,0,13,9],[14,0,18,9],[0,10,8,10],[9,10,13,10],[23,10,9,10],[0,21,16,11],[17,21,15,11]];
   for(const[x,y,w,h]of blocks){const b=pick([['#6d6a62','#64625b','#77736a'],['#5f6260','#575a59','#6a6c69'],['#6b665c','#625d54','#746f64']]);

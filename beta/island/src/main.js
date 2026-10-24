@@ -122,7 +122,7 @@ for(const [code,s] of Object.entries(SURF)){const cells=[];for(let z=0;z<H;z++)f
   const side=lam(s.side,code==='G'?{}:{color:s.tint||0xb8b0a8}),mats=[side,side,lam(s.top,s.tint?{color:s.tint}:{}),side,side,side];
   for(const part of chunk(cells))defer(chunkKey(...part[0]),()=>{const im=new THREE.InstancedMesh(BOX,mats,part.length);im.receiveShadow=true;
     part.forEach(([x,z],i)=>{const h=code==='P'?.08:height[z][x];m4.compose(v1.set(x+.5,code==='P'?h+.18:h/2,z+.5),q0,v2.set(1,h,1));im.setMatrixAt(i,m4);
-      const v=.86+.22*vnoise(x,z,6)+(hash2(x*3,z*5)-.5)*.08,w=code==='G'?(vnoise(x+40,z,9)-.5)*.14:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
+      const v=.9+.14*vnoise(x,z,7)+(hash2(x*3,z*5)-.5)*.025,w=code==='G'?(vnoise(x+40,z,11)-.5)*.12:0;im.setColorAt(i,tmpCol.setRGB(v*(1+w*.4),v*(1+w),v*(1-w*.6)));});
     fitBounds(im,part,2);im.userData.cells=part;im.userData.lists=[pickable];scene.add(im);pickable.push(im);return im;});}
 // dock posts
 {const posts=[];for(let x=0;x<=Z.dock[0]+3;x+=2)for(const z of [Z.dock[1]-.05,Z.dock[1]+2.05])posts.push([x+.5,z]);
