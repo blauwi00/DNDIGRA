@@ -50,7 +50,7 @@ WV('quarterstaff','staff','Боевой шест',{die:8,two:1,d:'обе рук�
 // bows
 WV('bow','bow','Лук',{die:8,two:1,range:8,d:'обе руки, 1к8 на 8 клеток',m:{half:.36,bend:.13,c:0x8a5a2e,tip:MT.gold}});
 WV('bow_long','bow','Длинный лук',{die:8,hb:1,two:1,range:10,d:'тисовый, 1к8 на 10 клеток, +1',m:{half:.46,bend:.12,c:0x6a3e1c,tip:MT.bone,wrap:0x3a2416},pal:{w:'#8a5a2e',W:'#5a3418'},icon:'longbow'});
-WV('bow_short','bow','Короткий лук',{die:6,hb:1,two:1,range:7,d:'лёгкий охотничий, 1к6 на 7 клеток, +1',m:{half:.27,bend:.15,c:0xa87a48,tip:MT.leather,recurve:1},pal:{w:'#d0a468',W:'#9a7040'},icon:'shortbow'});
+WV('bow_short','bow','Короткий лук',{die:6,hb:1,two:1,range:7,d:'лёгкий охотничий, 1к6 на 7 клеток, +1',m:{half:.27,bend:.15,c:0xa87a48,tip:MT.leather},pal:{w:'#d0a468',W:'#9a7040'},icon:'shortbow'});
 // shields: armour, not weapons, but held and drawn the same way
 WV('shield','shield','Щит',{ac:2,d:'+2 к защите',m:{shape:'heater',face:MT.blue,rim:MT.gold}});
 WV('shield_round','shield','Круглый щит',{ac:2,d:'дубовые доски и железный обод, +2 к защите',m:{shape:'round',face:0x8a5a2e,rim:MT.iron},icon:'roundshield'});
@@ -109,8 +109,9 @@ function weaponBoxes(id){const V=WEAPONS[id],m=V.m||{},o=[],B=(x,y,z,w,h,d,c,e)=
     if(m.top==='moon'){B(0,top,0,.08,.04,.08,MT.silver);for(let i=0;i<7;i++){const a=-1.3+i*.43;B(Math.sin(a)*.11,top+.14-Math.cos(a)*.11,0,.035,.035,.03,MT.silver);}B(0,top+.13,0,.07,.07,.07,gm,1);B(0,top+.13,0,.03,.03,.08,0xffffff,1);}
     if(m.top==='skull'){B(0,top+.08,0,.13,.12,.12,MT.bone);B(0,top,.01,.09,.05,.09,MT.boneD);for(const s of [-1,1])B(s*.032,top+.08,.062,.03,.03,.01,gm,1);B(0,top+.04,.062,.06,.012,.01,0x2a2418);B(0,top+.16,0,.08,.03,.08,shadeW(MT.bone,.9));}
     if(m.top==='caps'){B(0,top-.04,0,.06,.08,.06,MT.iron);B(0,.2,0,.054,.1,.054,MT.leather);}}
-  if(k==='bow'){const h=m.half,bend=m.bend,n=9;for(let i=0;i<n;i++){const t=(i/(n-1))*2-1,y=t*h,z=bend*(1-t*t)+(m.recurve?Math.max(0,Math.abs(t)-.8)*-.25:0);
-      B(0,y,z,.06,h*2/(n-1)+.01,.06,Math.abs(t)>.85?m.tip:(i%2?m.c:shadeW(m.c,.88)));}
+  // the limbs are many short segments, each turned along the curve, so the bow reads as one smooth arc
+  if(k==='bow'){const h=m.half,bend=m.bend,n=17,zf=t=>bend*(1-t*t)+(m.recurve?Math.max(0,Math.abs(t)-.8)*-.3:0);for(let i=0;i<n;i++){const t=(i/(n-1))*2-1,y=t*h,z=zf(t),dz=(zf(Math.min(1,t+.01))-zf(Math.max(-1,t-.01)))/(.02*h);
+      o.push([0,y,z,.055-Math.abs(t)*.015,h*2/(n-1)*1.15,.055-Math.abs(t)*.015,Math.abs(t)>.88?m.tip:(i%2?m.c:shadeW(m.c,.88)),0,Math.atan(dz)]);}
     B(0,0,bend+.005,.08,.13,.08,m.wrap||0x3a2416);B(0,0,bend+.045,.03,.03,.02,MT.gold);B(0,0,0,.014,h*2+.02,.014,0xe8e0c8);}
   if(k==='shield'){const f=m.face,r=m.rim,z=.1;
     if(m.shape==='heater'){B(.04,.06,z,.3,.36,.05,r);B(.04,.06,z+.025,.24,.3,.03,f);B(.04,.06,z+.045,.03,.18,.02,r);B(.04,.1,z+.045,.13,.03,.02,r);}
@@ -120,7 +121,7 @@ function weaponBoxes(id){const V=WEAPONS[id],m=V.m||{},o=[],B=(x,y,z,w,h,d,c,e)=
       B(.04,.06,z+.042,.03,.36,.02,m.sign);B(.04,.15,z+.042,.18,.03,.02,m.sign);}}
   return o;}
 const WBOX={};const heldBoxes=id=>WEAPONS[id]?(WBOX[id]||(WBOX[id]=weaponBoxes(id))):HELD[id];
-function heldGroup(id){const grp=new THREE.Group();for(const [x,y,z,w,h,d,c,e] of heldBoxes(id)){const m=new THREE.Mesh(box(w,h,d),weaponMat(c,e));m.position.set(x,y,z);m.castShadow=true;grp.add(m);}return grp;}
+function heldGroup(id){const grp=new THREE.Group();for(const [x,y,z,w,h,d,c,e,rx] of heldBoxes(id)){const m=new THREE.Mesh(box(w,h,d),weaponMat(c,e));m.position.set(x,y,z);if(rx)m.rotation.x=rx;m.castShadow=true;grp.add(m);}return grp;}
 
 // ---------- 16x16 icons for the variant shapes; colours come from each variant's palette ----------
 const WICON={

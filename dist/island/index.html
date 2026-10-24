@@ -1765,7 +1765,7 @@ WV('quarterstaff','staff','Боевой шест',{die:8,two:1,d:'обе рук�
 // bows
 WV('bow','bow','Лук',{die:8,two:1,range:8,d:'обе руки, 1к8 на 8 клеток',m:{half:.36,bend:.13,c:0x8a5a2e,tip:MT.gold}});
 WV('bow_long','bow','Длинный лук',{die:8,hb:1,two:1,range:10,d:'тисовый, 1к8 на 10 клеток, +1',m:{half:.46,bend:.12,c:0x6a3e1c,tip:MT.bone,wrap:0x3a2416},pal:{w:'#8a5a2e',W:'#5a3418'},icon:'longbow'});
-WV('bow_short','bow','Короткий лук',{die:6,hb:1,two:1,range:7,d:'лёгкий охотничий, 1к6 на 7 клеток, +1',m:{half:.27,bend:.15,c:0xa87a48,tip:MT.leather,recurve:1},pal:{w:'#d0a468',W:'#9a7040'},icon:'shortbow'});
+WV('bow_short','bow','Короткий лук',{die:6,hb:1,two:1,range:7,d:'лёгкий охотничий, 1к6 на 7 клеток, +1',m:{half:.27,bend:.15,c:0xa87a48,tip:MT.leather},pal:{w:'#d0a468',W:'#9a7040'},icon:'shortbow'});
 // shields: armour, not weapons, but held and drawn the same way
 WV('shield','shield','Щит',{ac:2,d:'+2 к защите',m:{shape:'heater',face:MT.blue,rim:MT.gold}});
 WV('shield_round','shield','Круглый щит',{ac:2,d:'дубовые доски и железный обод, +2 к защите',m:{shape:'round',face:0x8a5a2e,rim:MT.iron},icon:'roundshield'});
@@ -1824,8 +1824,9 @@ function weaponBoxes(id){const V=WEAPONS[id],m=V.m||{},o=[],B=(x,y,z,w,h,d,c,e)=
     if(m.top==='moon'){B(0,top,0,.08,.04,.08,MT.silver);for(let i=0;i<7;i++){const a=-1.3+i*.43;B(Math.sin(a)*.11,top+.14-Math.cos(a)*.11,0,.035,.035,.03,MT.silver);}B(0,top+.13,0,.07,.07,.07,gm,1);B(0,top+.13,0,.03,.03,.08,0xffffff,1);}
     if(m.top==='skull'){B(0,top+.08,0,.13,.12,.12,MT.bone);B(0,top,.01,.09,.05,.09,MT.boneD);for(const s of [-1,1])B(s*.032,top+.08,.062,.03,.03,.01,gm,1);B(0,top+.04,.062,.06,.012,.01,0x2a2418);B(0,top+.16,0,.08,.03,.08,shadeW(MT.bone,.9));}
     if(m.top==='caps'){B(0,top-.04,0,.06,.08,.06,MT.iron);B(0,.2,0,.054,.1,.054,MT.leather);}}
-  if(k==='bow'){const h=m.half,bend=m.bend,n=9;for(let i=0;i<n;i++){const t=(i/(n-1))*2-1,y=t*h,z=bend*(1-t*t)+(m.recurve?Math.max(0,Math.abs(t)-.8)*-.25:0);
-      B(0,y,z,.06,h*2/(n-1)+.01,.06,Math.abs(t)>.85?m.tip:(i%2?m.c:shadeW(m.c,.88)));}
+  // the limbs are many short segments, each turned along the curve, so the bow reads as one smooth arc
+  if(k==='bow'){const h=m.half,bend=m.bend,n=17,zf=t=>bend*(1-t*t)+(m.recurve?Math.max(0,Math.abs(t)-.8)*-.3:0);for(let i=0;i<n;i++){const t=(i/(n-1))*2-1,y=t*h,z=zf(t),dz=(zf(Math.min(1,t+.01))-zf(Math.max(-1,t-.01)))/(.02*h);
+      o.push([0,y,z,.055-Math.abs(t)*.015,h*2/(n-1)*1.15,.055-Math.abs(t)*.015,Math.abs(t)>.88?m.tip:(i%2?m.c:shadeW(m.c,.88)),0,Math.atan(dz)]);}
     B(0,0,bend+.005,.08,.13,.08,m.wrap||0x3a2416);B(0,0,bend+.045,.03,.03,.02,MT.gold);B(0,0,0,.014,h*2+.02,.014,0xe8e0c8);}
   if(k==='shield'){const f=m.face,r=m.rim,z=.1;
     if(m.shape==='heater'){B(.04,.06,z,.3,.36,.05,r);B(.04,.06,z+.025,.24,.3,.03,f);B(.04,.06,z+.045,.03,.18,.02,r);B(.04,.1,z+.045,.13,.03,.02,r);}
@@ -1835,7 +1836,7 @@ function weaponBoxes(id){const V=WEAPONS[id],m=V.m||{},o=[],B=(x,y,z,w,h,d,c,e)=
       B(.04,.06,z+.042,.03,.36,.02,m.sign);B(.04,.15,z+.042,.18,.03,.02,m.sign);}}
   return o;}
 const WBOX={};const heldBoxes=id=>WEAPONS[id]?(WBOX[id]||(WBOX[id]=weaponBoxes(id))):HELD[id];
-function heldGroup(id){const grp=new THREE.Group();for(const [x,y,z,w,h,d,c,e] of heldBoxes(id)){const m=new THREE.Mesh(box(w,h,d),weaponMat(c,e));m.position.set(x,y,z);m.castShadow=true;grp.add(m);}return grp;}
+function heldGroup(id){const grp=new THREE.Group();for(const [x,y,z,w,h,d,c,e,rx] of heldBoxes(id)){const m=new THREE.Mesh(box(w,h,d),weaponMat(c,e));m.position.set(x,y,z);if(rx)m.rotation.x=rx;m.castShadow=true;grp.add(m);}return grp;}
 
 // ---------- 16x16 icons for the variant shapes; colours come from each variant's palette ----------
 const WICON={
@@ -2068,27 +2069,33 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
   for(const [k,p] of Object.entries(PIV)){rig[k]=new THREE.Group();rig[k].position.set(...p);g.add(rig[k]);parts[k]=[];}
   // forearms hang from an elbow joint inside each arm, so arms can bend
   for(const k of ['L','R']){const f=rig['fore'+k]=new THREE.Group();f.position.set(0,ELBOW-PIV['arm'+k][1],0);rig['arm'+k].add(f);parts['fore'+k]=[];}
-  for(const b of boxes){const[x,y]=b;if(Math.abs(x)>.31)continue;
-    const k=(Math.abs(x)>.29||(Math.abs(x)>.19&&y<.74))?(x<0?'armL':'armR'):y>=.74?'head':y<.4?(x<0?'legL':'legR'):'torso';
+  // boxes that share a face (a strand over the scalp, a beard over the chin) fight for the same depth and,
+  // on phone GPUs, show holes: smaller boxes are grown by a hair so the detail always wins
+  {const vol=b=>b[3]*b[4]*b[5],order=boxes.filter(b=>!b[8]).sort((a,b)=>vol(b)-vol(a));order.forEach((b,i)=>{const e=.0004+.0026*i/order.length;b._e=e;});
+    boxes=boxes.map(b=>{if(!b._e)return b;const n=[b[0],b[1],b[2],b[3]+b._e,b[4]+b._e,b[5]+b._e,...b.slice(6)];n.part=b.part;return n;});}
+  for(const b of boxes){const[x,y]=b;if(Math.abs(x)>.31&&!b.part)continue;
+    const k=b.part||((Math.abs(x)>.29||(Math.abs(x)>.19&&y<.74))?(x<0?'armL':'armR'):y>=.74?'head':y<.4?(x<0?'legL':'legR'):'torso');
     if(k[0]!=='a'){parts[k].push(b);continue;}
     // an arm box crossing the elbow is cut in two: the upper part stays, the lower part bends
     const lo=y-b[4]/2,hi=y+b[4]/2,f='fore'+k.slice(3);
     if(hi<=ELBOW)parts[f].push(b);else if(lo>=ELBOW)parts[k].push(b);
-    else{parts[k].push([x,(ELBOW+hi)/2,b[2],b[3],hi-ELBOW,b[5],b[6]]);parts[f].push([x,(lo+ELBOW)/2,b[2],b[3],ELBOW-lo,b[5],b[6]]);}}
+    else{parts[k].push([x,(ELBOW+hi)/2,b[2],b[3],hi-ELBOW,...b.slice(5)]);parts[f].push([x,(lo+ELBOW)/2,b[2],b[3],ELBOW-lo,...b.slice(5)]);}}
   // One merged, vertex-coloured mesh per limb instead of ~100 separate boxes.
-  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),col=new THREE.Color();
-  for(const [k,list] of Object.entries(parts)){if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
+  // thin decals (brows, mouth, beard edges, texel shading) lie on other faces: they get their own mesh drawn slightly in front,
+  // as in the game's renderer, otherwise they flicker and leave holes
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
     for(const[x,y,z,w,h,d,c] of list){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);
       const base=pos.length/3,P=gb.attributes.position.array,N=gb.attributes.normal.array;for(let i=0;i<P.length;i++){pos.push(P[i]);nor.push(N[i]);}
       for(let i=0;i<P.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
-    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);const m=new THREE.Mesh(geo,mat);m.castShadow=true;t.add(m);}
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
   // the hand is the lowest block of each forearm; items are put inside it, at its centre
   for(const k of ['L','R']){const list=parts['fore'+k],f=rig['fore'+k],o=f.position.clone().add(f.parent.position);
     if(!list.length){rig['hand'+k]=new THREE.Vector3(0,-.14,.02);continue;}const lo=Math.min(...list.map(b=>b[1]-b[4]/2)),hand=list.filter(b=>b[1]-b[4]/2<lo+.06),bb=new THREE.Box3();
     for(const [x,y,z,w,h,d] of hand)bb.union(new THREE.Box3(new THREE.Vector3(x-w/2,y-h/2,z-d/2),new THREE.Vector3(x+w/2,y+h/2,z+d/2)));
     rig['hand'+k]=bb.getCenter(new THREE.Vector3()).sub(o);}
-  const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat];return holder}
+  const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];return holder}
 // Held item meshes, built around the grip point of a hand (0,0,0 = fist).
 const IM=c=>new THREE.MeshLambertMaterial({color:c});
 const HELD={
@@ -2244,7 +2251,7 @@ const actors=[],enemies=[];
 function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(free(x+dx,z+dz))c.push([x+dx,z+dz]);if(c.length){[x,z]=c[0];if(o.home)o.home=[x,z];}}const m=buildModel(MODELS[model]);o.model=model;if(o.scale)m.scale.setScalar(o.scale);scene.add(m);
   const a=Object.assign({o:m,x,z,px:x+.5,pz:z+.5,face:hash2(x,z)*6,ph:hash2(z,x)*9,spd:1.8,home:[x,z]},o);actors.push(a);return a;}
 const H0={o:hero,x:Z.dock[0]+1,z:Z.dock[1],face:Math.PI/2,ph:0,spd:2.4,hp:20,max:20,ac:15,name:'Эльдар'};H0.px=H0.x+.5;H0.pz=H0.z+.5;actors.push(H0);
-const tint=(a,c)=>{a.o.userData.mats[0].color.setHex(c);return a;};
+const tint=(a,c)=>{a.o.userData.mats.forEach(m=>m.color.setHex(c));return a;};
 const RM=t=>ROOMS.find(r=>r.type===t);
 actor('innkeeper',RM('tavern').ox+5,RM('tavern').oz+2,{wander:2,spd:1.2,npc:'Трактирщик Брам',talkId:'bram',act:'wipe',home:[RM('tavern').ox+5,RM('tavern').oz+2]});
 tint(actor('innkeeper',RM('forge').ox+4,RM('forge').oz+4,{wander:0,spd:1.1,npc:'Кузнец Горан',talkId:'smith',act:'hammer',face:Math.PI}),0x9a8a80);
@@ -2324,7 +2331,7 @@ const CB={on:false,order:[],i:-1,round:0,move:0,acted:false,bonus:false,sneakUse
 const RACES={
   human:{n:'Человек',group:'Народы мира',size:1,skins:null,mods:{stealth:1,athletics:1},
     passive:'Быстрое освоение: +1 к Скрытности и Атлетике.',edge:'Свой среди своих: жители охотнее делятся слухами.',pref:'любой класс'},
-  elf:{n:'Эльф',group:'Народы мира',size:1,ears:'long',skins:['#f2d4b4','#e3bb8a','#c58d64'],mods:{stealth:2},
+  elf:{n:'Эльф',group:'Народы мира',size:1.04,ears:'long',skins:['#f2d4b4','#e3bb8a','#c58d64'],mods:{stealth:2},
     passive:'Чуткий шаг: +2 к Скрытности.',edge:'Якорь памяти: раз до отдыха следующая атака с преимуществом.',pref:'следопыт, маг, бард',echo:true},
   dwarf:{n:'Дворф',group:'Народы мира',size:.82,wide:1.12,beard:'full',skins:['#e9bf90','#d9a577','#a8714d'],mods:{hp:3,athletics:1},
     passive:'Плотное тело: +3 к здоровью.',edge:'Резонанс камня: в руинах и подземельях +1 к КД.',pref:'воин, жрец, паладин'},
@@ -2338,13 +2345,13 @@ const RACES={
     passive:'Биологическое чутьё: зелья и травы лечат на 3 больше.',edge:'Ответная адаптация: после отравления — стойкость к яду.',pref:'друид, жрец, следопыт'},
   twilight:{n:'Сумеречный народ',group:'Народы мира',size:.96,ears:'small',bigEyes:true,skins:['#c8c4d8','#a8a4c0','#d8d0e0'],mods:{stealth:1},
     passive:'Чтение движения: ночью враги видят вас хуже.',edge:'Глаза сумерек: ночью +2 к Скрытности.',pref:'плут, колдун, следопыт'},
-  echo:{n:'Эхоносец',group:'Народы мира',size:1,motes:true,skins:['#e9bf90','#d8d0c8','#c8b8a8'],mods:{},
+  echo:{n:'Эхоносец',group:'Народы мира',size:1,motes:true,skins:['#d8d0c8','#c8c0d0','#b8b0c0'],mods:{},
     passive:'Чувство резонанса: видит магические следы.',edge:'Проявить фрагмент: раз до отдыха следующая атака с преимуществом.',pref:'бард, колдун, чародей',echo:true},
   halfling:{n:'Полурослик',group:'Из книги правил',size:.7,skins:['#f2d4b4','#e9bf90','#c58d64'],mods:{stealth:2},
     passive:'Везение: выпавшую единицу на d20 можно перебросить.',edge:'Проворство: проходит мимо крупных врагов.',pref:'плут, бард, следопыт',lucky:true},
-  gnome:{n:'Гном',group:'Из книги правил',size:.68,ears:'pointed',skins:['#f2d4b4','#e3bb8a','#c58d64'],mods:{stealth:2},
+  gnome:{n:'Гном',group:'Из книги правил',size:.68,ears:'pointed',nose:true,skins:['#f2d4b4','#e3bb8a','#c58d64'],mods:{stealth:2},
     passive:'Хитрость гнома: +2 к Скрытности.',edge:'Смекалка: заклинания этого героя на +1 точнее.',pref:'маг, бард, плут',spell:1},
-  goliath:{n:'Голиаф',group:'Из книги правил',size:1.16,wide:1.08,marks:['warpaint'],skins:['#a8a4a0','#8a8680','#b8b0a8'],mods:{hp:2,athletics:2},
+  goliath:{n:'Голиаф',group:'Из книги правил',size:1.16,wide:1.08,stoneMarks:true,marks:['warpaint'],skins:['#a8a4a0','#8a8680','#b8b0a8'],mods:{hp:2,athletics:2},
     passive:'Мощное сложение: +2 к здоровью и Атлетике.',edge:'Каменная стойкость: раз до отдыха удар слабее на 1к12+2.',pref:'варвар, воин, монах',stone:true},
   orc:{n:'Орк',group:'Из книги правил',size:1.06,tusks:true,skins:['#7a8a5a','#6a7a52','#8a9a6a','#9a8a7a'],mods:{athletics:2},
     passive:'Сила рывка: +2 к Атлетике.',edge:'Неукротимость: раз до отдыха остаётся на ногах с 1 здоровья.',pref:'варвар, воин, паладин',relentless:true},
@@ -2360,16 +2367,27 @@ function raceAppearance(race,ap){const R=RACES[race]||RACES.human,o=JSON.parse(J
   if(R.marks)o.marks=[...new Set([...(o.marks||[]),...R.marks])];if(R.skins&&!R.skins.includes(o.skin))o.skin=R.skins[0];if(R.bigEyes){o.eyes='big';o.eye=o.eye==='#14141a'?'#8a6af0':o.eye;}return o;}
 // extra boxes for horns, tusks, fins, shells, growths and tails; then the build is scaled
 function raceDecorate(race,boxes,ap){const R=RACES[race]||RACES.human,out=boxes.slice(),skin=hx(ap&&ap.skin||'#e9bf90'),B=(x,y,z,w,h,d,c,e)=>out.push([x,y,z,w,h,d,c,!!e]);
+  // features that stick out past the hair are pinned to the head, so they are never dropped or hidden
+  const H=(x,y,z,w,h,d,c,e)=>{const b=[x,y,z,w,h,d,c,!!e];b.part='head';out.push(b);};
   if(R.horns===true){const c=0x3a2a2a;for(const s of [-1,1]){B(s*.15,1.27,.05,.07,.1,.07,c);B(s*.19,1.35,0,.06,.09,.06,c);B(s*.22,1.42,-.04,.05,.07,.05,shadeC(c,1.4));}}
   if(R.horns==='ridge'){for(let i=0;i<4;i++)B(0,1.27-i*.02,-.06-i*.07,.06,.08,.06,shadeC(skin,.7));for(const s of [-1,1])B(s*.17,1.24,-.12,.05,.07,.12,shadeC(skin,.6));}
   if(R.snout){B(0,.84,.29,.26,.14,.14,skin);B(0,.8,.37,.22,.08,.04,shadeC(skin,.85));for(const s of [-1,1])B(s*.06,.88,.36,.03,.02,.02,0x1a1410);}
   if(R.tusks)for(const s of [-1,1])B(s*.07,.79,.25,.03,.06,.03,0xf0ead8);
-  if(R.fins)for(const s of [-1,1]){B(s*.27,1.02,-.04,.03,.18,.16,shadeC(skin,.8));B(s*.28,1.12,-.08,.02,.08,.1,shadeC(skin,.65));B(s*.23,.86,.12,.02,.07,.02,shadeC(skin,.6));}
+  if(R.fins)for(const s of [-1,1]){H(s*.31,1.0,-.04,.04,.2,.18,shadeC(skin,.8));H(s*.34,1.1,-.1,.03,.12,.12,shadeC(skin,.65));H(s*.36,.96,-.12,.025,.08,.08,shadeC(skin,.55));}
   if(R.shell){const c=shadeC(skin,.75);B(0,.55,-.2,.4,.3,.08,c);B(0,.46,-.23,.32,.12,.06,shadeC(c,.85));for(const s of [-1,1])B(s*.24,.66,0,.12,.06,.26,c);}
   if(R.sprouts){const lf=0x4a8a3a;B(-.12,1.29,.02,.1,.04,.14,lf);B(.08,1.31,-.04,.08,.05,.1,0x6aaa4a);B(.15,1.28,.06,.06,.06,.06,0xc8a868);B(.15,1.32,.06,.12,.03,.12,0xb86a4a);
     for(const s of [-1,1])B(s*.22,.7,.05,.06,.04,.06,lf);B(-.1,.6,.15,.02,.14,.01,0x5a9a4a);}
   if(R.tail){const c=R.snout?skin:shadeC(skin,.8);B(0,.32,-.2,.06,.06,.16,c);B(0,.26,-.3,.05,.05,.12,c);B(0,.22,-.38,.04,.04,.1,R.snout?shadeC(skin,.7):0x2a1a1a);}
-  if(R.motes)for(let i=0;i<4;i++){const a=i*1.57;B(Math.cos(a)*.38,.5+i*.18,Math.sin(a)*.3,.04,.04,.04,0x9ae0ff,true);}
+  if(R.ears==='long')for(const s of [-1,1]){H(s*.3,.97,0,.05,.1,.07,skin);H(s*.345,1.03,-.02,.05,.09,.05,skin);H(s*.385,1.1,-.045,.04,.08,.04,shadeC(skin,.92));H(s*.415,1.16,-.06,.03,.06,.03,shadeC(skin,.85));}
+  if(R.ears==='pointed')for(const s of [-1,1]){H(s*.3,.96,0,.05,.09,.06,skin);H(s*.34,1.01,-.02,.04,.07,.04,shadeC(skin,.9));}
+  if(R.nose)B(0,.9,.27,.07,.07,.06,shadeC(skin,.92));
+  if(R.fins){for(let i=0;i<5;i++)H(0,1.29+Math.sin(i/4*Math.PI)*.06,.12-i*.08,.03,.1,.07,shadeC(skin,.75+i*.03));for(const s of [-1,1])for(let i=0;i<3;i++)B(s*.2,.86+i*.03,.248,.06,.012,.006,shadeC(skin,.55));}
+  if(R.shell){const c=shadeC(skin,.7);for(const s of [-1,1]){B(s*.26,.7,0,.12,.07,.3,c);B(s*.26,.75,0,.09,.03,.24,shadeC(c,1.2));}for(let i=0;i<3;i++)B(0,.74-i*.13,-.25,.34-i*.04,.11,.05,shadeC(c,1.1-i*.08));}
+  if(R.stoneMarks)for(const [x,y] of [[-.17,1.02],[.15,.86],[-.12,.84],[.19,1.06]])B(x,y,.247,.06,.015,.006,shadeC(skin,.7));
+  if(R.motes){const c=0x7fe8ff;for(let i=0;i<7;i++){const a=i*.9;B(Math.cos(a)*.42,.45+i*.13,Math.sin(a)*.32,.05,.05,.05,i%2?c:0xd6f8ff,true);}
+    for(const s of [-1,1]){B(s*.09,.95,.249,.06,.055,.006,0xaef4ff,true);B(s*.16,.86,.249,.016,.09,.006,c,true);B(s*.16,.81,.249,.04,.016,.006,c,true);}
+    B(0,1.08,.249,.03,.05,.006,c,true);B(0,1.13,.249,.07,.015,.006,c,true);
+    const sh=[-.25,.82,-.05];B(sh[0],sh[1]+.08,sh[2],.06,.12,.06,0x9adfff,true);B(sh[0]-.03,sh[1]+.17,sh[2],.04,.08,.04,0xd6f8ff,true);}
   return out;}
 // height and build are a scale on the finished model, so the skeleton split stays right
 function raceScale(race,model){const R=RACES[race]||RACES.human,sy=R.size,sx=(R.wide||1)*(sy<1?Math.max(.82,sy+.08):sy);model.scale.set(sx,sy,sx);return model;}
