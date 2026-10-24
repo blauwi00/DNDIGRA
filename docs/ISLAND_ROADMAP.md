@@ -12,6 +12,10 @@ Nothing here is implemented yet; it is the plan to discuss and schedule.
 - **First real release** (not beta): procedural islands, trade and a balanced
   gold economy; every island has its own big problem plus side jobs; more
   features to be invented along the way.
+- **New peoples**: Claude proposes 5–8 new ones in the island world's spirit; the owner picks.
+- **Paid peoples**: which stay free is decided later; for now all are open.
+- **Now**: make the island more alive first — gold and trade, side jobs from
+  villagers, more events — built as data a generator can later combine.
 - **Money**: most likely paid peoples (races) as purchases. This needs a way to
   verify purchases (store receipts or accounts) before it ships.
 
