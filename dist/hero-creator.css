@@ -1,0 +1,45 @@
+/* Hero creation, step "Основа", as a landscape mobile-game screen.
+   Loaded last so it wins over the older layered editor rules. */
+body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage{display:grid;grid-template-columns:minmax(0,42%) minmax(0,58%);gap:12px;align-items:stretch;min-height:0;flex:1}
+body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage .creation-preview{position:relative;height:auto!important;min-height:220px;border:1px solid #5d4c33;border-radius:14px;background:transparent!important;box-shadow:inset 0 -60px 60px -40px #0008;overflow:hidden}
+body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage #creation-figure{position:absolute;inset:0}
+body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage #creation-portrait{display:none!important}
+.hc-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+.hc-name{display:flex;gap:8px}
+.hc-name input{flex:1;min-width:0;height:44px;padding:0 14px;border-radius:12px;border:1px solid #6d5a3b;background:#120e0b;color:#f4e8cf;font:600 17px system-ui,sans-serif}
+.hc-name input:focus{outline:2px solid #e2b862;outline-offset:1px}
+body.cinematic-active #heroes-panel .hc-dice{width:44px;height:44px;min-height:44px!important;padding:0!important;border-radius:12px!important;display:grid;place-items:center}
+.hc-classes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+body.cinematic-active #heroes-panel .hc-class{display:flex!important;flex-direction:column;align-items:center;gap:4px;min-height:0!important;padding:8px 6px 10px!important;border-radius:14px!important;border:1px solid #4d3f2b!important;background:linear-gradient(#211a13,#15110d)!important;color:#e6d8bd!important;text-align:center;transition:transform .15s,border-color .15s}
+body.cinematic-active #heroes-panel .hc-class.active{border-color:#e2b862!important;box-shadow:0 0 0 1px #e2b862,0 0 18px #e2b86244!important;background:linear-gradient(#3a2b17,#1d160f)!important}
+body.cinematic-active #heroes-panel .hc-class:active{transform:scale(.97)}
+.hc-portrait{display:block;width:100%;aspect-ratio:1;max-height:86px;border-radius:10px;overflow:hidden;background:#0d0a08}
+.hc-portrait canvas,.hc-portrait img{width:100%;height:100%;object-fit:cover;display:block}
+.hc-class b{font:700 14px/1.1 system-ui,sans-serif;color:#f4e8cf}
+.hc-class small{font:500 11px/1.25 system-ui,sans-serif;color:#b7a582}
+.hc-genders{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #4d3f2b;border-radius:12px;overflow:hidden}
+body.cinematic-active #heroes-panel .hc-gender{min-height:42px!important;border:0!important;border-radius:0!important;background:#15110d!important;color:#cdbb97!important;font:600 14px system-ui,sans-serif}
+body.cinematic-active #heroes-panel .hc-gender.active{background:#e2b862!important;color:#1d150b!important}
+body.cinematic-active #heroes-panel .hc-stats-link{margin:0 0 8px;min-height:40px!important}
+body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) #heroes-body{display:flex;flex-direction:column;overflow:hidden}
+@media (max-height:430px){
+  .hc-class small{display:none}
+  .hc-portrait{max-height:64px}
+  body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage .creation-preview{min-height:0}
+}
+@media (max-width:600px){
+  body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage{grid-template-columns:1fr}
+  body.cinematic-active #heroes-panel:is([data-step="0"],[data-step="3"]) .hc-stage .creation-preview{min-height:240px}
+  .hc-classes{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){body.cinematic-active #heroes-panel .hc-class{transition:none}}
+
+/* Story step: readable text column that scrolls on its own if needed. */
+.hc-story{overflow:auto;overscroll-behavior:contain;padding-right:4px;color:#e6d8bd;font:14px/1.45 system-ui,sans-serif}
+.hc-story h3{margin:0 0 4px;font:700 16px system-ui,sans-serif;color:#f4e8cf}
+.hc-story p{margin:0 0 6px}.hc-story ul{margin:0 0 6px;padding-left:18px}
+.hc-story .creation-warning{font-size:12px;color:#b7a582}
+/* Look step: model only on the left, editor tabs on the right. */
+body.cinematic-active #heroes-panel[data-step="2"] .look-stage{grid-template-columns:1fr!important}
+body.cinematic-active #heroes-panel[data-step="2"] .look-stage .look-model{grid-column:1/-1!important;width:auto!important;position:relative;border:1px solid #5d4c33;border-radius:14px}
+body.cinematic-active #heroes-panel[data-step="2"] .look-stage .look-slot{width:100%!important}

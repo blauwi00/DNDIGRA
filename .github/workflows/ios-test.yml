@@ -1,0 +1,55 @@
+name: Optional unsigned iPhone test build
+
+# A push to this dedicated branch is an explicit request for a Mac CI build.
+# Ordinary feature branches, main, tags and pull requests do not trigger it.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ci/ios-test
+
+permissions:
+  contents: read
+
+jobs:
+  unsigned-device-ipa:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      # macos-15 currently defaults to Xcode 16.4, which is too old for Cap 8.
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - name: Check out the selected current-game revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Check the selected Xcode installation
+        run: |
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+      - name: Install the existing locked dependencies
+        run: npm ci
+      - name: Verify the local save adapter and build-helper behavior
+        run: |
+          npm run test:local
+          node --test scripts/ios-unsigned-build.test.mjs
+          bash -n scripts/ios-unsigned-build.sh
+      - name: Build and sync the current bundled game
+        run: npm run ios:sync
+      - name: Compile and package the unsigned iPhone app
+        run: bash scripts/ios-unsigned-build.sh "$RUNNER_TEMP/dndigra-ios-artifacts/DNDIGRA-unsigned.ipa"
+      - name: Save the unsigned IPA for personal re-signing
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: DNDIGRA-unsigned-ios-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/dndigra-ios-artifacts/DNDIGRA-unsigned.ipa
+            ${{ runner.temp }}/dndigra-ios-artifacts/DNDIGRA-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
