@@ -39,7 +39,12 @@ head=head.replace('</style>','''.zone{position:absolute;left:50%;top:16%;transfo
 stage=re.sub(r'<div class="title">.*?</div>','<div class="title"><h1>Остров Хельги · ночь</h1><p>Причал, деревня, лес, руины и кладбище</p></div><div class="zone" id="zone" aria-live="polite"></div><div class="quest" id="quest" hidden></div><div class="talk" id="talk" hidden role="dialog" aria-live="polite"></div><div class="fade" id="fade"></div><div class="order" id="order" hidden></div><div class="roll" id="roll" hidden aria-live="polite"></div>',stage,count=1,flags=re.S)
 i=stage.index('<div class="bar-ui">');j=stage.index('</div>',i)+6
 stage=stage[:i]+stage[j:]
-stage=stage.replace('<canvas id="c"></canvas>','<canvas id="c"></canvas>'+open('ui.html').read(),1)
+# version shown in the menu corner: 0.<number of island changes>, counting the one being built, and the build date
+import subprocess,datetime
+try:n=int(subprocess.run(['git','rev-list','--count','HEAD','--','.'],capture_output=True,text=True,cwd=os.path.dirname(os.path.abspath(__file__))+'/..').stdout.strip())+1
+except Exception:n=0
+VERSION='0.%d · %s'%(n,datetime.date.today().strftime('%d.%m.%Y'))
+stage=stage.replace('<canvas id="c"></canvas>','<canvas id="c"></canvas>'+open('ui.html').read().replace('{VERSION}',VERSION),1)
 rig=rig.replace("window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;","window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;hero.userData.held={L:two?null:L,R:two?null:R,two};")
 main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read().replace('{RACES}',open('races.js').read()).replace('{CLASSES}',open('classes.js').read())).replace('{UI}',open('ui.js').read()).replace('{EDITOR}',open('editor.js').read()).replace('{LIFE}',open('life.js').read()+'\n'+open('people.js').read()).replace('{INTRO}',open('intro.js').read()+'\n'+open('settings.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
 chars=open('../../../dist/characters.js').read()
