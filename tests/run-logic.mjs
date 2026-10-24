@@ -9,7 +9,7 @@ const suites=[
   'worldgen-versions','worldgen','heroes-api','worlds-api','worlds-client','worldgen-api',
   'adventure-worldgen','adventure-api','adventure-client','tutorial-rules','prologue','caravan-cinema','combat-runtime',
   'region-streaming','region-resources','region-renderer','region-walk','worlds-practice','local-api','enemy-models','prompt-input','daynight',
-  'world-carry','native-config','island-terrain','island-scenes','island-client','island-renderer','island-api','island-beta'
+  'world-carry','native-config','island-terrain','island-scenes','island-client','island-renderer','island-api','island-beta','island-build-fresh'
 ];
 const cwd=fileURLToPath(new URL('..',import.meta.url));
 let failed=0;

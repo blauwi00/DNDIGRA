@@ -27,6 +27,16 @@ Nothing here is implemented yet; it is the plan to discuss and schedule.
 5. Island tests in the repo, run in CI on every change.
 6. Releases: a stable build for players and a test build for the owner.
 
+## Progress
+- [x] Step 1 · 2026-10-24: island checks live in the repo and run on GitHub
+  (`.github/workflows/island.yml`): `tests/island-beta.mjs`,
+  `tests/island-build-fresh.mjs` (shipped pages match the sources) and
+  `tests/island-beta-browser.cjs` (menu, settings, every look, two hands,
+  kits, villager talks, tutorial).
+- [ ] Step 2: content as data.
+- [ ] Step 3: modules and the shared esbuild build.
+- [ ] Step 4: decide how the island and the main game merge.
+
 ## Next steps (proposed)
 - Move the island to modules and the shared build; keep behaviour identical.
 - Move content to data files; keep the people-card format from `people.js`
