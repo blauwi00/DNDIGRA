@@ -10,7 +10,7 @@ let camZoom=1,zoomTarget=1,camFocus=null; // the camera leans in while the hero 
 // from nearly top-down far away to a view over the hero's shoulder up close. VIEW 0 = closest, 1 = farthest.
 let VIEW=(()=>{try{const v=parseFloat(localStorage.getItem('helga-view'));return isFinite(v)?Math.min(1,Math.max(0,v)):.45}catch(e){return .45}})(),viewTarget=VIEW;
 function setView(v){viewTarget=Math.min(1,Math.max(0,v));try{localStorage.setItem('helga-view',viewTarget.toFixed(3))}catch(e){}}
-function placeCam(){const k=camZoom*(window.CAM_SCALE||1),d=(6.2+VIEW*9.5)*k,a=.5+VIEW*.55; // 29° when close, 60° when far
+function placeCam(){const k=camZoom*(window.CAM_SCALE||1),d=(4.6+VIEW*7.5)*k,a=.5+VIEW*.55; // 29° when close, 60° when far
   camera.position.set(focus.x,focus.y+Math.sin(a)*d,focus.z+Math.cos(a)*d);camera.lookAt(focus.x,focus.y+(1-VIEW)*.5,focus.z)}
 const T={p:[0,1,2,3].map(planks),stone:stoneFloor(),grass:grass(),dirt:dirt(),cobble:cobble(),wall:wallStone(),crate:crate(),leaves:leaves(),bark:bark(),water:water(),gside:grassSide(),moss:moss(),blade:blade(),smoke:smokeTex()};
 const sand=tex(32,(g,s)=>{noise(g,s,['#b8a37a','#c2ad84','#ad9870','#bfa97f']);for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#8f7d5c','#d8c79e']))});
