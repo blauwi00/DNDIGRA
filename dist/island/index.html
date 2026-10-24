@@ -516,7 +516,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.40 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.41 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2240,7 +2240,7 @@ for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)==='G'&&near(x,z,'~',2))grid[z
 const Z={dock:[6,31],village:[26,30],forest:[60,40],camp:[64,44],ruins:[60,13],grave:[52,10],hunter:[46,48]};
 function road(a,b,c='D'){let [x,z]=a;const [tx,tz]=b;while(x!==tx||z!==tz){for(const [ox,oz] of [[0,0],[0,1]])if(at(x+ox,z+oz)!=='~')set(x+ox,z+oz,c);
   if(x!==tx&&(z===tz||hash2(x,z)<.6))x+=Math.sign(tx-x);else z+=Math.sign(tz-z);}}
-road([Z.dock[0]+3,Z.dock[1]],Z.village);road(Z.village,[Z.ruins[0]-2,Z.ruins[1]+3]);road(Z.village,[Z.camp[0]-3,Z.camp[1]]);road([Z.village[0]+8,Z.village[1]+4],Z.hunter);
+road([Z.dock[0]+3,Z.dock[1]],Z.village);road(Z.village,[Z.ruins[0]-2,Z.ruins[1]+3]);road(Z.village,[Z.camp[0]-3,Z.camp[1]]);road([Z.village[0]+8,Z.village[1]+4],Z.hunter);road([Z.camp[0]-3,Z.camp[1]],[78,44]); // on to the gate where the big island's road begins
 // village plaza
 for(let z=Z.village[1]-3;z<=Z.village[1]+3;z++)for(let x=Z.village[0]-4;x<=Z.village[0]+4;x++)if(Math.hypot(x-Z.village[0],(z-Z.village[1])*1.3)<5)set(x,z,'C');
 // dock: planks out over the sea

@@ -38,7 +38,7 @@ for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(at(x,z)==='G'&&near(x,z,'~',2))grid[z
 const Z={dock:[6,31],village:[26,30],forest:[60,40],camp:[64,44],ruins:[60,13],grave:[52,10],hunter:[46,48]};
 function road(a,b,c='D'){let [x,z]=a;const [tx,tz]=b;while(x!==tx||z!==tz){for(const [ox,oz] of [[0,0],[0,1]])if(at(x+ox,z+oz)!=='~')set(x+ox,z+oz,c);
   if(x!==tx&&(z===tz||hash2(x,z)<.6))x+=Math.sign(tx-x);else z+=Math.sign(tz-z);}}
-road([Z.dock[0]+3,Z.dock[1]],Z.village);road(Z.village,[Z.ruins[0]-2,Z.ruins[1]+3]);road(Z.village,[Z.camp[0]-3,Z.camp[1]]);road([Z.village[0]+8,Z.village[1]+4],Z.hunter);
+road([Z.dock[0]+3,Z.dock[1]],Z.village);road(Z.village,[Z.ruins[0]-2,Z.ruins[1]+3]);road(Z.village,[Z.camp[0]-3,Z.camp[1]]);road([Z.village[0]+8,Z.village[1]+4],Z.hunter);road([Z.camp[0]-3,Z.camp[1]],[78,44]); // on to the gate where the big island's road begins
 // village plaza
 for(let z=Z.village[1]-3;z<=Z.village[1]+3;z++)for(let x=Z.village[0]-4;x<=Z.village[0]+4;x++)if(Math.hypot(x-Z.village[0],(z-Z.village[1])*1.3)<5)set(x,z,'C');
 // dock: planks out over the sea
