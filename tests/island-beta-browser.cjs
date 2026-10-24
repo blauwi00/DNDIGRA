@@ -17,6 +17,26 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 const step = (name) => console.log('· ' + name);
+// visible boxes of these selectors must not overlap; parts hidden by a scrolling parent do not count
+const overlaps = (sel) => {
+  const els = [];
+  for (const q of sel) for (const e of document.querySelectorAll(q)) {
+    let o = e, vis = true;
+    while (o && o !== document.body) { const cs = getComputedStyle(o); if (o.hidden || cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < .05) { vis = false; break; } o = o.parentElement; }
+    if (!vis) continue;
+    const b = e.getBoundingClientRect(); const r = {left: b.left, top: b.top, right: b.right, bottom: b.bottom};
+    for (let o = e.parentElement; o && o !== document.body; o = o.parentElement) { const cs = getComputedStyle(o); if (/(auto|scroll|hidden)/.test(cs.overflow + cs.overflowY + cs.overflowX)) { const c = o.getBoundingClientRect(); r.left = Math.max(r.left, c.left); r.top = Math.max(r.top, c.top); r.right = Math.min(r.right, c.right); r.bottom = Math.min(r.bottom, c.bottom); } }
+    if (r.right - r.left >= 2 && r.bottom - r.top >= 2) els.push([q + (e.id ? '#' + e.id : ''), r, e]);
+  }
+  const out = [];
+  for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) {
+    const [a, A, ea] = els[i], [c, B, eb] = els[j];
+    if (ea.contains(eb) || eb.contains(ea)) continue;
+    if (A.left < B.right - .5 && B.left < A.right - .5 && A.top < B.bottom - .5 && B.top < A.bottom - .5) out.push(a + ' x ' + c);
+  }
+  return out;
+};
+const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '.held', '.talk', '.wheel', '.workbar', '.order', '.roll'];
 
 (async () => {
   await new Promise((r) => server.listen(0, r));
@@ -129,6 +149,23 @@ const step = (name) => console.log('· ' + name);
     assert.deepEqual(eco, {bought: true, ready: true, paid: 3});
     await p.close();
 
+    // ---------- layout: nothing overlaps, icons sit in the centre of their buttons ----------
+    for (const [w, h] of [[667, 375], [844, 390], [1280, 720]]) {
+      step('layout ' + w + 'x' + h + ': no overlaps, centred icons');
+      p = await open(w, h);
+      const lay = await p.evaluate(([fn, hud]) => {
+        const check = eval(fn), res = {menu: check(['.mm-logo', '.mmb', '.mm-ver', '.mm-copy', '.mm-exit'])};
+        document.getElementById('mainmenu').hidden = true; document.body.classList.remove('inmenu');
+        __game.talk(__game.actors.find((a) => a.npc === 'Рыбак Олав')); res.talk = check(hud);
+        document.querySelector('#talk .choices button:last-child').click();
+        openEditor(); res.editor = check(['.hc-stagebtns', '.hc-icon', '#hcNameDie', '#edName', '.hc-tabs', '.hc-foot', '#edGo', '#edBack', '#hcRandom', '.hc-racecard', '.hc-race']);
+        res.icons = [...document.querySelectorAll('#menuBtn,.hc-icon,.st-x')].filter((b) => b.querySelector('svg,.hc-die')).map((b) => { const r = b.getBoundingClientRect(), q = b.querySelector('svg,.hc-die').getBoundingClientRect(); return [b.id, Math.abs(q.left + q.width / 2 - r.left - r.width / 2), Math.abs(q.top + q.height / 2 - r.top - r.height / 2)]; }).filter(([, dx, dy]) => dx > 1 || dy > 1);
+        return res;
+      }, [overlaps.toString(), HUD]);
+      assert.deepEqual(lay, {menu: [], talk: [], editor: [], icons: []}, w + 'x' + h);
+      await p.close();
+    }
+
     // ---------- a new game: editor, then the whole tutorial ----------
     step('tutorial: first six steps, stones from anywhere count');
     p = await open();
@@ -149,6 +186,8 @@ const step = (name) => console.log('· ' + name);
     assert.ok(await until(async () => (await tut()).includes('деревни')));
     await p.evaluate(() => { const g = __game; g.H0.x = g.Z.village[0]; g.H0.z = g.Z.village[1] + 3; g.H0.px = g.H0.x + .5; g.H0.pz = g.H0.z + .5; });
     assert.ok(await until(async () => (await tut()).includes('Браму')));
+    step('layout in play: the HUD with the goal card and the hands');
+    assert.deepEqual(await p.evaluate(([fn, hud]) => eval(fn)(hud), [overlaps.toString(), HUD]), []);
     console.log('  reached: ' + await tut());
     assert.deepEqual(errors, []);
     console.log('island beta browser checks ok');

@@ -337,3 +337,22 @@ body.inmenu .gold,body.cinematic .gold{opacity:0}
 .sh-item:disabled{opacity:.45;cursor:default}.sh-item:not(:disabled):active{transform:translateY(1px)}
 .sh-empty{margin:4px 0;font-size:12px;color:#8a7a5a}
 @media (max-height:440px){.sh h2{font-size:18px}.sh-line{margin:2px 14px 4px}.sh-item{min-height:36px;padding:3px 8px}.sh-item img{width:26px;height:26px}}
+/* ---------- layout rule: no panel or button may overlap another, not even a pixel ----------
+   top left: menu button, then the title beside it, the goal card below both;
+   top right: health, then the minimap under it with the gold to its left;
+   bottom corners: the palms, each held-item badge beside its palm, never on it */
+.quest{top:84px!important}
+.mini{top:62px!important;right:12px!important;width:88px!important;height:88px!important}
+.gold{top:62px!important;right:108px!important}
+.held.l{left:152px!important}.held.r{right:152px!important;left:auto!important}
+@media (max-height:440px){
+  .quest{top:58px!important}
+  .mini{top:54px!important;width:70px!important;height:70px!important}
+  .gold{top:54px!important;right:90px!important}
+  .held.l{left:104px!important}.held.r{right:104px!important}}
+/* icons sit dead centre in their buttons */
+.menubtn,.hc-icon,.st-x,#hcNameDie{display:grid!important;place-items:center!important;padding:0!important}
+.menubtn svg,.hc-icon svg,.st-x svg,.mmb svg{display:block}
+/* the dialog sits between the palms and their item badges */
+.talk{box-sizing:border-box!important;width:min(460px,calc(100% - 420px))!important;min-width:0!important;left:50%!important;transform:translateX(-50%)!important}
+@media (max-height:440px){.talk{width:min(440px,calc(100% - 300px))!important}}

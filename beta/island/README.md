@@ -48,3 +48,13 @@ push (`netlify.toml`: no build step, noindex headers). Always rebuild with
     cd beta/island/src && OUT=.. APP=../../../dist/island SITE=../../../site/island python3 build.py
 
 so the in-app copy and the shared site stay in step.
+
+## Rule: nothing overlaps
+
+No panel, card, button, badge, minimap or bar may overlap another, not even by
+a pixel, on any screen size; icons sit in the centre of their buttons. The
+layout block at the end of `src/ui.css` places the top-left (menu button,
+title, goal card), top-right (health, minimap, gold) and bottom corners (palms
+with their item badges beside them, the dialog between them).
+`tests/island-beta-browser.cjs` checks menu, editor, dialog and play HUD at
+667x375, 844x390 and 1280x720.
