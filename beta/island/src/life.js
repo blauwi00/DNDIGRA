@@ -23,8 +23,14 @@ const STALL=[29,28];{const g=new THREE.Group(),y=groundAt(...STALL);blockCell(..
 const SPOTS={fish1:[2,31],fish2:[4,32],chop:[44,33],field:[24,42],sell:[29,29],sweep:[24,31],chat1:[25,29],chat2:[27,29],patrol:[[10,31],[26,33],[36,30],[50,22],[36,30],[26,33]]};
 const LOOKS2=[{skin:'d9a27a',hair:'1c1612',cloth:'6a2a24',style:'short'},{skin:'f2d2b0',hair:'c8a060',cloth:'3a5a2a',style:'long'},{skin:'b9805a',hair:'1c1612',cloth:'4a3a5a',style:'bun'},
   {skin:'e9bf90',hair:'8a8a8a',cloth:'6a5a3a',style:'bald'},{skin:'e9bf90',hair:'6a2418',cloth:'284d6c',style:'tail'},{skin:'8a5a3a',hair:'1c1612',cloth:'2a2a2a',style:'short'},{skin:'f2d2b0',hair:'8a5a2a',cloth:'6a2a24',style:'long'}];
+// villagers are built by the game's character builder in plain working clothes
+const FEMALE=/а$|я$|Хильда|Агна|Марта/;
+function villagerBoxes(name,look){const C=window.Characters;if(!C)return recolor(styleHair(MODELS['fighter-male'],look.style),look);
+  const gender=FEMALE.test(name.split(' ').pop())||/Марта|Агна|Хильда/.test(name)?'female':'male',cls=['rogue','cleric','rogue','fighter'][Math.floor(hash2(name.length,name.charCodeAt(0))*4)];
+  const ap=C.randomLook(cls,gender,()=>hash2(name.charCodeAt(1)||3,Math.random()*1e3));ap.cape='none';ap.outfit={rogue:['tunic','vest'],cleric:['monk','surplice'],fighter:['leather','tabard']}[cls][Math.random()<.5?0:1];
+  if(ap.headgear==='helm'||ap.headgear==='crown'||ap.headgear==='wizhat')ap.headgear='none';return C.build(C.spec('hero',{classId:cls,appearance:ap}));}
 function villager(name,look,o){const a=actor('innkeeper',...nearFree(...o.home),Object.assign({wander:0,spd:1.3,npc:name,talkId:'villager',villager:true},o));
-  const m=buildModel(recolor(styleHair(MODELS['fighter-male'],look.style),look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;return a;}
+  const m=buildModel(villagerBoxes(name,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;return a;}
 const V=[];
 {const add=(name,look,role,house,tool,extra={})=>V.push(villager(name,look,Object.assign({role,house,tool,home:DOOR(house)},extra)));
  add('Свен-лесоруб',LOOKS2[0],'chop',3,'axe');add('Торговка Марта',LOOKS2[1],'sell',3,null);add('Агна',LOOKS2[2],'sweep',5,'broom');
@@ -95,7 +101,7 @@ function barkLines(a){const ph=phaseNow(),hurt=H0.hp<H0.max*.5,L=[];const tod=wo
   const own={chop:['Дерево само себя не нарубит.'],sell:['Свежая рыба! Яблоки!','Подходи, не стесняйся!'],sweep:['Опять натоптали…'],patrol:['Порядок на острове.','Не балуй.'],
     fish1:['Клюёт плохо сегодня.'],fish2:['Тише, рыбу распугаешь.'],field:['Земля в этом году добрая.'],chat1:['А я ей и говорю…'],chat2:['Да ты что!']}[a.act||a.role]||[];
   return L.concat(own,own);}
-function barkTick(now){for(let i=bubbles.length-1;i>=0;i--){const B=bubbles[i],age=now-B.t;if(age>3200||!B.a.o.visible){B.el.remove();bubbles.splice(i,1);continue;}
+function barkTick(now){for(let i=bubbles.length-1;i>=0;i--){const B=bubbles[i],age=now-B.t;if(age>3200||!B.a.o.visible||paused){B.el.remove();bubbles.splice(i,1);continue;}
     const v=B.a.o.position.clone();v.y+=1.45;v.project(camera);const r=canvas.getBoundingClientRect();B.el.style.left=(v.x+1)/2*r.width+'px';B.el.style.top=(1-v.y)/2*r.height+'px';B.el.style.opacity=age>2700?String((3200-age)/500):'1';}
   // one voice at a time, never over a conversation, no line twice in a row
   if(CB.on||paused||!talkEl.hidden||bubbles.length)return;

@@ -8,23 +8,27 @@
 <div class="wheel" id="wheel" hidden></div><div class="qptr" id="qptr" hidden aria-hidden="true"></div>
 <div class="screen mapview" id="mapview" hidden><div class="mapbox"><h2>Остров Хельги</h2><canvas></canvas><p class="leg"></p><button id="mapClose">Закрыть</button></div></div>
 <div class="screen main" id="mainmenu" hidden>
-  <div class="mm"><h2>За гранью</h2><p>Остров Хельги</p>
+  <div class="mm"><h2>За гранью</h2><p>Остров Хельги · бета</p>
     <button id="mContinue">Продолжить</button><button id="mNew">Новая игра</button><button id="mSettings">Настройки</button><button id="mExit" hidden>Выйти из острова</button>
     <div class="mset" id="mSet" hidden><button id="mSound">Звук</button></div></div></div>
 <div class="screen pause" id="pause" hidden>
   <div class="mm"><h2>Пауза</h2><div class="sheet" id="sheet"></div>
     <button id="pResume">Продолжить</button><button id="pMap">Карта острова</button><button id="pSound">Звук</button><button id="pMain">Главное меню</button></div></div>
 <div class="screen editor" id="editor" hidden>
-  <div class="ed">
-    <div class="edl"><canvas id="edCanvas"></canvas></div>
-    <div class="edr">
-      <h2>Ваш герой</h2>
-      <div class="gamehero" id="edGame" hidden><div class="lab">Герой из игры</div><div class="gh-row"></div></div>
-      <label class="nm">Имя<input id="edName" maxlength="16" autocomplete="off"></label>
-      <div class="lab">Класс</div><div class="cls-row" id="edClass"></div><p class="about" id="edAbout"></p>
-      <div class="lab lk">Кожа</div><div class="sw-row" id="ed_skin"></div>
-      <div class="lab lk">Причёска</div><div class="hs-row" id="ed_style"></div><div class="lab lk">Цвет волос</div><div class="sw-row" id="ed_hair"></div>
-      <div class="lab lk">Одежда</div><div class="sw-row" id="ed_cloth"></div>
-      <div class="edbtns"><button id="edBack">Назад</button><button id="edGo" class="go">В путь</button></div>
-    </div></div></div>
+  <div class="hc">
+    <section class="hc-stage">
+      <canvas id="edCanvas" aria-label="Ваш герой, проведите пальцем, чтобы повернуть"></canvas>
+      <div class="hc-name"><input id="edName" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Имя героя"><button id="hcNameDie" class="hc-icon" aria-label="Случайное имя"><span class="hc-die">?</span></button></div>
+      <div class="hc-tag" id="hcClassTag"></div>
+      <div class="hc-stagebtns"><button id="hcZoom" class="hc-icon" aria-label="Лицо или в полный рост"><svg viewBox="0 0 16 16" width="18" height="18"><path fill="currentColor" d="M7 2a5 5 0 014 8l3 3-1 1-3-3A5 5 0 117 2zm0 2a3 3 0 100 6 3 3 0 000-6z"/></svg></button><button id="hcTurn" class="hc-icon" aria-label="Вращение"><svg viewBox="0 0 16 16" width="18" height="18"><path fill="currentColor" d="M8 2a6 6 0 016 6h2l-3 3-3-3h2a4 4 0 10-1.2 2.8l1.4 1.4A6 6 0 118 2z"/></svg></button></div>
+      <p class="hc-hint">Проведите пальцем по герою, чтобы повернуть</p>
+    </section>
+    <section class="hc-panel">
+      <div class="gamehero" id="edGame" hidden><div class="hc-lab">Герой из игры</div><div class="gh-row"></div></div>
+      <nav class="hc-tabs" id="hcTabs"><button data-tab="class">Класс</button><button data-tab="looks">Образы</button><button data-tab="face">Лицо</button><button data-tab="hair">Волосы</button><button data-tab="outfit">Одежда</button><button data-tab="extras">Детали</button></nav>
+      <div class="hc-body" id="hcBody"></div>
+      <div class="hc-foot"><button id="edBack">Назад</button><button id="hcRandom" class="hc-rand"><span class="hc-die">?</span>Случайный</button><button id="edGo" class="go">В путь</button></div>
+    </section>
+  </div></div>
+<div class="confirm" id="confirm" hidden role="alertdialog"><div><b></b><p></p><span><button class="no">Отмена</button><button class="yes"></button></span></div></div>
 <div class="note" id="note" hidden role="status"></div><div class="chestui" id="chestui" hidden role="dialog" aria-label="Сундук"></div>

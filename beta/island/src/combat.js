@@ -145,13 +145,13 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
   if(heroFirst){const k=ini.findIndex(o=>o.a===H0);ini.unshift(ini.splice(k,1)[0]);}
   if(surprise)trigger.surprised=true;
   CB.order=ini.map(o=>o.a);CB.round=1;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
-  sfx('fight');banner(surprise?'Внезапная атака!':'Бой!');renderOrder();
+  document.body.classList.add('fight');sfx('fight');banner(surprise?'Внезапная атака!':'Бой!');renderOrder();
   toast('Инициатива: '+ini.map(o=>(o.a===H0?'вы':o.a.name)+' '+o.v).join(', ')+(surprise?'. Враг застигнут врасплох.':''),3500);
   if(!heroFirst){await wait(1100);nextTurn();}}
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
 function liveFoes(){return CB.order.filter(a=>a!==H0&&!a.dead);}
-function endCombat(text){CB.on=false;CB.order=[];clearMoves();closeWheel();renderOrder();
+function endCombat(text){CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
   for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}if(text){banner(text);toast(text);}}
 const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров зачищен.':'Победа.');
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
