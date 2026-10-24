@@ -37,9 +37,3 @@ other hand stays free. Long items are tested box by box against the head and
 torso and step aside, then lean, until nothing overlaps (`clearBody`). Weapon
 variants, models and icons live in `weapons.js`.
 
-## Public site (GitHub Pages)
-
-The `gh-pages` branch holds only the built page: `index.html` (this
-`island.html` with `three.min.js` served next to it), `three.min.js` and
-`.nojekyll`. After a rebuild, copy the new page there and push that branch;
-Pages serves it at https://blauwi00.github.io/DNDIGRA/ without any login.
