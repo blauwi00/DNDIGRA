@@ -518,7 +518,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.45 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.46 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2687,7 +2687,9 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
       use(){this.open();sfx('chest');heroPose('open',900);window.handsGesture&&window.handsGesture('chest');setTimeout(()=>window.handsOpenChest&&window.handsOpenChest(this),350);}});};
   const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');S(dx,dz,.9*w,.06,.8,lam(T.p[2])).position.y=y+.48;for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
   const candle=(dx,dz)=>{I('Свеча','Воск стекает на стол, пламя дрожит от сквозняка.');part(g,new THREE.MeshLambertMaterial({color:0xe8dcc0}),R.ox+dx+.5,y+.57,R.oz+dz+.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+dx+.5,y+.65,R.oz+dz+.5,.04,.06,.04);I(null);};
-  const stool=(dx,dz)=>{I('Табурет','Шатается, но держит.');S(dx,dz,.3,.28,.3,lam(T.p[1]),false);I(null);};
+  // the way to the door stays clear: nothing stands on the two cells in front of it
+  const doorway=(dx,dz)=>R.ox+dx===R.exit[0]&&R.oz+dz>=R.exit[1]-2;
+  const stool=(dx,dz)=>{if(doorway(dx,dz))dx+=R.ox+dx-1>R.ox?-1:1;I('Табурет','Шатается, но держит.');S(dx,dz,.3,.28,.3,lam(T.p[1]),false);I(null);};
   const barrel=(dx,dz,loot)=>{I('Бочка','Пахнет элем и сыростью.',loot);S(dx,dz,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.45,R.oz+dz+.5,.54,.05,.54);I(null);};
   const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);
     part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);I(null);};
@@ -2697,7 +2699,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(dx,1,.9,.7,.5,lam(T.wall));part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);torch(R.ox+dx,R.oz+1,true);I(null);};
   // each house has its own trade written into the room
   if(R.type==='tavern'){hearth(5);I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');part(g,lam(T.p[2]),R.ox+2.5,y+.5,R.oz+2.5,3,.1,.5);I(null);for(let x=1;x<4;x++)blockCell(R.ox+x,R.oz+2);S(1,2,.9,.9,.5,lam(T.p[1]));
-    barrel(1,1,[['bread',1]]);barrel(2,1);table(4,4);itemProp(g,R.ox+4.45,y+.52,R.oz+4.5,'bread',1,'Хлеб','Свежая краюха, ещё тёплая.');stool(4,5);stool(5,4);table(6,3);stool(6,4);candle(4,4);candle(6,3);shelf(1,3);chest(6,5,[['bread',2],['torch',1]],'Ящик с припасами');
+    barrel(1,1,[['bread',1]]);barrel(2,1);table(3,4);itemProp(g,R.ox+3.45,y+.52,R.oz+4.5,'bread',1,'Хлеб','Свежая краюха, ещё тёплая.');stool(3,5);stool(2,4);table(6,3);stool(6,4);candle(3,4);candle(6,3);shelf(1,3);chest(6,5,[['bread',2],['torch',1]],'Ящик с припасами');
     I('Кружки','Четыре глиняные кружки, одна с отбитой ручкой.');for(let i=0;i<4;i++)part(g,M(0x8a6a4a),R.ox+1.3+i*.45,y+.62,R.oz+2.45,.12,.16,.12);I(null);
     for(const x of [2,6])part(g,glow(0xffc86a),R.ox+x+.5,y+1.5,R.oz+1.05,.1,.14,.06);}
   if(R.type==='forge'){hearth(2);part(g,glow(0xff6a20),R.ox+2.5,y+.75,R.oz+1.5,.6,.06,.2);
@@ -2712,7 +2714,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Вяленая рыба','Солёная и жёсткая. Вы отламываете кусок в дорогу.',[['bread',1]]);    for(let i=0;i<3;i++){part(g,M(0x9ab0b8),R.ox+3.1+i*.3,y+1.15,R.oz+1.12,.08,.26,.05);}part(g,lam(T.bark),R.ox+3.4,y+1.32,R.oz+1.12,.9,.04,.04); // drying fish
     I('Вёсла','Одно треснуло. Олав всё собирается починить.');    for(const k of [0,1]){const o=part(g,lam(T.p[1]),R.ox+6.7,y+.7,R.oz+5.6+k*.18,.08,1.3,.06);o.rotation.z=.25;}I(null);}
   if(R.type==='hall'){hearth(6);rug(2,2,5,3);I('Длинный стол','Здесь староста собирает совет. На столе карта острова с крестиком у руин.');for(let x=3;x<6;x++){S(x,3,1,.08,.9,lam(T.p[2])).position.y=y+.5;part(g,lam(T.bark),R.ox+x+.5,y+.24,R.oz+3.5,.1,.46,.6);stool(x,2);}
-    for(let x=3;x<6;x++){const st=part(g,lam(T.p[1]),R.ox+x+.5,y+.14,R.oz+4.5,.3,.28,.3);}I(null);candle(3,3);candle(5,3);
+    for(let x=3;x<6;x++)if(!doorway(x,4))part(g,lam(T.p[1]),R.ox+x+.5,y+.14,R.oz+4.5,.3,.28,.3);I(null);candle(3,3);candle(5,3);
     I('Кресло старосты','Высокая спинка, резные рыбы на подлокотниках.');S(2,3,.5,.32,.5,lam(T.p[1]));part(g,lam(T.p[1]),R.ox+2.3,y+.75,R.oz+3.5,.08,.8,.5); // the elder's chair
     I('Знамя острова','Золотая рыба на алом поле — герб Хельги.');    part(g,M(0x8a2a24),R.ox+4.5,y+1.15,R.oz+1.07,.9,1.1,.03);part(g,M(0xd0a94a),R.ox+4.5,y+1.2,R.oz+1.09,.3,.3,.02);part(g,lam(T.bark),R.ox+4.5,y+1.72,R.oz+1.1,1.1,.05,.05); // banner
     I('Книжный шкаф','Летопись острова: «В год, когда погас огонь часовни, мёртвые поднялись из земли…»');S(1,1,.9,1.5,.4,lam(T.p[2]));for(let j=0;j<3;j++)for(let i=0;i<5;i++)part(g,M([0x7a4a2a,0x4a5a8a,0x8a3a2a,0x5a6a3a][(i+j)%4]),R.ox+1.15+i*.17,y+.35+j*.45,R.oz+1.3,.12,.3,.2);

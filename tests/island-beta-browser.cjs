@@ -328,6 +328,18 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return bad;
     });
     assert.deepEqual(stream, []);
+    step('rooms: nothing stands between the hero and the door');
+    const doorways = await p.evaluate(() => {
+      const bad = [];
+      for (const R of ROOMS) {
+        const [ex, ez] = R.exit;
+        for (const z of [ez - 1, ez - 2]) if (!free(ex, z)) bad.push(R.name + ' blocked at ' + z);
+        R.group.traverse((o) => { if (!o.isMesh || o.userData.floor) return; const pp = new THREE.Vector3(); o.getWorldPosition(pp);
+          if (Math.floor(pp.x) === ex && (Math.floor(pp.z) === ez - 1 || Math.floor(pp.z) === ez - 2) && pp.y < 1.2 && o.scale.y < 1.5) bad.push(R.name + ': something in the doorway at ' + pp.x.toFixed(1) + ',' + pp.z.toFixed(1)); });
+      }
+      return [...new Set(bad)];
+    });
+    assert.deepEqual(doorways, []);
     step('layout in play: the HUD with the goal card and the hands');
     assert.deepEqual(await p.evaluate(([fn, hud]) => eval(fn)(hud), [overlaps.toString(), HUD]), []);
     for (const side of ['R', 'L']) {
