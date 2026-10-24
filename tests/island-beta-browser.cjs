@@ -207,6 +207,12 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
     p = await open();
     await p.click('#mNew');
     await p.waitForSelector('#edGo');
+    step('editor: empty hands until a starting kit is chosen, and no setting out without one');
+    assert.deepEqual(await p.evaluate(() => { const r = pv.m.userData.rig; return [ED.kit, !!(r.foreL.userData.item || r.foreR.userData.item || r.foreL.userData.two || r.foreR.userData.two)]; }), [null, false]);
+    await p.click('#edGo');
+    assert.equal(await p.evaluate(() => !document.getElementById('editor').hidden && ED.tab === 'class'), true);
+    await p.locator('.hc-kits button').first().click();
+    assert.equal(await p.evaluate(() => { const r = pv.m.userData.rig; return ED.kit === 0 && !!(r.foreL.userData.item || r.foreR.userData.item || r.foreL.userData.two || r.foreR.userData.two); }), true);
     await p.click('#edGo');
     const tut = () => p.evaluate(() => document.querySelector('#quest .tut b')?.textContent || '—');
     await p.waitForFunction(() => document.querySelector('#quest .tut b')?.textContent === 'Сойдите с причала', null, {timeout: 60000});

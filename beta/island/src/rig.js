@@ -47,7 +47,8 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
     geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
   // the hand is the lowest block of each forearm; items are put inside it, at its centre
   for(const k of ['L','R']){const list=parts['fore'+k],f=rig['fore'+k],o=f.position.clone().add(f.parent.position);
-    if(!list.length){rig['hand'+k]=new THREE.Vector3(0,-.14,.02);continue;}const lo=Math.min(...list.map(b=>b[1]-b[4]/2)),hand=list.filter(b=>b[1]-b[4]/2<lo+.06),bb=new THREE.Box3();
+    // only solid blocks on the arm's own axis count: a builder's held item or its decals would pull the hand forward
+    const own=list.filter(b=>!b[8]&&Math.abs(b[2])<.1&&b[5]<.2);if(!own.length){rig['hand'+k]=new THREE.Vector3(0,-.14,.02);continue;}const lo=Math.min(...own.map(b=>b[1]-b[4]/2)),hand=own.filter(b=>b[1]-b[4]/2<lo+.06),bb=new THREE.Box3();
     for(const [x,y,z,w,h,d] of hand)bb.union(new THREE.Box3(new THREE.Vector3(x-w/2,y-h/2,z-d/2),new THREE.Vector3(x+w/2,y+h/2,z+d/2)));
     rig['hand'+k]=bb.getCenter(new THREE.Vector3()).sub(o);}
   const holder=new THREE.Group();holder.add(g);holder.userData.body=g;holder.userData.rig=rig;holder.userData.mats=[mat,dmat];return holder}
@@ -71,17 +72,20 @@ function setHeld(holder,side,id){const arm=holder.userData.rig[side==='R'?'foreL
   const up=holder.userData.upright||(holder.userData.upright={});up[side]=k==='spear';
   up['shield'+side]=k==='shield';
   // a shield is strapped along the forearm, which is raised across the body; its face looks forward
-  if(k==='shield'){grp.scale.setScalar(1.35);arm.add(grp);arm.userData.item=grp;holder.userData.shieldMode=null;placeShield(holder,side,'rest');return;}else if(up[side]){const z=side==='R'?-.12:.12,chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(UPRIGHT.arm[0],0,z)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...UPRIGHT.fore)));grp.quaternion.copy(chain.invert());}else if(isWeapon(id)||k==='torch')grp.rotation.x=k==='torch'?.6:1.9;
+  if(k==='shield'){
+    // the hand grips the strap in the middle of the shield's back: centre the boards on the grip
+    const bb=new THREE.Box3().setFromObject(grp),c=bb.getCenter(new THREE.Vector3()),hold=new THREE.Group();grp.position.set(-c.x,-c.y,-bb.min.z+.015);hold.add(grp);
+    hold.scale.setScalar(1.35);arm.add(hold);arm.userData.item=hold;holder.userData.shieldMode=null;placeShield(holder,side,'rest');return;}else if(up[side]){const z=side==='R'?-.12:.12,chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(UPRIGHT.arm[0],0,z)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...UPRIGHT.fore)));grp.quaternion.copy(chain.invert());}else if(isWeapon(id)||k==='torch')grp.rotation.x=k==='torch'?.6:1.9;
   arm.add(grp);arm.userData.item=grp;}
 const UPRIGHT={arm:[-.05,0,0],fore:[-.75,0,0]};
 // a shield rests on the outside of the forearm, face out, where the camera above can see it;
 // in a fight it comes up across the chest. Angles are for the hero's left arm (armR) and mirrored.
-const SHIELD={rest:{arm:[-.05,0,.2],fore:[-.35,0,0],yaw:Math.PI/2,tilt:.55,out:.05},guard:{arm:[-.2,0,.18],fore:[-1.15,0,0],yaw:0,tilt:0,out:.02}};
-function shieldPose(side,mode){const P=SHIELD[mode],m=side==='R'?-1:1;return {arm:[P.arm[0],0,P.arm[2]*m],fore:P.fore,yaw:P.yaw*m,tilt:P.tilt*m,out:P.out*m};}
+const SHIELD={rest:{arm:[-.08,0,.14],fore:[-.25,0,0],yaw:Math.PI/2,tilt:.12},guard:{arm:[-.25,0,.12],fore:[-1.25,0,0],yaw:0,tilt:0}};
+function shieldPose(side,mode){const P=SHIELD[mode],m=side==='R'?-1:1;return {arm:[P.arm[0],0,P.arm[2]*m],fore:P.fore,yaw:P.yaw*m,tilt:P.tilt*m};}
 function placeShield(holder,side,mode){if(holder.userData.shieldMode===mode)return;const r=holder.userData.rig,f=r[side==='R'?'foreL':'foreR'],grp=f.userData.item;if(!grp)return;
   holder.userData.shieldMode=mode;const P=shieldPose(side,mode),h=r['hand'+(side==='R'?'L':'R')];
   const chain=new THREE.Quaternion().setFromEuler(new THREE.Euler(...P.arm)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...P.fore)));
-  const want=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,P.tilt)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,P.yaw,0)));grp.quaternion.copy(chain.invert().multiply(want));grp.position.copy(h);grp.position.y+=.06;grp.position.x+=P.out;}
+  const want=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,P.tilt)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,P.yaw,0)));grp.quaternion.copy(chain.invert().multiply(want));grp.position.copy(h);}
 // Two-handed items live in one real hand: a staff, polearm or great weapon in the right hand
 // like a walking staff, a bow in the left; the other hand stays free. Only one copy exists.
 const TWO={has:id=>!!(id&&WEAPONS[id]&&WEAPONS[id].two)};

@@ -364,3 +364,7 @@ body.invopen .mini,body.invopen .gold,body.invopen #minimap{opacity:0!important;
 .inv{bottom:167px!important}
 @media (max-height:440px){.inv{bottom:120px!important}}
 body.invopen .quest{opacity:0!important;pointer-events:none!important}
+/* a starting kit must be chosen before setting out */
+.hc-kits.need button{box-shadow:inset 0 0 0 2px #c8902a}
+.hc-kits.pulse{animation:kitPulse .9s ease 2}@keyframes kitPulse{50%{filter:brightness(1.5)}}
+.hc-kit-info.need{color:#f2c14e}

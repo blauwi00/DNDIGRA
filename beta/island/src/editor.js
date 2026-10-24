@@ -5,7 +5,7 @@
 // can be turned with a finger and zoomed to the face.
 const C_=window.Characters,GAME2CLS={fighter:'fighter',rogue:'rogue',cleric:'cleric',wizard:'mage'};
 const NAMES={male:['Эльдар','Бран','Торвин','Ларс','Арден','Рорик','Ивар','Кальдер','Сигурд','Мирон','Хакон','Эйрик'],female:['Мирра','Сигрид','Ильва','Астрид','Лейла','Руна','Фрея','Эйра','Ингрид','Сольвейг','Тора','Вера']};
-const ED={name:'Эльдар',cls:'fighter',race:'human',kit:0,gender:'male',ap:null,tab:'race',view:'full',game:null};
+const ED={name:'Эльдар',cls:'fighter',race:'human',kit:null,gender:'male',ap:null,tab:'race',view:'full',game:null};
 const gidOf=k=>CLASSES[k].look.g,gid=()=>gidOf(ED.cls);
 // a class's starting look: the builder's default for its base, the class patch, then the people's features
 // a cape left on "same as clothes" would melt into the outfit: give it a contrasting palette colour
@@ -38,7 +38,8 @@ function preview(){const c=document.getElementById('edCanvas');
         if(pv.pop>0){pv.pop-=.05;b.position.y=Math.sin(pv.pop*Math.PI)*.06;}}
       r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
   if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(raceDecorate(ED.race,C_.build(C_.spec('hero',edState())),ED.ap));raceScale(ED.race,pv.m);pv.pop=1;
-  const kit=CLASSES[ED.cls].kits[ED.kit]||CLASSES[ED.cls].kits[0],L=kit.L,R=kit.R,two=TWO.has(L)?L:TWO.has(R)?R:null;if(two)setTwoHanded(pv.m,two);else{if(L)setHeld(pv.m,'L',L);if(R)setHeld(pv.m,'R',R);}
+  // the hero stands empty-handed until a starting kit is chosen
+  const kit=ED.kit==null?{L:null,R:null}:CLASSES[ED.cls].kits[ED.kit],L=kit.L,R=kit.R,two=TWO.has(L)?L:TWO.has(R)?R:null;if(two)setTwoHanded(pv.m,two);else{if(L)setHeld(pv.m,'L',L);if(R)setHeld(pv.m,'R',R);}
   // frame the whole hero with what they hold: long polearms and staves must fit in the shot
   pv.m.rotation.y=0;pv.m.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(pv.m),top=Math.max(1.35,bb.max.y),bot=Math.min(-.05,bb.min.y),half=((top-bot)/2+.12)*1.2;
   pv.fitB={d:Math.max(4.4,half/Math.tan(THREE.MathUtils.degToRad(14))),y:Math.max(.62,(top+bot)/2+half*.16)};
@@ -97,12 +98,12 @@ function raceTab(body){const strip=el('div','hc-carousel');
 function classTab(body){const g=el('div','hc-classes');
   for(const k of CLASS_ORDER){const c=CLASSES[k],b=el('button','hc-class'+(ED.cls===k?' on':''));
     const pic=C_.portrait('hero',{classId:gidOf(k),appearance:k===ED.cls?ED.ap:baseLook(k)},{view:'body',width:60,height:60,pixel:2});pic.className='hc-pic';
-    b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=0;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};g.append(b);}
+    b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=null;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};g.append(b);}
   body.append(g);const kits=CLASSES[ED.cls].kits;
   {const row=el('div','hc-kits'),items=kt=>[kt.R,kt.L,...(kt.bag||[])].filter(Boolean);
     kits.forEach((kt,i)=>{const b=el('button',ED.kit===i?'on':'');const ic=el('span','hc-kit-ic');for(const id of items(kt)){const im=document.createElement('img');im.src=window.handsIconURL(id);im.alt='';ic.append(im);}
       b.append(ic,el('span',null,kt.n));b.onclick=()=>{if(ED.kit===i)return;ED.kit=i;sfx('click');openEditor(true);};row.append(b);});
-    const cur=kits[ED.kit]||kits[0],info=el('div','hc-kit-info');for(const id of items(cur)){const V=WEAPONS[id];if(V)info.append(el('div',null,V.n+' — '+V.d));}
+    const cur=ED.kit==null?null:kits[ED.kit],info=el('div','hc-kit-info');if(cur){for(const id of items(cur)){const V=WEAPONS[id];if(V)info.append(el('div',null,V.n+' — '+V.d));}}else{info.classList.add('need');info.append(el('div',null,'Выберите стартовое оружие — без него в путь не выйти.'));}row.classList.toggle('need',!cur);
     body.append(el('div','hc-lab','Стартовое оружие'),row,info);}
   const sx=el('div','hc-gender');for(const [gv,label] of [['male','Мужчина'],['female','Женщина']]){const b=el('button',ED.gender===gv?'on':'',label);b.onclick=()=>{if(ED.gender===gv)return;ED.gender=gv;ED.ap=baseLook();ED.game=null;if(NAMES[gv==='male'?'female':'male'].includes(ED.name))ED.name=NAMES[gv][Math.floor(Math.random()*NAMES[gv].length)];sfx('click');openEditor(true);};sx.append(b);}
   body.append(el('div','hc-lab','Пол'),sx);
@@ -126,7 +127,7 @@ function groupTab(body,tab){for(const G of C_.GROUPS[tab]){const key=G.key;
       b.append(tilePortrait(ap,G.view||'full',G.back),el('small',null,o.name));b.setAttribute('aria-pressed',on);
       b.onclick=()=>{if(multi){const cur=ED.ap[key]||[];setAp(key,on?cur.filter(x=>x!==o.id):[...cur,o.id]);}else setAp(key,o.id);if(G.view==='face'||G.view==='head'||G.view==='hat'){pv.zoomT=0;}};row.append(b);}
     body.append(el('div','hc-lab',G.title+(G.type==='multi'?' · можно несколько':'')),row);}}
-function randomHero(full){const gv=full?(Math.random()<.5?'male':'female'):ED.gender;ED.gender=gv;if(full){ED.cls=CLASS_ORDER[Math.floor(Math.random()*CLASS_ORDER.length)];ED.race=RACE_ORDER[Math.floor(Math.random()*RACE_ORDER.length)];ED.kit=0;}
+function randomHero(full){const gv=full?(Math.random()<.5?'male':'female'):ED.gender;ED.gender=gv;if(full){ED.cls=CLASS_ORDER[Math.floor(Math.random()*CLASS_ORDER.length)];ED.race=RACE_ORDER[Math.floor(Math.random()*RACE_ORDER.length)];ED.kit=Math.floor(Math.random()*CLASSES[ED.cls].kits.length);}
   ED.ap=raceAppearance(ED.race,Object.assign(C_.randomLook(gid(),gv),{outfit:baseLook().outfit}));ED.game=null;ED.name=NAMES[gv][Math.floor(Math.random()*NAMES[gv].length)];sfx('dice');openEditor(true);}
 document.getElementById('hcTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ED.tab=b.dataset.tab;pv&&(pv.zoomT=['face','hair','race'].includes(ED.tab)?0:1);sfx('click');openEditor(true);});
 document.getElementById('hcRandom').onclick=()=>randomHero(true);
@@ -146,8 +147,10 @@ async function loadGameHeroes(){if(gameHeroes)return gameHeroes;const list=[];
   return gameHeroes=list.filter(h=>h&&h.name&&h.classId&&GAME2CLS[h.classId]);}
 async function renderGameHeroes(){const box=document.getElementById('edGame');const list=await loadGameHeroes();box.hidden=!list.length;if(!list.length)return;const row=box.querySelector('.gh-row');row.replaceChildren();
   for(const h of list){const b=el('button','gh'+(ED.game===h.id?' on':''));const pic=C_.portrait('hero',h,{view:'face',width:36,height:36,pixel:2});pic.className='gh-pic';b.append(pic,el('b',null,h.name));
-    b.onclick=()=>{ED.game=h.id;ED.name=h.name.slice(0,16);ED.cls=GAME2CLS[h.classId];ED.race='human';ED.kit=0;ED.gender=(h.appearance&&h.appearance.gender)||'male';ED.ap=C_.normalize(h.appearance,h.classId);sfx('click');openEditor(true);};row.append(b);}}
+    b.onclick=()=>{ED.game=h.id;ED.name=h.name.slice(0,16);ED.cls=GAME2CLS[h.classId];ED.race='human';ED.kit=null;ED.gender=(h.appearance&&h.appearance.gender)||'male';ED.ap=C_.normalize(h.appearance,h.classId);sfx('click');openEditor(true);};row.append(b);}}
 document.getElementById('edBack').onclick=()=>mainMenu();
-document.getElementById('edGo').onclick=()=>{const name=(ED.name||'').trim()||NAMES[ED.gender][0];const s={name,cls:ED.cls,race:ED.race,kit:ED.kit,game:{classId:gid(),appearance:ED.ap},look:null};
+document.getElementById('edGo').onclick=()=>{if(ED.kit==null){ED.tab='class';sfx('click');openEditor(true);
+    requestAnimationFrame(()=>{const k=document.querySelector('.hc-kits');if(k){k.scrollIntoView({block:'center'});k.classList.remove('pulse');void k.offsetWidth;k.classList.add('pulse');}});toast('Сначала выберите стартовое оружие');return;}
+  const name=(ED.name||'').trim()||NAMES[ED.gender][0];const s={name,cls:ED.cls,race:ED.race,kit:ED.kit,game:{classId:gid(),appearance:ED.ap},look:null};
   resetting=true;try{localStorage.setItem('helga-hero',JSON.stringify(s));localStorage.removeItem(SAVE);sessionStorage.setItem('helga-start','new');}catch(e){}
   document.getElementById('loading').classList.remove('gone');setTimeout(()=>location.reload(),250);};
