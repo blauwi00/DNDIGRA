@@ -26,3 +26,8 @@ Follows the approved settlement model from Notion «DNDIGRA — подробны
 Size: 300×220 cells by default (the beta map is 80×60). Not yet in the game: this step only
 produces the layout and its map (`IslandGen.drawMap`). Next: stream the terrain into the game,
 move Заводь's content onto its generated place, then fill each place with people and animals.
+
+## Owner decision · 2026-10-24
+Keep the pier start on the larger island for now: the hero arrives at Заводь's pier as today.
+The home-village start with two peaceful days and the trade carriage (Notion plan) is not
+applied to the island yet.
