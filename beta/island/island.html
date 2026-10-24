@@ -519,7 +519,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.52 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.53 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3312,7 +3312,7 @@ function ai(){const now=performance.now();
     if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
-function idleLife(a,r,b,t){const p=a.ph;if(a.villager||a.role==='trav')workPose(a,r,b,t);
+function idleLife(a,r,b,t){const p=a.ph;if(a.talkId==='town'&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town')workPose(a,r,b,t);
   if(a.act==='wipe'){r.armL.rotation.set(-1.05,Math.sin(t*3+p)*.15,Math.sin(t*3+p)*.35);b.rotation.x=.12;}
   if(a.act==='hammer'&&!a.route){a.face=Math.PI;const k=(t*1.1+p)%1,up=k<.6?k/.6:1-(k-.6)/.4*1.0,hit=k>.94;r.armL.rotation.set(-.3-1.9*Math.max(0,up),0,.1);b.rotation.x=.1+.06*up;
     if(k<a.hk&&room&&room.type==='forge')sfx('clank');a.hk=k;}
@@ -3349,14 +3349,14 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     const o=a.o,b=o.userData.body,walk=a.walkW>.03?(a.walkT||.001):0;const sw=reduce?0:Math.sin(a.walkT||0)*a.walkW,breathe=reduce?0:Math.sin(t*2+a.ph);
     a.gy=(a.gy??groundAt(a.px,a.pz))+(groundAt(a.px,a.pz)-(a.gy??0))*Math.min(1,dt*12);o.position.set(a.px+(a.off?a.off[0]:0),a.gy+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
     // the body turns towards where it goes instead of snapping round
-    if(a!==H0||!H0.dead){let dr=a.face-o.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));o.rotation.y+=dr*Math.min(1,dt*12);}b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
+    if(a!==H0||!H0.dead){let dr=a.face-o.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));o.rotation.y+=dr*Math.min(1,dt*12);}b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.y=0;b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r&&r.quad){quadPose(r,walk,sw,t,a.ph);if(!walk&&!a.off&&a.enemy&&!a.inFight)r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+a.ph))*.35;}
     else if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       armPose(o,walk,sw,breathe);
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
       if(!walk&&!a.off)idleLife(a,r,b,t);
       r.torso.scale.y=1+(walk?0:breathe*.012);r.head.rotation.y=walk?0:Math.sin(t*.5+a.ph)*.15;r.head.rotation.x=0;
-      if(a.pose)applyPose(a,r,b,now);else a.crouch=0;}}
+      if(a.pose)applyPose(a,r,b,now);else if(walk||!a.act)a.crouch=0;}}
   for(const e of enemies){const b=e.bar;b.g.visible=!e.dead&&e.o.visible&&(e.inFight||e.hp<e.max);if(!b.g.visible)continue;
     b.g.position.set(e.o.position.x,e.o.position.y+1.15*(e.scale||1),e.o.position.z);b.g.quaternion.copy(camera.quaternion);const k=Math.max(0,e.hp/e.max);b.fg.scale.x=k;b.fg.position.x=-.28*(1-k);}
   if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});
@@ -3961,7 +3961,7 @@ const TOWN=[];
      let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' '+['Младший','Старший','из '+(p.type==='capital'?'столицы':'посёлка')][TOWN.length%3];
      const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc,job,talkId:'town',place:p,kind,said:0});
      const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
-     if(job==='Стражник')setHeld(a.o,'R','spear');TOWN.push(a);}}}
+     if(job==='Стражник')setHeld(a.o,'R','spear');a.workAct={'Стражник':'guard','Торговец':'sell','Купчиха':'sell','Глашатай':'chat1','Пахарь':'field','Крестьянка':'field','Торфяник':'field','Каменотёс':'chop','Десятник':'chat1'}[job]||'chat1';TOWN.push(a);}}}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
 {const near=(type,from)=>GEN.places.filter(q=>q.type===type).sort((x,y)=>Math.hypot(x.x-from.x,x.z-from.z)-Math.hypot(y.x-from.x,y.z-from.z))[0];
@@ -4028,17 +4028,41 @@ function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a
     a.face={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2}[a.role]??a.face;}}
 function leaveTavern(a){a.act=null;a.seat=null;a.where='going';goTo(a,[TAV.exit[0],TAV.exit[1]-1],()=>{appear(a,DOOR(0));a.where='out';});}
 // work and leisure motions, called from idleLife when a villager stands still
+// Work motions use the whole body: both arms, the forearms, a lean of the trunk and bent knees, in a rhythm
+// with a quick working stroke and a slower recovery. armL/foreL is the hand that holds the tool.
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
 function workPose(a,r,b,t){const p=a.ph,k=t+p;switch(a.act){
-  case 'fish1':case 'fish2':r.armL.rotation.set(-.9+Math.sin(k*.8)*.08,0,.1);break;
-  case 'chop':{const c=(k*.9)%1,up=c<.55?c/.55:1-(c-.55)/.45;r.armL.rotation.set(-.2-2.2*up,0,-.2);b.rotation.x=.25*up;if(c<a.ck&&!room&&man(a,H0)<9)sfx('chopw');a.ck=c;break;}
-  case 'sweep':r.armL.rotation.set(-.5,0,Math.sin(k*2.4)*.45);b.rotation.y=Math.sin(k*2.4)*.15;break;
-  case 'field':{const c=(k*.7)%1;r.armL.rotation.set(-.4-1.3*Math.sin(c*Math.PI),0,0);b.rotation.x=.3*Math.sin(c*Math.PI);break;}
-  case 'sell':r.armR.rotation.set(-.4-Math.max(0,Math.sin(k*1.3))*.9,0,-.3);r.head.rotation.y=Math.sin(k*.6)*.6;break;
-  case 'chat1':case 'chat2':r.armR.rotation.set(-.5-Math.max(0,Math.sin(k*2.1))*.6,0,-.2);r.head.rotation.x=Math.sin(k*1.7)*.12;break;
-  case 'sit':a.crouch=.16;r.legL.rotation.x=-1.3;r.legR.rotation.x=-1.3;r.head.rotation.y=Math.sin(k*.5)*.4;break;
-  case 'drinkstand':r.armL.rotation.set(-.4-Math.max(0,Math.sin(k*.9))*1.4,0,.2);r.head.rotation.x=-Math.max(0,Math.sin(k*.9))*.3;break;
-  case 'drink':a.crouch=.16;r.legL.rotation.x=-1.3;r.legR.rotation.x=-1.3;r.armL.rotation.set(-.6-Math.max(0,Math.sin(k*.9))*1.3,0,.2);break;}}
-
+  case 'fish1':case 'fish2':{ // rod held out in both hands, the tip bobbing; now and then a sharp tug
+    const tug=Math.max(0,Math.sin(k*.45))>.97?1:0,bob=Math.sin(k*1.6)*.05;
+    r.armL.rotation.set(-1.05+bob-tug*.5,0,.18);r.foreL.rotation.set(-.35-tug*.3,0,0);r.armR.rotation.set(-.85+bob,0,-.25);r.foreR.rotation.set(-.6,0,0);
+    b.rotation.x=.06;r.head.rotation.x=.18;break;}
+  case 'chop':{ // both hands lift the axe overhead, a fast stroke down, the body follows through and knees give
+    const c=(k*.75)%1,up=c<.6?ease(c/.6):1-ease((c-.6)/.4*1.8>1?1:(c-.6)/.4*1.8);
+    for(const[arm,fore,z]of[[r.armL,r.foreL,-.12],[r.armR,r.foreR,.12]]){arm.rotation.set(-.35-2.25*up,0,z);fore.rotation.set(-.2-.5*up,0,0);}
+    b.rotation.x=.32*(1-up);a.crouch=.05*(1-up);if(c<a.ck&&up<.2&&!room&&man(a,H0)<9)sfx('chopw');a.ck=c;break;}
+  case 'sweep':{ // broom low in both hands, long strokes left and right, shoulders turning with them
+    const sw=Math.sin(k*2.2);r.armL.rotation.set(-.55,0,sw*.35);r.armR.rotation.set(-.75,0,sw*.35-.1);r.foreL.rotation.set(-.3,0,0);r.foreR.rotation.set(-.5,0,0);
+    b.rotation.y=sw*.22;b.rotation.x=.18;r.head.rotation.x=.25;break;}
+  case 'field':{ // the hoe rises in both hands and bites the ground; the worker bends low on each stroke
+    const c=(k*.6)%1,up=c<.55?ease(c/.55):1-ease(Math.min(1,(c-.55)/.25));
+    for(const[arm,fore]of[[r.armL,r.foreL],[r.armR,r.foreR]]){arm.rotation.set(-.3-1.6*up,0,0);fore.rotation.set(-.3-.4*up,0,0);}
+    b.rotation.x=.38*(1-up)+.08;a.crouch=.06*(1-up);break;}
+  case 'sell':{ // calls to passers-by: one hand waves the goods, the other rests on the stall, weight shifting
+    const w=Math.max(0,Math.sin(k*1.1));r.armR.rotation.set(-.5-w*1.2,0,-.3);r.foreR.rotation.set(-.6-w*.5,0,0);r.armL.rotation.set(-.45,0,.15);r.foreL.rotation.set(-.9,0,0);
+    r.head.rotation.y=Math.sin(k*.5)*.5;b.rotation.z=Math.sin(k*.4)*.04;break;}
+  case 'chat1':case 'chat2':{ // talking with hands: alternate gestures, nods and a shift of weight
+    const g1=Math.max(0,Math.sin(k*1.7)),g2=Math.max(0,Math.sin(k*1.7+2.4));r.armR.rotation.set(-.3-g1*.8,0,-.2);r.foreR.rotation.set(-.5-g1*.7,0,0);
+    r.armL.rotation.set(-.2-g2*.6,0,.2);r.foreL.rotation.set(-.4-g2*.6,0,0);r.head.rotation.x=Math.sin(k*2.3)*.1;r.head.rotation.y=Math.sin(k*.7)*.2;b.rotation.z=Math.sin(k*.5)*.035;break;}
+  case 'guard':{ // a guard stands straight, spear upright at his side, and looks the street up and down
+    r.armL.rotation.set(-.25,0,.05);r.foreL.rotation.set(-.6,0,0);r.armR.rotation.set(0,0,-.08);r.head.rotation.y=Math.sin(k*.35)*.8;break;}
+  case 'sit':{ // seated, forearms on the knees; now and then a sip from the mug
+    a.crouch=.16;r.legL.rotation.x=-1.35;r.legR.rotation.x=-1.35;const sip=Math.max(0,Math.sin(k*.7))>.85?1:0;
+    r.armL.rotation.set(-.75-sip*.9,0,.15);r.foreL.rotation.set(-.6-sip*1.2,0,0);r.armR.rotation.set(-.7,0,-.15);r.foreR.rotation.set(-.5,0,0);
+    r.head.rotation.x=-sip*.3;r.head.rotation.y=sip?0:Math.sin(k*.5)*.4;break;}
+  case 'drinkstand':{ // standing with a mug: lift, bend the elbow, tip the head back, lower it slowly
+    const c=(k*.35)%1,up=c<.25?ease(c/.25):c<.45?1:1-ease(Math.min(1,(c-.45)/.3));
+    r.armL.rotation.set(-.35-1.05*up,0,.2);r.foreL.rotation.set(-.4-1.3*up,0,0);r.armR.rotation.set(-.1,0,-.1);r.head.rotation.x=-up*.35;b.rotation.x=-up*.05;break;}
+  case 'drink':a.act='sit';break;}}
 // ---------- talk bubbles ----------
 const bubbles=[];let lastLine='';
 function speak(a,text){if(!a.o.visible)return;const el=document.createElement('div');el.className='bark';el.textContent=text;stage.append(el);bubbles.push({a,el,t:performance.now()});a.barkT=performance.now();}

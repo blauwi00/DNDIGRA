@@ -55,7 +55,7 @@ const TOWN=[];
      let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' '+['Младший','Старший','из '+(p.type==='capital'?'столицы':'посёлка')][TOWN.length%3];
      const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc,job,talkId:'town',place:p,kind,said:0});
      const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
-     if(job==='Стражник')setHeld(a.o,'R','spear');TOWN.push(a);}}}
+     if(job==='Стражник')setHeld(a.o,'R','spear');a.workAct={'Стражник':'guard','Торговец':'sell','Купчиха':'sell','Глашатай':'chat1','Пахарь':'field','Крестьянка':'field','Торфяник':'field','Каменотёс':'chop','Десятник':'chat1'}[job]||'chat1';TOWN.push(a);}}}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
 {const near=(type,from)=>GEN.places.filter(q=>q.type===type).sort((x,y)=>Math.hypot(x.x-from.x,x.z-from.z)-Math.hypot(y.x-from.x,y.z-from.z))[0];
@@ -122,17 +122,41 @@ function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a
     a.face={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2}[a.role]??a.face;}}
 function leaveTavern(a){a.act=null;a.seat=null;a.where='going';goTo(a,[TAV.exit[0],TAV.exit[1]-1],()=>{appear(a,DOOR(0));a.where='out';});}
 // work and leisure motions, called from idleLife when a villager stands still
+// Work motions use the whole body: both arms, the forearms, a lean of the trunk and bent knees, in a rhythm
+// with a quick working stroke and a slower recovery. armL/foreL is the hand that holds the tool.
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
 function workPose(a,r,b,t){const p=a.ph,k=t+p;switch(a.act){
-  case 'fish1':case 'fish2':r.armL.rotation.set(-.9+Math.sin(k*.8)*.08,0,.1);break;
-  case 'chop':{const c=(k*.9)%1,up=c<.55?c/.55:1-(c-.55)/.45;r.armL.rotation.set(-.2-2.2*up,0,-.2);b.rotation.x=.25*up;if(c<a.ck&&!room&&man(a,H0)<9)sfx('chopw');a.ck=c;break;}
-  case 'sweep':r.armL.rotation.set(-.5,0,Math.sin(k*2.4)*.45);b.rotation.y=Math.sin(k*2.4)*.15;break;
-  case 'field':{const c=(k*.7)%1;r.armL.rotation.set(-.4-1.3*Math.sin(c*Math.PI),0,0);b.rotation.x=.3*Math.sin(c*Math.PI);break;}
-  case 'sell':r.armR.rotation.set(-.4-Math.max(0,Math.sin(k*1.3))*.9,0,-.3);r.head.rotation.y=Math.sin(k*.6)*.6;break;
-  case 'chat1':case 'chat2':r.armR.rotation.set(-.5-Math.max(0,Math.sin(k*2.1))*.6,0,-.2);r.head.rotation.x=Math.sin(k*1.7)*.12;break;
-  case 'sit':a.crouch=.16;r.legL.rotation.x=-1.3;r.legR.rotation.x=-1.3;r.head.rotation.y=Math.sin(k*.5)*.4;break;
-  case 'drinkstand':r.armL.rotation.set(-.4-Math.max(0,Math.sin(k*.9))*1.4,0,.2);r.head.rotation.x=-Math.max(0,Math.sin(k*.9))*.3;break;
-  case 'drink':a.crouch=.16;r.legL.rotation.x=-1.3;r.legR.rotation.x=-1.3;r.armL.rotation.set(-.6-Math.max(0,Math.sin(k*.9))*1.3,0,.2);break;}}
-
+  case 'fish1':case 'fish2':{ // rod held out in both hands, the tip bobbing; now and then a sharp tug
+    const tug=Math.max(0,Math.sin(k*.45))>.97?1:0,bob=Math.sin(k*1.6)*.05;
+    r.armL.rotation.set(-1.05+bob-tug*.5,0,.18);r.foreL.rotation.set(-.35-tug*.3,0,0);r.armR.rotation.set(-.85+bob,0,-.25);r.foreR.rotation.set(-.6,0,0);
+    b.rotation.x=.06;r.head.rotation.x=.18;break;}
+  case 'chop':{ // both hands lift the axe overhead, a fast stroke down, the body follows through and knees give
+    const c=(k*.75)%1,up=c<.6?ease(c/.6):1-ease((c-.6)/.4*1.8>1?1:(c-.6)/.4*1.8);
+    for(const[arm,fore,z]of[[r.armL,r.foreL,-.12],[r.armR,r.foreR,.12]]){arm.rotation.set(-.35-2.25*up,0,z);fore.rotation.set(-.2-.5*up,0,0);}
+    b.rotation.x=.32*(1-up);a.crouch=.05*(1-up);if(c<a.ck&&up<.2&&!room&&man(a,H0)<9)sfx('chopw');a.ck=c;break;}
+  case 'sweep':{ // broom low in both hands, long strokes left and right, shoulders turning with them
+    const sw=Math.sin(k*2.2);r.armL.rotation.set(-.55,0,sw*.35);r.armR.rotation.set(-.75,0,sw*.35-.1);r.foreL.rotation.set(-.3,0,0);r.foreR.rotation.set(-.5,0,0);
+    b.rotation.y=sw*.22;b.rotation.x=.18;r.head.rotation.x=.25;break;}
+  case 'field':{ // the hoe rises in both hands and bites the ground; the worker bends low on each stroke
+    const c=(k*.6)%1,up=c<.55?ease(c/.55):1-ease(Math.min(1,(c-.55)/.25));
+    for(const[arm,fore]of[[r.armL,r.foreL],[r.armR,r.foreR]]){arm.rotation.set(-.3-1.6*up,0,0);fore.rotation.set(-.3-.4*up,0,0);}
+    b.rotation.x=.38*(1-up)+.08;a.crouch=.06*(1-up);break;}
+  case 'sell':{ // calls to passers-by: one hand waves the goods, the other rests on the stall, weight shifting
+    const w=Math.max(0,Math.sin(k*1.1));r.armR.rotation.set(-.5-w*1.2,0,-.3);r.foreR.rotation.set(-.6-w*.5,0,0);r.armL.rotation.set(-.45,0,.15);r.foreL.rotation.set(-.9,0,0);
+    r.head.rotation.y=Math.sin(k*.5)*.5;b.rotation.z=Math.sin(k*.4)*.04;break;}
+  case 'chat1':case 'chat2':{ // talking with hands: alternate gestures, nods and a shift of weight
+    const g1=Math.max(0,Math.sin(k*1.7)),g2=Math.max(0,Math.sin(k*1.7+2.4));r.armR.rotation.set(-.3-g1*.8,0,-.2);r.foreR.rotation.set(-.5-g1*.7,0,0);
+    r.armL.rotation.set(-.2-g2*.6,0,.2);r.foreL.rotation.set(-.4-g2*.6,0,0);r.head.rotation.x=Math.sin(k*2.3)*.1;r.head.rotation.y=Math.sin(k*.7)*.2;b.rotation.z=Math.sin(k*.5)*.035;break;}
+  case 'guard':{ // a guard stands straight, spear upright at his side, and looks the street up and down
+    r.armL.rotation.set(-.25,0,.05);r.foreL.rotation.set(-.6,0,0);r.armR.rotation.set(0,0,-.08);r.head.rotation.y=Math.sin(k*.35)*.8;break;}
+  case 'sit':{ // seated, forearms on the knees; now and then a sip from the mug
+    a.crouch=.16;r.legL.rotation.x=-1.35;r.legR.rotation.x=-1.35;const sip=Math.max(0,Math.sin(k*.7))>.85?1:0;
+    r.armL.rotation.set(-.75-sip*.9,0,.15);r.foreL.rotation.set(-.6-sip*1.2,0,0);r.armR.rotation.set(-.7,0,-.15);r.foreR.rotation.set(-.5,0,0);
+    r.head.rotation.x=-sip*.3;r.head.rotation.y=sip?0:Math.sin(k*.5)*.4;break;}
+  case 'drinkstand':{ // standing with a mug: lift, bend the elbow, tip the head back, lower it slowly
+    const c=(k*.35)%1,up=c<.25?ease(c/.25):c<.45?1:1-ease(Math.min(1,(c-.45)/.3));
+    r.armL.rotation.set(-.35-1.05*up,0,.2);r.foreL.rotation.set(-.4-1.3*up,0,0);r.armR.rotation.set(-.1,0,-.1);r.head.rotation.x=-up*.35;b.rotation.x=-up*.05;break;}
+  case 'drink':a.act='sit';break;}}
 // ---------- talk bubbles ----------
 const bubbles=[];let lastLine='';
 function speak(a,text){if(!a.o.visible)return;const el=document.createElement('div');el.className='bark';el.textContent=text;stage.append(el);bubbles.push({a,el,t:performance.now()});a.barkT=performance.now();}
