@@ -292,8 +292,8 @@ function questUI(){if(tutUI())return;
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
-function questKill(e){for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
-function reward(q,items,line,who){q.state=3;{const k=Object.keys(Q).find(k=>Q[k]===q);if(QUEST_GOLD[k])setTimeout(()=>addGold(QUEST_GOLD[k],'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
+function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===e.name&&q.left>0){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
+function reward(q,items,line,who){q.state=3;repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);if(QUEST_GOLD[k])setTimeout(()=>addGold(QUEST_GOLD[k],'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
@@ -305,19 +305,20 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
     if(a.talkId==='fisher'&&!TUT.flags.olav){TUT.flags.olav=1;window.handsGive([['fish',1]],'Подарок');return say(n,'Добро пожаловать на Хельгу! Я Олав. Будь другом, отнеси эту рыбу Браму в таверну — он ждёт с утра. Деревня прямо по дороге.');}
     if(a.talkId==='bram'&&s===5){if(window.handsCount('fish'))window.handsConsume('fish');TUT.flags.bram=1;window.handsGive([['bread',1]],'Спасибо');
       return say(n,'Рыба от Олава? Вот спасибо! Слушай, раз уж ты здесь: в амбаре через площадь завелась крыса размером с собаку. Прогонишь — расскажу, что творится на острове.');}
-    if(a.talkId==='bram'&&s===7){TUT.flags.bram2=1;window.handsGive([['potion',1]],'Награда');
+    if(a.talkId==='bram'&&s===7){TUT.flags.bram2=1;repAdd('village',1);window.handsGive([['potion',1]],'Награда');
       return say(n,'Крыса удрала? Значит, рука у тебя крепкая. А теперь о главном: по ночам из руин часовни встают мертвецы. Поговори со мной ещё раз, когда будешь готов.');}
     if(a.talkId==='bram')return say(n,s<5?'Заходи, путник! Кружка эля найдётся.':'Крыса в амбаре, через площадь. Не бойся, она больше шумит, чем кусает.');}
   if(a.talkId==='herb'&&Q.herb.state<3)return herbTalk(n);
   if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
     if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
     if(q.state===1)return say(n,'Жаровня в руинах всё ещё холодная. Факел — в моём ящике с припасами.');
-    if(q.state===2){q.state=3;window.handsGive([['potion',2],['sword_rune',1]],'Награда');questUI();banner('Пролог пройден');
+    if(q.state===2){q.state=3;window.handsGive([['potion',2],['sword_rune',1]],'Награда');questUI();banner('Пролог пройден');repAdd('village',2,'огонь часовни');
+      if(ART.fate==='kept')return say(n,'Огонь горит, но слабее, чем в старые времена… Что ж, мёртвые спят, и это главное. Держи, ты заслужил.');
       return say(n,'Огонь часовни виден даже отсюда! Хельга снова под защитой. Ты сделал больше, чем мы смели просить. Остров твой дом, путник — заходи, когда захочешь.');}
     return say(n,'Огонь горит. Мёртвые спят. Выпей со мной, герой.');}
-  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2]]);
-  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери.','Мельница снова мелет спокойно.',[['bread',3]]);
-  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани.','Море спокойно, рыба идёт.',[['potion',1],['bread',1]]);
+  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил — эту булаву освятили ещё в часовне.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2],['mace_saint',1]]);
+  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
+  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
@@ -339,7 +340,7 @@ function step(a,dt){if(!a.route)return 0;const[nx,nz]=a.route[0];
   if(dd<.05){a.x=nx;a.z=nz;a.px=tx;a.pz=tz;a.route.shift();if(!a.route.length){a.route=null;if(a.arrive){const f=a.arrive;a.arrive=null;f();}}return 0;}const s=Math.min(dd,dt*a.spd);a.px+=dx/dd*s;a.pz+=dz/dd*s;return 1;}
 // can this enemy see the hero? a cone in front, shorter while sneaking; very close and loud always counts
 function sees(e){if(room||H0.dead)return false;const dx=H0.px-e.px,dz=H0.pz-e.pz,dist=Math.hypot(dx,dz);
-  if(dist>(H0.sneak?3.6*(HERO.sneakK||1):6.5)*(1-(HERO.night?.5:.25)*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
+  if(dist>(H0.sneak?3.6*(HERO.sneakK||1):6.5)*(e.model==='bandit'&&repLevel('bandits')===0?1.3:1)*(1-(HERO.night?.5:.25)*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
 function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e.checked=false;return false;}
   // a goblin slips away once per rest: five seconds unseen and already crouching
   const spotted=()=>{if(RACES[HERO.race]?.slip&&SP.slip){SP.slip=0;e.slipUntil=performance.now()+5000;H0.sneak=true;H0.spd=1.3;floatText('Ускользнул!','#9fe0a0',hero);toast('Гоблин успел скрыться — '+e.name+' вас не заметил. Вы крадётесь.');e.checked=true;return false;}return true;};
@@ -421,10 +422,10 @@ const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
   q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.map(l=>l.taken?1:0),rocks:[...usedRocks],
-  herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,items:window.handsItems?window.handsItems():null}))}catch(e){}}
+  herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
-  ecoLoad(d.eco);
+  ecoLoad(d.eco);legendLoad(d.leg);
   for(const [nm,k] of d.met||[]){const v=V.find(v=>v.npc===nm);if(v)v.met=k;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   const cs=interact.filter(i=>i.chest);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});

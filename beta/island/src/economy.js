@@ -3,9 +3,11 @@
 // the same things for other islands; the code below only runs them.
 // Prices: what a shop asks; it pays back two fifths. Weapons are priced by their numbers.
 const PRICE={potion:14,bread:3,fish:5,herb:4,stone:1,flour:6,torch:3};
-const priceOf=id=>{const w=WEAPONS[id];if(w){if(w.kind==='shield')return 18+(id==='shield'?0:6);return Math.round(w.die*3+(w.hb||0)*6+(w.db||0)*5+(w.two?4:0)+(w.spark?8:0));}return PRICE[id]||2;};
+const priceOf=id=>{const w=WEAPONS[id];if(w){const k=RARITY[rarityOf(id)].k;if(w.kind==='shield')return (18+(id==='shield'?0:6))*k;return Math.round(w.die*3+(w.hb||0)*6+(w.db||0)*5+(w.two?4:0)+(w.spark?8:0))*k;}return PRICE[id]||2;};
+// a unique item is not for sale at any price
+const sellable=id=>rarityOf(id)!=='unique';
 // the island's state moves prices: bread is dear while bandits rob the mill, fish while wolves tear the nets
-function priceNow(id,buying){let p=priceOf(id);const tr=typeof HERO!=='undefined'&&HERO.trade;if(id==='bread'&&Q.band.state!==3)p=Math.ceil(p*1.5);if(id==='fish'&&Q.wolf.state!==3)p=Math.ceil(p*1.4);return buying?Math.max(1,Math.round(p*(tr?.8:1))):Math.max(1,Math.floor(p*.4*(tr?1.25:1)));}
+function priceNow(id,buying){let p=priceOf(id);const tr=typeof HERO!=='undefined'&&HERO.trade;if(id==='bread'&&Q.band.state!==3)p=Math.ceil(p*1.5);if(id==='fish'&&Q.wolf.state!==3)p=Math.ceil(p*1.4);const rk=typeof repPriceK==='function'?repPriceK():1;return buying?Math.max(1,Math.round(p*(tr?.8:1)*rk)):Math.max(1,Math.floor(p*.4*(tr?1.25:1)/rk));}
 // shops: who trades, what they sell, what they buy and how much coin they hold
 const SHOPS={
   'Торговка Марта':{title:'Лавка Марты',sells:['bread','fish','stone','torch'],buys:['fish','herb','bread','stone','flour'],coin:80,line:'Что берёшь, милый? У меня всё свежее.'},
@@ -43,7 +45,7 @@ setInterval(()=>{if(!paused)ecoTick();else ecoLast=performance.now();},250);
 const shopEl=document.getElementById('shop');let shopOf=null;
 function shopWares(S){return S.sells.filter(id=>ITEMS_OK(id));}
 const ITEMS_OK=id=>!!(window.handsItemName&&(()=>{try{return window.handsItemName(id)}catch(e){return null}})());
-const buysIt=(S,id)=>S.buys==='weapons'?!!WEAPONS[id]:S.buys.includes(id);
+const buysIt=(S,id)=>sellable(id)&&(S.buys==='weapons'?!!WEAPONS[id]:S.buys.includes(id));
 function openShop(a){const S=SHOPS[a.npc];if(!S)return;shopOf=a;S.left=S.left??S.coin;sfx('click');shopEl.hidden=false;paused=true;renderShop();}
 function closeShop(){shopEl.hidden=true;shopOf=null;paused=false;}
 function renderShop(){const a=shopOf,S=SHOPS[a.npc];shopEl.querySelector('h2').textContent=S.title;shopEl.querySelector('.sh-line').textContent=S.line;
@@ -71,10 +73,10 @@ function jobOffer(a){const j=jobsOf(a).find(j=>JOB[j.id].state>0)||jobsOf(a)[0];
 function jobStart(j){const st=JOB[j.id];st.state=1;st.step=0;if(j.kind==='deliver'&&!window.handsAdd(j.item,1)){st.state=0;return toast('Освободите руки или сумку для груза.');}
   if(j.kind==='work'||j.kind==='fetch')st.spot=spotOf(j);questUI();toast('Подработка: '+j.title);jobMarkers();}
 function jobPay(j){const st=JOB[j.id];if(j.kind==='fetch'){for(let i=0;i<j.n;i++)window.handsConsume(j.item);}st.state=0;st.day=dayN;st.step=0;
-  say(j.giver,j.done);addGold(jobPayFor(j),j.title);questUI();jobMarkers();}
+  say(j.giver,j.done);addGold(jobPayFor(j),j.title);repJob();questUI();jobMarkers();}
 // deliveries finish at the receiver; other kinds come back to the giver
 function jobDeliverTo(a){const j=JOBS.find(j=>j.kind==='deliver'&&j.to===a.npc&&JOB[j.id].state===1&&window.handsCount(j.item)>0);if(!j)return false;
-  window.handsConsume(j.item);const st=JOB[j.id];st.state=0;st.day=dayN;say(a.npc,'Мука от Тодора? Вот спасибо. Тодор велел заплатить тебе.');addGold(jobPayFor(j),j.title);questUI();return true;}
+  window.handsConsume(j.item);const st=JOB[j.id];st.state=0;st.day=dayN;say(a.npc,'Мука от Тодора? Вот спасибо. Тодор велел заплатить тебе.');addGold(jobPayFor(j),j.title);repJob();questUI();return true;}
 // working at a spot: stand on the ring and the hero gets on with it
 let workT=0,workJob=null;const barEl=document.getElementById('workbar');
 function jobTick(dt){for(const j of JOBS){const st=JOB[j.id];if(st.state!==1)continue;

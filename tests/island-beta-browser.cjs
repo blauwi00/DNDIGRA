@@ -187,6 +187,26 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
     });
     assert.deepEqual(peoples, []);
 
+    step('items and standing: rarity, the chapel heart, reputation and the three-power limit');
+    const legend = await p.evaluate(() => {
+      const bad = [], R = (id) => rarityOf(id);
+      if (R('sword') !== 'common' || R('sword_long') !== 'uncommon' || R('dagger_fang') !== 'rare' || R('sword_rune') !== 'legendary' || R('heart') !== 'unique') bad.push('rarity');
+      if (!(priceNow('dagger_fang', true) > priceNow('dagger', true) * 2)) bad.push('rare price');
+      if (buysIt(SHOPS['Кузнец Горан'], 'heart')) bad.push('unique for sale');
+      for (const id of ['dagger_fang', 'shield_watch', 'mace_saint', 'sword_rune', 'heart']) if (!ruleOf(id)) bad.push('no rule ' + id);
+      const r0 = {...REP}, a0 = {fate: ART.fate, powers: ART.powers.slice()};
+      REP.village = 0; if (repName('village') !== 'чужак' || repPriceK() !== 1) bad.push('start standing');
+      REP.village = -3; if (repName('village') !== 'враг' || !(repPriceK() > 1)) bad.push('enemy prices');
+      REP.village = 9; if (repName('village') !== 'герой' || !(repPriceK() < 1)) bad.push('hero prices');
+      REP.village = 0; ART.fate = null; ART.powers = []; artifactPick('left'); if (repName('village') !== 'знакомый') bad.push('left ' + REP.village);
+      REP.village = 0; ART.fate = null; artifactPick('absorbed'); if (!ART.powers.includes('flamestep') || uniqueCount() !== 1) bad.push('absorb');
+      ART.powers = ['a', 'b', 'c']; ART.fate = null; artifactChoice(); const labels = [...document.querySelectorAll('.talk button')].map((b) => b.textContent);
+      if (labels.includes('Поглотить') || labels.includes('Забрать себе') || !labels.includes('Разбить')) bad.push('limit ' + labels);
+      Object.assign(REP, r0); ART.fate = a0.fate; ART.powers = a0.powers; document.querySelector('.talk').hidden = true;
+      return bad;
+    });
+    assert.deepEqual(legend, []);
+
     step('kits: every class and kit has attacks');
     const kits = await p.evaluate(() => {
       const bad = [];

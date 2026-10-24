@@ -101,6 +101,7 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
 // Held item meshes, built around the grip point of a hand (0,0,0 = fist).
 const IM=c=>new THREE.MeshLambertMaterial({color:c});
 const HELD={
+  heart:[[0,.07,.02,.13,.13,.13,0xff6a2a,1],[0,.07,.02,.08,.17,.08,0xffd36b,1],[0,.07,.02,.17,.08,.08,0xc8401a,1]],
   torch:[[0,.12,0,.05,.4,.05,0x6a4426],[0,.35,0,.09,.09,.09,0xff9a2a,1],[0,.41,0,.05,.07,.05,0xffd36b,1]],
   potion:[[0,.05,.04,.13,.15,.13,0xd23a30],[0,.15,.04,.06,.06,.06,0xe8c27a]],
   bread:[[0,.03,.05,.22,.1,.13,0xd6a95a]],

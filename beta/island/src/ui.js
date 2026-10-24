@@ -92,6 +92,7 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HER
   ab(R.might&&f,'Сила великана',SP.might?'бонус · +1к8 к удару':'нужен отдых',fightBonus&&SP.might>0&&!CB.might,()=>bonus(giantMight));
   ab(R.mend,'Живая ткань',SP.mend?(f?'бонус · ':'')+'2к4+2':'нужен отдых',SP.mend>0&&!full&&bOk,()=>bonus(livingMend));
   ab(R.shellUp&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
+  legendWheel(items,f,ht,bonus,bOk);
   if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
   showWheel(H0,items,H0.name+' · '+HERO.n);}
 const usedRocks=new Set();
@@ -115,12 +116,13 @@ function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.
     {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',herb:'Пахнет мятой и чем-то горьким.'})[R.type],4000)}],R.name);}
 // chapel brazier: look at it, and relight it with a torch in hand
 {const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,
-  action:()=>chapel.lit?null:{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
+  action:()=>chapel.lit?(ART.fate?null:{icon:'special',label:'Сердце огня',sub:'решить его судьбу',ok:!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,artifactChoice)}):{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
   looks.push(L);ms.forEach(m=>m.userData.look=L);}
 function hasTorch(){const h=hero.userData.held||{};return h.L==='torch'||h.R==='torch';}
 async function lightChapel(){if(chapel.lit)return;heroPose('open',900);await wait(500);sfx('spell');setChapel(true);shake=.25;
   banner('Огонь часовни горит');note('Жаровня часовни','Пламя вспыхивает белым, потом золотым. Над руинами разносится тихий звон — будто колокол, которого здесь давно нет.');
-  if(Q.fire.state===1){Q.fire.state=2;questUI();}else if(Q.fire.state===0)Q.fire.state=2;}
+  if(Q.fire.state===1){Q.fire.state=2;questUI();}else if(Q.fire.state===0)Q.fire.state=2;
+  setTimeout(artifactChoice,1600);}
 for(const [ms,n,t,loot] of OUT){const L={n,t,loot,meshes:ms};looks.push(L);ms.forEach(m=>m.userData.look=L);}
 // the tutorial stones lie in the open: nothing tall within two cells, so they are seen from every side
 {const tall=new Set([...treeCells,...bushCells].map(([x,z])=>x+','+z)),clear=(x,z)=>{for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){const k=(x+dx)+','+(z+dz);if(tall.has(k)||(Math.abs(dx)+Math.abs(dz)<=2&&solid.has(k)))return false;}return free(x,z);};
@@ -177,8 +179,11 @@ document.getElementById('pResume').onclick=()=>screen(null);
 document.getElementById('pMain').onclick=()=>{save();mainMenu();};
 document.getElementById('pSettings').onclick=()=>{sfx('click');openSettings();};
 function renderSheet(){const h=HERO,el=document.getElementById('sheet');
-  el.innerHTML='<b></b><span>'+h.n+' · здоровье '+Math.max(0,H0.hp)+' / '+H0.max+' · КД '+heroAC()+'</span><span>Ближний бой +'+h.melee+' · стрельба +'+h.ranged+' · магия +'+h.spell+'</span><span>Скрытность +'+h.stealth+' · Атлетика +'+h.athletics+'</span><small></small>';
-  el.querySelector('b').textContent=H0.name;el.querySelector('small').textContent=h.about;}
+  el.innerHTML='<b></b><span>'+h.n+' · здоровье '+Math.max(0,H0.hp)+' / '+H0.max+' · КД '+heroAC()+'</span><span>Ближний бой +'+h.melee+' · стрельба +'+h.ranged+' · магия +'+h.spell+'</span><span>Скрытность +'+h.stealth+' · Атлетика +'+h.athletics+'</span><span class="rep"></span><span class="uniq"></span><small></small>';
+  el.querySelector('b').textContent=H0.name;el.querySelector('small').textContent=h.about;
+  el.querySelector('.rep').textContent='Репутация: '+Object.keys(FACTIONS).map(f=>FACTIONS[f]+' — '+repName(f)).join(' · ');
+  const u=[...(window.handsCount&&window.handsCount('heart')?['Пламенное сердце']:[]),...ART.powers.map(p=>p==='flamestep'?'Шаг пламени':p)];
+  el.querySelector('.uniq').textContent='Особые силы '+uniqueCount()+' / '+UNIQUE_MAX+(u.length?': '+u.join(', '):'');}
 
 // ---------- explored land, the island map and the quest pointer ----------
 const MAPH=60,seen=new Uint8Array(W*MAPH);

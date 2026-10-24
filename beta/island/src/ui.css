@@ -370,3 +370,9 @@ body.invopen .quest{opacity:0!important;pointer-events:none!important}
 .hc-kits.need button{box-shadow:inset 0 0 0 2px #c8902a}
 .hc-kits.pulse{animation:kitPulse .9s ease 2}@keyframes kitPulse{50%{filter:brightness(1.5)}}
 .hc-kit-info.need{color:#f2c14e}
+/* item rarity: a coloured frame inside the slot (common items have none) */
+.slot.rar{box-shadow:inset 0 0 0 2px var(--rar),inset 0 0 8px color-mix(in srgb,var(--rar) 45%,transparent)}
+.slot.rar.sel{box-shadow:inset 0 0 0 2px #f2c14e,inset 0 0 0 4px var(--rar),0 0 10px #f2c14e88}
+#sheet .rep,#sheet .uniq{color:#d8c8a0}
+/* while someone is talking the bag stays shut, so the dialog never covers it */
+body:has(.talk:not([hidden])) .inv{display:none!important}

@@ -22,6 +22,8 @@
  ITEMS.flour={n:'Мешок муки',max:1,d:'Тодор просил отнести Браму'};
  ICON.flour=['................','.....kkkkk......','....kyeeeyk.....','....kkyyykk.....','...keeeeeeek....','..keeeeeeeeek...','..keeeYeeeeek...','..keeYYYeeeek...','..keeeYeeeeek...','..keeeeeeeeek...','..kYeeeeeeeYk...','...kYYYYYYYk....','....kkkkkkk.....','................','................','................'];
  for(const k in WEAPONS){const V=WEAPONS[k];ITEMS[k]={n:V.n,max:1,two:V.two||0,d:V.d};}
+ for(const k in SPECIAL)ITEMS[k]={n:SPECIAL[k].n,max:SPECIAL[k].max,d:SPECIAL[k].d};
+ ICON.heart=['................','......kkkk......','....kkFffFkk....','...kFfffffFFk...','...kFffeefFFk...','..kFffeeeefFFk..','..kFfffeefFFRk..','..kRFfffffFRRk..','...kRFFfFFRRk...','....kRRFFRRk....','.....kRRRRk.....','......kRRk......','.......kk.......','................','................','................'];
  function icon(c,id){c.width=c.height=16;const x=c.getContext('2d');x.clearRect(0,0,16,16);if(!id)return c;
   const V=WEAPONS[id],P=V&&V.pal?Object.assign({},PAL,V.pal):PAL,shape=ICON[id]||(V&&WICON[V.icon])||ICON[V?Object.keys(WEAPONS).find(k=>WEAPONS[k].kind===V.kind&&ICON[k]):id];
   shape.forEach((row,j)=>[...row].forEach((ch,i)=>{if(P[ch]){x.fillStyle=P[ch];x.fillRect(i,j,1,1);}}));return c;}
@@ -63,11 +65,12 @@
 
  // ---------- drawing slots ----------
  function slotEl(k,i){const x=S(k)[i],b=document.createElement('button');b.className='slot'+(sel&&sel.k===k&&sel.i===i?' sel':'')+(x?'':' empty');b.dataset.k=k;b.dataset.i=i;
-   if(x){b.append(icon(document.createElement('canvas'),x.id));if(x.n>1){const c=document.createElement('small');c.textContent=x.n;b.append(c);}b.setAttribute('aria-label',ITEMS[x.id].n+(x.n>1?' ×'+x.n:''));}
+   if(x){b.append(icon(document.createElement('canvas'),x.id));if(x.n>1){const c=document.createElement('small');c.textContent=x.n;b.append(c);}b.setAttribute('aria-label',ITEMS[x.id].n+(x.n>1?' ×'+x.n:''));const r=rarityOf(x.id);if(r!=='common'){b.classList.add('rar');b.style.setProperty('--rar',RARITY[r].c);}}
    else b.setAttribute('aria-label','пусто');
    const lock=(k==='L'||k==='R')&&!x&&isTwo(hand(k==='L'?'R':'L'));if(lock){b.classList.add('lock');b.append(icon(document.createElement('canvas'),hand(k==='L'?'R':'L').id));}
    b.onpointerdown=e=>dragStart(e,k,i);return b;}
- function describe(k,i,el){const x=S(k)[i];if(el)el.textContent=x?ITEMS[x.id].n+(x.n>1?' ×'+x.n:'')+' — '+ITEMS[x.id].d:'';}
+ function describe(k,i,el){const x=S(k)[i];if(!el)return;if(!x){el.textContent='';return;}const r=rarityOf(x.id),rule=ruleOf(x.id);
+   el.textContent=ITEMS[x.id].n+(x.n>1?' ×'+x.n:'')+(r!=='common'?' · '+RARITY[r].n:'')+' — '+ITEMS[x.id].d+(rule?'. '+rule:'');}
  function render(){for(const s of ['L','R']){const o=s==='L'?'R':'L',lock=!hand(s)&&isTwo(hand(o));
    const palm=document.getElementById('palm'+s),inv=document.getElementById('inv'+s);palm.classList.toggle('open',st.open===s);palm.style.opacity=lock?.8:1;
    const h=hand(s)||(lock?hand(o):null);const hc=document.getElementById('held'+s);icon(hc,h&&h.id);hc.classList.toggle('empty',!h);hc.dataset.n=h&&h.n>1?h.n:'';palm.classList.toggle('holding',!!h);

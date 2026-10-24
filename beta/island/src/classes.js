@@ -46,7 +46,7 @@ const CLASS_ORDER=['fighter','barbarian','paladin','monk','ranger','rogue','bard
 for(const k in CLASSES)CLASSES[k].start=[CLASSES[k].kits[0].L,CLASSES[k].kits[0].R];
 let HERO=Object.assign({cls:'fighter'},CLASSES.fighter);
 // per-rest uses; refilled by entering any house
-const SP={};const rest=()=>Object.assign(SP,{wind:1,missiles:2,word:2,rage:2,inspire:2,smite:2,flurry:2,hands:1,entangle:1,breath:1,wave:1,scream:1,might:1,mend:1,echo:1,shellUp:1,stone:1,relentless:1,rebuke:1,slip:1,frag:1});rest();
+const SP={};const rest=()=>Object.assign(SP,{wind:1,missiles:2,word:2,rage:2,inspire:2,smite:2,flurry:2,hands:1,entangle:1,breath:1,storm:1,step:1,wave:1,scream:1,might:1,mend:1,echo:1,shellUp:1,stone:1,relentless:1,rebuke:1,slip:1,frag:1});rest();
 const WEAP={torch:{n:'Факел',die:4,hb:-1,db:0,reach:1,kind:'torch'}};
 const wpn=id=>WEAPONS[id]||WEAP[id];
 // attack options: weapons in hand, then the class's cantrips

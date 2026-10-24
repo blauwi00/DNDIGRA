@@ -56,6 +56,20 @@ WV('shield','shield','Щит',{ac:2,d:'+2 к защите',m:{shape:'heater',fac
 WV('shield_round','shield','Круглый щит',{ac:2,d:'дубовые доски и железный обод, +2 к защите',m:{shape:'round',face:0x8a5a2e,rim:MT.iron},icon:'roundshield'});
 WV('shield_kite','shield','Каплевидный щит',{ac:2,d:'рыцарский, со знаком острова, +2 к защите',m:{shape:'kite',face:0xe6dcc4,rim:MT.steel,sign:0x8e2a24},
   pal:{o:'#e6dcc4',O:'#a89a80',d:'#c8ced6',g:'#a8302a'},icon:'kiteshield'});
+// ---------- rarity (owner decision 2026-10-24, docs/ITEMS.md) ----------
+// common: plain gear; uncommon: a craftsman's +1; rare: one rule of its own, from quests and dangerous places;
+// legendary: a strong rule, one or two per world; unique: the only one in the universe, born of an artifact
+const RARITY={common:{n:'Обычный',c:'#b8ab92',k:1},uncommon:{n:'Необычный',c:'#6ad06a',k:1},rare:{n:'Редкий',c:'#5aa8ff',k:3},legendary:{n:'Легендарный',c:'#ffa03a',k:6},unique:{n:'Единственный',c:'#ff5a7a',k:0}};
+WV('dagger_fang','dagger','Клык вожака',{die:4,rar:'rare',first:1,rule:'Первая атака в каждом бою — с преимуществом.',d:'клык волчьего вожака на костяной рукояти, 1к4',
+  m:{len:.24,w:.055,blade:MT.bone,edge:0xfaf4e2,fuller:MT.boneD,guard:'none',grip:MT.wrap,curve:.06},pal:{s:'#efe6cc',S:'#b0a07a',g:'#7a6a4a',G:'#4a3e2a'},icon:'knife'});
+WV('shield_watch','shield','Щит дозора Заводи',{ac:2,rar:'rare',block:1,rule:'Раз за бой удар по вам не наносит урона.',d:'щит старого дозора, +2 к защите',
+  m:{shape:'kite',face:0x2c4a6a,rim:MT.gold,sign:0xe8c27a},pal:{o:'#2c4a6a',O:'#1a3048',d:'#d8b04a',g:'#e8c27a'},icon:'kiteshield'});
+WV('mace_saint','mace','Булава упокоения',{die:6,rar:'rare',vs:['Скелет',8],rule:'По нежити +1к8 урона.',d:'освящённая булава часовни, 1к6',m:{head:'flanged'},pal:{S:'#d8d0b0',s:'#f2ecd4'}});
+WEAPONS.sword_rune.rar='legendary';WEAPONS.sword_rune.plus=6;WEAPONS.sword_rune.rule='Руны жгут: каждое попадание +1к6 урона.';
+// a story item that became the only one of its kind; not a weapon, held in the hand
+const SPECIAL={heart:{n:'Пламенное сердце',rar:'unique',max:1,d:'сердце огня часовни, тёплое, как живое',rule:'В руке: Огненная буря (действие, раз до отдыха) — 3к6 огня всем врагам в 2 клетках; спасбросок Ловкости — половина.'}};
+const rarityOf=id=>{const W=WEAPONS[id];if(W)return W.rar||((W.hb||0)+(W.db||0)>0?'uncommon':'common');return SPECIAL[id]?.rar||'common';};
+const ruleOf=id=>(WEAPONS[id]||SPECIAL[id]||{}).rule||'';
 const kindOf=id=>id&&WEAPONS[id]?WEAPONS[id].kind:id;
 const isWeapon=id=>!!(id&&WEAPONS[id]);
 
