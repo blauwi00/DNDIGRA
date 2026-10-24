@@ -434,10 +434,14 @@ function zoneCheck(){if(room)return;const z=ZONES.find(([k,,r])=>nearZone(H0.x,H
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w/h<1?55:h<460?46:38;camera.updateProjectionMatrix()}
 addEventListener('resize',resize);resize();
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let last=performance.now(),aiT=0;
-function step(a,dt){if(!a.route)return 0;const[nx,nz]=a.route[0];
+function step(a,dt){if(!a.route)return 0;
+  // cut a corner when both side cells are open: two grid steps become one diagonal step
+  if(a.route.length>1){const[n1x,n1z]=a.route[1];if(Math.abs(n1x-a.x)===1&&Math.abs(n1z-a.z)===1&&free(n1x,a.z)&&free(a.x,n1z)&&!occupied(n1x,n1z,a))a.route.shift();}
+  const[nx,nz]=a.route[0];
   if(occupied(nx,nz,a)){ // someone stepped in the way: walk around them to the same destination
     const dest=a.dest,p=dest&&path(a.x,a.z,dest[0],dest[1],a,a.arrive&&!(at(dest[0],dest[1])==='E'),3000);a.route=p&&p.length?p:null;if(!a.route)a.arrive=null;return 0;}const tx=nx+.5,tz=nz+.5,dx=tx-a.px,dz=tz-a.pz,dd=Math.hypot(dx,dz);a.face=Math.atan2(dx,dz);
-  if(dd<.05){a.x=nx;a.z=nz;a.px=tx;a.pz=tz;a.route.shift();if(!a.route.length){a.route=null;if(a.arrive){const f=a.arrive;a.arrive=null;f();}}return 0;}const s=Math.min(dd,dt*a.spd);a.px+=dx/dd*s;a.pz+=dz/dd*s;return 1;}
+  const s=Math.min(dd,dt*a.spd);if(dd>1e-4){a.px+=dx/dd*s;a.pz+=dz/dd*s;}
+  if(dd-s<.05){a.x=nx;a.z=nz;a.px=tx;a.pz=tz;a.route.shift();if(!a.route.length){a.route=null;if(a.arrive){const f=a.arrive;a.arrive=null;f();}}}return 1;}
 // can this enemy see the hero? a cone in front, shorter while sneaking; very close and loud always counts
 function sees(e){if(room||H0.dead)return false;const dx=H0.px-e.px,dz=H0.pz-e.pz,dist=Math.hypot(dx,dz);
   if(dist>(H0.sneak?3.6*(HERO.sneakK||1):6.5)*(e.model==='bandit'&&repLevel('bandits')===0?1.3:1)*(1-(HERO.night?.5:.25)*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
@@ -488,10 +492,14 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
-    const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkT=moving?(a.walkT||0)+dt*a.spd*4.5:0;
-    const o=a.o,b=o.userData.body,walk=a.walkT;const sw=reduce?0:Math.sin(walk),breathe=reduce?0:Math.sin(t*2+a.ph);
-    o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
-    if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
+    // walking eases in and out: the stride keeps its phase and fades over a few frames, so stopping
+    // between two cells or turning never snaps the legs back to standing
+    const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkW=(a.walkW||0)+((moving?1:0)-(a.walkW||0))*Math.min(1,dt*(moving?9:6));
+    if(moving)a.walkT=(a.walkT||0)+dt*a.spd*4.2;
+    const o=a.o,b=o.userData.body,walk=a.walkW>.03?(a.walkT||.001):0;const sw=reduce?0:Math.sin(a.walkT||0)*a.walkW,breathe=reduce?0:Math.sin(t*2+a.ph);
+    a.gy=(a.gy??groundAt(a.px,a.pz))+(groundAt(a.px,a.pz)-(a.gy??0))*Math.min(1,dt*12);o.position.set(a.px+(a.off?a.off[0]:0),a.gy+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
+    // the body turns towards where it goes instead of snapping round
+    if(a!==H0||!H0.dead){let dr=a.face-o.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));o.rotation.y+=dr*Math.min(1,dt*12);}b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r&&r.quad){quadPose(r,walk,sw,t,a.ph);if(!walk&&!a.off&&a.enemy&&!a.inFight)r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+a.ph))*.35;}
     else if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       armPose(o,walk,sw,breathe);
