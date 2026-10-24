@@ -6,7 +6,12 @@ const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
 const focus=new THREE.Vector3(8,0,30);
 let camZoom=1,zoomTarget=1,camFocus=null; // the camera leans in while the hero looks at something
-function placeCam(){const k=camZoom*(window.CAM_SCALE||1);camera.position.set(focus.x,focus.y+8.2*k,focus.z+6.6*k);camera.lookAt(focus)}
+// the camera works as in Don't Starve: pinch or scroll to zoom, and the closer it comes the lower it leans,
+// from nearly top-down far away to a view over the hero's shoulder up close. VIEW 0 = closest, 1 = farthest.
+let VIEW=(()=>{try{const v=parseFloat(localStorage.getItem('helga-view'));return isFinite(v)?Math.min(1,Math.max(0,v)):.45}catch(e){return .45}})(),viewTarget=VIEW;
+function setView(v){viewTarget=Math.min(1,Math.max(0,v));try{localStorage.setItem('helga-view',viewTarget.toFixed(3))}catch(e){}}
+function placeCam(){const k=camZoom*(window.CAM_SCALE||1),d=(6.2+VIEW*9.5)*k,a=.5+VIEW*.55; // 29° when close, 60° when far
+  camera.position.set(focus.x,focus.y+Math.sin(a)*d,focus.z+Math.cos(a)*d);camera.lookAt(focus.x,focus.y+(1-VIEW)*.5,focus.z)}
 const T={p:[0,1,2,3].map(planks),stone:stoneFloor(),grass:grass(),dirt:dirt(),cobble:cobble(),wall:wallStone(),crate:crate(),leaves:leaves(),bark:bark(),water:water(),gside:grassSide(),moss:moss(),blade:blade(),smoke:smokeTex()};
 const sand=tex(32,(g,s)=>{noise(g,s,['#b8a37a','#c2ad84','#ad9870','#bfa97f']);for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#8f7d5c','#d8c79e']))});
 const lam=(map,extra={})=>new THREE.MeshLambertMaterial(Object.assign({map},extra));
@@ -319,7 +324,15 @@ const marker=new THREE.Group();{const ringM=new THREE.MeshBasicMaterial({color:0
 function ripple(p,bad){const m=new THREE.Mesh(new THREE.RingGeometry(.1,.16,20),new THREE.MeshBasicMaterial({color:bad?0xff5a4a:0xffffff,transparent:true,opacity:.9,depthWrite:false}));
   m.rotation.x=-Math.PI/2;m.position.set(p.x,p.y+.03,p.z);m.renderOrder=4;scene.add(m);tween(420,k=>{m.scale.setScalar(1+k*3);m.material.opacity=.9*(1-k)}).then(()=>{scene.remove(m);m.geometry.dispose();});}
 const shown=m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;};
-canvas.addEventListener('pointerdown',e=>{if(!wheelEl.hidden){closeWheel();return;}if(H0.dead||busy||paused)return;const r=canvas.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+// two fingers zoom the view (the first finger's step is cancelled); the mouse wheel does the same
+{const pts=new Map();let pinch=null;
+ canvas.addEventListener('pointerdown',e=>{pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===2){pinch=null;H0.route=null;closeWheel();}},true);
+ canvas.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size!==2)return;const[a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);
+   if(pinch)setView(viewTarget-(d-pinch)/300);pinch=d;});
+ const up=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+ canvas.addEventListener('wheel',e=>{e.preventDefault();setView(viewTarget+(e.deltaY>0?.08:-.08));},{passive:false});
+ window.multiTouch=()=>pts.size>1;}
+canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())return;if(!wheelEl.hidden){closeWheel();return;}if(H0.dead||busy||paused)return;const r=canvas.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   ray.setFromCamera(mv,camera);H0.arrive=null;
   // characters: potion/bread in hand is used on them; enemies are approached and attacked; villagers talk
   for(const a of actors){if(a.dead||!a.o.visible)continue;if(ray.intersectObject(a.o,true).length){tapActor(a);return;}}
@@ -453,7 +466,7 @@ function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=
   if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
 function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/1000;
   for(let i=anims.length-1;i>=0;i--){const a=anims[i],k=Math.min(1,(now-a.t0)/a.ms);a.fn(k<1?1-Math.pow(1-k,2):1);if(k>=1){anims.splice(i,1);a.res()}}
-  camZoom+=(zoomTarget-camZoom)*Math.min(1,dt*3.5);WIND.value=t;
+  camZoom+=(zoomTarget-camZoom)*Math.min(1,dt*3.5);VIEW+=(viewTarget-VIEW)*Math.min(1,dt*8);WIND.value=t;
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}

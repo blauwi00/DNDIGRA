@@ -378,3 +378,4 @@ body.invopen .quest{opacity:0!important;pointer-events:none!important}
 #sheet .rep,#sheet .uniq{color:#d8c8a0}
 /* while someone is talking the bag stays shut, so the dialog never covers it */
 body:has(.talk:not([hidden])) .inv{display:none!important}
+#c{touch-action:none}
