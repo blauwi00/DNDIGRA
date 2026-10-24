@@ -13,7 +13,7 @@ function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   grp.add(heldGroup(id));
   grp.scale.setScalar(1.3);grp.position.set(x,y,z);if(lie!=null)grp.rotation.set(0,lie,Math.PI/2);parent.add(grp);
   const L={n:name,t:text,loot:[[id,n]],meshes:[],item:true,grp};grp.traverse(m=>{if(m.isMesh){L.meshes.push(m);m.userData.look=L;}});looks.push(L);return L;}
-const LOOK={tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70]};
+const LOOK={house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70]};
 function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.group=g;const y=.3;const lk=LOOK[R.type],floorMat=lam(lk[0],{color:lk[1]}),innerWall=lam(lk[2],{color:lk[3]});
   const fl=part(g,floorMat,R.ox+R.iw/2,y/2,R.oz+R.id/2,R.iw-2,y,R.id-2);fl.userData.floor=true;pickable.push(fl);
   const ex=part(g,lam(T.stone),R.exit[0]+.5,y/2,R.exit[1]+.5,1,y,1);ex.userData.floor=true;pickable.push(ex);
@@ -41,7 +41,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);
     part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);I(null);};
   const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
-  const rug=(dx,dz,w,d)=>{I(null);part(g,rugMat,R.ox+dx+w/2,y+.01,R.oz+dz+d/2,w,.02,d);}; // floor decor: taps go through to walking
+  const rug=(dx,dz,w,d)=>{I(null);part(g,rugMat,R.ox+dx+w/2,y+.01,R.oz+dz+d/2,w,.02,d).userData.floor=true;}; // floor decor: taps go through to walking
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
   const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(dx,1,.9,.7,.5,lam(T.wall));part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);torch(R.ox+dx,R.oz+1,true);I(null);};
   // each house has its own trade written into the room
@@ -87,17 +87,36 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     S(2,2,.6,.4,.6,M(0x1e1e22));part(g,glow(0x5adf7a),R.ox+2.5,y+.41,R.oz+2.5,.5,.02,.5); // cauldron
     I('Пучки трав','Мята, полынь, болотный зверобой.');    for(let i=0;i<7;i++)part(g,M([0x5a8a4a,0x7a9a3a,0x8a6a9a][i%3]),R.ox+1.3+i*.55,y+1.55,R.oz+1.1,.12,.28,.06);part(g,lam(T.bark),R.ox+3,y+1.72,R.oz+1.1,4,.04,.04);
     I('Склянки','Пустые пузырьки и банки с мутными настоями.');    part(g,lam(T.p[2]),R.ox+2,y+1.0,R.oz+1.15,1.6,.06,.3);for(let i=0;i<5;i++)if(i!==2)part(g,M([0x6a9ac8,0x9ad07a,0xc87a6a][i%3]),R.ox+1.4+i*.3,y+1.13,R.oz+1.15,.12,.2,.12);I(null);
-    itemProp(g,R.ox+2,y+1.04,R.oz+1.12,'potion',1,'Зелье лечения','Красная склянка с печатью травницы.');itemProp(g,R.ox+4.6,y+.52,R.oz+3.4,'potion',1,'Зелье лечения','Ещё тёплое, пахнет мятой.');}}
-ROOMS.forEach(buildRoom);
+    itemProp(g,R.ox+2,y+1.04,R.oz+1.12,'potion',1,'Зелье лечения','Красная склянка с печатью травницы.');itemProp(g,R.ox+4.6,y+.52,R.oz+3.4,'potion',1,'Зелье лечения','Ещё тёплое, пахнет мятой.');}
+  // houses of the big island: furnished by their size and the wealth of their place (no loot: flavour only)
+  if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
+    if(poor){I('Подстилка','Охапка соломы и латаное одеяло.');part(g,M(0xb8a060),R.ox+1.5,y+.06,R.oz+2,.9,.1,1.6);I('Очаг','Сложен из камней прямо на полу. Дымит.');S(w-2,1,.7,.25,.7,lam(T.wall,{color:0x6a6058}));part(g,glow(0xff8a3a),R.ox+w-1.5,y+.3,R.oz+1.5,.3,.1,.3);
+      I('Ящик','Пара сушёных рыбин и пустой горшок.');S(w-2,d-2,.5,.4,.45,lam(T.crate));I(null);stool(2,d-2);}
+    else{hearth(w-2);bed(1,1);table(2,d-2);stool(1,d-2);candle(2,d-2);barrel(w-2,d-2);
+      shelf(2,Math.min(3,w-4),rich?'Книги в кожаных переплётах и подсвечник.':'Горшки, миски и моток бечёвки.');
+      if(rich){rug(2,2,w-4,d-4);I('Картина','Корабль под парусами на закате. Подписано: «Б.».');part(g,M(0x6a4a2a),R.ox+w/2,y+1.25,R.oz+1.05,1.1,.7,.04);part(g,M(0x4a7aa8),R.ox+w/2,y+1.25,R.oz+1.08,.9,.5,.02);I(null);}}}
+  // the royal castle: a pillared hall with a red carpet to the throne on its dais, banners, long feasting tables,
+  // fireplaces and braziers
+  if(R.type==='castle'){const w=R.iw,d=R.id,cx=Math.floor(w/2);
+    I('Помост','Три ступени из белого камня.');part(g,lam(T.wall,{color:0xc8c0b0}),R.ox+cx,y+.12,R.oz+2.5,8,.24,3);I(null);
+    I('Трон','Высокая спинка с позолотой. Пустует — король принимает только по делу.');S(cx,2,.9,.6,.8,lam(T.p[1],{color:0x8e2a24}));part(g,lam(T.p[1],{color:0x8e2a24}),R.ox+cx+.5,y+1.15,R.oz+1.85,.9,1.4,.15);part(g,M(0xd8b04a),R.ox+cx+.5,y+1.9,R.oz+1.85,.5,.25,.1);I(null);
+    rug(cx-1,4,2,d-6);
+    I('Колонна','Гладкий камень. Наверху вырезаны волны и рыбы — знак острова.');for(let z=4;z<d-2;z+=3)for(const x of[cx-4,cx+3]){S(x,z,.7,2.6,.7,lam(T.wall,{color:0xc0baae}));}I(null);
+    I('Знамя королевства','Красное полотно с золотой рыбой.');for(const x of[3,cx-3,cx+3,w-4])if(x!==cx){part(g,M(0x8e2a24),R.ox+x+.5,y+1.2,R.oz+1.08,.8,1.3,.03);part(g,M(0xd8b04a),R.ox+x+.5,y+1.35,R.oz+1.1,.3,.3,.02);}I(null);
+    for(const[x0,x1]of[[3,cx-6],[cx+5,w-4]])for(let x=x0;x<=x1;x++){table(x,7);stool(x,6);stool(x,8);}
+    hearth(2);hearth(w-3);
+    I('Жаровня','Угли горят ровно, без дыма.');for(const[x,z]of[[1,d-3],[w-2,d-3]]){S(x,z,.5,.6,.5,M(0x3a3a3e));part(g,glow(0xff9a3a),R.ox+x+.5,y+.66,R.oz+z+.5,.36,.12,.36);}I(null);}}
+ROOMS.filter(R=>!R.gen).forEach(buildRoom); // the big island's rooms are built when first entered
 // doors are tappable from outside; the exit tile inside leads back out
 let room=null;const roomLight=new THREE.PointLight(0xffc890,1.7,12,1.1);roomLight.visible=false;scene.add(roomLight);const fadeEl=document.getElementById('fade');
 async function teleport(x,z,face){closeWheel();fadeEl.classList.add('on');await wait(260);H0.x=x;H0.z=z;H0.px=x+.5;H0.pz=z+.5;H0.face=face;H0.route=null;focus.set(H0.px,.15,H0.pz);await wait(60);fadeEl.classList.remove('on');}
 // doors swing: the outer one opens with a creak, then the inner one shuts behind you
-const outDoor=R=>houseMeshes[R.i].userData.door;
+// a house far away may not be built right now: its door is then a stand-in
+const outDoor=R=>houseMeshes.find(g=>g.userData.house===R.i)?.userData.door||{pivot:{rotation:{y:0}}};
 async function enterRoom(R){if(busy||CB.on)return;busy=true;rest();H0.face=Math.PI;sfx('door');heroPose('open',600);await swing(outDoor(R),true);await wait(150);
   await teleport(R.exit[0],R.exit[1]-1,Math.PI);setRoom(R);R.inDoor.pivot.rotation.y=1.45;swing(R.inDoor,false,380).then(()=>sfx('doorclose'));swing(outDoor(R),false,10);busy=false;}
 async function leaveRoom(){if(!room||busy)return;const R=room;busy=true;H0.face=0;sfx('door');heroPose('open',600);await swing(R.inDoor,true);await wait(150);
   await teleport(R.door[0],R.door[1],0);setRoom(null);outDoor(R).pivot.rotation.y=1.45;swing(outDoor(R),false,380).then(()=>sfx('doorclose'));swing(R.inDoor,false,10);busy=false;}
-function setRoom(R){if(room)room.group.visible=false;room=R;if(R)R.group.visible=true;sea.visible=!R;if(R){scene.fog.color.setHex(0x07090b);scene.background.setHex(0x07090b);scene.fog.density=.05;}
-  hemi.intensity=R?.6:.75;moon.intensity=R?.12:.6;roomLight.visible=!!R;if(R)roomLight.position.set(R.ox+R.iw/2,2.6,R.oz+R.id/2);flies.forEach(f=>f.visible=!R);
+function setRoom(R){if(R&&!R.group)buildRoom(R);if(room)room.group.visible=false;room=R;if(R)R.group.visible=true;sea.visible=!R;if(R){scene.fog.color.setHex(0x07090b);scene.background.setHex(0x07090b);scene.fog.density=.05;}
+  hemi.intensity=R?(R.iw>15?1:.6):.75;moon.intensity=R?.12:.6;roomLight.visible=!!R;if(R){roomLight.position.set(R.ox+R.iw/2,R.iw>15?4.5:2.6,R.oz+R.id/2);roomLight.distance=Math.max(12,R.iw*1.1);}flies.forEach(f=>f.visible=!R);
   if(R){zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}}

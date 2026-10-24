@@ -328,15 +328,18 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return bad;
     });
     assert.deepEqual(stream, []);
-    step('rooms: nothing stands between the hero and the door');
+    step('rooms: every building has a room as big as itself, and nothing stands between the hero and its door');
     const doorways = await p.evaluate(() => {
       const bad = [];
       for (const R of ROOMS) {
+        if (!R.group) buildRoom(R);
         const [ex, ez] = R.exit;
         for (const z of [ez - 1, ez - 2]) if (!free(ex, z)) bad.push(R.name + ' blocked at ' + z);
         R.group.traverse((o) => { if (!o.isMesh || o.userData.floor) return; const pp = new THREE.Vector3(); o.getWorldPosition(pp);
           if (Math.floor(pp.x) === ex && (Math.floor(pp.z) === ez - 1 || Math.floor(pp.z) === ez - 2) && pp.y < 1.2 && o.scale.y < 1.5) bad.push(R.name + ': something in the doorway at ' + pp.x.toFixed(1) + ',' + pp.z.toFixed(1)); });
       }
+      for (const h of [...GEN_HOUSES, ...PALACE]) { const R = h.room; if (!R || R.iw !== h[2] || R.id !== h[3]) bad.push('room size differs from house at ' + h[0] + ',' + h[1]); }
+      if (ROOMS.filter((R) => R.gen).length < 20) bad.push('few rooms on the big island');
       return [...new Set(bad)];
     });
     assert.deepEqual(doorways, []);
