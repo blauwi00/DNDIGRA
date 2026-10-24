@@ -519,7 +519,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.49 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.50 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2831,9 +2831,23 @@ canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())ret
   const [tx,tz]=hits.instanceId!=null&&hits.object.userData.cells?hits.object.userData.cells[hits.instanceId]:[Math.floor(hits.point.x),Math.floor(hits.point.z)];
   const who=actors.find(a=>!a.dead&&a!==H0&&a.x===tx&&a.z===tz);if(who){tapActor(who);return;}
   if(CB.on){if(heroTurn())heroMove(tx,tz);else hint.textContent='Сейчас ход противника.';return;}
+  groundTap=performance.now();
   ripple(hits.point,!free(tx,tz));if(!free(tx,tz)){hint.textContent='Туда не пройти.';return;}
   if(at(tx,tz)==='E'){goDo(tx,tz,true,leaveRoom);return;}
   const p=path(H0.x,H0.z,tx,tz,H0,false,3000);if(p&&p.length){H0.route=p;H0.dest=[tx,tz];}else hint.textContent='Не найти дорогу туда.';});
+// hold to walk: keep a finger on the ground and the hero follows it; a tap still walks to the spot.
+// Holding only steers when the press began on open ground (not on a person, door or chest).
+let groundTap=0;const HOLD={id:null,x:0,y:0,t0:0,on:false,last:null,tp:0};
+canvas.addEventListener('pointerdown',e=>{if(HOLD.id!=null)return;Object.assign(HOLD,{id:e.pointerId,x:e.clientX,y:e.clientY,t0:performance.now(),on:false,last:null});});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId===HOLD.id){HOLD.x=e.clientX;HOLD.y=e.clientY;}});
+const holdEnd=e=>{if(e.pointerId===HOLD.id){HOLD.id=null;HOLD.on=false;}};canvas.addEventListener('pointerup',holdEnd);canvas.addEventListener('pointercancel',holdEnd);
+function holdTick(){if(HOLD.id==null||CB.on||busy||paused||H0.dead||!wheelEl.hidden||(window.multiTouch&&multiTouch()))return;const now=performance.now();
+  if(!HOLD.on){if(now-HOLD.t0<220||groundTap<HOLD.t0)return;HOLD.on=true;}
+  const r=canvas.getBoundingClientRect();mv.set((HOLD.x-r.left)/r.width*2-1,-(HOLD.y-r.top)/r.height*2+1);ray.setFromCamera(mv,camera);const h=ray.intersectObjects(pickable)[0];if(!h)return;
+  const[tx,tz]=h.instanceId!=null&&h.object.userData.cells?h.object.userData.cells[h.instanceId]:[Math.floor(h.point.x),Math.floor(h.point.z)];
+  // the target follows the finger, but the way is re-planned only when it moved a little and not too often, so the walk stays smooth
+  if(H0.route&&H0.route.length&&(now-HOLD.tp<350||HOLD.last&&Math.abs(HOLD.last[0]-tx)+Math.abs(HOLD.last[1]-tz)<2))return;HOLD.last=[tx,tz];HOLD.tp=now;if(!free(tx,tz)||tx===H0.x&&tz===H0.z)return;
+  const p=path(H0.x,H0.z,tx,tz,H0,false,900);if(p&&p.length){if(H0.route&&H0.route[0]&&p[0]&&(H0.route[0][0]!==p[0][0]||H0.route[0][1]!==p[0][1])&&p.length>1&&p[1][0]===H0.route[0][0]&&p[1][1]===H0.route[0][1])p.shift();H0.route=p;H0.dest=[tx,tz];H0.arrive=null;}}
 
 // ---------- combat: explore in real time, fight in turns (D&D 5e flavour) ----------
 // Outside a fight the hero walks freely. An enemy that sees the hero starts a
@@ -3328,7 +3342,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
     T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
   // the camera follows the hero, or an enemy while it takes its turn
-  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;placeCam();if(inMenuBg())menuCam(dt);streamTick(firstStream);firstStream=false;
+  const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;holdTick();placeCam();if(inMenuBg())menuCam(dt);streamTick(firstStream);firstStream=false;
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
   const nearest=[...torches].sort((a,b)=>a.pos.distanceToSquared(focus)-b.pos.distanceToSquared(focus));
   LIGHTS.forEach((L,i)=>{const T_=nearest[i];L.position.copy(T_.pos);L.distance=T_.dist;L.intensity=T_.base*(T_.f||1)*(room?1:.3+.7*nightness());});
