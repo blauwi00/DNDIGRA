@@ -2096,13 +2096,21 @@ const TWO={has:id=>!!(id&&WEAPONS[id]&&WEAPONS[id].two)};
 // a small fist wrapped around the handle so the item reads as gripped, not glued
 const FIST_MAT=new THREE.MeshLambertMaterial({color:0xd9a27a}),FIST_DARK=new THREE.MeshLambertMaterial({color:0xb07a58});
 function fist(){const g=new THREE.Group(),m=new THREE.Mesh(box(.085,.08,.085),FIST_MAT),k=new THREE.Mesh(box(.09,.02,.03),FIST_DARK);k.position.set(0,.01,.045);g.add(m,k);return g;}
-function setTwoHanded(holder,id){const t=holder.userData.rig.torso;if(t.userData.item){t.remove(t.userData.item);t.userData.item=null;}holder.userData.twoHand=id||null;if(!id)return;
-  const grp=heldGroup(id);
+function setTwoHanded(holder,id){const rig=holder.userData.rig,t=rig.torso;if(t.userData.item){t.remove(t.userData.item);t.userData.item=null;}holder.userData.twoHand=id||null;if(!id)return;
+  const grp=heldGroup(id),bow=kindOf(id)==='bow';
   // two fists close on the handle: one at the grip, one a little higher (staff) or on the string (bow)
-  const f1=fist(),f2=fist();if(kindOf(id)==='bow'){f2.position.set(0,0,-.02);}else{f1.position.y=.05;f2.position.y=.32;}grp.add(f1,f2);
-  grp.scale.setScalar(1.4);grp.position.set(0,.02-t.position.y+.45,.3);if(kindOf(id)==='bow')grp.rotation.z=.15;
-  // the staff stands at the right side like a walking staff, clear of the face
-  if(kindOf(id)!=='bow'){grp.position.set(-.24,.02-t.position.y+.3,.16);grp.rotation.z=-.08;}t.add(grp);t.userData.item=grp;}
+  const f1=fist(),f2=fist();f1.userData.fist=f2.userData.fist=1;if(bow)grp.add(f1);else{f1.position.y=.05;f2.position.y=.32;grp.add(f1,f2);}
+  grp.scale.setScalar(1.4);
+  // a bow hangs at the left side; anything else stands at the right side like a walking staff
+  if(bow){grp.position.set(.3,.02-t.position.y+.32,.06);grp.rotation.set(0,Math.PI/2,.04);}else{grp.position.set(-.3,.02-t.position.y+.3,.16);grp.rotation.set(0,Math.PI,-.04);}
+  t.add(grp);t.userData.item=grp;clearBody(holder,grp,bow);}
+// keep a held item out of the body: test each of its boxes against the head and torso
+// and lean it outward (or push a bow forward) until nothing overlaps
+const _bA=new THREE.Box3(),_bB=new THREE.Box3();
+function bodyBoxes(holder,skip){const out=[],rig=holder.userData.rig;holder.updateMatrixWorld(true);
+  for(const part of [rig.head,rig.torso])if(part)part.traverse(o=>{if(o.isMesh&&!o.userData.isItem){let p=o.parent,inItem=false;while(p){if(p===skip)inItem=true;p=p.parent;}if(!inItem)out.push(new THREE.Box3().setFromObject(o).expandByScalar(-.015));}});return out;}
+function hits(grp,body){grp.updateMatrixWorld(true);let n=0;grp.traverse(o=>{if(o.isMesh&&!(o.parent&&o.parent.userData.fist)){_bA.setFromObject(o);for(const b of body)if(_bA.intersectsBox(b)){n++;break;}}});return n;}
+function clearBody(holder,grp,bow){const body=bodyBoxes(holder,grp);for(let i=0;i<10&&hits(grp,body);i++){if(bow){grp.rotation.z+=.035;grp.position.x+=.015;}else{grp.rotation.z-=.035;grp.position.x-=.015;}}}
 window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;hero.userData.held={L:two?null:L,R:two?null:R,two};
   setHeld(hero,'L',two?null:L);setHeld(hero,'R',two?null:R);setTwoHanded(hero,two);};
 
@@ -2708,7 +2716,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       if(o.userData.twoHand&&kindOf(o.userData.twoHand)!=='bow'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
-      else if(o.userData.twoHand){r.armL.rotation.set(-1.0+breathe*.03,0,.5);r.armR.rotation.set(-1.0+breathe*.03,0,-.5);} // both hands meet on the bow
+      else if(o.userData.twoHand){r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(-.12+breathe*.02,0,.1);} // the bow hangs in the left hand
       else{r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(walk?sw*.5:-breathe*.04,0,0);}
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
       if(!walk&&!a.off)idleLife(a,r,b,t);
@@ -3080,13 +3088,16 @@ function preview(){const c=document.getElementById('edCanvas');
     c.addEventListener('wheel',e=>{e.preventDefault();pv.zoomT=Math.max(0,Math.min(1,pv.zoomT+e.deltaY*.0012));},{passive:false});
     const loop=()=>{if(edEl.hidden){pv.raf=0;return;}const w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*r.getPixelRatio())||c.height!==Math.round(h*r.getPixelRatio())){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
       pv.t+=.016;pv.zoom+=(pv.zoomT-pv.zoom)*.12;if(pv.auto)pv.yaw+=.004;
-      const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),dist=(4.4-1.7*(1-face))/fit,ly=.62+.28*(1-face);cam.position.set(0,ly+.35*face,dist);cam.lookAt(0,ly,0);
-      if(pv.m){pv.m.rotation.y=pv.yaw;const close=pv.zoom<.5;pv.m.traverse(o=>{if(o.userData&&o.userData.item)o.userData.item.visible=!close;});const rg=pv.m.userData.rig,b=pv.m.userData.body,br=Math.sin(pv.t*1.8);if(rg){rg.torso.scale.y=1+br*.012;rg.head.rotation.y=Math.sin(pv.t*.6)*.12;
-        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
+      const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),F=pv.fitB||{d:4.4,y:.62},dist=(F.d-(F.d-2.7)*(1-face))/fit,ly=F.y+(.9*RACES[ED.race].size-F.y)*(1-face);cam.position.set(0,ly+.18*face,dist);cam.lookAt(0,ly,0);
+      if(pv.m){pv.m.rotation.y=pv.yaw;const rg=pv.m.userData.rig,b=pv.m.userData.body,br=Math.sin(pv.t*1.8);if(rg){rg.torso.scale.y=1+br*.012;rg.head.rotation.y=Math.sin(pv.t*.6)*.12;
+        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-.12,0,.1);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
         if(pv.pop>0){pv.pop-=.05;b.position.y=Math.sin(pv.pop*Math.PI)*.06;}}
       r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
   if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(raceDecorate(ED.race,C_.build(C_.spec('hero',edState())),ED.ap));raceScale(ED.race,pv.m);pv.pop=1;
   const kit=CLASSES[ED.cls].kits[ED.kit]||CLASSES[ED.cls].kits[0],L=kit.L,R=kit.R,two=TWO.has(L)?L:TWO.has(R)?R:null;if(two)setTwoHanded(pv.m,two);else{if(L)setHeld(pv.m,'L',L);if(R)setHeld(pv.m,'R',R);}
+  // frame the whole hero with what they hold: long polearms and staves must fit in the shot
+  pv.m.rotation.y=0;pv.m.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(pv.m),top=Math.max(1.35,bb.max.y),bot=Math.min(-.05,bb.min.y),half=((top-bot)/2+.12)*1.2;
+  pv.fitB={d:Math.max(4.4,half/Math.tan(THREE.MathUtils.degToRad(14))),y:Math.max(.62,(top+bot)/2+half*.16)};
   pv.s.add(pv.m);if(!pv.raf)pv.loop();}
 // ---- small portraits for tiles, cached ----
 const pCache=new Map();

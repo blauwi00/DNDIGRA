@@ -29,13 +29,16 @@ function preview(){const c=document.getElementById('edCanvas');
     c.addEventListener('wheel',e=>{e.preventDefault();pv.zoomT=Math.max(0,Math.min(1,pv.zoomT+e.deltaY*.0012));},{passive:false});
     const loop=()=>{if(edEl.hidden){pv.raf=0;return;}const w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*r.getPixelRatio())||c.height!==Math.round(h*r.getPixelRatio())){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
       pv.t+=.016;pv.zoom+=(pv.zoomT-pv.zoom)*.12;if(pv.auto)pv.yaw+=.004;
-      const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),dist=(4.4-1.7*(1-face))/fit,ly=.62+.28*(1-face);cam.position.set(0,ly+.35*face,dist);cam.lookAt(0,ly,0);
-      if(pv.m){pv.m.rotation.y=pv.yaw;const close=pv.zoom<.5;pv.m.traverse(o=>{if(o.userData&&o.userData.item)o.userData.item.visible=!close;});const rg=pv.m.userData.rig,b=pv.m.userData.body,br=Math.sin(pv.t*1.8);if(rg){rg.torso.scale.y=1+br*.012;rg.head.rotation.y=Math.sin(pv.t*.6)*.12;
-        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
+      const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),F=pv.fitB||{d:4.4,y:.62},dist=(F.d-(F.d-2.7)*(1-face))/fit,ly=F.y+(.9*RACES[ED.race].size-F.y)*(1-face);cam.position.set(0,ly+.18*face,dist);cam.lookAt(0,ly,0);
+      if(pv.m){pv.m.rotation.y=pv.yaw;const rg=pv.m.userData.rig,b=pv.m.userData.body,br=Math.sin(pv.t*1.8);if(rg){rg.torso.scale.y=1+br*.012;rg.head.rotation.y=Math.sin(pv.t*.6)*.12;
+        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-.12,0,.1);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
         if(pv.pop>0){pv.pop-=.05;b.position.y=Math.sin(pv.pop*Math.PI)*.06;}}
       r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
   if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(raceDecorate(ED.race,C_.build(C_.spec('hero',edState())),ED.ap));raceScale(ED.race,pv.m);pv.pop=1;
   const kit=CLASSES[ED.cls].kits[ED.kit]||CLASSES[ED.cls].kits[0],L=kit.L,R=kit.R,two=TWO.has(L)?L:TWO.has(R)?R:null;if(two)setTwoHanded(pv.m,two);else{if(L)setHeld(pv.m,'L',L);if(R)setHeld(pv.m,'R',R);}
+  // frame the whole hero with what they hold: long polearms and staves must fit in the shot
+  pv.m.rotation.y=0;pv.m.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(pv.m),top=Math.max(1.35,bb.max.y),bot=Math.min(-.05,bb.min.y),half=((top-bot)/2+.12)*1.2;
+  pv.fitB={d:Math.max(4.4,half/Math.tan(THREE.MathUtils.degToRad(14))),y:Math.max(.62,(top+bot)/2+half*.16)};
   pv.s.add(pv.m);if(!pv.raf)pv.loop();}
 // ---- small portraits for tiles, cached ----
 const pCache=new Map();
