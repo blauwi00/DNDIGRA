@@ -54,5 +54,15 @@ if APP:
   os.makedirs(APP,exist_ok=True)
   app=out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','three.min.js').replace('<script>\n','<script>\nwindow.ISLAND_IN_APP=true;\n',1)
   open(os.path.join(APP,'index.html'),'w').write('<!doctype html><html lang="ru"><head><meta charset="utf-8">'+app+'</html>')
+# the standalone public site (Netlify publishes this folder): no link back into the game, hidden from search engines
+SITE=os.environ.get('SITE')
+if SITE:
+  import shutil
+  os.makedirs(SITE,exist_ok=True)
+  site=out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','three.min.js').replace('<meta name="viewport"','<meta name="robots" content="noindex,nofollow"><meta name="viewport"',1)
+  open(os.path.join(SITE,'index.html'),'w').write('<!doctype html><html lang="ru"><head><meta charset="utf-8">'+site+'</html>')
+  root=os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../..')
+  shutil.copy(os.path.join(root,'dist/island/three.min.js'),SITE);shutil.copy(os.path.join(root,'LICENSE'),os.path.join(SITE,'LICENSE.txt'));shutil.copy(os.path.join(root,'THIRD_PARTY_NOTICES.md'),SITE)
+  open(os.path.join(SITE,'robots.txt'),'w').write('User-agent: *\nDisallow: /\n')
 prev='<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">'+out.replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','package/build/three.min.js')+'</body></html>'
 print('built',len(out))

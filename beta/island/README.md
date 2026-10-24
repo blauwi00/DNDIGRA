@@ -37,3 +37,14 @@ other hand stays free. Long items are tested box by box against the head and
 torso and step aside, then lean, until nothing overlaps (`clearBody`). Weapon
 variants, models and icons live in `weapons.js`.
 
+
+## Shared site (Netlify)
+
+`site/island/` is the standalone page for players who get a link: the built
+game, `three.min.js`, `LICENSE.txt`, third-party notices and `robots.txt`.
+Netlify is connected to this repository and publishes that folder on every
+push (`netlify.toml`: no build step, noindex headers). Always rebuild with
+
+    cd beta/island/src && OUT=.. APP=../../../dist/island SITE=../../../site/island python3 build.py
+
+so the in-app copy and the shared site stay in step.
