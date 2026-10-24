@@ -519,7 +519,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.51 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.52 · 24.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2260,7 +2260,7 @@ const vnoise=(x,z,s)=>{const X=Math.floor(x/s),Z=Math.floor(z/s),fx=x/s-X,fz=z/s
   return l(l(hash2(X,Z),hash2(X+1,Z),fx),l(hash2(X,Z+1),hash2(X+1,Z+1),fx),fz)};
 const OLD_D=(x,z)=>((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;
 const GEN=IslandGen.make('helga',300,220,{stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
-const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,H=ROOM_Z+10,GB=GEN.B;
+const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,H=ROOM_Z+12,GB=GEN.B;
 const inStamp=(x,z)=>x<80&&z<60&&OLD_D(x,z)<1;
 const genCode=(x,z)=>{if(z>=OUT_H)return '~';const i=z*W+x,b=GEN.biome[i];
   if(GEN.road[i]&&!inStamp(x,z))return GEN.river[i]||b===GB.LAKE||b===GB.SEA?'P':'D';
@@ -2286,7 +2286,8 @@ for(let z=Z.ruins[1]-5;z<=Z.ruins[1]+5;z++)for(let x=Z.ruins[0]-6;x<=Z.ruins[0]+
 const HOUSES=[[18,23,5,4],[30,22,6,4],[18,35,5,4],[31,35,6,5],[38,27,4,4],[13,28,4,4]];
 const HOUSE_INFO=[['tavern','Таверна «Пьяный угорь»'],['forge','Кузница'],['home','Дом рыбака'],['hall','Дом старосты'],['barn','Амбар'],['herb','Хижина травницы']];
 // Each house has a room far south of the island (rows ROOM_Z+), beyond the camera's reach.
-const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const iw=Math.min(9,hw+3),id=7,ox=2+i*13,oz=ROOM_Z;
+// the tavern is a big hall (13 x 10) with a bar; the other rooms keep their size; rooms sit side by side
+let roomX=2;const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const big=HOUSE_INFO[i][0]==='tavern',iw=big?13:Math.min(9,hw+3),id=big?10:7,ox=roomX,oz=ROOM_Z;roomX+=iw+4;
   return {i,type:HOUSE_INFO[i][0],name:HOUSE_INFO[i][1],ox,oz,iw,id,door:[hx+Math.floor(hw/2),hz+hd],exit:[ox+Math.floor(iw/2),oz+id-1]};});
 for(const R of ROOMS){for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++)set(x,z,(x===R.ox||x===R.ox+R.iw-1||z===R.oz||z===R.oz+R.id-1)?'X':'F');set(...R.exit,'E');}
 for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');
@@ -2711,10 +2712,21 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
   const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(dx,1,.9,.7,.5,lam(T.wall));part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);torch(R.ox+dx,R.oz+1,true);I(null);};
   // each house has its own trade written into the room
-  if(R.type==='tavern'){hearth(5);I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');part(g,lam(T.p[2]),R.ox+2.5,y+.5,R.oz+2.5,3,.1,.5);I(null);for(let x=1;x<4;x++)blockCell(R.ox+x,R.oz+2);S(1,2,.9,.9,.5,lam(T.p[1]));
-    barrel(1,1,[['bread',1]]);barrel(2,1);table(3,4);itemProp(g,R.ox+3.45,y+.52,R.oz+4.5,'bread',1,'Хлеб','Свежая краюха, ещё тёплая.');stool(3,5);stool(2,4);table(6,3);stool(6,4);candle(3,4);candle(6,3);shelf(1,3);chest(6,5,[['bread',2],['torch',1]],'Ящик с припасами');
-    I('Кружки','Четыре глиняные кружки, одна с отбитой ручкой.');for(let i=0;i<4;i++)part(g,M(0x8a6a4a),R.ox+1.3+i*.45,y+.62,R.oz+2.45,.12,.16,.12);I(null);
-    for(const x of [2,6])part(g,glow(0xffc86a),R.ox+x+.5,y+1.5,R.oz+1.05,.1,.14,.06);}
+  // the tavern: a bar along the back left with kegs and a bottle shelf behind it, Bram's corner, a fireplace,
+  // three tables with stools for patrons and stools at the bar; the lane to the door stays clear
+  if(R.type==='tavern'){R.seats=[];const seat=(dx,dz)=>{stool(dx,dz);R.seats.push([R.ox+dx,R.oz+dz]);};
+    hearth(9);barrel(1,1,[['bread',1]]);barrel(2,1);
+    I('Бочонки с элем','Три бочонка с кранами. Из одного капает прямо на пол.');for(const dx of [3,4,5]){S(dx,1,.55,.55,.5,lam(T.p[1],{color:0x7a5a3a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.4,R.oz+1.5,.6,.05,.55);part(g,M(0xc8a040),R.ox+dx+.5,y+.32,R.oz+1.78,.06,.06,.08);}I(null);
+    I('Полка с бутылками','Настойки, вино с юга и что-то мутное без этикетки.');part(g,lam(T.p[2]),R.ox+4,y+1.25,R.oz+1.1,3.2,.06,.3);
+      for(let k=0;k<9;k++)part(g,M([0x3a6a3a,0x6a2a24,0x8a7a4a,0x2a4a6a][k%4]),R.ox+2.55+k*.36,y+1.4,R.oz+1.1,.1,.24,.1);I(null);
+    I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');for(let dx=1;dx<=5;dx++){S(dx,3,1,.9,.6,lam(T.p[1]));part(g,lam(T.p[2]),R.ox+dx+.5,y+.95,R.oz+3.5,1.02,.08,.7);}I(null);
+    I('Кружки','Глиняные кружки, одна с отбитой ручкой.');for(let k=0;k<5;k++)part(g,M(0x8a6a4a),R.ox+1.4+k*.9,y+1.07,R.oz+3.45,.12,.16,.12);I(null);
+    for(const dx of [2,4])seat(dx,4);
+    table(8,4);seat(7,4);seat(9,4);seat(8,5);candle(8,4);
+    table(3,7);seat(2,7);seat(4,7);candle(3,7);itemProp(g,R.ox+3.45,y+.52,R.oz+7.5,'bread',1,'Хлеб','Свежая краюха, ещё тёплая.');
+    table(9,7);seat(8,7);seat(10,7);
+    rug(5,5,3,2);chest(11,2,[['bread',2],['torch',1]],'Ящик с припасами');
+    for(const x of [2,6,10])part(g,glow(0xffc86a),R.ox+x+.5,y+1.5,R.oz+1.05,.1,.14,.06);}
   if(R.type==='forge'){hearth(2);part(g,glow(0xff6a20),R.ox+2.5,y+.75,R.oz+1.5,.6,.06,.2);
     I('Наковальня','Холодная и тяжёлая. На ней следы сотен ударов.');const anv=S(4,3,.5,.36,.3,M(0x5a5e66));part(g,M(0x3a3e46),anv.position.x,y+.42,anv.position.z,.78,.14,.3);part(g,M(0x6a4a2a),R.ox+4.5,y+.1,R.oz+3.5,.6,.2,.5);I(null);
     I('Корыто','Вода для закалки. На дне блестит что-то… просто окалина.');S(1,4,.7,.42,.9,M(0x4a3a2a));part(g,glow(0x3a5a7a),R.ox+1.5,y+.43,R.oz+4.5,.6,.02,.8); // quench trough
@@ -2766,7 +2778,7 @@ function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(l
 const H0={o:hero,x:Z.dock[0]+1,z:Z.dock[1],face:Math.PI/2,ph:0,spd:2.4,hp:20,max:20,ac:15,name:'Эльдар'};H0.px=H0.x+.5;H0.pz=H0.z+.5;actors.push(H0);
 const tint=(a,c)=>{a.o.userData.mats.forEach(m=>m.color.setHex(c));return a;};
 const RM=t=>ROOMS.find(r=>r.type===t);
-actor('innkeeper',RM('tavern').ox+5,RM('tavern').oz+2,{wander:2,spd:1.2,npc:'Трактирщик Брам',talkId:'bram',act:'wipe',home:[RM('tavern').ox+5,RM('tavern').oz+2]});
+actor('innkeeper',RM('tavern').ox+3,RM('tavern').oz+2,{wander:1,spd:1.2,npc:'Трактирщик Брам',talkId:'bram',act:'wipe',home:[RM('tavern').ox+3,RM('tavern').oz+2]});
 tint(actor('innkeeper',RM('forge').ox+4,RM('forge').oz+4,{wander:0,spd:1.1,npc:'Кузнец Горан',talkId:'smith',act:'hammer',face:Math.PI}),0x9a8a80);
 tint(actor('innkeeper',RM('herb').ox+3,RM('herb').oz+2,{wander:0,spd:1.1,npc:'Травница Ивва',talkId:'herb',act:'stir',face:-Math.PI/2}),0xa0c0a0);
 actor('innkeeper',Z.village[0]-3,Z.village[1]+2,{wander:4,spd:1.3,npc:'Мельник Тодор',talkId:'miller'});
@@ -2793,7 +2805,8 @@ for(const e of enemies)addBar(e);
 for(const a of actors){a.px=a.x+.5;a.pz=a.z+.5;}
 
 // ---------- walking ----------
-const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z);
+// outside a fight the hero slips past friendly folk, so a crowd can never shut him in; enemies always block
+const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z&&!(self===H0&&!CB.on&&!a.enemy));
 function path(sx,sz,tx,tz,self,adjacent=false,limit=900){const key=(x,z)=>x+','+z,prev=new Map([[key(sx,sz),null]]),q=[[sx,sz]];let end=null;
   while(q.length&&prev.size<limit){const[x,z]=q.shift();if(adjacent?Math.abs(x-tx)+Math.abs(z-tz)===1:(x===tx&&z===tz)){end=[x,z];break;}
     for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!free(nx,nz)||occupied(nx,nz,self)||prev.has(key(nx,nz)))continue;prev.set(key(nx,nz),[x,z]);q.push([nx,nz])}}
@@ -3487,7 +3500,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
-  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&d.z>=96&&d.z<96+10&&ROOM_Z!==96)d.z+=ROOM_Z-96; // saves from the small island kept rooms at row 96
+  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door
   if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
 // ---------- toasts ----------
 let toastT=0;function toast(text,ms=2600){dice.hidden=false;dice.textContent=text;clearTimeout(toastT);toastT=setTimeout(()=>dice.hidden=true,ms);}
@@ -4004,10 +4017,10 @@ function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a
   if(ph==='home'){if(a.where==='home')return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);goTo(a,DOOR(a.house),()=>hideIn(a));a.where='going';return;}
   if(ph==='tavern'){if(a.where==='tavern')return;if(a.hidden)appear(a,DOOR(a.house));a.act=null;setHeld(a.o,'R',null);
     // through the door: appear on the inner threshold and walk to a stool, or stand at the bar with a mug
-    goTo(a,DOOR(0),()=>{a.x=TAV.exit[0];a.z=TAV.exit[1]-1;a.px=a.x+.5;a.pz=a.z+.5;const stools=[[4,5],[5,4],[6,4],[3,4],[7,3]].map(([x,z])=>[TAV.ox+x,TAV.oz+z]).filter(([x,z])=>free(x,z)&&!V.some(v=>v!==a&&v.seat&&v.seat[0]===x&&v.seat[1]===z));
-      const sit=stools.length&&Math.random()<.75,seat=sit?stools[0]:nearFree(TAV.ox+2,TAV.oz+3,2);a.seat=sit?seat:null;a.where='tavern';
+    goTo(a,DOOR(0),()=>{a.x=TAV.exit[0];a.z=TAV.exit[1]-1;a.px=a.x+.5;a.pz=a.z+.5;const stools=(TAV.seats||[]).slice().sort(()=>Math.random()-.5).filter(([x,z])=>free(x,z)&&!V.some(v=>v!==a&&v.seat&&v.seat[0]===x&&v.seat[1]===z));
+      const sit=stools.length&&Math.random()<.75,seat=sit?stools[0]:nearFree(TAV.ox+6,TAV.oz+4,2);a.seat=sit?seat:null;a.where='tavern';
       goTo(a,seat,()=>{if(a.x===TAV.exit[0]&&a.z===TAV.exit[1]-1){[a.x,a.z]=nearFree(TAV.ox+2,TAV.oz+3,3);a.px=a.x+.5;a.pz=a.z+.5;} // never block the door
-        a.act=sit?'sit':'drinkstand';setHeld(a.o,'R',sit&&Math.random()<.5?null:'mug');a.face=sit?Math.atan2(TAV.ox+4.5-a.px,TAV.oz+3.5-a.pz):Math.PI;});});a.where='going';return;}
+        a.act=sit?'sit':'drinkstand';setHeld(a.o,'R',sit&&Math.random()<.5?null:'mug');a.face=sit?Math.atan2(TAV.ox+6.5-a.px,TAV.oz+5-a.pz):Math.PI;});});a.where='going';return;}
   // work
   if(a.where==='tavern'){leaveTavern(a);return;}if(a.hidden)appear(a,DOOR(a.house));
   const spot=SPOTS[a.role];if(Math.abs(a.x-spot[0])+Math.abs(a.z-spot[1])>2){a.act=null;goTo(a,spot);a.where='out';return;}

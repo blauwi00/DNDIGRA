@@ -111,10 +111,10 @@ function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a
   if(ph==='home'){if(a.where==='home')return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);goTo(a,DOOR(a.house),()=>hideIn(a));a.where='going';return;}
   if(ph==='tavern'){if(a.where==='tavern')return;if(a.hidden)appear(a,DOOR(a.house));a.act=null;setHeld(a.o,'R',null);
     // through the door: appear on the inner threshold and walk to a stool, or stand at the bar with a mug
-    goTo(a,DOOR(0),()=>{a.x=TAV.exit[0];a.z=TAV.exit[1]-1;a.px=a.x+.5;a.pz=a.z+.5;const stools=[[4,5],[5,4],[6,4],[3,4],[7,3]].map(([x,z])=>[TAV.ox+x,TAV.oz+z]).filter(([x,z])=>free(x,z)&&!V.some(v=>v!==a&&v.seat&&v.seat[0]===x&&v.seat[1]===z));
-      const sit=stools.length&&Math.random()<.75,seat=sit?stools[0]:nearFree(TAV.ox+2,TAV.oz+3,2);a.seat=sit?seat:null;a.where='tavern';
+    goTo(a,DOOR(0),()=>{a.x=TAV.exit[0];a.z=TAV.exit[1]-1;a.px=a.x+.5;a.pz=a.z+.5;const stools=(TAV.seats||[]).slice().sort(()=>Math.random()-.5).filter(([x,z])=>free(x,z)&&!V.some(v=>v!==a&&v.seat&&v.seat[0]===x&&v.seat[1]===z));
+      const sit=stools.length&&Math.random()<.75,seat=sit?stools[0]:nearFree(TAV.ox+6,TAV.oz+4,2);a.seat=sit?seat:null;a.where='tavern';
       goTo(a,seat,()=>{if(a.x===TAV.exit[0]&&a.z===TAV.exit[1]-1){[a.x,a.z]=nearFree(TAV.ox+2,TAV.oz+3,3);a.px=a.x+.5;a.pz=a.z+.5;} // never block the door
-        a.act=sit?'sit':'drinkstand';setHeld(a.o,'R',sit&&Math.random()<.5?null:'mug');a.face=sit?Math.atan2(TAV.ox+4.5-a.px,TAV.oz+3.5-a.pz):Math.PI;});});a.where='going';return;}
+        a.act=sit?'sit':'drinkstand';setHeld(a.o,'R',sit&&Math.random()<.5?null:'mug');a.face=sit?Math.atan2(TAV.ox+6.5-a.px,TAV.oz+5-a.pz):Math.PI;});});a.where='going';return;}
   // work
   if(a.where==='tavern'){leaveTavern(a);return;}if(a.hidden)appear(a,DOOR(a.house));
   const spot=SPOTS[a.role];if(Math.abs(a.x-spot[0])+Math.abs(a.z-spot[1])>2){a.act=null;goTo(a,spot);a.where='out';return;}

@@ -45,10 +45,21 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
   const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(dx,1,.9,.7,.5,lam(T.wall));part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);torch(R.ox+dx,R.oz+1,true);I(null);};
   // each house has its own trade written into the room
-  if(R.type==='tavern'){hearth(5);I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');part(g,lam(T.p[2]),R.ox+2.5,y+.5,R.oz+2.5,3,.1,.5);I(null);for(let x=1;x<4;x++)blockCell(R.ox+x,R.oz+2);S(1,2,.9,.9,.5,lam(T.p[1]));
-    barrel(1,1,[['bread',1]]);barrel(2,1);table(3,4);itemProp(g,R.ox+3.45,y+.52,R.oz+4.5,'bread',1,'Хлеб','Свежая краюха, ещё тёплая.');stool(3,5);stool(2,4);table(6,3);stool(6,4);candle(3,4);candle(6,3);shelf(1,3);chest(6,5,[['bread',2],['torch',1]],'Ящик с припасами');
-    I('Кружки','Четыре глиняные кружки, одна с отбитой ручкой.');for(let i=0;i<4;i++)part(g,M(0x8a6a4a),R.ox+1.3+i*.45,y+.62,R.oz+2.45,.12,.16,.12);I(null);
-    for(const x of [2,6])part(g,glow(0xffc86a),R.ox+x+.5,y+1.5,R.oz+1.05,.1,.14,.06);}
+  // the tavern: a bar along the back left with kegs and a bottle shelf behind it, Bram's corner, a fireplace,
+  // three tables with stools for patrons and stools at the bar; the lane to the door stays clear
+  if(R.type==='tavern'){R.seats=[];const seat=(dx,dz)=>{stool(dx,dz);R.seats.push([R.ox+dx,R.oz+dz]);};
+    hearth(9);barrel(1,1,[['bread',1]]);barrel(2,1);
+    I('Бочонки с элем','Три бочонка с кранами. Из одного капает прямо на пол.');for(const dx of [3,4,5]){S(dx,1,.55,.55,.5,lam(T.p[1],{color:0x7a5a3a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.4,R.oz+1.5,.6,.05,.55);part(g,M(0xc8a040),R.ox+dx+.5,y+.32,R.oz+1.78,.06,.06,.08);}I(null);
+    I('Полка с бутылками','Настойки, вино с юга и что-то мутное без этикетки.');part(g,lam(T.p[2]),R.ox+4,y+1.25,R.oz+1.1,3.2,.06,.3);
+      for(let k=0;k<9;k++)part(g,M([0x3a6a3a,0x6a2a24,0x8a7a4a,0x2a4a6a][k%4]),R.ox+2.55+k*.36,y+1.4,R.oz+1.1,.1,.24,.1);I(null);
+    I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');for(let dx=1;dx<=5;dx++){S(dx,3,1,.9,.6,lam(T.p[1]));part(g,lam(T.p[2]),R.ox+dx+.5,y+.95,R.oz+3.5,1.02,.08,.7);}I(null);
+    I('Кружки','Глиняные кружки, одна с отбитой ручкой.');for(let k=0;k<5;k++)part(g,M(0x8a6a4a),R.ox+1.4+k*.9,y+1.07,R.oz+3.45,.12,.16,.12);I(null);
+    for(const dx of [2,4])seat(dx,4);
+    table(8,4);seat(7,4);seat(9,4);seat(8,5);candle(8,4);
+    table(3,7);seat(2,7);seat(4,7);candle(3,7);itemProp(g,R.ox+3.45,y+.52,R.oz+7.5,'bread',1,'Хлеб','Свежая краюха, ещё тёплая.');
+    table(9,7);seat(8,7);seat(10,7);
+    rug(5,5,3,2);chest(11,2,[['bread',2],['torch',1]],'Ящик с припасами');
+    for(const x of [2,6,10])part(g,glow(0xffc86a),R.ox+x+.5,y+1.5,R.oz+1.05,.1,.14,.06);}
   if(R.type==='forge'){hearth(2);part(g,glow(0xff6a20),R.ox+2.5,y+.75,R.oz+1.5,.6,.06,.2);
     I('Наковальня','Холодная и тяжёлая. На ней следы сотен ударов.');const anv=S(4,3,.5,.36,.3,M(0x5a5e66));part(g,M(0x3a3e46),anv.position.x,y+.42,anv.position.z,.78,.14,.3);part(g,M(0x6a4a2a),R.ox+4.5,y+.1,R.oz+3.5,.6,.2,.5);I(null);
     I('Корыто','Вода для закалки. На дне блестит что-то… просто окалина.');S(1,4,.7,.42,.9,M(0x4a3a2a));part(g,glow(0x3a5a7a),R.ox+1.5,y+.43,R.oz+4.5,.6,.02,.8); // quench trough

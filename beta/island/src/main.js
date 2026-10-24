@@ -28,7 +28,7 @@ const vnoise=(x,z,s)=>{const X=Math.floor(x/s),Z=Math.floor(z/s),fx=x/s-X,fz=z/s
   return l(l(hash2(X,Z),hash2(X+1,Z),fx),l(hash2(X,Z+1),hash2(X+1,Z+1),fx),fz)};
 const OLD_D=(x,z)=>((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;
 const GEN=IslandGen.make('helga',300,220,{stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
-const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,H=ROOM_Z+10,GB=GEN.B;
+const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,H=ROOM_Z+12,GB=GEN.B;
 const inStamp=(x,z)=>x<80&&z<60&&OLD_D(x,z)<1;
 const genCode=(x,z)=>{if(z>=OUT_H)return '~';const i=z*W+x,b=GEN.biome[i];
   if(GEN.road[i]&&!inStamp(x,z))return GEN.river[i]||b===GB.LAKE||b===GB.SEA?'P':'D';
@@ -54,7 +54,8 @@ for(let z=Z.ruins[1]-5;z<=Z.ruins[1]+5;z++)for(let x=Z.ruins[0]-6;x<=Z.ruins[0]+
 const HOUSES=[[18,23,5,4],[30,22,6,4],[18,35,5,4],[31,35,6,5],[38,27,4,4],[13,28,4,4]];
 const HOUSE_INFO=[['tavern','Таверна «Пьяный угорь»'],['forge','Кузница'],['home','Дом рыбака'],['hall','Дом старосты'],['barn','Амбар'],['herb','Хижина травницы']];
 // Each house has a room far south of the island (rows ROOM_Z+), beyond the camera's reach.
-const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const iw=Math.min(9,hw+3),id=7,ox=2+i*13,oz=ROOM_Z;
+// the tavern is a big hall (13 x 10) with a bar; the other rooms keep their size; rooms sit side by side
+let roomX=2;const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const big=HOUSE_INFO[i][0]==='tavern',iw=big?13:Math.min(9,hw+3),id=big?10:7,ox=roomX,oz=ROOM_Z;roomX+=iw+4;
   return {i,type:HOUSE_INFO[i][0],name:HOUSE_INFO[i][1],ox,oz,iw,id,door:[hx+Math.floor(hw/2),hz+hd],exit:[ox+Math.floor(iw/2),oz+id-1]};});
 for(const R of ROOMS){for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++)set(x,z,(x===R.ox||x===R.ox+R.iw-1||z===R.oz||z===R.oz+R.id-1)?'X':'F');set(...R.exit,'E');}
 for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');
@@ -280,7 +281,7 @@ function actor(model,x,z,o={}){for(let r=1;!free(x,z)&&r<5;r++){const c=[];for(l
 const H0={o:hero,x:Z.dock[0]+1,z:Z.dock[1],face:Math.PI/2,ph:0,spd:2.4,hp:20,max:20,ac:15,name:'Эльдар'};H0.px=H0.x+.5;H0.pz=H0.z+.5;actors.push(H0);
 const tint=(a,c)=>{a.o.userData.mats.forEach(m=>m.color.setHex(c));return a;};
 const RM=t=>ROOMS.find(r=>r.type===t);
-actor('innkeeper',RM('tavern').ox+5,RM('tavern').oz+2,{wander:2,spd:1.2,npc:'Трактирщик Брам',talkId:'bram',act:'wipe',home:[RM('tavern').ox+5,RM('tavern').oz+2]});
+actor('innkeeper',RM('tavern').ox+3,RM('tavern').oz+2,{wander:1,spd:1.2,npc:'Трактирщик Брам',talkId:'bram',act:'wipe',home:[RM('tavern').ox+3,RM('tavern').oz+2]});
 tint(actor('innkeeper',RM('forge').ox+4,RM('forge').oz+4,{wander:0,spd:1.1,npc:'Кузнец Горан',talkId:'smith',act:'hammer',face:Math.PI}),0x9a8a80);
 tint(actor('innkeeper',RM('herb').ox+3,RM('herb').oz+2,{wander:0,spd:1.1,npc:'Травница Ивва',talkId:'herb',act:'stir',face:-Math.PI/2}),0xa0c0a0);
 actor('innkeeper',Z.village[0]-3,Z.village[1]+2,{wander:4,spd:1.3,npc:'Мельник Тодор',talkId:'miller'});
@@ -307,7 +308,8 @@ for(const e of enemies)addBar(e);
 for(const a of actors){a.px=a.x+.5;a.pz=a.z+.5;}
 
 // ---------- walking ----------
-const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z);
+// outside a fight the hero slips past friendly folk, so a crowd can never shut him in; enemies always block
+const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z&&!(self===H0&&!CB.on&&!a.enemy));
 function path(sx,sz,tx,tz,self,adjacent=false,limit=900){const key=(x,z)=>x+','+z,prev=new Map([[key(sx,sz),null]]),q=[[sx,sz]];let end=null;
   while(q.length&&prev.size<limit){const[x,z]=q.shift();if(adjacent?Math.abs(x-tx)+Math.abs(z-tz)===1:(x===tx&&z===tz)){end=[x,z];break;}
     for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!free(nx,nz)||occupied(nx,nz,self)||prev.has(key(nx,nz)))continue;prev.set(key(nx,nz),[x,z]);q.push([nx,nz])}}
@@ -544,7 +546,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.looted||[]).forEach((v,i)=>{const L=looks[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
-  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&d.z>=96&&d.z<96+10&&ROOM_Z!==96)d.z+=ROOM_Z-96; // saves from the small island kept rooms at row 96
+  H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door
   if(d.room>=0){setRoom(ROOMS[d.room]);}if(free(d.x,d.z)){H0.x=d.x;H0.z=d.z;H0.px=d.x+.5;H0.pz=d.z+.5;focus.set(H0.px,0,H0.pz);}questUI();}
 {UI}
 {EDITOR}
