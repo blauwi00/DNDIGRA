@@ -10,7 +10,7 @@ function part(g,mat,x,y,z,w,h,d){const m=new THREE.Mesh(BOX,mat);m.scale.set(w,h
 const looks=[]; // {n,t,loot,meshes}
 // a real item lying in the world, built from the same boxes as the one held in a hand
 function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
-  for(const [bx,by,bz,w,h,d,c,e] of HELD[id]){const m=new THREE.Mesh(box(w,h,d),e?new THREE.MeshBasicMaterial({color:c}):new THREE.MeshLambertMaterial({color:c}));m.position.set(bx,by,bz);m.castShadow=true;grp.add(m);}
+  grp.add(heldGroup(id));
   grp.scale.setScalar(1.3);grp.position.set(x,y,z);if(lie!=null)grp.rotation.set(0,lie,Math.PI/2);parent.add(grp);
   const L={n:name,t:text,loot:[[id,n]],meshes:[],item:true,grp};grp.traverse(m=>{if(m.isMesh){L.meshes.push(m);m.userData.look=L;}});looks.push(L);return L;}
 const LOOK={tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70]};
@@ -51,9 +51,9 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Наковальня','Холодная и тяжёлая. На ней следы сотен ударов.');const anv=S(4,3,.5,.36,.3,M(0x5a5e66));part(g,M(0x3a3e46),anv.position.x,y+.42,anv.position.z,.78,.14,.3);part(g,M(0x6a4a2a),R.ox+4.5,y+.1,R.oz+3.5,.6,.2,.5);I(null);
     I('Корыто','Вода для закалки. На дне блестит что-то… просто окалина.');S(1,4,.7,.42,.9,M(0x4a3a2a));part(g,glow(0x3a5a7a),R.ox+1.5,y+.43,R.oz+4.5,.6,.02,.8); // quench trough
     I('Уголь','Чёрная куча, пачкает пальцы.');S(6,1,.8,.3,.6,M(0x1a1a1c));I(null);
-    I('Стойка с мечами','Горан не продаёт их: «Сначала докажи, что достоин».');for(let i=0;i<4;i++){part(g,M(0xc8ccd2),R.ox+5.3+i*.42,y+1.05,R.oz+1.08,.06,.7,.03);part(g,M(0xb08a3a),R.ox+5.3+i*.42,y+.72,R.oz+1.08,.18,.04,.04);}
-    part(g,lam(T.p[2]),R.ox+6.1,y+1.45,R.oz+1.1,1.8,.06,.12);I(null);chest(7,4,[['dagger',1],['potion',1]],'Сундук кузнеца');}
-  if(R.type==='home'){hearth(5);bed(1,2);table(3,4);stool(2,4);candle(3,4);barrel(6,4);chest(6,3,[['bread',1],['stone',2]],'Сундук рыбака');
+    I('Стойка с мечами','Горан не продаёт их: «Сначала докажи, что достоин».');['sword_long','sword_scimitar','sword_rapier','morningstar','halberd'].forEach((w,i)=>{const it=heldGroup(w);it.scale.setScalar(1.25);it.position.set(R.ox+5.15+i*.36,y+.4,R.oz+1.08);g.add(it);});part(g,lam(T.p[2]),R.ox+6,y+.32,R.oz+1.1,1.9,.06,.14);
+    part(g,lam(T.p[2]),R.ox+6.1,y+1.45,R.oz+1.1,1.8,.06,.12);I(null);chest(7,4,[['sword_short',1],['axe_hand',1],['potion',1]],'Сундук кузнеца');}
+  if(R.type==='home'){hearth(5);bed(1,2);table(3,4);stool(2,4);candle(3,4);barrel(6,4);chest(6,3,[['bread',1],['stone',2],['trident',1]],'Сундук рыбака');
     I('Сеть','Старая сеть, вся в узлах и чешуе.');
     for(let i=0;i<6;i++)part(g,M(0x3a3a30),R.ox+1.2+i*.3,y+1.1,R.oz+1.08,.03,.9,.02);for(let j=0;j<4;j++)part(g,M(0x3a3a30),R.ox+1.95,y+.75+j*.22,R.oz+1.08,1.6,.03,.02); // net
     I('Вяленая рыба','Солёная и жёсткая. Вы отламываете кусок в дорогу.',[['bread',1]]);    for(let i=0;i<3;i++){part(g,M(0x9ab0b8),R.ox+3.1+i*.3,y+1.15,R.oz+1.12,.08,.26,.05);}part(g,lam(T.bark),R.ox+3.4,y+1.32,R.oz+1.12,.9,.04,.04); // drying fish
@@ -63,12 +63,12 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Кресло старосты','Высокая спинка, резные рыбы на подлокотниках.');S(2,3,.5,.32,.5,lam(T.p[1]));part(g,lam(T.p[1]),R.ox+2.3,y+.75,R.oz+3.5,.08,.8,.5); // the elder's chair
     I('Знамя острова','Золотая рыба на алом поле — герб Хельги.');    part(g,M(0x8a2a24),R.ox+4.5,y+1.15,R.oz+1.07,.9,1.1,.03);part(g,M(0xd0a94a),R.ox+4.5,y+1.2,R.oz+1.09,.3,.3,.02);part(g,lam(T.bark),R.ox+4.5,y+1.72,R.oz+1.1,1.1,.05,.05); // banner
     I('Книжный шкаф','Летопись острова: «В год, когда погас огонь часовни, мёртвые поднялись из земли…»');S(1,1,.9,1.5,.4,lam(T.p[2]));for(let j=0;j<3;j++)for(let i=0;i<5;i++)part(g,M([0x7a4a2a,0x4a5a8a,0x8a3a2a,0x5a6a3a][(i+j)%4]),R.ox+1.15+i*.17,y+.35+j*.45,R.oz+1.3,.12,.3,.2);
-    I(null);chest(7,4,[['potion',1],['bread',2],['shield',1]],'Сундук старосты');itemProp(g,R.ox+4.5,y+.55,R.oz+3.5,'potion',1,'Зелье лечения','Стоит на карте острова, как пресс-папье.');}
+    I(null);chest(7,4,[['potion',1],['bread',2],['shield_kite',1]],'Сундук старосты');itemProp(g,R.ox+4.5,y+.55,R.oz+3.5,'potion',1,'Зелье лечения','Стоит на карте острова, как пресс-папье.');}
   if(R.type==='barn'){torch(R.ox+5,R.oz+5);I('Сено','Мягкое и колючее. Пахнет летом.');for(const [dx,dz,h] of [[1,1,.8],[2,1,.6],[1,2,.5]]){S(dx,dz,.95,h,.95,M(0xc8a858));part(g,M(0xd8b868),R.ox+dx+.5,y+h+.04,R.oz+dz+.5,.7,.08,.7);}
     I('Телега','Одно колесо скрипит.');S(4,3,1,.3,.8,lam(T.p[1]));for(const sx of [-1,1])part(g,M(0x4a3020),R.ox+4.5+sx*.52,y+.25,R.oz+3.5,.06,.5,.5); // cart
     I('Вилы','Острые. Не оружие, но в крайнем случае…');const f=part(g,lam(T.bark),R.ox+5.7,y+.75,R.oz+1.3,.05,1.4,.05);f.rotation.z=.2;I('Мешки','Мука с мельницы Тодора.');
     for(let i=0;i<3;i++)S(5-i%2,2+(i>1?0:0),.4,.45,.4,M(0xb8a070),false).position.set(R.ox+4.6+i*.35,y+.22,R.oz+1.6);blockCell(R.ox+4,R.oz+1);blockCell(R.ox+5,R.oz+1);
-    I(null);chest(1,4,[['bread',3],['stone',2]],'Ларь с зерном');itemProp(g,R.ox+4.5,y+.4,R.oz+3.5,'bread',1,'Хлеб','Кто-то забыл обед на телеге.');}
+    I(null);chest(1,4,[['bread',3],['stone',2],['quarterstaff',1]],'Ларь с зерном');itemProp(g,R.ox+4.5,y+.4,R.oz+3.5,'bread',1,'Хлеб','Кто-то забыл обед на телеге.');}
   if(R.type==='herb'){hearth(4);bed(1,3);table(4,3);candle(4,3);chest(5,2,[['potion',2]],'Шкатулка травницы');
     I('Котёл','Зелье булькает зелёным. Лучше не трогать.');
     S(2,2,.6,.4,.6,M(0x1e1e22));part(g,glow(0x5adf7a),R.ox+2.5,y+.41,R.oz+2.5,.5,.02,.5); // cauldron

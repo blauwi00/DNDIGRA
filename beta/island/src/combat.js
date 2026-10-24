@@ -48,7 +48,7 @@ const flash=(a,c=0xffffff)=>{a.o.userData.mats.forEach(m=>m.emissive&&m.emissive
 async function lunge(att,def){const dx=def.px-att.px,dz=def.pz-att.pz,len=Math.hypot(dx,dz)||1,reach=Math.min(.45,len-.4);
   att.face=Math.atan2(dx,dz);await tween(320,k=>{att.off=[-dx/len*.14*k,-dz/len*.14*k];att.lean=-.2*k});sfx('swing');
   await tween(150,k=>{att.off=[dx/len*(reach*k-.14*(1-k)),dz/len*(reach*k-.14*(1-k))];att.lean=.35*k});return ()=>tween(300,k=>{att.off=[dx/len*reach*(1-k),dz/len*reach*(1-k)];att.lean=.35*(1-k)}).then(()=>{att.off=null;att.lean=0});}
-async function projectile(a,b,kind){sfx(kind==='spell'?'spell':'bow');const spell=kind==='spell',m=new THREE.Mesh(spell?box(.16,.16,.16):box(.04,.04,.42),new THREE.MeshBasicMaterial({color:spell?0xff8a2a:kind==='missile'?0xb08aff:0xe8e0c8}));scene.add(m);
+let opt0=null;async function projectile(a,b,kind){sfx(kind==='spell'?'spell':'bow');const spell=kind==='spell',m=new THREE.Mesh(spell?box(.16,.16,.16):box(.04,.04,.42),new THREE.MeshBasicMaterial({color:spell?(a===H0&&opt0&&WEAPONS[opt0.id]&&WEAPONS[opt0.id].m.gem||0xff8a2a):kind==='missile'?0xb08aff:0xe8e0c8}));scene.add(m);
   const y0=groundAt(a.x,a.z)+.65,y1=groundAt(b.x,b.z)+.6,ms=200+man(a,b)*55;
   await tween(ms,k=>{m.position.set(a.px+(b.px-a.px)*k,y0+(y1-y0)*k+Math.sin(k*Math.PI)*(spell?.2:.5),a.pz+(b.pz-a.pz)*k);m.lookAt(b.px,y1,b.pz);if(spell)m.rotation.z=k*9});scene.remove(m);}
 function knock(def,att,dmg,col){sfx('hit');flash(def);shake=dmg>6?.2:.12;floatText('-'+dmg,col,def.o);const dx=def.px-att.px,dz=def.pz-att.pz,l=Math.hypot(dx,dz)||1;
@@ -62,7 +62,7 @@ async function attack(att,def,opt){if(def.dead)return;att.face=Math.atan2(def.px
   if(isHero&&opt.save)return saveSpell(def,opt);
   const res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
   const ranged=opt.range>1&&man(att,def)>1;let back=null;
-  if(ranged)await projectile(att,def,opt.kind);else back=await lunge(att,def);
+  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else back=await lunge(att,def);
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex

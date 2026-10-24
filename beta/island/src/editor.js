@@ -26,7 +26,7 @@ function preview(){const c=document.getElementById('edCanvas');
       pv.t+=.016;pv.zoom+=(pv.zoomT-pv.zoom)*.12;if(pv.auto)pv.yaw+=.004;
       const face=pv.zoom,fit=Math.min(1,Math.max(.5,w/h*1.25)),dist=(4.4-1.7*(1-face))/fit,ly=.62+.28*(1-face);cam.position.set(0,ly+.35*face,dist);cam.lookAt(0,ly,0);
       if(pv.m){pv.m.rotation.y=pv.yaw;const close=pv.zoom<.5;pv.m.traverse(o=>{if(o.userData&&o.userData.item)o.userData.item.visible=!close;});const rg=pv.m.userData.rig,b=pv.m.userData.body,br=Math.sin(pv.t*1.8);if(rg){rg.torso.scale.y=1+br*.012;rg.head.rotation.y=Math.sin(pv.t*.6)*.12;
-        if(pv.m.userData.twoHand&&pv.m.userData.twoHand!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
+        if(pv.m.userData.twoHand&&kindOf(pv.m.userData.twoHand)!=='bow'){rg.armL.rotation.set(-.55,0,.05);rg.armR.rotation.set(-1.05,0,-.75);}else if(pv.m.userData.twoHand){rg.armL.rotation.set(-1,0,.5);rg.armR.rotation.set(-1,0,-.5);}else{rg.armL.rotation.set(br*.04,0,0);rg.armR.rotation.set(-br*.04,0,0);}}
         if(pv.pop>0){pv.pop-=.05;b.position.y=Math.sin(pv.pop*Math.PI)*.06;}}
       r.render(s,cam);pv.raf=requestAnimationFrame(loop);};pv.loop=loop;}
   if(pv.m)pv.s.remove(pv.m);pv.m=buildModel(raceDecorate(ED.race,C_.build(C_.spec('hero',edState())),ED.ap));raceScale(ED.race,pv.m);pv.pop=1;
@@ -61,7 +61,11 @@ function classTab(body){const g=el('div','hc-classes');
     const pic=C_.portrait('hero',{classId:gidOf(k),appearance:k===ED.cls?ED.ap:baseLook(k)},{view:'body',width:60,height:60,pixel:2});pic.className='hc-pic';
     b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=0;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};g.append(b);}
   body.append(g);const kits=CLASSES[ED.cls].kits;
-  if(kits.length>1){const row=el('div','hc-gender');kits.forEach((kt,i)=>{const b=el('button',ED.kit===i?'on':'',kt.n);b.onclick=()=>{ED.kit=i;sfx('click');openEditor(true);};row.append(b);});body.append(el('div','hc-lab','Стартовое оружие'),row);}
+  {const row=el('div','hc-kits'),items=kt=>[kt.R,kt.L,...(kt.bag||[])].filter(Boolean);
+    kits.forEach((kt,i)=>{const b=el('button',ED.kit===i?'on':'');const ic=el('span','hc-kit-ic');for(const id of items(kt)){const im=document.createElement('img');im.src=window.handsIconURL(id);im.alt='';ic.append(im);}
+      b.append(ic,el('span',null,kt.n));b.onclick=()=>{if(ED.kit===i)return;ED.kit=i;sfx('click');openEditor(true);};row.append(b);});
+    const cur=kits[ED.kit]||kits[0],info=el('div','hc-kit-info');for(const id of items(cur)){const V=WEAPONS[id];if(V)info.append(el('div',null,V.n+' — '+V.d));}
+    body.append(el('div','hc-lab','Стартовое оружие'),row,info);}
   const sx=el('div','hc-gender');for(const [gv,label] of [['male','Мужчина'],['female','Женщина']]){const b=el('button',ED.gender===gv?'on':'',label);b.onclick=()=>{if(ED.gender===gv)return;ED.gender=gv;ED.ap=baseLook();ED.game=null;if(NAMES[gv==='male'?'female':'male'].includes(ED.name))ED.name=NAMES[gv][Math.floor(Math.random()*NAMES[gv].length)];sfx('click');openEditor(true);};sx.append(b);}
   body.append(el('div','hc-lab','Пол'),sx);
   const H=applyRace(Object.assign({},CLASSES[ED.cls]),ED.race),st=el('div','hc-stats');

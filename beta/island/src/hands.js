@@ -19,8 +19,10 @@
  fish:['................','................','................','..........kk....','...kkkkkkkkok...','..kccCCCCCCok...','.kcpcCCCCCCCok..','.kccCCCCCCCok...','..kkCCCCCCok....','....kkkkkkk.....','................','................','................','................','................','................'],
  herb:['................','.......kk.......','......kgGk......','..kk..kgGk..kk..','.kgGk.kgk..kgGk.','.kgGGkkgk.kgGk..','..kgGGkgkkgGk...','...kkgGgGgkk....','.....kkgkk......','......kbk.......','......kbk.......','.....kbBk.......','......kk........','................','................','................'],
  bread:['................','................','.....kkkkkk.....','...kkywywywkk...','..kyywywywyyYk..','..kyyyyyyyyyYk..','.kYyyyyyyyyyYYk.','.kYYYYYYYYYYYYk.','..kkkkkkkkkkkk..','................','................','................','................','................','................','................']};
+ for(const k in WEAPONS){const V=WEAPONS[k];ITEMS[k]={n:V.n,max:1,two:V.two||0,d:V.d};}
  function icon(c,id){c.width=c.height=16;const x=c.getContext('2d');x.clearRect(0,0,16,16);if(!id)return c;
-  ICON[id].forEach((row,j)=>[...row].forEach((ch,i)=>{if(PAL[ch]){x.fillStyle=PAL[ch];x.fillRect(i,j,1,1);}}));return c;}
+  const V=WEAPONS[id],P=V&&V.pal?Object.assign({},PAL,V.pal):PAL,shape=ICON[id]||(V&&WICON[V.icon])||ICON[V?Object.keys(WEAPONS).find(k=>WEAPONS[k].kind===V.kind&&ICON[k]):id];
+  shape.forEach((row,j)=>[...row].forEach((ch,i)=>{if(P[ch]){x.fillStyle=P[ch];x.fillRect(i,j,1,1);}}));return c;}
 
  // ---------- slots: two hands, a bag of 8 and, when one is open, a chest ----------
  // Every slot is null or {id,n}. Weapons are unique; consumables stack to their own limit,

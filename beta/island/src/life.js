@@ -35,7 +35,7 @@ const V=[];
 {const add=(name,look,role,house,tool,extra={})=>V.push(villager(name,look,Object.assign({role,house,tool,home:DOOR(house)},extra)));
  add('Свен-лесоруб',LOOKS2[0],'chop',3,'axe');add('Торговка Марта',LOOKS2[1],'sell',3,null);add('Агна',LOOKS2[2],'sweep',5,'broom');
  add('Старик Ульф',LOOKS2[3],'chat1',2,null);add('Хильда',LOOKS2[4],'chat2',2,null);add('Нильс',LOOKS2[5],'fish2',2,'rod');
- add('Стражник Бьорн',LOOKS2[6],'patrol',3,'spear',{spd:1.5});}
+ add('Стражник Бьорн',LOOKS2[6],'patrol',3,'halberd',{spd:1.5});}
 // the old villagers join the routine too
 {const f=actors.find(a=>a.talkId==='fisher');Object.assign(f,{villager:true,role:'fish1',house:2,tool:'rod'});V.push(f);
  const m=actors.find(a=>a.talkId==='miller');Object.assign(m,{villager:true,role:'field',house:4,tool:'hoe'});V.push(m);}

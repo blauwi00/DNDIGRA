@@ -218,7 +218,7 @@ const FOE={
   skeleton:{name:'Скелет',hp:13,ac:13,atk:4,dmg:6,dmgB:2,atkName:'Ржавый меч',speed:6,perc:9,dex:2,wis:-1,ath:0},
   wolf:{name:'Волк',hp:11,ac:13,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Укус',speed:8,perc:13,dex:2,wis:1,ath:1,spd:2.8}};
 function foe(model,x,z,o){o=Object.assign({},FOE[model],{max:FOE[model].hp},o);const a=actor(model,x,z,Object.assign({enemy:true,wander:3,spd:2.2,cd:0},o));enemies.push(a);
-  if(model==='bandit')setHeld(a.o,'R','dagger');return a;}
+  if(model==='bandit')setHeld(a.o,'R',['dagger_curved','sword_scimitar','axe_hand'][enemies.length%3]);return a;}
 foe('bandit',Z.camp[0]+1,Z.camp[1]-1);foe('bandit',Z.camp[0]-1,Z.camp[1]+1);
 foe('goblin',Z.forest[0]-4,Z.forest[1]-6);foe('goblin',Z.hunter[0]+3,Z.hunter[1]-2);
 foe('skeleton',Z.ruins[0]-2,Z.ruins[1]+1);foe('skeleton',Z.ruins[0]+2,Z.ruins[1]-1);foe('skeleton',Z.grave[0],Z.grave[1]+1);
@@ -307,7 +307,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
     if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
     if(q.state===1)return say(n,'Жаровня в руинах всё ещё холодная. Факел — в моём ящике с припасами.');
-    if(q.state===2){q.state=3;window.handsGive([['potion',2]],'Награда');questUI();banner('Пролог пройден');
+    if(q.state===2){q.state=3;window.handsGive([['potion',2],['sword_rune',1]],'Награда');questUI();banner('Пролог пройден');
       return say(n,'Огонь часовни виден даже отсюда! Хельга снова под защитой. Ты сделал больше, чем мы смели просить. Остров твой дом, путник — заходи, когда захочешь.');}
     return say(n,'Огонь горит. Мёртвые спят. Выпей со мной, герой.');}
   if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2]]);
@@ -381,7 +381,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     o.position.set(a.px+(a.off?a.off[0]:0),groundAt(a.px,a.pz)+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
     if(a!==H0||!H0.dead)o.rotation.y=a.face;b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
-      if(o.userData.twoHand&&o.userData.twoHand!=='bow'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
+      if(o.userData.twoHand&&kindOf(o.userData.twoHand)!=='bow'){r.armL.rotation.set(-.55+breathe*.03,0,.05);r.armR.rotation.set(-1.05+breathe*.03,0,-.75);} // right hand low on the staff, left reaches across
       else if(o.userData.twoHand){r.armL.rotation.set(-1.0+breathe*.03,0,.5);r.armR.rotation.set(-1.0+breathe*.03,0,-.5);} // both hands meet on the bow
       else{r.armL.rotation.set(walk?-sw*.5:breathe*.04,0,0);r.armR.rotation.set(walk?sw*.5:-breathe*.04,0,0);}
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
