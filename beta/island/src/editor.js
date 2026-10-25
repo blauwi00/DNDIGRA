@@ -98,7 +98,7 @@ function raceTab(body){const strip=el('div','hc-carousel');
 function classTab(body){const g=el('div','hc-classes');
   for(const k of CLASS_ORDER){const c=CLASSES[k],b=el('button','hc-class'+(ED.cls===k?' on':''));
     const pic=C_.portrait('hero',{classId:gidOf(k),appearance:k===ED.cls?ED.ap:baseLook(k)},{view:'body',width:60,height:60,pixel:2});pic.className='hc-pic';
-    b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=null;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};g.append(b);}
+    b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=null;ED.ap=keepBody(ED.ap,baseLook());ED.game=null;sfx('click');openEditor(true);};g.append(b);}
   body.append(g);const kits=CLASSES[ED.cls].kits;
   {const row=el('div','hc-kits'),items=kt=>[kt.R,kt.L,...(kt.bag||[])].filter(Boolean);
     kits.forEach((kt,i)=>{const b=el('button',ED.kit===i?'on':'');const ic=el('span','hc-kit-ic');for(const id of items(kt)){const im=document.createElement('img');im.src=window.handsIconURL(id);im.alt='';ic.append(im);}
@@ -127,6 +127,9 @@ function groupTab(body,tab){for(const G of C_.GROUPS[tab]){const key=G.key;
       b.append(tilePortrait(ap,G.view||'full',G.back),el('small',null,o.name));b.setAttribute('aria-pressed',on);
       b.onclick=()=>{if(multi){const cur=ED.ap[key]||[];setAp(key,on?cur.filter(x=>x!==o.id):[...cur,o.id]);}else setAp(key,o.id);if(G.view==='face'||G.view==='head'||G.view==='hat'){pv.zoomT=0;}};row.append(b);}
     body.append(el('div','hc-lab',G.title+(G.type==='multi'?' · можно несколько':'')),row);}}
+// a new class changes the clothes, never the person: face, skin, hair and marks stay as chosen
+const BODY_KEYS=['gender','ears','hairStyle','brows','eyes','mouth','beard','marks','face','skin','hair','hair2','brow','eye','beardColor','markColor'];
+function keepBody(old,base){const o=clone(base);if(old)for(const k of BODY_KEYS)if(k in old)o[k]=clone(old[k]);try{return C_.normalize(o,gid());}catch(e){return o;}}
 function randomHero(full){const gv=full?(Math.random()<.5?'male':'female'):ED.gender;ED.gender=gv;if(full){ED.cls=CLASS_ORDER[Math.floor(Math.random()*CLASS_ORDER.length)];ED.race=RACE_ORDER[Math.floor(Math.random()*RACE_ORDER.length)];ED.kit=Math.floor(Math.random()*CLASSES[ED.cls].kits.length);}
   ED.ap=raceAppearance(ED.race,Object.assign(C_.randomLook(gid(),gv),{outfit:baseLook().outfit}));ED.game=null;ED.name=NAMES[gv][Math.floor(Math.random()*NAMES[gv].length)];sfx('dice');openEditor(true);}
 document.getElementById('hcTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ED.tab=b.dataset.tab;pv&&(pv.zoomT=['face','hair','race'].includes(ED.tab)?0:1);sfx('click');openEditor(true);});

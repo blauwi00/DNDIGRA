@@ -117,6 +117,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   if(R.type==='castle'){const w=R.iw,d=R.id,cx=Math.floor(w/2);
     I('Помост','Три ступени из белого камня.');part(g,lam(T.wall,{color:0xc8c0b0}),R.ox+cx,y+.12,R.oz+2.5,8,.24,3);I(null);
     I('Трон','Высокая спинка с позолотой. Пустует — король принимает только по делу.');S(cx,2,.9,.6,.8,lam(T.p[1],{color:0x8e2a24}));part(g,lam(T.p[1],{color:0x8e2a24}),R.ox+cx+.5,y+1.15,R.oz+1.85,.9,1.4,.15);part(g,M(0xd8b04a),R.ox+cx+.5,y+1.9,R.oz+1.85,.5,.25,.1);I(null);
+    I('Список стражи','Длинный свиток на стене: имена стражников за двадцать лет. Одно имя вычеркнуто так, что прорвана бумага: «капитан Рагнар».');part(g,M(0xe8dcc0),R.ox+cx-5.5,y+1.3,R.oz+1.06,.6,.8,.03);part(g,M(0x8a6a40),R.ox+cx-5.5,y+1.72,R.oz+1.08,.7,.05,.04);I(null);
     rug(cx-1,4,2,d-6);
     I('Колонна','Гладкий камень. Наверху вырезаны волны и рыбы — знак острова.');for(let z=4;z<d-2;z+=3)for(const x of[cx-4,cx+3]){S(x,z,.7,2.6,.7,lam(T.wall,{color:0xc0baae}));}I(null);
     I('Знамя королевства','Красное полотно с золотой рыбой.');for(const x of[3,cx-3,cx+3,w-4])if(x!==cx){part(g,M(0x8e2a24),R.ox+x+.5,y+1.2,R.oz+1.08,.8,1.3,.03);part(g,M(0xd8b04a),R.ox+x+.5,y+1.35,R.oz+1.1,.3,.3,.02);}I(null);

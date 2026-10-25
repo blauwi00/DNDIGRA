@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.63 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.64 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2866,6 +2866,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   if(R.type==='castle'){const w=R.iw,d=R.id,cx=Math.floor(w/2);
     I('Помост','Три ступени из белого камня.');part(g,lam(T.wall,{color:0xc8c0b0}),R.ox+cx,y+.12,R.oz+2.5,8,.24,3);I(null);
     I('Трон','Высокая спинка с позолотой. Пустует — король принимает только по делу.');S(cx,2,.9,.6,.8,lam(T.p[1],{color:0x8e2a24}));part(g,lam(T.p[1],{color:0x8e2a24}),R.ox+cx+.5,y+1.15,R.oz+1.85,.9,1.4,.15);part(g,M(0xd8b04a),R.ox+cx+.5,y+1.9,R.oz+1.85,.5,.25,.1);I(null);
+    I('Список стражи','Длинный свиток на стене: имена стражников за двадцать лет. Одно имя вычеркнуто так, что прорвана бумага: «капитан Рагнар».');part(g,M(0xe8dcc0),R.ox+cx-5.5,y+1.3,R.oz+1.06,.6,.8,.03);part(g,M(0x8a6a40),R.ox+cx-5.5,y+1.72,R.oz+1.08,.7,.05,.04);I(null);
     rug(cx-1,4,2,d-6);
     I('Колонна','Гладкий камень. Наверху вырезаны волны и рыбы — знак острова.');for(let z=4;z<d-2;z+=3)for(const x of[cx-4,cx+3]){S(x,z,.7,2.6,.7,lam(T.wall,{color:0xc0baae}));}I(null);
     I('Знамя королевства','Красное полотно с золотой рыбой.');for(const x of[3,cx-3,cx+3,w-4])if(x!==cx){part(g,M(0x8e2a24),R.ox+x+.5,y+1.2,R.oz+1.08,.8,1.3,.03);part(g,M(0xd8b04a),R.ox+x+.5,y+1.35,R.oz+1.1,.3,.3,.02);}I(null);
@@ -3362,7 +3363,7 @@ let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
 function questUI(){if(tutUI())return;
   if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div class="one">Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2).concat(jobQuests());questEl.hidden=!act.length;
-  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job||q.step==='ask'||q.need==='Атаман Ворон'?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
+  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job||q.need==='Атаман Ворон'?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
@@ -3666,12 +3667,13 @@ function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON
   q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
-  for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}if(Q.raven&&d.rv){Q.raven.step=d.rv;if(d.rv==='lair')Q.raven.title='Одолеть атамана Ворона в руинах';}
+  for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
   ecoLoad(d.eco);legendLoad(d.leg);
   for(const [nm,k] of d.met||[]){const v=V.find(v=>v.npc===nm);if(v)v.met=k;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
+  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door
@@ -3874,7 +3876,8 @@ function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
   const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=q.giverA||actors.find(a=>a.talkId===giver);
   if(q.state===2){if(who.z>=OUT_H){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
   if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};
-  if(q===Q.raven&&q.state===1&&q.step==='ask'){const o=q.oldA,R=o.where==='home'&&o.houseRoom;return R&&room!==R?{x:R.door[0],z:R.door[1],label:o.npc,inRoom:R}:{x:o.x,z:o.z,label:o.npc};}
+  if(q===Q.raven&&q.state===1){if(q.step==='ask'){const o=q.oldA,R=o.where==='home'&&o.houseRoom;return R&&room!==R?{x:R.door[0],z:R.door[1],label:o.npc,inRoom:R}:{x:o.x,z:o.z,label:o.npc};}
+    if(q.step==='feather')return {x:q.fcamp.x,z:q.fcamp.z,label:'Лагерь разбойников'};if(q.step==='stone')return {x:q.stone[0],z:q.stone[1],label:'Камень с вороном'};}
   if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
   const foes=enemies.filter(e=>!e.dead&&e.name===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');
@@ -4022,7 +4025,7 @@ function raceTab(body){const strip=el('div','hc-carousel');
 function classTab(body){const g=el('div','hc-classes');
   for(const k of CLASS_ORDER){const c=CLASSES[k],b=el('button','hc-class'+(ED.cls===k?' on':''));
     const pic=C_.portrait('hero',{classId:gidOf(k),appearance:k===ED.cls?ED.ap:baseLook(k)},{view:'body',width:60,height:60,pixel:2});pic.className='hc-pic';
-    b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=null;ED.ap=baseLook();ED.game=null;sfx('click');openEditor(true);};g.append(b);}
+    b.append(pic,el('b',null,c.n),el('small',null,c.role));b.onclick=()=>{if(ED.cls===k)return;ED.cls=k;ED.kit=null;ED.ap=keepBody(ED.ap,baseLook());ED.game=null;sfx('click');openEditor(true);};g.append(b);}
   body.append(g);const kits=CLASSES[ED.cls].kits;
   {const row=el('div','hc-kits'),items=kt=>[kt.R,kt.L,...(kt.bag||[])].filter(Boolean);
     kits.forEach((kt,i)=>{const b=el('button',ED.kit===i?'on':'');const ic=el('span','hc-kit-ic');for(const id of items(kt)){const im=document.createElement('img');im.src=window.handsIconURL(id);im.alt='';ic.append(im);}
@@ -4051,6 +4054,9 @@ function groupTab(body,tab){for(const G of C_.GROUPS[tab]){const key=G.key;
       b.append(tilePortrait(ap,G.view||'full',G.back),el('small',null,o.name));b.setAttribute('aria-pressed',on);
       b.onclick=()=>{if(multi){const cur=ED.ap[key]||[];setAp(key,on?cur.filter(x=>x!==o.id):[...cur,o.id]);}else setAp(key,o.id);if(G.view==='face'||G.view==='head'||G.view==='hat'){pv.zoomT=0;}};row.append(b);}
     body.append(el('div','hc-lab',G.title+(G.type==='multi'?' · можно несколько':'')),row);}}
+// a new class changes the clothes, never the person: face, skin, hair and marks stay as chosen
+const BODY_KEYS=['gender','ears','hairStyle','brows','eyes','mouth','beard','marks','face','skin','hair','hair2','brow','eye','beardColor','markColor'];
+function keepBody(old,base){const o=clone(base);if(old)for(const k of BODY_KEYS)if(k in old)o[k]=clone(old[k]);try{return C_.normalize(o,gid());}catch(e){return o;}}
 function randomHero(full){const gv=full?(Math.random()<.5?'male':'female'):ED.gender;ED.gender=gv;if(full){ED.cls=CLASS_ORDER[Math.floor(Math.random()*CLASS_ORDER.length)];ED.race=RACE_ORDER[Math.floor(Math.random()*RACE_ORDER.length)];ED.kit=Math.floor(Math.random()*CLASSES[ED.cls].kits.length);}
   ED.ap=raceAppearance(ED.race,Object.assign(C_.randomLook(gid(),gv),{outfit:baseLook().outfit}));ED.game=null;ED.name=NAMES[gv][Math.floor(Math.random()*NAMES[gv].length)];sfx('dice');openEditor(true);}
 document.getElementById('hcTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ED.tab=b.dataset.tab;pv&&(pv.zoomT=['face','hair','race'].includes(ED.tab)?0:1);sfx('click');openEditor(true);});
@@ -4166,29 +4172,66 @@ function townTick(){if(!TOWN.length||CB.on)return;for(let n=0;n<4;n++){const a=T
   if(night&&!indoor&&a.where!=='goingHome'){a.dayAct=a.dayAct||a.workAct;if(a.far)inside();else{a.where='goingHome';goTo(a,[R.door[0],R.door[1]+1],inside);}}
   else if(!night&&indoor&&!(room===R&&Math.hypot(a.px-H0.px,a.pz-H0.pz)<3))outside();}}
 // ---------- the island's trouble: the robbers' chief Raven ----------
-// The robbers on every road answer to one man. The king learns of him from the far camp, an old woman in the
-// poorest settlement knows his hiding place in the ruins, and with him gone the bands scatter.
+// Told slowly, over an hour or more: the king trusts only a proven hero; the old woman in the poorest settlement
+// talks for bread; the black feather of Raven's men lies in another camp; the carved stone in the ruins opens
+// only at night to whoever holds the feather; and the man behind it all has his own story.
+// steps: ask (old woman) -> feather -> stone -> lair; his gang sleeps out of sight until the stone opens.
+HELD.feather=[[0,.1,.03,.03,.2,.02,0x14141a],[0,.13,.03,.08,.12,.012,0x22222a],[0,.0,.03,.015,.06,.015,0x5a4a3a]];
+const GANG=[];
 {const cap=GEN.places.find(p=>p.type==='capital'),ruins=GEN.places.filter(p=>p.type==='ruins'&&!p.stamp).sort((x,y)=>Math.hypot(y.x-cap.x,y.z-cap.z)-Math.hypot(x.x-cap.x,x.z-cap.z))[0]||GEN.places.filter(p=>p.type==='bandits').pop();
  const poor=TOWN.filter(a=>a.kind==='poor'),old=poor.find(a=>a.job==='Старуха')||poor[0]||TOWN.find(a=>a.kind==='village');
- if(KING&&ruins&&old){Q.raven={state:0,step:'ask',need:'Атаман Ворон',left:1,title:'Найти, где прячется атаман Ворон',at:ruins,giverA:KING,gold:150,rep:5,oldA:old};
-   const boss=foe('bandit',ruins.x,ruins.z,{name:'Атаман Ворон',hp:32,max:32,ac:14,atk:5,dmg:8,dmgB:3,atkName:'Тяжёлый меч',perc:12,wander:1,boss:true});setHeld(boss.o,'R','sword_long');addBar(boss);
-   addBar(foe('bandit',ruins.x+2,ruins.z+1,{wander:2}));addBar(foe('bandit',ruins.x-2,ruins.z+1,{wander:2}));}}
-function ravenStart(){const q=Q.raven;if(!q||q.state)return;q.state=q.left===0?2:1;q.step='ask';q.title='Найти, где прячется атаман Ворон';questFocus=q;questUI();
-  say('Король Хальвдан','Один из пленных заговорил. Все шайки на острове слушаются одного человека — атамана Ворона. Где он сидит, никто не знает. Говорят, старуха в посёлке '+q.oldA.place.n+' видела его людей. Найди её. Найдёшь Ворона — получишь награду, какой ещё никто не получал.');}
-function ravenOld(n){const q=Q.raven;q.step='lair';q.title='Одолеть атамана Ворона в руинах';questUI();
-  say(n,'Ворона? Видела, как же. Его люди ходят через наш посёлок к старым руинам, '+q.at.n+'. Носят туда мешки, а назад пустые. Только ты один туда не суйся, их там много.');}
+ const camps=GEN.places.filter(p=>p.type==='bandits'),fcamp=camps.find(c=>c!==(Q.crown&&Q.crown.at)&&c!==(Q.road&&Q.road.at))||camps.find(c=>c!==(Q.crown&&Q.crown.at))||camps[0];
+ if(KING&&ruins&&old&&fcamp){Q.raven={state:0,step:'ask',need:'Атаман Ворон',left:1,title:'',at:ruins,giverA:KING,gold:150,rep:5,oldA:old,fcamp};
+   const boss=foe('bandit',ruins.x,ruins.z,{name:'Атаман Ворон',hp:40,max:40,ac:15,atk:5,dmg:8,dmgB:3,atkName:'Тяжёлый меч',perc:13,wander:1,boss:true});setHeld(boss.o,'R','sword_long');GANG.push(boss);
+   for(const [dx,dz] of [[2,1],[-2,1],[0,3]])GANG.push(foe('bandit',ruins.x+dx,ruins.z+dz,{wander:1,gang:true}));
+   for(const e of GANG){addBar(e);e.dead=true;e.dormant=true;e.o.visible=false;}
+   // the carved stone at the ruins' edge
+   {const sx=ruins.x,sz=ruins.z+Math.max(3,(ruins.r||4)-1),[x,z]=nearFree(sx,sz,4),y=groundAt(x,z),g=new THREE.Group(),m=new THREE.Mesh(BOX,lam(T.stone,{color:0x8a8a90}));m.scale.set(.8,1.3,.5);m.position.set(x+.5,y+.65,z+.5);m.castShadow=true;g.add(m);
+    const c=new THREE.Mesh(BOX,new THREE.MeshLambertMaterial({color:0x1a1a22}));c.scale.set(.36,.28,.02);c.position.set(x+.5,y+.9,z+.76);g.add(c);scene.add(g);blockCell(x,z);
+    Q.raven.stone=[x,z];interact.push({mesh:m,extra:[c],x,z,name:'Камень с вороном',use(){ravenStone();}});}
+   // the feather lies by the fire of another camp, there from the start, noticed once you know what it means
+   {const [x,z]=nearFree(fcamp.x+1,fcamp.z-1,3),y=groundAt(x,z),grp=heldGroup('feather');grp.scale.setScalar(1.6);grp.position.set(x+.5,y+.04,z+.5);grp.rotation.set(0,.7,Math.PI/2);scene.add(grp);
+    const ms=[];grp.traverse(o=>o.isMesh&&ms.push(o));const it={mesh:ms[0],extra:ms.slice(1),x,z,stand:true,name:'Чёрное перо',grp,use(){ravenFeather(this);}};interact.push(it);Q.raven.featherIt=it;Q.raven.feather=[x,z];}}}
+const RV_TITLE={ask:'Узнать, кто такой атаман Ворон',feather:'Найти чёрное перо людей Ворона',stone:'Разгадать камень с вороном в руинах',lair:'Одолеть атамана Ворона'};
+function ravenStep(st){const q=Q.raven;q.step=st;q.title=RV_TITLE[st];questFocus=q;questUI();save();}
+function ravenStart(){const q=Q.raven;if(!q||q.state)return;q.state=1;ravenStep('ask');
+  say('Король Хальвдан','Один из пленных заговорил. Все шайки на острове слушаются одного человека. Зовут его Ворон. Кто он и где сидит — не знаю. Говорят, старуха в посёлке '+q.oldA.place.n+' видела его людей. Начни с неё.');}
+function ravenOld(n){const q=Q.raven;
+  if(q.step==='ask'){if((window.handsCount?window.handsCount('bread'):0)<2)return say(n,'Ворон? Может, и слыхала. Только на пустой живот память плохая. Внуки второй день без хлеба. Принеси две краюхи — тогда поговорим.');
+    window.handsConsume('bread');window.handsConsume('bread');repAdd('village',1,'накормил бедных');ravenStep('feather');
+    return say(n,'Спасибо, родной. Слушай. Люди Ворона ходят через наш посёлок по ночам, к старым руинам, '+q.at.n+'. Днём там пусто, сама ходила. А у каждого на шапке чёрное перо. Без пера, говорят, к Ворону не попасть. Перья эти у разбойников в лагерях. Поищи у костра.');}
+  if(q.step==='feather')return say(n,'Чёрное перо ищи у разбойников, у костра в лагере. Не у тех, что у тракта, — у других.');
+  if(q.step==='stone')return say(n,'В руинах камень стоит, а на нём ворон вырезан. Я к нему подходить боюсь. Говорят, ночью он гудит.');
+  return say(n,'Будь осторожен. Ворон — не простой разбойник. Когда-то он служил королю.');}
+function ravenFeather(it){const q=Q.raven;if(!q||!window.handsGive)return;
+  if(q.state!==1||q.step==='ask')return say('Чёрное перо','Обычное воронье перо, только зачем-то перевязано красной ниткой. Кто-то обронил у костра.');
+  if(!window.handsGive([['feather',1]],'Находка').length)return say('Чёрное перо','Руки и сумка заняты. Освободите место.');
+  it.grp.visible=false;interact.splice(interact.indexOf(it),1);if(q.step==='feather')ravenStep('stone');
+  say('Чёрное перо','Перо перевязано красной ниткой. Такое носят люди Ворона. Теперь — в руины, к камню с вороном.');}
+function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,has=window.handsCount&&window.handsCount('feather')>0;
+  const riddle='На камне вырезан ворон под луной, а ниже слова: «Днём я сплю, ночью летаю. Покажи мне моё перо — и я пущу тебя к хозяину».';
+  if(q.state!==1||q.step==='ask'||q.step==='feather')return say('Камень с вороном',riddle+' Камень холодный и молчит.');
+  if(q.step==='lair'||q.state>1)return say('Камень с вороном','Камень отодвинут. Под ним — ступени вниз.');
+  if(!has)return say('Камень с вороном',riddle+' Нужно перо.');
+  if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.');
+  ravenWake();ravenStep('lair');sfx('door');shake=.25;
+  say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уйти',()=>{}]]);}
+function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
 function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
   window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
-  // without their chief the bands scatter: the camps empty
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
-  say(n,'Ворон повержен? Ты сделал то, чего не смогла вся моя стража. Без атамана шайки разбегутся, и дороги снова станут нашими. Возьми этот меч с рунами из моей оружейной — он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
+  say(n,'Ворон повержен? Рагнар… Я помню его. Лучший капитан моей стражи. Может, он был прав насчёт того налога. Посёлку я пошлю зерно — пусть хоть это останется от него. А ты возьми меч с рунами из моей оружейной, он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
+function ravenLoad(st){const q=Q.raven;if(!q||!st)return;q.step=st;q.title=RV_TITLE[st];
+  if(q.state===1&&st!=='ask'&&st!=='feather'&&q.featherIt&&interact.includes(q.featherIt)){q.featherIt.grp.visible=false;interact.splice(interact.indexOf(q.featherIt),1);}
+  if(q.state===3&&q.featherIt&&interact.includes(q.featherIt)){q.featherIt.grp.visible=false;interact.splice(interact.indexOf(q.featherIt),1);}
+  if(q.state===1&&st==='lair')ravenWake();}
 function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
   if(kin==='враг')return say(n,'Мне доложили, кто ты такой. Говорить нам не о чем. Стража, проводите.');
   if(q&&q.state<3){if(Q.road&&Q.road.state<3&&repLevel('kingdom')<2)return say(n,'Я тебя не знаю. На тракте у столицы грабят купцов — помоги страже, тогда и поговорим.');
     const[ask,ok,done,items]=a.qtext;const was=q.state;const r=offer(q,n,ask,ok,done,items);if(was===2&&q.state===3)setTimeout(ravenStart,1800);return r;}
   const rv=Q.raven;if(rv&&rv.state===0&&q&&q.state===3)return ravenStart();
   if(rv&&rv.state===2)return ravenEnd(n);
-  if(rv&&rv.state===1)return say(n,rv.step==='ask'?'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она знает, где прячется Ворон.':'Ворон в руинах '+rv.at.n+'. Возвращайся, когда с ним будет покончено.');
+  if(rv&&rv.state===1)return say(n,{ask:'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она видела его людей.',feather:'Чёрное перо, говоришь? Значит, его люди так друг друга узнают. Найди такое перо.',stone:'Камень с вороном в руинах? Я про такой не слышал. Будь там осторожен.',lair:'Ты видел Ворона? Возвращайся, когда с ним будет покончено.'}[rv.step]);
   return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
@@ -4223,7 +4266,7 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'Ночью волки воют. Скотину пораньше загоняем.',bear:'В горах медведь ходит. Туда лучше не соваться.',boars:'Кабаны на холмах все поля перерыли.'}[beast.type]);
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
-function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state===1&&rv.step==='ask'&&a===rv.oldA)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
+function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state>=1&&a===rv.oldA&&rv.state<3)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
   const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
 
 // ---------- weather ----------
@@ -4810,6 +4853,8 @@ window.__game={snd:{audio,REC,take:zTake,sfx,stepSound},V,critters,WX,phaseNow,l
  herb:['................','.......kk.......','......kgGk......','..kk..kgGk..kk..','.kgGk.kgk..kgGk.','.kgGGkkgk.kgGk..','..kgGGkgkkgGk...','...kkgGgGgkk....','.....kkgkk......','......kbk.......','......kbk.......','.....kbBk.......','......kk........','................','................','................'],
  bread:['................','................','.....kkkkkk.....','...kkywywywkk...','..kyywywywyyYk..','..kyyyyyyyyyYk..','.kYyyyyyyyyyYYk.','.kYYYYYYYYYYYYk.','..kkkkkkkkkkkk..','................','................','................','................','................','................','................']};
  ITEMS.flour={n:'Мешок муки',max:1,d:'Тодор просил отнести Браму'};
+ ITEMS.feather={n:'Чёрное перо',max:1,d:'перевязано красной ниткой: знак людей Ворона'};
+ ICON.feather=['................','..........kk....','.........kddk...','........kdddk...','.......kdddk....','......kdddk.....','.....kdddk......','....kdddk.......','...kdddk........','...kddk.........','..krrk..........','..krk...........','.kbk............','.kk.............','................','................'];
  ITEMS.parcel={n:'Свёрток',max:1,d:'перевязанный бечёвкой груз, который надо доставить'};
  ICON.parcel=['................','................','....kkkkkkkk....','...kwwwwwwwwk...','..kwwwyywwwwWk..','..kwwwyywwwwWk..','..kyyyyyyyyyyk..','..kwwwyywwwwWk..','..kwwwyywwwwWk..','..kWWWyyWWWWWk..','...kkkkkkkkkk...','................','................','................','................','................'];
  ICON.flour=['................','.....kkkkk......','....kyeeeyk.....','....kkyyykk.....','...keeeeeeek....','..keeeeeeeeek...','..keeeYeeeeek...','..keeYYYeeeek...','..keeeYeeeeek...','..keeeeeeeeek...','..kYeeeeeeeYk...','...kYYYYYYYk....','....kkkkkkk.....','................','................','................'];
