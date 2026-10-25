@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.77 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.81 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -4397,6 +4397,13 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
 function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state>=1&&a===rv.oldA&&rv.state<3)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
   const L=townLines(a);const line=L[a.said%L.length];a.said++;if(/Ворон/.test(line))learn('rumor');return say(n,line);}
 
+// nobody starts walled in: a person whose cell cannot be reached from the island's roads is moved to the
+// nearest cell that can (checked once, from the pier, over free cells)
+{const seen=new Set(),q=[[H0.x,H0.z]];seen.add(H0.x+','+H0.z);
+ while(q.length){const [x,z]=q.pop();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(x+dx)+','+(z+dz);if(seen.has(k)||!free(x+dx,z+dz))continue;seen.add(k);q.push([x+dx,z+dz]);}}
+ const ok=(x,z)=>seen.has(x+','+z);
+ for(const a of [...TOWN,...COURT,...KEEPERS])if(a&&a.z<OUT_H&&!ok(a.x,a.z)&&![[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>ok(a.x+dx,a.z+dz))){
+   outer:for(let r=1;r<12;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(ok(a.x+dx,a.z+dz)){a.x+=dx;a.z+=dz;a.px=a.x+.5;a.pz=a.z+.5;a.home=[a.x,a.z];if(a.outHome)a.outHome=[a.x,a.z];break outer;}}}
 
 // ---------- the big island's errands and its main story ----------
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields

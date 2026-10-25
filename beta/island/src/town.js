@@ -68,3 +68,10 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
 function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state>=1&&a===rv.oldA&&rv.state<3)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
   const L=townLines(a);const line=L[a.said%L.length];a.said++;if(/Ворон/.test(line))learn('rumor');return say(n,line);}
 
+// nobody starts walled in: a person whose cell cannot be reached from the island's roads is moved to the
+// nearest cell that can (checked once, from the pier, over free cells)
+{const seen=new Set(),q=[[H0.x,H0.z]];seen.add(H0.x+','+H0.z);
+ while(q.length){const [x,z]=q.pop();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(x+dx)+','+(z+dz);if(seen.has(k)||!free(x+dx,z+dz))continue;seen.add(k);q.push([x+dx,z+dz]);}}
+ const ok=(x,z)=>seen.has(x+','+z);
+ for(const a of [...TOWN,...COURT,...KEEPERS])if(a&&a.z<OUT_H&&!ok(a.x,a.z)&&![[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>ok(a.x+dx,a.z+dz))){
+   outer:for(let r=1;r<12;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(ok(a.x+dx,a.z+dz)){a.x+=dx;a.z+=dz;a.px=a.x+.5;a.pz=a.z+.5;a.home=[a.x,a.z];if(a.outHome)a.outHome=[a.x,a.z];break outer;}}}
