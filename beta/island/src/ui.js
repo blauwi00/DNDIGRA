@@ -113,7 +113,7 @@ function note(t,x){noteEl.hidden=false;noteEl.innerHTML='<b></b><span></span>';n
   clearTimeout(noteT);noteT=setTimeout(()=>noteEl.hidden=true,6500);}
 noteEl.addEventListener('pointerdown',e=>{e.stopPropagation();noteEl.hidden=true;});
 function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.5);
-  showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
+  showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>R.inPlace?goDo(R.exit[0],R.exit[1]-1,false,()=>{}):goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
     {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',house:'Обычный дом. Внутри кто-то гремит посудой.',poorhouse:'Покосившаяся лачуга. Дверь не запирается.',castle:'Ворота открыты днём. Стража провожает взглядом.',herb:'Пахнет мятой и чем-то горьким.'})[R.type],4000)}],R.name);}
 // chapel brazier: look at it, and relight it with a torch in hand
 {const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,

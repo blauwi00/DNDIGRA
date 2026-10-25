@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.76 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.77 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2240,12 +2240,12 @@ const renderer=new THREE.WebGLRenderer({canvas,antialias:false});
 // ---------- a window to the hero: whatever stands between the camera and the hero, inside a circle
 // around him on screen, crumbles away in pixel dots, for the eyes only (trees, roofs and walls stay solid
 // for walking). Every lit or flat world material gets this in its shader; characters opt out.
-const SEE={on:{value:0},c:{value:new THREE.Vector2()},r:{value:120},d:{value:1},y:{value:0}};
+const SEE={on:{value:0},c:{value:new THREE.Vector2()},r:{value:120},d:{value:1},y:{value:0},inOn:{value:0},inRect:{value:new THREE.Vector4()}};
 THREE.Material.prototype.onBeforeCompile=function(sh){if(!(this.isMeshLambertMaterial||this.isMeshBasicMaterial||this.isMeshStandardMaterial||this.isMeshPhongMaterial))return;
-  const mat=this;sh.uniforms.seeOn={get value(){return mat.userData.noSee?0:SEE.on.value;}};sh.uniforms.seeC=SEE.c;sh.uniforms.seeR=SEE.r;sh.uniforms.seeD=SEE.d;sh.uniforms.seeY=SEE.y;
-  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying float vSeeY;').replace('#include <project_vertex>','#include <project_vertex>\n{vec4 sw=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nsw=instanceMatrix*sw;\n#endif\nvSeeY=(modelMatrix*sw).y;}');
-  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vSeeY;uniform float seeOn,seeR,seeD,seeY;uniform vec2 seeC;')
-    .replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(seeOn>0.5&&gl_FragCoord.z<seeD&&vSeeY>seeY){float r=length(gl_FragCoord.xy-seeC)/seeR;if(r<1.0){float n=fract(sin(dot(floor(gl_FragCoord.xy/4.0),vec2(12.9898,78.233)))*43758.5453);if(n>smoothstep(0.55,1.0,r))discard;}}');};
+  const mat=this;sh.uniforms.seeOn={get value(){return mat.userData.noSee?0:SEE.on.value;}};sh.uniforms.seeC=SEE.c;sh.uniforms.seeR=SEE.r;sh.uniforms.seeD=SEE.d;sh.uniforms.seeY=SEE.y;sh.uniforms.inOn=SEE.inOn;sh.uniforms.inRect=SEE.inRect;
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vSeeW;').replace('#include <project_vertex>','#include <project_vertex>\n{vec4 sw=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nsw=instanceMatrix*sw;\n#endif\nvSeeW=(modelMatrix*sw).xyz;}');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vSeeW;uniform float seeOn,seeR,seeD,seeY,inOn;uniform vec2 seeC;uniform vec4 inRect;')
+    .replace('#include <color_fragment>','#include <color_fragment>\n#if !defined(USE_MAP)&&!defined(USE_COLOR)\nif(!gl_FrontFacing){}else{vec3 gq=floor(vSeeW*10.0+0.013);float gh=fract(sin(dot(gq,vec3(12.99,78.23,37.71)))*43758.55);diffuseColor.rgb*=0.94+gh*0.09;}\n#endif').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(seeOn>0.5&&gl_FragCoord.z<seeD&&vSeeW.y>seeY){float r=length(gl_FragCoord.xy-seeC)/seeR;if(r<1.0){float n=fract(sin(dot(floor(gl_FragCoord.xy/4.0),vec2(12.9898,78.233)))*43758.5453);if(n>smoothstep(0.55,1.0,r))discard;}}').replace('#include <fog_fragment>','#include <fog_fragment>\nif(inOn>0.5&&(vSeeW.x<inRect.x||vSeeW.x>inRect.z||vSeeW.z<inRect.y||vSeeW.z>inRect.w)){if(vSeeW.z>inRect.w&&vSeeW.y>seeY&&vSeeW.x>inRect.x-4.0&&vSeeW.x<inRect.z+4.0)discard;float l=dot(gl_FragColor.rgb,vec3(.3,.59,.11));gl_FragColor.rgb=mix(vec3(l),gl_FragColor.rgb,.3)*.3;}');};
 const seeV=new THREE.Vector3(),seeT=new THREE.Vector3(),seeS=new THREE.Vector2();
 function seeTick(){if(room||typeof H0==='undefined'||(window.SET&&SET.seeThrough===false)){SEE.on.value=0;return;}renderer.getDrawingBufferSize(seeS);const w=seeS.x,h=seeS.y;
   const gy=groundAt(H0.px,H0.pz);seeV.set(H0.px,gy+.8,H0.pz).project(camera);SEE.c.value.set((seeV.x+1)/2*w,(seeV.y+1)/2*h);SEE.r.value=Math.min(w,h)*.22;
@@ -2351,7 +2351,16 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
    if(!['C','D','S'].includes(at(...R.door)))set(...R.door,'D');return R;};
  for(const h of PALACE)h.room=alloc(h[0],h[1],h[2],h[3],'castle','Королевский замок',h.p);
  const nm={capital:'Дом горожанина',village:'Деревенский дом',works:'Дом каменотёса'};
- for(const h of GEN_HOUSES){const p=h[4];h.room=alloc(h[0],h[1],h[2],h[3],p.poorWhy?'poorhouse':'house',p.poorWhy?'Лачуга':(nm[p.type]||'Дом'),p);}
+ // every generated house is entered without a door to another place: its room is the house itself, walls on its border cells
+ for(const h of GEN_HOUSES){const [hx,hz,hw,hd,p]=h,ex=hx+Math.floor(hw/2);const R={i:ROOMS.length,type:p.poorWhy?'poorhouse':'house',name:p.poorWhy?'Лачуга':(nm[p.type]||'Дом'),ox:hx,oz:hz,iw:hw,id:hd,
+     door:[ex,hz+hd],exit:[ex,hz+hd-1],gen:true,inPlace:true,place:p,wealth:p.wealth||0};ROOMS.push(R);h.room=R;
+   for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,(x===hx||x===hx+hw-1||z===hz||z===hz+hd-1)?'X':'F');set(ex,hz+hd-1,'E');
+   if(!['C','D','S'].includes(at(...R.door)))set(...R.door,'D');}
+ // most houses have an attic up a ladder, richer ones a cellar under a hatch: rooms of their own, the house's size
+ for(const h of GEN_HOUSES){const [hx,hz,hw,hd,p]=h,R=h.room,hh=hash2(hx*11,hz*13);if(R.type==='poorhouse')continue;
+   if(hh<.75){const A=alloc(hx,hz,hw,hd,'attic','Чердак',p);A.sub=true;A.parent=R;R.attic=A;}
+   // the attic is the house's own size; the cellar is dug under the ground: bigger than the house in a rich place, smaller elsewhere
+   if(p.wealth>=3||p.type==='capital'||hh>.6){const big=p.wealth>=3||p.type==='capital',cw=big?hw+2:Math.max(5,hw-2),cd=big?hd+1:Math.max(5,hd-1);const C=alloc(hx,hz,cw,cd,'cellar',big?'Погреб с кладовой':'Погребок',p);C.sub=true;C.parent=R;R.cellar=C;}}
  // some houses are shops: the capital has a smithy, a bakery and a general store, a rich village one of them
  {const left=new Map();for(const h of GEN_HOUSES){const p=h[4],R=h.room;if(R.type!=='house')continue;
    if(!left.has(p))left.set(p,p.type==='capital'?['smith','baker','store']:p.type==='village'&&p.wealth>=3?[['baker','smith','store'][Math.floor(hash2(p.x,p.z)*3)]]:[]);
@@ -2361,6 +2370,8 @@ for(let z=0;z<H;z++){height.push([]);for(let x=0;x<W;x++){const c=at(x,z);
   // outside the old district the land rises with the generated relief: hills, then rock and snow
   const gh=inStamp(x,z)||z>=OUT_H?0:Math.max(0,GEN.height[z*W+x]-.3)*1.6;
   height[z].push(c==='F'||c==='E'||c==='X'?.3:c==='~'||c==='R'?0:c==='A'?.24:c==='P'?.3:c==='D'?.27+gh*.5:c==='C'?.29:c==='S'?.3:c==='M'?.7+gh:c==='N'?1.1+gh:c==='B'?.26:.3+vnoise(x,z,5)*.08+gh);}}
+for(const R of ROOMS)if(R.inPlace){let hb=0;for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++){const gh=inStamp(x,z)?0:Math.max(0,GEN.height[z*W+x]-.3)*1.6;hb=Math.max(hb,.3+gh);}
+  R.y=hb;for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++)height[z][x]=hb;}
 // cells from each land cell to the nearest sea, so the surf is only heard near water
 const seaDist=[];{const q=[];for(let z=0;z<OUT_H;z++){seaDist.push([]);for(let x=0;x<W;x++){const s=at(x,z)==='~';seaDist[z].push(s?0:99);if(s)q.push([x,z]);}}
   for(let i=0;i<q.length;i++){const[x,z]=q[i];for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const nx=x+dx,nz=z+dz;if(nz<0||nz>=OUT_H||nx<0||nx>=W)continue;if(seaDist[nz][nx]>seaDist[z][x]+1){seaDist[nz][nx]=seaDist[z][x]+1;q.push([nx,nz]);}}}}
@@ -2507,19 +2518,56 @@ function roofOn(g,mat,x0,z0,w,d,top,alongX){const B=(sx,sz,px,pz,rx,rz)=>{const 
   if(alongX)for(const sg of[-1,1])B(w/2+.35,d+.3,x0+w/2+sg*w/4,z0+d/2,0,-sg*.55);else for(const sg of[-1,1])B(w+.3,d/2+.35,x0+w/2,z0+d/2+sg*d/4,sg*.55,0);}
 // a house built in a streamed chunk joins the pickable houses while it stands
 function liveHouse(g){houseMeshes.push(g);g.userData.lists=[houseMeshes];return g;}
-for(const h of GEN_HOUSES){const [hx,hz,hw,hd,p]=h;defer(chunkKey(hx,hz),()=>{const g=new THREE.Group(),y=groundAt(hx,hz),rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital',hh=hash2(hx*3,hz*5);
-  g.userData.house=h.room.i;
-  const wh=rich?1.6:1.3,w=new THREE.Mesh(BOX,rich?wallRich:poor?wallPoor:wallMat);w.scale.set(hw-.1,wh,hd-.1);w.position.set(hx+hw/2,y+wh/2,hz+hd/2);w.castShadow=w.receiveShadow=true;g.add(w);
-  for(const[x,z]of[[hx+.1,hz+.1],[hx+hw-.1,hz+.1],[hx+.1,hz+hd-.1],[hx+hw-.1,hz+hd-.1]]){const c=new THREE.Mesh(BOX,lam(T.bark));c.scale.set(.16,wh,.16);c.position.set(x,y+wh/2,z);g.add(c);}
-  const kind=rich?(hh<.5?'tiles':'slate'):poor?(hh<.5?'thatch':'turf'):['shingle','tiles','thatch'][Math.floor(hh*3)];roofOn(g,ROOF[kind],hx,hz,hw,hd,y+wh+.32,hash2(hz,hx)<.5);
-  const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);g.userData.door=dr;
+// A generated house is hollow: walls on its border cells with a door and glass windows, a floor, its room
+// furnished inside, and a gable roof that fits it, with eaves over every wall and stepped gables at the ends.
+// Outside: window boxes with flowers, pots by the door, a lantern, bushes at the corners, a smoking chimney.
+// The roof and the wall facing the camera are tagged, so they can be lifted away while the hero is inside.
+const glassMat=new THREE.MeshLambertMaterial({color:0xa8c8e0,transparent:true,opacity:.28,depthWrite:false}),hFrameMat=lam(T.bark,{color:0x6a4a30});
+const FLOWERS=[0xd84a5a,0xf0c040,0xe8e0f0,0x8a5ad0,0xf08a3a];
+function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,g=new THREE.Group(),y=R.y,rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital',hh=hash2(hx*3,hz*5);
+  g.userData.house=R.i;const front=[],roofs=[];
+  const B=(m,x,yy,z,sx,sy,sz,list)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,yy,z);o.castShadow=o.receiveShadow=true;g.add(o);if(list)list.push(o);return o;};
+  const wh=rich?1.5:1.3,wall=rich?wallRich:poor?wallPoor:wallMat,T_=.28,ex=R.exit[0];
+  // walls: one column per border cell, opened for the door and for windows (every other cell, never at a corner)
+  const isWin=(i,n)=>!poor&&i>0&&i<n-1&&i%2===0;
+  const seg=(x,z,sx,sz,kind,list)=>{ // kind: wall, win, door
+    if(kind==='wall'){B(wall,x,y+wh/2,z,sx,wh,sz,list);return;}
+    const lo=kind==='door'?0:.55,hi=kind==='door'?1.05:1.1;
+    if(lo>0)B(wall,x,y+lo/2,z,sx,lo,sz,list);B(wall,x,y+(hi+wh)/2,z,sx,wh-hi,sz,list);
+    if(kind==='win'){const gx=sx>sz,o=B(glassMat,x,y+(lo+hi)/2,z,gx?sx*.9:sz*.3,hi-lo,gx?sz*.3:sz*.9,list);o.castShadow=false;
+      B(hFrameMat,x,y+lo+.02,z,gx?sx:sx+.04,.05,gx?sz+.04:sz,list);B(hFrameMat,x,y+(lo+hi)/2,z,gx?.05:sx+.02,hi-lo,gx?sz+.02:.05,list);}};
+  for(let i=0;i<hw;i++){const x=hx+i+.5;seg(x,hz+hd-T_/2,1,T_,hx+i===ex?'door':isWin(i,hw)?'win':'wall',front);seg(x,hz+T_/2,1,T_,isWin(i,hw)?'win':'wall');}
+  for(let j=1;j<hd-1;j++){const z=hz+j+.5;seg(hx+T_/2,z,T_,1,isWin(j,hd)&&j===Math.floor(hd/2)?'win':'wall');seg(hx+hw-T_/2,z,T_,1,isWin(j,hd)&&j===Math.floor(hd/2)?'win':'wall');}
+  for(const[x,z]of[[hx+.1,hz+.1],[hx+hw-.1,hz+.1],[hx+.1,hz+hd-.1],[hx+hw-.1,hz+hd-.1]])B(lam(T.bark),x,y+wh/2,z,.18,wh+.02,.18,z>hz+1?front:null);
+  B(lam(T.bark),hx+hw/2,y+wh-.06,hz+hd-.02,hw,.12,.12,front);
+  // the roof: two slopes meeting at a ridge, wide enough to hang over the walls on every side
+  const kind=rich?(hh<.5?'tiles':'slate'):poor?(hh<.5?'thatch':'turf'):['shingle','tiles','thatch'][Math.floor(hh*3)],alongX=hash2(hz,hx)<.5,mat=ROOF[kind];
+  const ov=.35,a=.44,span=alongX?hd:hw,len=(alongX?hw:hd)+ov*2,half=span/2+ov,rise=(span/2)*Math.tan(a),top=y+wh+rise,cx=hx+hw/2,cz=hz+hd/2;
+  for(const sg of[-1,1]){const sl=new THREE.Mesh(BOX,mat),L=half/Math.cos(a);sl.scale.set(alongX?len:L,.14,alongX?L:len);
+    const off=half/2,yy=top-(half/2)*Math.tan(a)+.07;sl.position.set(alongX?cx:cx+sg*off,yy,alongX?cz+sg*off:cz);sl.rotation.set(alongX?sg*a:0,0,alongX?0:-sg*a);sl.castShadow=true;g.add(sl);roofs.push(sl);}
+  B(lam(T.bark,{color:0x5a3a24}),cx,top+.1,cz,alongX?len:.22,.14,alongX?.22:len,roofs);
+  // stepped gables close the ends under the slopes
+  {const n=6;for(const sg of[-1,1])for(let k=0;k<n;k++){const wdt=span*(1-(k+.5)/n),hgt=rise/n,yy=y+wh+hgt*(k+.5);
+    if(alongX)B(wall,sg<0?hx+T_/2:hx+hw-T_/2,yy,cz,T_,hgt,wdt,roofs);else B(wall,cx,yy,sg<0?hz+T_/2:hz+hd-T_/2,wdt,hgt,T_,sg>0?roofs:roofs);}}
+  // the door
+  const dr=makeDoor(.64,.95);dr.g.position.set(ex+.5,y,hz+hd-.05);g.add(dr.g);g.userData.door=dr;
+  B(lam(T.stone),ex+.5,y+.02,hz+hd+.25,.8,.04,.4);
+  // outside: window boxes with flowers, pots by the door, a lantern, a bench or a woodpile, bushes at the corners
+  const fl=(x,yy,z,i)=>B(new THREE.MeshLambertMaterial({color:FLOWERS[(i+Math.floor(hh*9))%FLOWERS.length]}),x,yy,z,.09,.09,.09);
+  for(let i=1;i<hw-1;i++)if(isWin(i,hw)){const x=hx+i+.5,z=hz+hd+.12;B(lam(T.p[1],{color:0x7a5a3a}),x,y+.5,z,.8,.14,.2);for(let k=0;k<3;k++){B(new THREE.MeshLambertMaterial({color:0x4a7a3a}),x-.25+k*.25,y+.6,z,.12,.08,.12);fl(x-.25+k*.25,y+.67,z,i+k);}}
+  for(const sg of[-1,1]){const x=ex+.5+sg*.75,z=hz+hd+.3;B(lam(T.stone,{color:0xa8603a}),x,y+.12,z,.24,.24,.24);B(new THREE.MeshLambertMaterial({color:0x3e7a3a}),x,y+.32,z,.2,.18,.2);if(!poor)fl(x,y+.45,z,sg+2);}
+  if(!poor){const lx=ex+.5+(hh<.5?-1:1)*.45;B(lam(T.bark),lx,y+1.15,hz+hd+.08,.06,.06,.18);B(new THREE.MeshBasicMaterial({color:0xffc86a}),lx,y+1.02,hz+hd+.16,.12,.16,.12);B(lam(T.stone,{color:0x2a2a2e}),lx,y+1.12,hz+hd+.16,.15,.04,.15);}
+  for(const[x,z]of[[hx-.3,hz+hd-.4],[hx+hw+.3,hz+.6]])if(hash2(x*3,z)<.7){const s=.4+hash2(z,x)*.25;B(new THREE.MeshLambertMaterial({color:0x3e6a32}),x,y+s/2,z,s,s,s);if(rich)fl(x,y+s+.04,z,3);}
+  if(rich)for(let i=0;i<hw;i+=2)if(hx+i!==ex&&Math.abs(hx+i-ex)>1){const x=hx+i+.5,z=hz+hd+.55;B(lam(T.dirt,{color:0x5a4030}),x,y+.04,z,.9,.08,.4);fl(x-.2,y+.14,z,i);fl(x+.2,y+.14,z,i+1);}
+  else if(!poor&&hh>.4){for(let k=0;k<3;k++)B(lam(T.bark,{color:0x8a6a44}),hx+hw+.25,y+.12+k*.2,hz+hd-1.5,.3,.18,1.2);}
+  // a chimney on the back slope, smoking
+  {const chx=alongX?hx+hw*.72:hx+hw*.3,chz=alongX?hz+hd*.3:hz+hd/2,lo=y+wh-.1,hi=top+.45;B(lam(T.wall,{color:0x8a847a}),chx,(lo+hi)/2,chz,.42,hi-lo,.42,roofs);B(lam(T.wall,{color:0x6a645c}),chx,hi+.05,chz,.5,.1,.5,roofs);g.userData.chimney=new THREE.Vector3(chx,hi+.1,chz);}
   // a shop hangs a painted board by its door: an anvil, a loaf or a sack
-  if(h.room.shop){const sx=hx+Math.floor(hw/2)+1.4,sz=hz+hd+.05,P=(m,x,yy,z,w,hh,d)=>{const b=new THREE.Mesh(BOX,m);b.scale.set(w,hh,d);b.position.set(x,yy,z);b.castShadow=true;g.add(b);};
-    P(lam(T.bark),sx,y+.9,sz,.1,1.8,.1);P(lam(T.bark),sx-.25,y+1.72,sz,.6,.08,.08);P(lam(T.p[1],{color:0x8a6a4a}),sx-.35,y+1.42,sz,.5,.4,.05);
-    P(new THREE.MeshLambertMaterial({color:{smith:0x4a4e56,baker:0xc89048,store:0x9a7a4a}[h.room.shop]}),sx-.35,y+1.42,sz+.03,.3,.2,.02);}
-  if(!poor)for(const sg of[-1,1]){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+sg*(hw/2-1.1),y+wh*.62,hz+hd);g.add(win);}
-  if(hash2(hx,hz*7)<.6){const ch=new THREE.Mesh(BOX,lam(T.wall,{color:0x9a948a}));ch.scale.set(.4,.9,.4);ch.position.set(hx+hw-1.2,y+wh+.9,hz+hd*.3);ch.castShadow=true;g.add(ch);}
-  scene.add(g);return liveHouse(g);});}
+  if(R.shop){const sx=ex+1.9,sz=hz+hd+.15;B(lam(T.bark),sx,y+.9,sz,.1,1.8,.1);B(lam(T.bark),sx-.25,y+1.72,sz,.6,.08,.08);B(lam(T.p[1],{color:0x8a6a4a}),sx-.35,y+1.42,sz,.5,.4,.05);
+    B(new THREE.MeshLambertMaterial({color:{smith:0x4a4e56,baker:0xc89048,store:0x9a7a4a}[R.shop]}),sx-.35,y+1.42,sz+.03,.3,.2,.02);}
+  g.userData.front=front;g.userData.roofs=roofs;scene.add(g);
+  if(!R.group)buildRoom(R);R.group.visible=true;return liveHouse(g);}
+for(const h of GEN_HOUSES)defer(chunkKey(h[0],h[1]),()=>genHouse(h));
 // the royal castle: a curtain wall with battlements round a paved court, round corner towers, a gatehouse
 // with two towers, and the great keep with its own towers, roofs, windows and banners
 for(const [px,pz,pw,pd] of PALACE)defer(chunkKey(px+pw/2,pz+pd/2),()=>{const g=new THREE.Group(),y=groundAt(px+pw/2,pz+pd/2),stone=lam(T.wall,{color:0xc0baae}),dark=lam(T.wall,{color:0x8a847a}),roofM=lam(T.p[2],{color:0x34467a}),gold=new THREE.MeshLambertMaterial({color:0xd8b04a}),red=new THREE.MeshLambertMaterial({color:0x8e2a24}),glow=new THREE.MeshBasicMaterial({color:0xffc66a});
@@ -2587,7 +2635,6 @@ const chapel=torch(Z.ruins[0],Z.ruins[1],true);chapel.lit=false;chapel.fl.visibl
 function setChapel(lit){chapel.lit=lit;chapel.fl.visible=lit;chapel.base=lit?4:0;}
 {const g=chapel.g,st=lam(T.wall,{color:0x8a8478});for(const [x,z,h] of [[-.55,-.35,.5],[.55,-.35,.5]]){const p=new THREE.Mesh(BOX,st);p.scale.set(.16,h,.16);p.position.set(x,h/2,z);g.add(p);}
   const lin=new THREE.Mesh(BOX,st);lin.scale.set(1.3,.12,.18);lin.position.set(0,.52,-.35);g.add(lin);}
-// fireflies + mist follow the camera
 // fireflies at night, butterflies by day (same pool, different look)
 const FFLY=new THREE.MeshBasicMaterial({color:0xd8f59a}),BFLY=[0xe8c84a,0xf0f0f8,0xd88ab0,0x8ac0e8].map(c=>new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide}));
 // chimney smoke: a few soft puffs per house near the hero
@@ -2603,8 +2650,17 @@ const flies=[];for(let i=0;i<22;i++){const f=new THREE.Mesh(box(.04,.04,.04),new
 // and arms can swing; boxes held at the hands (|x|>.31) are dropped and real
 // items are attached to the hands from the two-hand inventory instead.
 const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Math.min(255,((c>>8)&255)*k|0)<<8)|Math.min(255,(c&255)*k|0);const PIV={cape:[0,.72,-.17],head:[0,.77,0],torso:[0,.45,0],armL:[-.23,.66,0],armR:[.23,.66,0],legL:[-.1,.34,0],legR:[.1,.34,0]};
+// a 16x16 tile of light and dark grain, laid on every face of a character at SKIN_PX per pixel, so cloth,
+// skin and hair read as pixel art from the front, the sides and the back, like a block-game skin
+var SKIN_PX=.032,SKINTEX=null;
+function skinPixels(){if(SKINTEX)return SKINTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  // soft patches two pixels wide, a few shades apart, like a hand-drawn block skin; pixel (0,0) stays plain for skin
+  for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=.95+r()*.07-(r()<.15?.04:0),g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
+    if(r()<.35){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
+  x.fillStyle='#fff';x.fillRect(0,0,1,1);
+  SKINTEX=new THREE.CanvasTexture(c);SKINTEX.magFilter=SKINTEX.minFilter=THREE.NearestFilter;SKINTEX.wrapS=SKINTEX.wrapT=THREE.RepeatWrapping;SKINTEX.generateMipmaps=false;return SKINTEX;}
 let HAIR_SET=new Set();
-function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
+function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
   // and a drawn mark that lies on no block is dropped, so nothing hovers beside the body
@@ -2698,14 +2754,20 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
   // One merged, vertex-coloured mesh per limb instead of ~100 separate boxes.
   // thin decals (brows, mouth, beard edges, texel shading) lie on other faces: they get their own mesh drawn slightly in front,
   // as in the game's renderer, otherwise they flicker and leave holes
-  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
-  for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
+  const SKINC=new Set(all_.filter(b=>!b[8]&&Math.abs(b[0])<.12&&b[1]>.82&&b[1]<1.02&&b[2]>.15).map(b=>b[6]));
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,map:skinPixels()}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],uvs=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
     for(const[x,y,z,w,h,d,c] of list){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);
       const base=pos.length/3,P=gb.attributes.position.array,N=gb.attributes.normal.array,hr0=!decal&&HAIR_SET.has(c);for(let i=0;i<P.length;i++){pos.push(P[i]);nor.push(hr0&&i%3===1&&N[i]<-.5?1:hr0&&i%3!==1&&N[i-(i%3)+1]<-.5?0:N[i]);}
       // the undersides of hair steps would be lit from below only and read as dark slits: they are lit like the top
-      for(let i=0;i<P.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
+      for(let i=0;i<P.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);
+      // pixel grain on every side, at one size over the whole body: each face takes its two own axes
+      if(!decal&&SKINC.has(c)){for(let i=0;i<P.length/3;i++)uvs.push(.5/16,.5/16);}
+      else if(!decal){const sh=(x*7.31+y*3.17+z*5.11)%1;for(let i=0;i<P.length/3;i++){const ax=Math.abs(N[i*3]),ay=Math.abs(N[i*3+1]),px=P[i*3],py=P[i*3+1],pz=P[i*3+2],K=1/(SKIN_PX*16);
+        uvs.push(...(ax>.5?[pz*K+sh,py*K]:ay>.5?[px*K,pz*K+sh]:[px*K+sh,py*K]));}}
+      gb.dispose();}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
-    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));if(uvs.length)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
   // the hand is the lowest block of each forearm; items are put inside it, at its centre
   for(const k of ['L','R']){const list=parts['fore'+k],f=rig['fore'+k],o=f.position.clone().add(f.parent.position);
     // only solid blocks on the arm's own axis count: a builder's held item or its decals would pull the hand forward
@@ -2724,7 +2786,7 @@ function buildQuad(boxes){const g=new THREE.Group(),rig={quad:true};const legTop
   for(const b of boxes){const[x,y,z]=b;let k='body';
     if(legs.includes(b)||b[1]+b[4]/2<=legTop+.06&&Math.abs(x)>.05&&b[5]<.02)k=(z>(fz+bz)/2?'F':'B')+(x<0?'L':'R');
     else if(z>=neck)k='head';else if(z<=tailZ)k='tail';parts[k].push(b);}
-  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,map:skinPixels()}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
   for(const[k,list]of Object.entries(parts))for(const decal of[false,true]){const L=list.filter(b=>(Math.min(b[3],b[4],b[5])<=.012)===decal);if(!L.length)continue;const o=rig[k].position,pos=[],nor=[],cols=[],idx=[];
     for(const[x,y,z,w,h,d,c,e]of L){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);const base=pos.length/3,Pa=gb.attributes.position.array,N=gb.attributes.normal.array;
       for(let i=0;i<Pa.length;i++){pos.push(Pa[i]);nor.push(N[i]);}for(let i=0;i<Pa.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
@@ -2792,19 +2854,23 @@ function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   grp.add(heldGroup(id));
   grp.scale.setScalar(1.3);grp.position.set(x,y,z);if(lie!=null)grp.rotation.set(0,lie,Math.PI/2);parent.add(grp);
   const L={n:name,t:text,loot:[[id,n]],meshes:[],item:true,grp};grp.traverse(m=>{if(m.isMesh){L.meshes.push(m);m.userData.look=L;}});looks.push(L);return L;}
-const LOOK={house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70]};
-function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.group=g;const y=.3;const lk=LOOK[R.type],floorMat=lam(lk[0],{color:lk[1]}),innerWall=lam(lk[2],{color:lk[3]});
+const LOOK={attic:[T.p[1],0x9a8466,T.p[2],0x6a5440],cellar:[T.stone,0x7a7470,T.wall,0x6a6460],house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70]};
+function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.group=g;const y=R.inPlace?R.y:.3;const lk=LOOK[R.type],floorMat=lam(lk[0],{color:lk[1]}),innerWall=lam(lk[2],{color:lk[3]});
+  // a room in its own house: the house gives walls, door and windows, the room only a plank floor
+  if(R.inPlace){const fl=part(g,floorMat,R.ox+R.iw/2,y+.02,R.oz+R.id/2,R.iw,.06,R.id);fl.userData.floor=true;pickable.push(fl);}
+  else{
   const fl=part(g,floorMat,R.ox+R.iw/2,y/2,R.oz+R.id/2,R.iw-2,y,R.id-2);fl.userData.floor=true;pickable.push(fl);
   const ex=part(g,lam(T.stone),R.exit[0]+.5,y/2,R.exit[1]+.5,1,y,1);ex.userData.floor=true;pickable.push(ex);
-  const dr=makeDoor();dr.g.position.set(R.exit[0]+.5,y,R.exit[1]+.55);dr.g.rotation.y=Math.PI;g.add(dr.g);R.inDoor=dr;
-  const dm=[];dr.g.traverse(m=>m.isMesh&&dm.push(m));interact.push({mesh:dm[0],extra:dm.slice(1),x:R.exit[0],z:R.exit[1],stand:true,name:'Дверь',use(){leaveRoom();}});
+  if(R.sub)subWay(g,R,y,R.exit[0],R.exit[1],true);else{const dr=makeDoor();dr.g.position.set(R.exit[0]+.5,y,R.exit[1]+.55);dr.g.rotation.y=Math.PI;g.add(dr.g);R.inDoor=dr;
+  const dm=[];dr.g.traverse(m=>m.isMesh&&dm.push(m));interact.push({mesh:dm[0],extra:dm.slice(1),x:R.exit[0],z:R.exit[1],stand:true,name:'Дверь',use(){leaveRoom();}});}
   // back wall tall, side walls taper toward the camera, front wall is a low sill so the room stays readable
   part(g,innerWall,R.ox+R.iw/2,y+.9,R.oz+.5,R.iw,1.8,1);part(g,plaster,R.ox+R.iw/2,y+1.6,R.oz+1.02,R.iw-2,.08,.04);
   for(const x of [R.ox+.5,R.ox+R.iw-.5]){part(g,innerWall,x,y+.7,R.oz+R.id/2-.5,1,1.4,R.id-1);part(g,beamMat,x,y+.9,R.oz+1.5,1.04,1.8,.14);}
   for(let x=R.ox;x<R.ox+R.iw;x++)if(x!==R.exit[0])part(g,innerWall,x+.5,y+.15,R.oz+R.id-.5,1,.3,1);
   for(const x of [R.ox+1.5,R.ox+R.iw-1.5])part(g,beamMat,x,y+.9,R.oz+1.05,.14,1.8,.1);
   // a window on the back wall with moonlight
-  I('Окно','За мутным стеклом шумит море. Вдалеке мигает огонёк — может, корабль, а может, нет.');part(g,new THREE.MeshBasicMaterial({color:0x5a7aa8}),R.ox+R.iw/2+1.6,y+1.05,R.oz+1.01,.5,.4,.02);I(null);
+  if(R.type!=='cellar'){I('Окно','За мутным стеклом шумит море. Вдалеке мигает огонёк — может, корабль, а может, нет.');part(g,new THREE.MeshBasicMaterial({color:0x5a7aa8}),R.ox+R.iw/2+1.6,y+1.05,R.oz+1.01,.5,.4,.02);I(null);}
+  }
   const S=(dx,dz,w,h,d,mat,solid=true)=>{const m=part(g,mat,R.ox+dx+.5,y+h/2,R.oz+dz+.5,w,h,d);if(solid)blockCell(R.ox+dx,R.oz+dz);return m;};
   const chest=(dx,dz,items,label)=>{I(null);const c=S(dx,dz,.7,.4,.45,lam(T.crate,{color:0xa07850}));const hinge=new THREE.Group();hinge.position.set(c.position.x,y+.4,c.position.z-.25);g.add(hinge);const lid=part(hinge,lam(T.p[1]),0,.05,.25,.74,.1,.5);part(hinge,ironMat,0,.06,.47,.76,.04,.06);
     part(g,new THREE.MeshLambertMaterial({color:0xd0a94a}),c.position.x,y+.32,c.position.z+.23,.1,.1,.02);
@@ -2905,7 +2971,38 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     itemProp(g,R.ox+4.5,y+.55,R.oz+7.5,'bread',1,'Хлеб','Остался от вчерашнего пира.');
     hearth(2);hearth(w-3);
     I('Жаровня','Угли горят ровно, без дыма.');for(const[x,z]of[[1,d-3],[w-2,d-3]]){S(x,z,.5,.6,.5,M(0x3a3a3e));part(g,glow(0xff9a3a),R.ox+x+.5,y+.66,R.oz+z+.5,.36,.12,.36);}I(null);}
+  // the attic: the roof's slopes inside, hay, old chests and crates; the cellar: barrels, jars, a damp floor.
+  // Both have cobwebs in the corners and a spider on its thread.
+  if(R.type==='attic'||R.type==='cellar'){const w=R.iw,d=R.id,att=R.type==='attic';
+    if(att){I('Скаты крыши','Изнутри видно, как положены доски: щели заткнуты мхом.');for(const sg of[-1,1]){const sl=part(g,lam(T.p[2],{color:0x5a4430}),R.ox+w/2+sg*(w/2-1.1),y+1.15,R.oz+d/2,2.4,.12,d-1);sl.rotation.z=-sg*.62;}I(null);
+      I('Сено','Старое сено, кто-то тут спал.');part(g,M(0xc8b070),R.ox+2,y+.12,R.oz+2,1.4,.24,1.2);I(null);
+      I('Ящик','Пыльный ящик с тряпьём.');S(w-2,2,.6,.45,.5,lam(T.crate));I(null);
+      chest(w-2,d-3,[['torch',1],[['dagger','quarterstaff','bread'][Math.floor(rnd()*3)],1]],'Старый сундук');}
+    else{I('Бочки','Капуста в рассоле и солонина.');S(1,1,.5,.62,.5,lam(T.p[1],{color:0x7a5a3a}));S(2,1,.5,.62,.5,lam(T.p[1],{color:0x6a4a30}));I(null);
+      I('Полка с банками','Варенье, грибы, мутные настойки.');S(w-2,1,.9,1.1,.3,lam(T.bark));for(let i=0;i<3;i++)part(g,M([0xc85a3a,0x8a6a2a,0x6a9a5a][i]),R.ox+w-2.2+i*.25,y+.95,R.oz+1.5,.14,.18,.14);I(null);
+      chest(1,d-3,[['potion',1],['bread',2]],'Ящик с припасами');}
+    I('Паутина','Густая паутина в углу, в ней сухие мухи.');for(const[cx,cz,sx]of[[R.ox+1,R.oz+1,1],[R.ox+w-1,R.oz+1,-1]])for(let k=0;k<4;k++){const c=part(g,new THREE.MeshBasicMaterial({color:0xd8d8d8,transparent:true,opacity:.45}),cx+sx*(.25+k*.1),y+1.55-k*.1,cz+.25+k*.1,.5-k*.08,.01,.01);c.rotation.y=sx*.78;c.castShadow=false;}I(null);
+    I('Паук','Чёрный паук спускается на нитке. Не трогай — он не трогает тебя.');{const sp=new THREE.Group(),bx=R.ox+w/2+.6,bz=R.oz+2.3;const body=new THREE.Mesh(BOX,M(0x141414));body.scale.set(.1,.07,.12);sp.add(body);
+      for(const sg of[-1,1])for(let k=0;k<4;k++){const l=new THREE.Mesh(BOX,M(0x141414));l.scale.set(.12,.012,.012);l.position.set(sg*.1,-.01,-.045+k*.03);l.rotation.z=sg*.5;sp.add(l);}
+      const th=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xe0e0e0,transparent:true,opacity:.5}));th.scale.set(.008,1,.008);sp.add(th);sp.position.set(bx,y+1.2,bz);g.add(sp);
+      sp.traverse(m=>{if(m.isMesh&&INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}});SPIDERS.push({sp,th,y0:y+1.2,ph:rnd()*6});}I(null);}
+  // in the house itself: the ladder to the attic against the back wall, the hatch to the cellar in the floor
+  if(R.inPlace){const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
+    if(R.attic){for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
+    if(R.cellar){outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
   if(R.gen){looks.slice(lk0).forEach((L,j)=>L.key=R.i+'#'+j);roomState(R);}}
+const SPIDERS=[];function spiderTick(t){for(const s of SPIDERS){if(!s.sp.parent||!s.sp.parent.visible)continue;const k=(Math.sin(t*.5+s.ph)+1)/2;s.sp.position.y=s.y0-k*.5;s.th.position.y=.5+k*.25;s.th.scale.y=.4+k*.5;}}
+// a ladder up or a hatch down; in the attic or cellar the same way leads back into the house
+function subWay(g,S,y,x,z,back){const up=S.type==='attic',ms=[];const add=(m,px,py,pz,sx,sy,sz)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(px,py,pz);o.castShadow=true;g.add(o);ms.push(o);return o;};
+  const wood=lam(T.bark,{color:0x7a5a38});
+  if(up!==back){for(const sg of[-1,1])add(wood,x+.5+sg*.22,y+.85,z+.3,.07,1.7,.07);for(let k=0;k<6;k++)add(wood,x+.5,y+.2+k*.27,z+.3,.48,.05,.06);}
+  else{add(lam(T.p[1],{color:0x5a3e26}),x+.5,y+.03,z+.5,.8,.05,.8);add(lam(T.stone,{color:0x3a3a40}),x+.5,y+.07,z+.7,.16,.03,.05);}
+  blockCell(x,z);
+  interact.push({mesh:ms[0],extra:ms.slice(1),x,z,name:back?(up?'Лестница вниз':'Лестница наверх'):(up?'Лестница на чердак':'Люк в подвал'),use(){subGo(S,back,x,z);}});}
+async function subGo(S,back,x,z){if(busy||CB.on)return;busy=true;sfx('creak');
+  if(!back){const P=S.parent;houseShow(P,true);SEE.inKeep=0;room=null;await teleport(S.exit[0],S.exit[1]-1,Math.PI);setRoom(S);S.home=[x,z];}
+  else{const P=S.parent,[hx,hz]=S.home||[P.exit[0],P.exit[1]-1];setRoom(null);const [nx,nz]=nearFree(hx,hz+1,2);await teleport(nx,nz,0);}
+  busy=false;}
 // a generated room's chests and items remember their state by key, whenever the room gets built
 const PEND={chests:{},looted:{}};
 function roomState(R){for(const it of interact)if(it.key&&it.key.startsWith(R.i+':')&&PEND.chests[it.key]){const c=PEND.chests[it.key];it.items=c.items;if(c.o)it.open();}
@@ -2921,7 +3018,19 @@ async function enterRoom(R){if(busy||CB.on)return;busy=true;rest();H0.face=Math.
   await teleport(R.exit[0],R.exit[1]-1,Math.PI);setRoom(R);R.inDoor.pivot.rotation.y=1.45;swing(R.inDoor,false,380).then(()=>sfx('doorclose'));swing(outDoor(R),false,10);busy=false;}
 async function leaveRoom(){if(!room||busy)return;const R=room;busy=true;H0.face=0;sfx('door');heroPose('open',600);await swing(R.inDoor,true);await wait(150);
   await teleport(R.door[0],R.door[1],0);setRoom(null);outDoor(R).pivot.rotation.y=1.45;swing(outDoor(R),false,380).then(()=>sfx('doorclose'));swing(R.inDoor,false,10);busy=false;}
-function setRoom(R){if(R&&!R.group)buildRoom(R);if(room)room.group.visible=false;room=R;if(R)R.group.visible=true;sea.visible=!R;if(R){scene.fog.color.setHex(0x07090b);scene.background.setHex(0x07090b);scene.fog.density=.05;}
+// a house that stands in the world is entered by walking in: its roof and the wall facing the camera lift away,
+// the room is lit and the street outside goes dark and grey, so the room comes first
+const houseOf=R=>houseMeshes.find(g=>g.userData.house===R.i);
+function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<=r.oz+r.id-1)||null;}
+function houseShow(R,on){const g=houseOf(R);if(!g)return;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
+function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),cur=room&&room.inPlace?room:null;
+  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const near=Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1);
+    if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
+  if(R===cur)return;if(cur)houseShow(cur,true);room=R;
+  if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);
+    roomLight.visible=true;roomLight.position.set(R.ox+R.iw/2,R.y+2.2,R.oz+R.id/2);roomLight.distance=Math.max(9,R.iw*1.2);zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}
+  else{SEE.inKeep=0;roomLight.visible=false;}}
+function setRoom(R){if(R&&R.inPlace||room&&room.inPlace&&!R){return;}if(R&&!R.group)buildRoom(R);if(room)room.group.visible=false;room=R;if(R)R.group.visible=true;sea.visible=!R;if(R){scene.fog.color.setHex(0x07090b);scene.background.setHex(0x07090b);scene.fog.density=.05;}
   hemi.intensity=R?(R.iw>15?1:.6):.75;moon.intensity=R?.12:.6;roomLight.visible=!!R;if(R){roomLight.position.set(R.ox+R.iw/2,R.iw>15?4.5:2.6,R.oz+R.id/2);roomLight.distance=Math.max(12,R.iw*1.1);}flies.forEach(f=>f.visible=!R);
   if(R){zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}}
 
@@ -3547,7 +3656,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();}houseTick();}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
@@ -3569,8 +3678,11 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   for(const e of enemies){const b=e.bar;b.g.visible=!e.dead&&e.o.visible&&(e.inFight||e.hp<e.max);if(!b.g.visible)continue;
     b.g.position.set(e.o.position.x,e.o.position.y+1.15*(e.scale||1),e.o.position.z);b.g.quaternion.copy(camera.quaternion);const k=Math.max(0,e.hp/e.max);b.fg.scale.x=k;b.fg.position.x=-.28*(1-k);}
   if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});
-    flies.forEach(f=>{const u=f.userData;f.position.set(focus.x+u.ox+Math.sin(t*.4+u.ph)*.8,focus.y+.6+Math.sin(t*1.3+u.ph)*.25,focus.z+u.oz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
-    T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
+    // each one lives at its own spot in the world and drifts around it; one left far behind settles at a new
+    // spot around the hero, out of the way, instead of travelling with the screen
+    flies.forEach(f=>{const u=f.userData;if(u.wx==null||Math.hypot(u.wx-focus.x,u.wz-focus.z)>15){const a=Math.random()*Math.PI*2,r=(u.wx==null?2+Math.random()*9:9+Math.random()*4);u.wx=focus.x+Math.cos(a)*r;u.wz=focus.z+Math.sin(a)*r;}
+      f.position.set(u.wx+Math.sin(t*.4+u.ph)*.8,groundAt(u.wx,u.wz)+.6+Math.sin(t*1.3+u.ph)*.25,u.wz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
+    spiderTick(t);T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
   // the camera follows the hero, or an enemy while it takes its turn
   const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;holdTick();placeCam();if(inMenuBg())menuCam(dt);streamTick(firstStream);firstStream=false;
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
@@ -3579,7 +3691,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   moon.target.position.copy(focus);
   if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}else if(inMenuBg()){critterTick(dt,t);}barkTick(now);tutTick();miniTick(now);zoneCheck();
   // at 30 frames a second every other frame is skipped, which keeps phones cooler
-  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;seeTick();renderer.render(scene,camera);silhouettes();SEE.on.value=0;requestAnimationFrame(frame)}
+  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;seeTick();SEE.inOn.value=SEE.inKeep||0;renderer.render(scene,camera);silhouettes();SEE.on.value=0;SEE.inOn.value=0;requestAnimationFrame(frame)}
 let lastDraw=0;
 // ---------- the main menu backdrop: a slow flight over the living island ----------
 const inMenuBg=()=>typeof mainEl!=='undefined'&&!mainEl.hidden&&!room;
@@ -3602,7 +3714,7 @@ const partOfDay=()=>{const p=worldTime;return p<.22||p>=.86?'ночь':p<.35?'у
 let lastPart='';
 function worldTick(dt){const talking=!document.getElementById('talk').hidden;if(!CB.on&&!talking)worldTime=(worldTime+dt*1000/DAY_MS)%1;
   const part=partOfDay();if(part!==lastPart){lastPart=part;titleEl.textContent='Остров Хельги · '+part;}
-  if(room)return;const p=worldTime;let i=0;while(SKY[i+1][0]<p)i++;const a=SKY[i],b=SKY[i+1],k=(p-a[0])/(b[0]-a[0]||1);
+  if(room&&!room.inPlace)return;const p=worldTime;let i=0;while(SKY[i+1][0]<p)i++;const a=SKY[i],b=SKY[i+1],k=(p-a[0])/(b[0]-a[0]||1);
   const mix=(x,y)=>cA.setHex(x).lerp(cB.setHex(y),k);
   hemi.color.copy(mix(a[1],b[1]));hemi.groundColor.copy(mix(a[2],b[2]));hemi.intensity=a[3]+(b[3]-a[3])*k;
   moon.color.copy(mix(a[4],b[4]));moon.intensity=a[5]+(b[5]-a[5])*k;scene.fog.color.copy(mix(a[6],b[6]));scene.fog.density=a[7]+(b[7]-a[7])*k;scene.background.copy(scene.fog.color);
@@ -3878,7 +3990,7 @@ function note(t,x){noteEl.hidden=false;noteEl.innerHTML='<b></b><span></span>';n
   clearTimeout(noteT);noteT=setTimeout(()=>noteEl.hidden=true,6500);}
 noteEl.addEventListener('pointerdown',e=>{e.stopPropagation();noteEl.hidden=true;});
 function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.5);
-  showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
+  showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>R.inPlace?goDo(R.exit[0],R.exit[1]-1,false,()=>{}):goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
     {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',house:'Обычный дом. Внутри кто-то гремит посудой.',poorhouse:'Покосившаяся лачуга. Дверь не запирается.',castle:'Ворота открыты днём. Стража провожает взглядом.',herb:'Пахнет мятой и чем-то горьким.'})[R.type],4000)}],R.name);}
 // chapel brazier: look at it, and relight it with a torch in hand
 {const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,

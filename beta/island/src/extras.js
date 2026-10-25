@@ -13,7 +13,7 @@ const partOfDay=()=>{const p=worldTime;return p<.22||p>=.86?'ночь':p<.35?'у
 let lastPart='';
 function worldTick(dt){const talking=!document.getElementById('talk').hidden;if(!CB.on&&!talking)worldTime=(worldTime+dt*1000/DAY_MS)%1;
   const part=partOfDay();if(part!==lastPart){lastPart=part;titleEl.textContent='Остров Хельги · '+part;}
-  if(room)return;const p=worldTime;let i=0;while(SKY[i+1][0]<p)i++;const a=SKY[i],b=SKY[i+1],k=(p-a[0])/(b[0]-a[0]||1);
+  if(room&&!room.inPlace)return;const p=worldTime;let i=0;while(SKY[i+1][0]<p)i++;const a=SKY[i],b=SKY[i+1],k=(p-a[0])/(b[0]-a[0]||1);
   const mix=(x,y)=>cA.setHex(x).lerp(cB.setHex(y),k);
   hemi.color.copy(mix(a[1],b[1]));hemi.groundColor.copy(mix(a[2],b[2]));hemi.intensity=a[3]+(b[3]-a[3])*k;
   moon.color.copy(mix(a[4],b[4]));moon.intensity=a[5]+(b[5]-a[5])*k;scene.fog.color.copy(mix(a[6],b[6]));scene.fog.density=a[7]+(b[7]-a[7])*k;scene.background.copy(scene.fog.color);
