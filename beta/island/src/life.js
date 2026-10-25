@@ -19,7 +19,7 @@ function goTo(a,[x,z],then){const t=nearFree(x,z,3);const p=path(a.x,a.z,t[0],t[
 let lifeI=0;
 // Olav waits on the pier until the new hero has spoken to him: the tutorial sends the player to him
 const waitsForHero=a=>a.talkId==='fisher'&&typeof TUT!=='undefined'&&TUT.step>=0&&TUT.step<=1&&!TUT.flags.olav;
-function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
+function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a===window.talkWho&&!talkEl.hidden)return;if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
   if(a.role==='patrol'&&ph!=='home'){if(a.hidden)appear(a,DOOR(a.house));if(!a.route){a.pi=((a.pi||0)+1)%SPOTS.patrol.length;goTo(a,SPOTS.patrol[a.pi]);}a.act=null;return;}
   if(a.route)return;
   if(ph==='home'){if(a.where==='home')return;if(a.where==='goingHome'&&a.route)return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);a.where='goingHome';goTo(a,DOOR(a.house),()=>hideIn(a));return;}
@@ -37,7 +37,7 @@ function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a
   if(a.where==='tavern'){leaveTavern(a);return;}if(a.hidden)appear(a,DOOR(a.house));
   const spot=SPOTS[a.role];if(Math.abs(a.x-spot[0])+Math.abs(a.z-spot[1])>2){a.act=null;goTo(a,spot);a.where='out';return;}
   if(a.act!==a.role){a.act=a.role;if(a.tool)setHeld(a.o,'R',a.tool);
-    a.face={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2}[a.role]??a.face;}}
+    a.face=a.workFace={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2,sweep:Math.PI/2,field:0}[a.role]??a.face;}}
 // who goes out tonight: decided per villager and per day
 function goesOut(a){const d=typeof dayN==='number'?dayN:0;return hash2(V.indexOf(a)*7+3,d*13+1)<.5;}
 function leaveTavern(a){a.act=null;a.seat=null;a.where='leaving';goTo(a,[TAV.exit[0],TAV.exit[1]-1],()=>{appear(a,DOOR(0));a.where='out';});}
@@ -45,7 +45,23 @@ function leaveTavern(a){a.act=null;a.seat=null;a.where='leaving';goTo(a,[TAV.exi
 // Work motions use the whole body: both arms, the forearms, a lean of the trunk and bent knees, in a rhythm
 // with a quick working stroke and a slower recovery. armL/foreL is the hand that holds the tool.
 const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
-function workPose(a,r,b,t){const p=a.ph,k=t+p;switch(a.act){
+// The arms' sideways angle: for the left-hand group (armL, at -x) a negative z swings the hand out, a positive z
+// in across the body; armR is the mirror. Arms only cross inwards when they are lifted well forward, so a hand never
+// passes through the chest or belly.
+const bump=x=>{const s=Math.sin(x);return s>0?s*s:0;};
+// talking to the hero: turned to face them, the tool lowered, the free hand moves with the words, small nods;
+// someone who just called out to the hero lifts a hand in greeting
+function talkPose(a,r,b,t,greet){const k=t+a.ph,sp=r.splay||0;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);a.crouch=0;
+  const tool=!!(r.foreL.userData.item||r.foreL.userData.two),g=bump(k*1.9),g2=bump(k*1.3+2.1);
+  r.armL.rotation.set(tool?-.18:-.15-g2*.45,0,-sp-.04-(tool?0:g2*.12));r.foreL.rotation.set(tool?-.35:-.3-g2*.7,0,0);
+  if(greet){const w=Math.sin(k*9)*.22;r.armR.rotation.set(-2.5,0,sp+.3+w);r.foreR.rotation.set(-.3,0,0);}
+  else{r.armR.rotation.set(-.2-g*.6,0,sp+.06+g*.18);r.foreR.rotation.set(-.35-g*.75,0,0);}
+  r.head.rotation.set(Math.sin(k*2.1)*.05+(greet?-.08:.02),0,Math.sin(k*.8)*.04);b.rotation.set(0,0,Math.sin(k*.6)*.02);}
+function workPose(a,r,b,t){const p=a.ph,k=t+p,now=performance.now();
+  if(a.act!=='sit'){if(a===window.talkWho&&!talkEl.hidden){a.hold=now+1500;return talkPose(a,r,b,t,false);}
+    if(a.greetT>now)return talkPose(a,r,b,t,true);}
+  if(a.workFace!=null&&a.act===a.role)a.face=a.workFace;
+  switch(a.act){
   case 'fish1':case 'fish2':{ // rod held out in both hands, the tip bobbing; now and then a sharp tug
     const tug=Math.max(0,Math.sin(k*.45))>.97?1:0,bob=Math.sin(k*1.6)*.05;
     r.armL.rotation.set(-1.05+bob-tug*.5,0,.18);r.foreL.rotation.set(-.35-tug*.3,0,0);r.armR.rotation.set(-.85+bob,0,-.25);r.foreR.rotation.set(-.6,0,0);
@@ -55,18 +71,18 @@ function workPose(a,r,b,t){const p=a.ph,k=t+p;switch(a.act){
     for(const[arm,fore,z]of[[r.armL,r.foreL,-.12],[r.armR,r.foreR,.12]]){arm.rotation.set(-.35-2.25*up,0,z);fore.rotation.set(-.2-.5*up,0,0);}
     b.rotation.x=.32*(1-up);a.crouch=.05*(1-up);if(c<a.ck&&up<.2&&!room&&man(a,H0)<9)sfx('chopw');a.ck=c;break;}
   case 'sweep':{ // broom low in both hands, long strokes left and right, shoulders turning with them
-    const sw=Math.sin(k*2.2);r.armL.rotation.set(-.55,0,sw*.35);r.armR.rotation.set(-.75,0,sw*.35-.1);r.foreL.rotation.set(-.3,0,0);r.foreR.rotation.set(-.5,0,0);
-    b.rotation.y=sw*.22;b.rotation.x=.18;r.head.rotation.x=.25;break;}
+    const sw=Math.sin(k*2.2),sp=r.splay||0;r.armL.rotation.set(-.38,sw*.1,-sp+sw*.12);r.foreL.rotation.set(-.2,0,0);r.armR.rotation.set(-.62,0,.22+sw*.12);r.foreR.rotation.set(-.55,0,0);
+    b.rotation.y=sw*.2;b.rotation.x=.14;r.head.rotation.x=.22;r.head.rotation.y=-sw*.12;break;}
   case 'field':{ // the hoe rises in both hands and bites the ground; the worker bends low on each stroke
     const c=(k*.6)%1,up=c<.55?ease(c/.55):1-ease(Math.min(1,(c-.55)/.25));
-    for(const[arm,fore]of[[r.armL,r.foreL],[r.armR,r.foreR]]){arm.rotation.set(-.3-1.6*up,0,0);fore.rotation.set(-.3-.4*up,0,0);}
+    r.armL.rotation.set(-.3-1.6*up,0,-(r.splay||0));r.foreL.rotation.set(-.2-.4*up,0,0);r.armR.rotation.set(-.55-1.5*up,0,.2);r.foreR.rotation.set(-.5-.3*up,0,0);
     b.rotation.x=.38*(1-up)+.08;a.crouch=.06*(1-up);break;}
   case 'sell':{ // calls to passers-by: one hand waves the goods, the other rests on the stall, weight shifting
-    const w=Math.max(0,Math.sin(k*1.1));r.armR.rotation.set(-.5-w*1.2,0,-.3);r.foreR.rotation.set(-.6-w*.5,0,0);r.armL.rotation.set(-.45,0,.15);r.foreL.rotation.set(-.9,0,0);
+    const w=bump(k*1.1),sp=r.splay||0;r.armR.rotation.set(-.35-w*1.5,0,sp+.08+w*.3);r.foreR.rotation.set(-.45-w*.4,0,0);r.armL.rotation.set(-.55,0,.12);r.foreL.rotation.set(-1,0,0);
     r.head.rotation.y=Math.sin(k*.5)*.5;b.rotation.z=Math.sin(k*.4)*.04;break;}
   case 'chat1':case 'chat2':{ // talking with hands: alternate gestures, nods and a shift of weight
-    const g1=Math.max(0,Math.sin(k*1.7)),g2=Math.max(0,Math.sin(k*1.7+2.4));r.armR.rotation.set(-.3-g1*.8,0,-.2);r.foreR.rotation.set(-.5-g1*.7,0,0);
-    r.armL.rotation.set(-.2-g2*.6,0,.2);r.foreL.rotation.set(-.4-g2*.6,0,0);r.head.rotation.x=Math.sin(k*2.3)*.1;r.head.rotation.y=Math.sin(k*.7)*.2;b.rotation.z=Math.sin(k*.5)*.035;break;}
+    const g1=bump(k*1.7),g2=bump(k*1.7+2.4),sp=r.splay||0;r.armR.rotation.set(-.15-g1*.75,0,sp+.06+g1*.2);r.foreR.rotation.set(-.3-g1*.8,0,0);
+    r.armL.rotation.set(-.12-g2*.6,0,-sp-.06-g2*.18);r.foreL.rotation.set(-.3-g2*.7,0,0);r.head.rotation.x=Math.sin(k*2.3)*.1;r.head.rotation.y=Math.sin(k*.7)*.2;b.rotation.z=Math.sin(k*.5)*.035;break;}
   case 'guard':{ // a guard stands straight, spear upright at his side, and looks the street up and down
     r.armL.rotation.set(-.25,0,.05);r.foreL.rotation.set(-.6,0,0);r.armR.rotation.set(0,0,-.08);r.head.rotation.y=Math.sin(k*.35)*.8;break;}
   case 'sit':{ // seated, forearms on the knees; now and then a sip from the mug
@@ -96,7 +112,7 @@ function barkTick(now){for(let i=bubbles.length-1;i>=0;i--){const B=bubbles[i],a
   // one voice at a time, never over a conversation, no line twice in a row
   if(CB.on||paused||!talkEl.hidden||bubbles.length)return;
   for(const a of actors){if(!a.npc||a.hidden||!a.o.visible||a.barkT>now-22000)continue;const d=Math.hypot(a.px-H0.px,a.pz-H0.pz);
-    if(d<3.2&&Math.random()<.02){speak(a,lastLine=PEOPLE[a.npc]?personBark(a):pickLine(a,'b',barkLines(a)));a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);break;}}
+    if(d<3.2&&Math.random()<.02){speak(a,lastLine=PEOPLE[a.npc]?personBark(a):pickLine(a,'b',barkLines(a)));a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);if(!a.route)a.greetT=now+1600;break;}}
   // villagers chatting with each other nearby
   const pair=[V.find(v=>v.act==='chat1'),V.find(v=>v.act==='chat2')];if(pair[0]&&pair[1]&&Math.hypot(pair[0].px-H0.px,pair[0].pz-H0.pz)<9&&Math.random()<.006){const s=pair[Math.random()<.5?0:1];
     if(s.barkT<now-6000||!s.barkT){const L=['А рыбак-то, слышала, снова сети порвал!','Брам новое пиво сварил.','Травница говорит, скоро шторм.','Ох, мои колени к дождю…','Чужак-то наш, видать, не робкого десятка.'];speak(s,L[Math.floor(Math.random()*L.length)]);}}

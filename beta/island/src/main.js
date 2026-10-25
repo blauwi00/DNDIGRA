@@ -538,7 +538,7 @@ function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
   say(who,ask,[['Берусь',()=>{q.state=1;questFocus=q;questUI();say(who,'Да хранит тебя море.');}]]);}
-function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
+function talk(a){window.talkWho=a;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
   if(!tutOn()&&jobDeliverTo(a))return;
   // the tutorial's own lines first
   if(tutOn()){const s=TUT.step;
@@ -609,7 +609,9 @@ function ai(){const now=performance.now();
     if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
-function idleLife(a,r,b,t){const p=a.ph;if((a.talkId==='town'||a.talkId==='merc')&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town'||a.talkId==='merc')workPose(a,r,b,t);
+function idleLife(a,r,b,t){const p=a.ph;
+  // anyone the hero speaks to turns to them and talks with light gestures (a seated guest just turns)
+  if(a.npc&&!a.enemy&&!r.quad&&a.act!=='sit'&&a===window.talkWho&&!talkEl.hidden){a.hold=performance.now()+1500;talkPose(a,r,b,t,false);return;}if((a.talkId==='town'||a.talkId==='merc')&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town'||a.talkId==='merc')workPose(a,r,b,t);
   if(a.act==='wipe'){r.armL.rotation.set(-1.05,Math.sin(t*3+p)*.15,Math.sin(t*3+p)*.35);b.rotation.x=.12;}
   if(a.act==='hammer'&&!a.route){a.face=Math.PI;const k=(t*1.1+p)%1,up=k<.6?k/.6:1-(k-.6)/.4*1.0,hit=k>.94;r.armL.rotation.set(-.3-1.9*Math.max(0,up),0,.1);b.rotation.x=.1+.06*up;
     if(k<a.hk&&room&&room.type==='forge')sfx('clank');a.hk=k;}
@@ -667,16 +669,19 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkW=(a.walkW||0)+((moving?1:0)-(a.walkW||0))*Math.min(1,dt*(moving?9:6));
     if(moving)a.walkT=(a.walkT||0)+dt*a.spd*4.2;
     const o=a.o,b=o.userData.body,walk=a.walkW>.03?(a.walkT||.001):0;const sw=reduce?0:Math.sin(a.walkT||0)*a.walkW,breathe=reduce?0:Math.sin(t*2+a.ph);
-    a.gy=(a.gy??groundAt(a.px,a.pz))+(groundAt(a.px,a.pz)-(a.gy??0))*Math.min(1,dt*12);o.position.set(a.px+(a.off?a.off[0]:0),a.gy+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
+    a.gy=(a.gy??groundAt(a.px,a.pz))+(groundAt(a.px,a.pz)-(a.gy??0))*Math.min(1,dt*12);o.position.set(a.px+(a.off?a.off[0]:0),a.gy+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a!==H0&&!a.inFight&&a.crouchS!=null?a.crouchS:(a.crouch||0)),a.pz+(a.off?a.off[1]:0));
     // the body turns towards where it goes instead of snapping round
     if(a!==H0||!H0.dead){let dr=a.face-o.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));o.rotation.y+=dr*Math.min(1,dt*12);}b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.y=0;b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r&&r.quad){quadPose(r,walk,sw,t,a.ph);if(!walk&&!a.off&&a.enemy&&!a.inFight)r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+a.ph))*.35;}
     else if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       armPose(o,walk,sw,breathe);
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
+      // the head's quiet look-around comes first, so a work or talk pose can turn and nod it
+      r.torso.scale.y=1+(walk?0:breathe*.012);r.head.rotation.set(0,walk?0:Math.sin(t*.5+a.ph)*.15,0);
       if(!walk&&!a.off)idleLife(a,r,b,t);
-      r.torso.scale.y=1+(walk?0:breathe*.012);r.head.rotation.y=walk?0:Math.sin(t*.5+a.ph)*.15;r.head.rotation.x=0;
-      if(a.pose)applyPose(a,r,b,now);else if(walk||!a.act)a.crouch=0;}}
+      if(a.pose)applyPose(a,r,b,now);else if(walk||!a.act)a.crouch=0;
+      // townsfolk ease from one pose into the next instead of snapping (a stroke ends, a talk starts, they set off)
+      if(a!==H0&&!a.inFight)smoothPose(a,r,b,dt);}}
   for(const e of enemies){const b=e.bar;b.g.visible=!e.dead&&e.o.visible&&(e.inFight||e.hp<e.max);if(!b.g.visible)continue;
     b.g.position.set(e.o.position.x,e.o.position.y+1.15*(e.scale||1),e.o.position.z);b.g.quaternion.copy(camera.quaternion);const k=Math.max(0,e.hp/e.max);b.fg.scale.x=k;b.fg.position.x=-.28*(1-k);}
   if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});

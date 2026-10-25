@@ -209,6 +209,8 @@ const HELD={
 // a bow by the grip in the middle of its arc (never by the string), a shield by the strap
 // on its back, face out along the outside of the arm.
 const TWO={has:id=>!!(id&&WEAPONS[id]&&WEAPONS[id].two)};
+// a broom and a hoe work with their head on the ground ahead: the shaft leaves the fist pointing forward and down
+const TOOL_TILT={broom:2.45,hoe:2.45};
 const _c=new THREE.Vector3();
 // shafts (spears, staves) are held at their balance point; blades and hafts by the grip at their own origin
 function holdItem(holder,side,id){const r=holder.userData.rig,fore=r[side==='R'?'foreL':'foreR'],h=r[side==='R'?'handL':'handR'],k=kindOf(id),out=side==='R'?-1:1;
@@ -216,7 +218,7 @@ function holdItem(holder,side,id){const r=holder.userData.rig,fore=r[side==='R'?
   if(k==='shield'){bb.getCenter(_c);inner.position.set(-_c.x,-_c.y,-bb.min.z+.015);hold.scale.setScalar(1.35);hold.rotation.set(0,out*Math.PI/2,0);}
   else if(k==='bow'){inner.position.z=-WEAPONS[id].m.bend;hold.scale.setScalar(1.4);
     hold.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),out*Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2));}
-  else{const len=bb.max.y-bb.min.y;if(len>.8&&(k==='spear'||k==='staff'))inner.position.y=-(bb.min.y+len*.38);hold.scale.setScalar(TWO.has(id)?1.4:1.5);hold.rotation.x=k==='torch'?.5:Math.PI/2;}
+  else{const len=bb.max.y-bb.min.y;if(len>.8&&(k==='spear'||k==='staff'))inner.position.y=-(bb.min.y+len*.38);hold.scale.setScalar(TWO.has(id)?1.4:1.5);hold.rotation.x=k==='torch'?.5:TOOL_TILT[k]||Math.PI/2;}
   hold.position.copy(h);fore.add(hold);return hold;}
 function setHeld(holder,side,id){const fore=holder.userData.rig[side==='R'?'foreL':'foreR'];
   if(fore.userData.item){fore.remove(fore.userData.item);fore.userData.item=null;}if(!id)return;fore.userData.item=holdItem(holder,side,id);}
@@ -230,3 +232,12 @@ function armPose(o,walk,sw,breathe){const r=o.userData.rig,b=breathe*.03;
   if(r.cape)r.cape.rotation.x=.06+(walk?Math.abs(sw)*.22:0)+breathe*.015;}
 window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;
   setHeld(hero,'L',two?null:L);setHeld(hero,'R',two?null:R);setTwoHanded(hero,two);};
+
+// Townsfolk ease into each new pose: every joint follows the pose set this frame with a short lag, so a
+// work stroke ending, a turn to talk or the first step never snaps the limbs from one angle to another.
+const POSE_J=['armL','armR','foreL','foreR','legL','legR','head'];
+function smoothPose(a,r,b,dt){const s=a._sp||(a._sp={}),k=1-Math.exp(-dt*14);
+  for(const n of POSE_J){const o=r[n]&&r[n].rotation;if(!o)continue;const p=s[n];if(!p){s[n]=[o.x,o.y,o.z];continue;}
+    p[0]+=(o.x-p[0])*k;p[1]+=(o.y-p[1])*k;p[2]+=(o.z-p[2])*k;o.set(p[0],p[1],p[2]);}
+  const o=b.rotation,p=s.body;if(!p)s.body=[o.x,o.y,o.z];else{p[0]+=(o.x-p[0])*k;p[1]+=(o.y-p[1])*k;p[2]+=(o.z-p[2])*k;o.set(p[0],p[1],p[2]);}
+  a.crouchS=(a.crouchS||0)+((a.crouch||0)-(a.crouchS||0))*k;}
