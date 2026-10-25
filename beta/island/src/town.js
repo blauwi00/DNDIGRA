@@ -57,6 +57,7 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(a.where==='home')return ['Поздно уже. Спать ложусь, завтра поговорим.','Ночь на дворе, чего тебе?'];
   if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(a.kind==='village'||a.kind==='poor')L.push('В глухом лесу, говорят, старик со стаей живёт. Седой его кличут. Волки его слушаются.');
   if(Q.raven&&Q.raven.state<3&&(a.kind==='capital'||a.kind==='village'))L.push('Говорят, у разбойников теперь один главный. Ворон его кличут.');
   if(Q.raven&&Q.raven.state===3)L.push('Слыхал? Ворона больше нет. Купцы опять поехали.');
   if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');

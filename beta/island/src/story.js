@@ -59,11 +59,18 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
   if(!has)return say('Камень с вороном',riddle+' Нужно перо.');
   if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.');
   ravenWake();ravenStep('lair');sfx('door');shake=.25;
-  say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уйти',()=>{}]]);}
+  say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уговорить сдаться · '+chance(talkMod(0)+ravenSway(),15,0)+'%',()=>ravenPlead()]]);}
+// the poor know what the hero did for them, and so does Raven: kindness to the village makes him listen
+const ravenSway=()=>repLevel('village')>=3?2:0;
+async function ravenPlead(){const q=Q.raven;const res=await roll20('Убеждение → Атаман Ворон',talkMod(0)+ravenSway(),15);rollDone(2200);
+  if(!res.ok)return say('Атаман Ворон','«Красиво говоришь. Только король тебя прислал, а не совесть». Он поднимает меч.',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}]]);
+  for(const e of GANG){e.dead=true;e.dormant=false;e.o.visible=false;}q.state=2;q.spared=true;gainXP(450);questUI();save();
+  say('Атаман Ворон','Рагнар долго молчит. Потом бросает меч на камни. «Ладно. Пойду к королю сам. Но скажи ему про тот посёлок. Пусть хоть раз посмотрит, как там живут». Его люди расходятся в темноту.');}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
 function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
   gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
+  if(q.spared)return say(n,'Рагнар пришёл сам. Стоял тут, где ты стоишь, и рассказывал про тот посёлок. Я отменил налог. А Рагнара отправлю на дальний маяк — это лучше, чем петля. Ты сделал больше, чем просто победил. Возьми меч с рунами. Получено: рунный меч, зелье лечения ×3.');
   say(n,'Ворон повержен? Рагнар… Я помню его. Лучший капитан моей стражи. Может, он был прав насчёт того налога. Посёлку я пошлю зерно — пусть хоть это останется от него. А ты возьми меч с рунами из моей оружейной, он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
 function ravenLoad(st){const q=Q.raven;if(!q||!st)return;q.step=st;q.title=RV_TITLE[st];
   if(q.state===1&&st!=='ask'&&st!=='feather'&&q.featherIt&&interact.includes(q.featherIt)){q.featherIt.grp.visible=false;interact.splice(interact.indexOf(q.featherIt),1);}

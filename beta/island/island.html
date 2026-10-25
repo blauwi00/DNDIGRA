@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.68 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.69 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3284,7 +3284,7 @@ const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+
 
 // ---------- turns ----------
 const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
-async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
+async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;if(typeof onFightStart==='function')onFightStart(trigger);CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
   const foes=[trigger,...enemies.filter(e=>e!==trigger&&!e.dead&&e.o.visible&&Math.hypot(e.x-trigger.x,e.z-trigger.z)<=4).sort((a,b)=>man(a,trigger)-man(b,trigger)).slice(0,1)];
   const mates=ALLIES.filter(a=>!a.down&&man(a,H0)<=12);for(const a of mates){a.route=null;a.inFight=true;}
   for(const e of foes){e.route=null;e.investigate=null;e.inFight=true;if(!surprise||e!==trigger)e.aware=true;}
@@ -3429,7 +3429,9 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
+  if(a.talkId==='pack')return packTalk(a,n);
   if(a.talkId==='merc')return say(n,'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.');
+  if(a.talkId==='ally'&&a.model==='wolf')return say(n,['Клык нюхает воздух и тихо рычит в сторону леса.','Клык толкает вас носом в ладонь.','Клык садится рядом и ждёт.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='ally')return say(n,['Я рядом. Если что — зови.','Втроём на одного не лезь, лучше подманивай по одному.','Устал? Отдохни у костра, я посторожу.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
@@ -3465,7 +3467,7 @@ function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e
 function ai(){const now=performance.now();
   for(const a of actors){if(a===H0||a.dead)continue;if(a.far&&!a.inFight)continue; // far away the island rests
     if(a.enemy){if(a.inFight)continue;
-      if(!a.aware&&!busy&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
+      if(!a.aware&&!busy&&!a.calm&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
       if(CB.on)continue;
       if(a.investigate){const I=a.investigate;if(!I.t){if(!a.route){const p=path(a.x,a.z,I.x,I.z,a,true,800);if(p&&p.length>0&&Math.hypot(a.x-I.x,a.z-I.z)>1.5)a.route=p;else I.t=now;}}
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
@@ -3699,7 +3701,7 @@ window.snd={muted:()=>muted,setMuted(v){if(muted!==v)sndBtn.onclick();},vol:()=>
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -3709,8 +3711,9 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
+  dealsLoad(d.deals);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
-  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);ALLIES.push(a);}}
+  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door
@@ -4225,6 +4228,7 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(a.where==='home')return ['Поздно уже. Спать ложусь, завтра поговорим.','Ночь на дворе, чего тебе?'];
   if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(a.kind==='village'||a.kind==='poor')L.push('В глухом лесу, говорят, старик со стаей живёт. Седой его кличут. Волки его слушаются.');
   if(Q.raven&&Q.raven.state<3&&(a.kind==='capital'||a.kind==='village'))L.push('Говорят, у разбойников теперь один главный. Ворон его кличут.');
   if(Q.raven&&Q.raven.state===3)L.push('Слыхал? Ворона больше нет. Купцы опять поехали.');
   if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');
@@ -4297,11 +4301,18 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
   if(!has)return say('Камень с вороном',riddle+' Нужно перо.');
   if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.');
   ravenWake();ravenStep('lair');sfx('door');shake=.25;
-  say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уйти',()=>{}]]);}
+  say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уговорить сдаться · '+chance(talkMod(0)+ravenSway(),15,0)+'%',()=>ravenPlead()]]);}
+// the poor know what the hero did for them, and so does Raven: kindness to the village makes him listen
+const ravenSway=()=>repLevel('village')>=3?2:0;
+async function ravenPlead(){const q=Q.raven;const res=await roll20('Убеждение → Атаман Ворон',talkMod(0)+ravenSway(),15);rollDone(2200);
+  if(!res.ok)return say('Атаман Ворон','«Красиво говоришь. Только король тебя прислал, а не совесть». Он поднимает меч.',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}]]);
+  for(const e of GANG){e.dead=true;e.dormant=false;e.o.visible=false;}q.state=2;q.spared=true;gainXP(450);questUI();save();
+  say('Атаман Ворон','Рагнар долго молчит. Потом бросает меч на камни. «Ладно. Пойду к королю сам. Но скажи ему про тот посёлок. Пусть хоть раз посмотрит, как там живут». Его люди расходятся в темноту.');}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
 function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
   gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
+  if(q.spared)return say(n,'Рагнар пришёл сам. Стоял тут, где ты стоишь, и рассказывал про тот посёлок. Я отменил налог. А Рагнара отправлю на дальний маяк — это лучше, чем петля. Ты сделал больше, чем просто победил. Возьми меч с рунами. Получено: рунный меч, зелье лечения ×3.');
   say(n,'Ворон повержен? Рагнар… Я помню его. Лучший капитан моей стражи. Может, он был прав насчёт того налога. Посёлку я пошлю зерно — пусть хоть это останется от него. А ты возьми меч с рунами из моей оружейной, он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
 function ravenLoad(st){const q=Q.raven;if(!q||!st)return;q.step=st;q.title=RV_TITLE[st];
   if(q.state===1&&st!=='ask'&&st!=='feather'&&q.featherIt&&interact.includes(q.featherIt)){q.featherIt.grp.visible=false;interact.splice(interact.indexOf(q.featherIt),1);}
@@ -4315,6 +4326,57 @@ function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
   if(rv&&rv.state===2)return ravenEnd(n);
   if(rv&&rv.state===1)return say(n,{ask:'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она видела его людей.',feather:'Чёрное перо, говоришь? Значит, его люди так друг друга узнают. Найди такое перо.',stone:'Камень с вороном в руинах? Я про такой не слышал. Будь там осторожен.',lair:'Ты видел Ворона? Возвращайся, когда с ним будет покончено.'}[rv.step]);
   return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
+
+// ---------- talking your way through: persuade, deceive, intimidate, or a gift ----------
+// As at the table: one goal, several ways to it. Each way is a d20 roll with the hero's skill against
+// a difficulty set by what the other side wants; a failed lie or threat has consequences, a gift
+// that is what they need simply works. Every way can be tried once.
+// The skills come from the class (a people adds nothing to rolls): persuasion, deception, intimidation.
+const TALK_MOD={fighter:[1,0,3],barbarian:[0,0,5],paladin:[4,0,3],monk:[2,0,1],ranger:[1,1,2],rogue:[2,5,2],bard:[5,5,3],cleric:[3,0,1],druid:[2,0,1],sorcerer:[4,3,2],warlock:[4,4,3],mage:[1,2,0]};
+const TALK_N=['Убедить','Обмануть','Запугать'],TALK_SK=['Убеждение','Обман','Запугивание'];
+const talkMod=k=>(TALK_MOD[HERO.cls]||[1,1,1])[k];
+const DEALS={}; // by name, for the save: {tried, done}
+// deal: {key, open(), dc:[persuade,deceive,intimidate] (null: not this way), bonus(k), gift:{id,n,label,no}|{gold,label,no}, win(how), fail(how,k), xp}
+function dealWheel(a){const D=a.deal,ch=[];
+  TALK_N.forEach((nm,k)=>{const dc=D.dc[k];if(dc==null||D.tried[k])return;const m=talkMod(k)+(D.bonus?D.bonus(k):0);ch.push([nm+' · '+chance(m,dc,0)+'%',()=>dealRoll(a,k,m,dc)]);});
+  if(D.gift&&!D.tried.g)ch.push([D.gift.label,()=>dealGift(a)]);
+  say(a.npc,D.open(),ch);}
+async function dealRoll(a,k,m,dc){const D=a.deal;D.tried[k]=1;DEALS[D.key]={tried:D.tried,done:false};
+  const res=await roll20(TALK_SK[k]+' → '+a.npc,m,dc);rollDone(2200);
+  if(res.ok){D.done=true;DEALS[D.key].done=true;gainXP(D.xp||50);D.win(TALK_N[k]);}else D.fail(TALK_N[k],k);save();}
+function dealGift(a){const D=a.deal,g=D.gift;
+  if(g.id){if((window.handsCount?window.handsCount(g.id):0)<g.n)return say(a.npc,g.no);for(let i=0;i<g.n;i++)window.handsConsume(g.id);}
+  else if(g.gold){if(gold<g.gold)return say(a.npc,g.no);addGold(-g.gold);}
+  D.tried.g=1;D.done=true;DEALS[D.key]={tried:D.tried,done:true};gainXP(D.xp||50);D.win('Дар');save();}
+function dealsLoad(d){for(const [k,v] of Object.entries(d||{})){const a=actors.find(o=>o.deal&&o.deal.key===k);if(!a)continue;a.deal.tried=v.tried||{};if(v.done){a.deal.done=true;a.deal.restore&&a.deal.restore();}}}
+
+// ---------- Седой and his pack ----------
+// In the deep forest lives an old man who is also the pack's leader. His wolves do not touch a guest
+// while he is talking; a lie or a threat turns the pack on you. Win him over and a wolf walks with you.
+const PACK=[];let SEDOY=null,KLYK=null;
+{const p=GEN.places.find(q=>q.type==='wolves');if(p){
+  PACK.push(...enemies.filter(e=>e.model==='wolf'&&Math.hypot(e.home[0]-p.x,e.home[1]-p.z)<8));for(const w of PACK)w.calm=true;
+  const [x,z]=nearFree(p.x+1,p.z-2,3);
+  SEDOY=townsman(x,z,{wander:2,npc:'Седой',job:'Вожак стаи',place:p,kind:'pack',talkId:'pack'},false,'Седой',LOOKS2[1],{beard:'long',hair:'#c8c4bc',outfit:'leather',cape:'mantle',capeColor:'#5a4a3a',eyes:'narrow'});
+  const [kx,kz]=nearFree(p.x-2,p.z-1,3);
+  KLYK=actor('wolf',kx,kz,{wander:0,spd:2.8,npc:'Волк Клык',talkId:'ally',name:'Клык',hp:11,max:11,ac:13,atk:4,dmg:4,dmgB:2,dex:2,speed:8,atkName:'Укус'});KLYK.hidden=true;KLYK.o.visible=false;
+  SEDOY.deal={key:'sedoy',tried:{},xp:100,
+    open:()=>'Люди сюда редко доходят. Ты пахнешь железом и дымом. Охотники с побережья ставят капканы в моём лесу, щенки гибнут. Скажи, почему я не должен отдать тебя стае?',
+    dc:[13,15,17],bonus:k=>k===0&&repLevel('village')>=3?2:0,
+    gift:{id:'fish',n:2,label:'Отдать рыбу ×2',no:'Рыбы у тебя нет. Не дразни голодных.'},
+    win(how){packFriend();say('Седой',{Убедить:'Ты говоришь прямо. Ладно. Мои волки тебя не тронут. А если нужна будет пасть в драке — бери Клыка, он сам к тебе тянется.',Обмануть:'Значит, король прислал… Хорошо. Пусть так. Волки тебя не тронут, и Клык пойдёт с тобой — проследит, чтобы ты не врал.',Запугать:'Сильный… Стая уважает силу. Иди спокойно. Клык пойдёт с тобой, если позовёшь.',Дар:'Рыба. Давно стая так не ела. Ты нам друг. Возьми Клыка, он не подведёт.'}[how]);},
+    fail(how,k){if(k===0)return say('Седой','Слова, слова. Люди всегда говорят красиво. Попробуй ещё раз — по-другому.');packAnger();say('Седой',k===1?'Врёшь. Я чую ложь, как кровь. Стая!':'Ты угрожаешь мне в моём лесу? Стая!',[['Драться',()=>{const w=PACK.find(w=>!w.dead);if(w)startCombat(w);}]]);},
+    restore(){packFriend(true);}};}}
+let PACK_ANGRY=false;
+function packFriend(quiet){for(const w of PACK){w.calm=true;w.aware=false;}PACK_ANGRY=false;if(!quiet)repAdd('village',0);}
+function packAnger(){PACK_ANGRY=true;for(const w of PACK){w.calm=false;w.aware=true;}if(SEDOY&&SEDOY.deal)SEDOY.deal.done=true;}
+function packTalk(a,n){const D=a.deal;if(PACK_ANGRY)return say(n,'Уходи. Стая помнит тебя.');
+  if(!D.done)return dealWheel(a);
+  const ch=[];if(KLYK&&!KLYK.ally&&!KLYK.dead)ch.push(['Взять Клыка с собой',()=>takeKlyk()]);
+  say(n,['Лес шумит спокойно. Это хорошо.','Капканов стало меньше. Твоя работа?','Луна скоро полная. В такие ночи я плохо помню, кто я.'][(a.said=(a.said||0)+1)%3],ch);}
+function takeKlyk(){const a=KLYK;a.hidden=false;a.o.visible=true;const [x,z]=nearFree(H0.x+1,H0.z,3);a.x=x;a.z=z;a.px=x+.5;a.pz=z+.5;a.ally=true;ALLIES.push(a);save();toast('Клык идёт с вами.');}
+// attacking a calm wolf of the pack ends the peace
+function onFightStart(trigger){if(trigger&&trigger.calm&&PACK.includes(trigger))packAnger();}
 
 // ---------- weather ----------
 const WX={rain:0,target:0,next:0};

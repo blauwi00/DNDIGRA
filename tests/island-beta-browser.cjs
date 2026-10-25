@@ -374,7 +374,7 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       if (!m) return ['no sellsword in the tavern'];
       const g0 = gold; addGold(20); hireAlly(m, 15); close(); if (!m.ally || !ALLIES.includes(m) || gold !== g0 + 5) bad.push('hiring failed');
       const camp = enemies.filter((e) => e.model === 'bandit' && !e.dead && !e.dormant);
-      const trio = enemies.find((e) => !e.dead && !e.dormant && enemies.filter((o) => o !== e && !o.dead && !o.dormant && Math.hypot(o.x - e.x, o.z - e.z) <= 4).length >= 2);
+      const trio = enemies.find((e) => !e.dead && !e.dormant && !e.calm && enemies.filter((o) => o !== e && !o.dead && !o.dormant && !o.calm && Math.hypot(o.x - e.x, o.z - e.z) <= 4).length >= 2);
       if (trio) { const sv = [H0.x, H0.z, H0.px, H0.pz]; H0.x = trio.x; H0.z = trio.z + 3; m.x = H0.x + 1; m.z = H0.z; startCombat(trio, false, true);
         if (liveFoes().length > 2) bad.push('fight began with ' + liveFoes().length + ' foes'); if (!CB.order.includes(m)) bad.push('companion not in the fight');
         if (liveFoes().includes(m)) bad.push('companion counted as a foe'); endCombat(''); [H0.x, H0.z, H0.px, H0.pz] = sv; }
@@ -383,6 +383,22 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return bad;
     });
     assert.deepEqual(fights, []);
+    step('talk your way: Седой can be won over with words or a gift, a failed threat turns the pack, Клык joins');
+    const deals = await p.evaluate(async () => {
+      const bad = [], close = () => { document.querySelector('.talk').hidden = true; };
+      if (!SEDOY || !PACK.length) return ['no pack leader'];
+      if (PACK.some((w) => !w.calm)) bad.push('pack not calm while he talks');
+      const D = SEDOY.deal; packTalk(SEDOY, SEDOY.npc); const btns = [...document.querySelectorAll('.talk .choices button')].map((b) => b.textContent); close();
+      if (btns.length !== 5 || !/%/.test(btns[0])) bad.push('approaches missing: ' + btns.join('|'));
+      const keep = JSON.stringify(TALK_MOD[HERO.cls]); TALK_MOD[HERO.cls] = [-30, -30, -30];
+      await dealRoll(SEDOY, 2, talkMod(2), D.dc[2]); close(); if (!PACK_ANGRY || PACK.some((w) => w.calm)) bad.push('failed threat did not turn the pack');
+      PACK_ANGRY = false; packFriend(true); D.done = false; D.tried = {}; TALK_MOD[HERO.cls] = [30, 30, 30];
+      await dealRoll(SEDOY, 0, talkMod(0), D.dc[0]); close(); TALK_MOD[HERO.cls] = JSON.parse(keep);
+      if (!D.done || PACK.some((w) => !w.calm) || !DEALS.sedoy || !DEALS.sedoy.done) bad.push('persuasion did not win the pack');
+      takeKlyk(); if (!KLYK.ally || !ALLIES.includes(KLYK) || KLYK.hidden) bad.push('Клык did not join');
+      return bad;
+    });
+    assert.deepEqual(deals, []);
     step('the island trouble, told slowly: king, bread for the old woman, the feather, the stone at night, the Raven');
     const raven = await p.evaluate(() => {
       const bad = [], q = Q.raven, king = actors.find((a) => a.talkId === 'king'), close = () => { document.querySelector('.talk').hidden = true; };

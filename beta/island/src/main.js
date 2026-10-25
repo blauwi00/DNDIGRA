@@ -501,7 +501,9 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
+  if(a.talkId==='pack')return packTalk(a,n);
   if(a.talkId==='merc')return say(n,'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.');
+  if(a.talkId==='ally'&&a.model==='wolf')return say(n,['Клык нюхает воздух и тихо рычит в сторону леса.','Клык толкает вас носом в ладонь.','Клык садится рядом и ждёт.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='ally')return say(n,['Я рядом. Если что — зови.','Втроём на одного не лезь, лучше подманивай по одному.','Устал? Отдохни у костра, я посторожу.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
@@ -537,7 +539,7 @@ function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e
 function ai(){const now=performance.now();
   for(const a of actors){if(a===H0||a.dead)continue;if(a.far&&!a.inFight)continue; // far away the island rests
     if(a.enemy){if(a.inFight)continue;
-      if(!a.aware&&!busy&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
+      if(!a.aware&&!busy&&!a.calm&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
       if(CB.on)continue;
       if(a.investigate){const I=a.investigate;if(!I.t){if(!a.route){const p=path(a.x,a.z,I.x,I.z,a,true,800);if(p&&p.length>0&&Math.hypot(a.x-I.x,a.z-I.z)>1.5)a.route=p;else I.t=now;}}
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
@@ -617,7 +619,7 @@ function menuCam(dt){menuT+=dt;const seg=16,n=MENU_PATH.length,i=Math.floor(menu
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -627,8 +629,9 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
+  dealsLoad(d.deals);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
-  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);ALLIES.push(a);}}
+  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door

@@ -158,7 +158,7 @@ const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+
 
 // ---------- turns ----------
 const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
-async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
+async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;if(typeof onFightStart==='function')onFightStart(trigger);CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
   const foes=[trigger,...enemies.filter(e=>e!==trigger&&!e.dead&&e.o.visible&&Math.hypot(e.x-trigger.x,e.z-trigger.z)<=4).sort((a,b)=>man(a,trigger)-man(b,trigger)).slice(0,1)];
   const mates=ALLIES.filter(a=>!a.down&&man(a,H0)<=12);for(const a of mates){a.route=null;a.inFight=true;}
   for(const e of foes){e.route=null;e.investigate=null;e.inFight=true;if(!surprise||e!==trigger)e.aware=true;}
