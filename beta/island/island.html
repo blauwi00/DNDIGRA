@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.71 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.72 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3496,6 +3496,16 @@ function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=
   if(T==='around'){r.head.rotation.y=Math.sin(k*Math.PI*2)*.9*s;}
   if(T==='shift'){b.rotation.z=Math.sin(k*Math.PI*2)*.06;r.legL.rotation.x=.15*s;}
   if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
+// a character behind a tree or a wall shows through it as a flat silhouette: foes red, the hero and
+// companions blue. The actors are drawn once more with only the hidden parts passing the depth test.
+const SIL=[[1,new THREE.MeshBasicMaterial({color:0xff5a4a,transparent:true,opacity:.5,depthFunc:THREE.GreaterDepth,depthWrite:false,fog:false})],
+  [2,new THREE.MeshBasicMaterial({color:0x7fd0ff,transparent:true,opacity:.45,depthFunc:THREE.GreaterDepth,depthWrite:false,fog:false})]];let silN=0;
+function silhouettes(){if(room||(window.SET&&SET.silhouettes===false))return;const mark=++silN%12===1;let any=false;
+  for(const a of actors){if(a.dead||!a.o.visible||a.far||a.hidden)continue;const l=a===H0||a.ally?2:a.enemy&&!a.calm?1:0;
+    if(mark||a.silL!==l){a.o.traverse(m=>{if(m.isMesh){m.layers.disable(1);m.layers.disable(2);if(l)m.layers.enable(l);}});a.silL=l;}if(l)any=true;}
+  if(!any)return;const bg=scene.background,au=renderer.autoClear,su=renderer.shadowMap.autoUpdate;scene.background=null;renderer.autoClear=false;renderer.shadowMap.autoUpdate=false;
+  for(const [l,mat] of SIL){camera.layers.set(l);scene.overrideMaterial=mat;renderer.render(scene,camera);}
+  camera.layers.set(0);scene.overrideMaterial=null;scene.background=bg;renderer.autoClear=au;renderer.shadowMap.autoUpdate=su;}
 function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/1000;
   for(let i=anims.length-1;i>=0;i--){const a=anims[i],k=Math.min(1,(now-a.t0)/a.ms);a.fn(k<1?1-Math.pow(1-k,2):1);if(k>=1){anims.splice(i,1);a.res()}}
   camZoom+=(zoomTarget-camZoom)*Math.min(1,dt*3.5);VIEW+=(viewTarget-VIEW)*Math.min(1,dt*8);WIND.value=t;
@@ -3534,7 +3544,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   moon.target.position.copy(focus);
   if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}else if(inMenuBg()){critterTick(dt,t);}barkTick(now);tutTick();miniTick(now);zoneCheck();
   // at 30 frames a second every other frame is skipped, which keeps phones cooler
-  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;renderer.render(scene,camera);requestAnimationFrame(frame)}
+  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;renderer.render(scene,camera);silhouettes();requestAnimationFrame(frame)}
 let lastDraw=0;
 // ---------- the main menu backdrop: a slow flight over the living island ----------
 const inMenuBg=()=>typeof mainEl!=='undefined'&&!mainEl.hidden&&!room;

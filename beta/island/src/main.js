@@ -568,6 +568,16 @@ function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=
   if(T==='around'){r.head.rotation.y=Math.sin(k*Math.PI*2)*.9*s;}
   if(T==='shift'){b.rotation.z=Math.sin(k*Math.PI*2)*.06;r.legL.rotation.x=.15*s;}
   if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
+// a character behind a tree or a wall shows through it as a flat silhouette: foes red, the hero and
+// companions blue. The actors are drawn once more with only the hidden parts passing the depth test.
+const SIL=[[1,new THREE.MeshBasicMaterial({color:0xff5a4a,transparent:true,opacity:.5,depthFunc:THREE.GreaterDepth,depthWrite:false,fog:false})],
+  [2,new THREE.MeshBasicMaterial({color:0x7fd0ff,transparent:true,opacity:.45,depthFunc:THREE.GreaterDepth,depthWrite:false,fog:false})]];let silN=0;
+function silhouettes(){if(room||(window.SET&&SET.silhouettes===false))return;const mark=++silN%12===1;let any=false;
+  for(const a of actors){if(a.dead||!a.o.visible||a.far||a.hidden)continue;const l=a===H0||a.ally?2:a.enemy&&!a.calm?1:0;
+    if(mark||a.silL!==l){a.o.traverse(m=>{if(m.isMesh){m.layers.disable(1);m.layers.disable(2);if(l)m.layers.enable(l);}});a.silL=l;}if(l)any=true;}
+  if(!any)return;const bg=scene.background,au=renderer.autoClear,su=renderer.shadowMap.autoUpdate;scene.background=null;renderer.autoClear=false;renderer.shadowMap.autoUpdate=false;
+  for(const [l,mat] of SIL){camera.layers.set(l);scene.overrideMaterial=mat;renderer.render(scene,camera);}
+  camera.layers.set(0);scene.overrideMaterial=null;scene.background=bg;renderer.autoClear=au;renderer.shadowMap.autoUpdate=su;}
 function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/1000;
   for(let i=anims.length-1;i>=0;i--){const a=anims[i],k=Math.min(1,(now-a.t0)/a.ms);a.fn(k<1?1-Math.pow(1-k,2):1);if(k>=1){anims.splice(i,1);a.res()}}
   camZoom+=(zoomTarget-camZoom)*Math.min(1,dt*3.5);VIEW+=(viewTarget-VIEW)*Math.min(1,dt*8);WIND.value=t;
@@ -606,7 +616,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   moon.target.position.copy(focus);
   if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}else if(inMenuBg()){critterTick(dt,t);}barkTick(now);tutTick();miniTick(now);zoneCheck();
   // at 30 frames a second every other frame is skipped, which keeps phones cooler
-  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;renderer.render(scene,camera);requestAnimationFrame(frame)}
+  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;renderer.render(scene,camera);silhouettes();requestAnimationFrame(frame)}
 let lastDraw=0;
 // ---------- the main menu backdrop: a slow flight over the living island ----------
 const inMenuBg=()=>typeof mainEl!=='undefined'&&!mainEl.hidden&&!room;
