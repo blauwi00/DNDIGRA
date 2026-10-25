@@ -8,11 +8,16 @@ const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Ma
 var SKIN_PX=.032,SKINTEX=null;
 function skinPixels(){if(SKINTEX)return SKINTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
   // soft patches two pixels wide, a few shades apart, like a hand-drawn block skin; pixel (0,0) stays plain for skin
-  for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=.95+r()*.07-(r()<.15?.04:0),g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
+  const tones=[.87,.93,1,1,1.05];for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=tones[Math.floor(r()*tones.length)],g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
     if(r()<.35){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
   x.fillStyle='#fff';x.fillRect(0,0,1,1);
   SKINTEX=new THREE.CanvasTexture(c);SKINTEX.magFilter=SKINTEX.minFilter=THREE.NearestFilter;SKINTEX.wrapS=SKINTEX.wrapT=THREE.RepeatWrapping;SKINTEX.generateMipmaps=false;return SKINTEX;}
 let HAIR_SET=new Set();
+var HAIRTEX=null;
+function hairPixels(){if(HAIRTEX)return HAIRTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=31;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const tones=[.78,.86,.93,1,1.06,1.14];for(let i=0;i<16;i++){let t=Math.floor(r()*tones.length);for(let j=0;j<16;){const run=2+Math.floor(r()*4);if(r()<.5)t=Math.max(0,Math.min(tones.length-1,t+(r()<.5?-1:1)));
+    const g=Math.round(Math.min(1,tones[t]/1.14)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,1,run);j+=run;}}
+  HAIRTEX=new THREE.CanvasTexture(c);HAIRTEX.magFilter=HAIRTEX.minFilter=THREE.NearestFilter;HAIRTEX.wrapS=HAIRTEX.wrapT=THREE.RepeatWrapping;HAIRTEX.generateMipmaps=false;return HAIRTEX;}
 function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
@@ -104,12 +109,23 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
      const allowed=armIn+Math.max(0,sh-Math.min(hi,sh))*sin,l=b[0]-b[3]/2,r=b[0]+b[3]/2;if(Math.max(-l,r)<=allowed)return [b];
      const [lo,up]=cutY(b,handLo),out=lo?[lo]:[];if(!up)return out;const nl=Math.max(l,-allowed),nr=Math.min(r,allowed);
      if(nr-nl>.004)out.push([(nl+nr)/2,up[1],up[2],nr-nl,...up.slice(4)]);return out;});}
+  // hair is not cut square: locks of different lengths hang from its lower edges (at the back and sides, and at the
+  // front only below or above the face), so the outline is ragged like real hair
+  for(const k of ['head','torso','cape'])if(parts[k]){const add=[];for(const b of parts[k]){if(b[8]||!HAIR_SET.has(b[6])||b[3]<.06||b[5]<.06||b[4]<.05)continue;
+    let sd=Math.abs(Math.round(b[0]*977+b[1]*613+b[2]*379))+7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,lo=b[1]-b[4]/2;
+    const face=lo>.8&&lo<1.12;
+    const edge=(x0,z0,x1,z1,front)=>{const L=Math.hypot(x1-x0,z1-z0),n=Math.max(1,Math.round(L/.045));if(front&&face)return;
+      for(let i=0;i<n;i++){if(r()<.3)continue;const t=(i+.5)/n,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t,len=.02+r()*.06;add.push([x,lo-len/2+.004,z,Math.abs(x1-x0)>.001?L/n*.9:.035,len,Math.abs(z1-z0)>.001?L/n*.9:.035,b[6],false]);}};
+    const x0=b[0]-b[3]/2+.0175,x1=b[0]+b[3]/2-.0175,z0=b[2]-b[5]/2+.0175,z1=b[2]+b[5]/2-.0175;
+    edge(x0,z0,x1,z0,false);edge(x0,z1,x1,z1,true);edge(x0,z0,x0,z1,false);edge(x1,z0,x1,z1,false);}
+   for(const a of add)parts[k].push(a);}
   // One merged, vertex-coloured mesh per limb instead of ~100 separate boxes.
   // thin decals (brows, mouth, beard edges, texel shading) lie on other faces: they get their own mesh drawn slightly in front,
   // as in the game's renderer, otherwise they flicker and leave holes
   const SKINC=new Set(all_.filter(b=>!b[8]&&Math.abs(b[0])<.12&&b[1]>.82&&b[1]<1.02&&b[2]>.15).map(b=>b[6]));
   const mat=new THREE.MeshLambertMaterial({vertexColors:true,map:skinPixels()}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
-  for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],uvs=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
+  const hmat=new THREE.MeshLambertMaterial({vertexColors:true,map:hairPixels()});
+  for(const [k,all] of Object.entries(parts))for(const cat of ['base','hair','decal']){const decal=cat==='decal',list=all.filter(b=>decal?!!b[8]:!b[8]&&(cat==='hair')===HAIR_SET.has(b[6]));if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],uvs=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
     for(const[x,y,z,w,h,d,c] of list){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);
       const base=pos.length/3,P=gb.attributes.position.array,N=gb.attributes.normal.array,hr0=!decal&&HAIR_SET.has(c);for(let i=0;i<P.length;i++){pos.push(P[i]);nor.push(hr0&&i%3===1&&N[i]<-.5?1:hr0&&i%3!==1&&N[i-(i%3)+1]<-.5?0:N[i]);}
       // the undersides of hair steps would be lit from below only and read as dark slits: they are lit like the top
@@ -120,7 +136,7 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
         uvs.push(...(ax>.5?[pz*K+sh,py*K]:ay>.5?[px*K,pz*K+sh]:[px*K+sh,py*K]));}}
       gb.dispose();}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
-    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));if(uvs.length)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));if(uvs.length)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:cat==='hair'?hmat:mat);m.castShadow=!decal;t.add(m);}
   // the hand is the lowest block of each forearm; items are put inside it, at its centre
   for(const k of ['L','R']){const list=parts['fore'+k],f=rig['fore'+k],o=f.position.clone().add(f.parent.position);
     // only solid blocks on the arm's own axis count: a builder's held item or its decals would pull the hand forward

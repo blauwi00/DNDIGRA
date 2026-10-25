@@ -48,17 +48,17 @@ let s = seed * 7919 + 13; const rnd = () => (s = (s * 16807) % 2147483647) / 214
       if (st.route && !st.cb && !st.paused && key === last) { still++; if (still > 25) { note('stuck', 'hero cannot move at ' + key + (st.room ? ' in ' + st.room : '')); still = 0; await p.evaluate(() => { H0.route = null; }); } } else still = 0;
       last = key;
       // a fight that does not move on for a minute is stuck
-      if (st.cb) { if (st.turn !== fightKey) { fightKey = st.turn; fightSince = Date.now(); } else if (Date.now() - fightSince > 70000) { note('stuck', 'fight frozen at turn ' + st.turn); fightSince = Date.now(); await p.evaluate(() => { if (heroTurn()) endHeroTurn(); }); } }
+      if (st.cb) { if (st.turn !== fightKey) { fightKey = st.turn; fightSince = Date.now(); } else if (Date.now() - fightSince > 120000) { const why = await p.evaluate(() => { const a = CB.order[CB.i]; return (a === H0 ? 'hero' : a ? a.name + (a.ally ? '(ally)' : '') + (a.dead ? ' dead' : '') + (a.down ? ' down' : '') : 'none') + ' busy=' + busy + ' acted=' + CB.acted + ' move=' + CB.move + ' anims=' + anims.length + ' talk=' + !document.getElementById('talk').hidden + ' paused=' + paused + ' foes=' + liveFoes().length + ' roll=' + !document.getElementById('roll').hidden; }); note('stuck', 'fight frozen: ' + why); fightSince = Date.now(); await p.evaluate(() => { if (heroTurn()) endHeroTurn(); }); } }
       if (st.dead || st.hp <= 0) await p.evaluate(() => { H0.dead = false; H0.hp = H0.max; hero.rotation.z = 0; setHP(); document.querySelectorAll('.screen').forEach((e) => { if (e.id === 'death' || /death|ko/.test(e.className)) e.hidden = true; }); });
       else if (st.hp < 6 && rnd() < .5) await p.evaluate(() => { H0.hp = H0.max; setHP(); });
       const r = rnd();
       if (st.talk) { const b = await p.$$('.talk .choices button'); if (b.length) await pick(b).click({force: true, timeout: 2000}).catch(() => {}); else await p.click('.talk', {force: true, timeout: 2000}).catch(() => {}); }
-      else if (st.wheel && r < .7) { const b = await p.$$('.wheel:not([hidden]) button:not([disabled])'); if (b.length) await pick(b).click({force: true, timeout: 2000}).catch(() => {}); }
+      else if (st.wheel && r < .7 && !st.cb) { const b = await p.$$('.wheel:not([hidden]) button:not([disabled])'); if (b.length) await pick(b).click({force: true, timeout: 2000}).catch(() => {}); }
       else if (st.paused && !st.cb) { await p.evaluate(() => { for (const id of ['mapClose', 'pResume']) { const e = document.getElementById(id); if (e && e.offsetParent) e.click(); } try { if (typeof closeShop === 'function') closeShop(); } catch (e) {} screen(null); }); }
       else if (st.cb) {
         // in a fight: on the hero's turn tap the nearest foe and take the first attack, or end the turn
-        await p.evaluate(() => { if (!heroTurn() || busy) return; const f = liveFoes().sort((a, b) => man(a, H0) - man(b, H0))[0]; if (!f || Math.random() < .15) return endHeroTurn(); tapActor(f); });
-        await p.waitForTimeout(300);
+        const acted = await p.evaluate(() => { if (!heroTurn() || busy) return 'wait'; const f = liveFoes().sort((a, b) => man(a, H0) - man(b, H0))[0]; if (!f || CB.acted || Math.random() < .25) { endHeroTurn(); return 'end'; } tapActor(f); return 'tap'; });
+        if (acted === 'tap') { await p.waitForTimeout(300); const b = await p.$$('.wheel:not([hidden]) button:not([disabled])'); if (b.length) await b[0].click({force: true, timeout: 2000}).catch(() => {}); else await p.evaluate(() => { if (heroTurn() && !busy) endHeroTurn(); }); }
       } else if (r < .45) { const bb = await box.boundingBox(); await p.mouse.click(bb.x + rnd() * bb.width, bb.y + rnd() * bb.height); }
       else if (r < .55) { const bb = await box.boundingBox(), x = bb.x + rnd() * bb.width, y = bb.y + rnd() * bb.height; await p.mouse.move(x, y); await p.mouse.down(); await p.waitForTimeout(600 + rnd() * 1400); await p.mouse.up(); }
       else if (r < .63) await p.evaluate(() => { const ns = actors.filter((a) => a.npc && !a.hidden && !a.dead && a.o.visible).sort((a, b) => man(a, H0) - man(b, H0)); if (ns[0]) tapActor(ns[0]); });

@@ -528,7 +528,7 @@ let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
 function questUI(){if(tutUI())return;
   if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div class="one">Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2).concat(jobQuests());questEl.hidden=!act.length;
-  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job||q.need==='Атаман Ворон'?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
+  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job||q.need==='Атаман Ворон'||q===Q.ship?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
@@ -561,6 +561,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
+  if(a.talkId==='captain')return captainTalk(a,n);
   if(a.talkId==='pack')return packTalk(a,n);
   if(a.talkId==='merc')return say(n,'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.');
   if(a.talkId==='ally'&&a.model==='wolf')return say(n,['Клык нюхает воздух и тихо рычит в сторону леса.','Клык толкает вас носом в ладонь.','Клык садится рядом и ждёт.'][(a.said=(a.said||0)+1)%3]);
@@ -675,7 +676,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     // spot around the hero, out of the way, instead of travelling with the screen
     flies.forEach(f=>{const u=f.userData;if(u.wx==null||Math.hypot(u.wx-focus.x,u.wz-focus.z)>15){const a=Math.random()*Math.PI*2,r=(u.wx==null?2+Math.random()*9:9+Math.random()*4);u.wx=focus.x+Math.cos(a)*r;u.wz=focus.z+Math.sin(a)*r;}
       f.position.set(u.wx+Math.sin(t*.4+u.ph)*.8,groundAt(u.wx,u.wz)+.6+Math.sin(t*1.3+u.ph)*.25,u.wz+Math.cos(t*.33+u.ph)*.8);const night=nightness()>.5;f.visible=!room&&(night?Math.sin(t*2+u.ph*3)>-.2:nightness()<.3);if(!night){f.material=BFLY[u.c];f.scale.set(2.4+Math.sin(t*22+u.ph)*1.6,.6,2.2);f.position.y+=.25;}else{f.material=FFLY;f.scale.set(1,1,1);}});
-    spiderTick(t);T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
+    spiderTick(t);if(typeof shipTick==='function')shipTick(t);T.water.offset.set(Math.sin(t*.2)*.02,t*.004);window.foam.material.opacity=.14+Math.max(0,Math.sin(t*1.4))*.16;}
   // the camera follows the hero, or an enemy while it takes its turn
   const FT=camFocus&&!camFocus.dead?camFocus:H0;focus.x+=(FT.px-focus.x)*Math.min(1,dt*3);focus.z+=(FT.pz-focus.z)*Math.min(1,dt*3);focus.y=groundAt(FT.px,FT.pz)*.5;holdTick();placeCam();if(inMenuBg())menuCam(dt);streamTick(firstStream);firstStream=false;
   if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*.9)}
@@ -706,7 +707,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
-  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
+  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function')shipArrive(true);
   dealsLoad(d.deals);objsLoad(d.objs);campaignLoad(d.camp);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}

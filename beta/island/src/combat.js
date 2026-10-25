@@ -55,7 +55,7 @@ function knock(def,att,dmg,col){sfx('hit');flash(def);shake=dmg>6?.2:.12;floatTe
   return tween(260,k=>{def.off=[dx/l*.22*Math.sin(k*Math.PI),dz/l*.22*Math.sin(k*Math.PI)]}).then(()=>def.off=null);}
 
 // ---------- one attack, any attacker ----------
-async function attack(att,def,opt){if(def.dead)return;att.face=Math.atan2(def.px-att.px,def.pz-att.pz);
+async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.face=Math.atan2(def.px-att.px,def.pz-att.pz);
   const adv=advantage(att,def,opt),isHero=att===H0;
   // inspiration, an elf's memory or an echo fragment grant advantage on this attack
   if(isHero&&CB.boost){adv.v=adv.v<0?0:1;adv.why=(adv.why?adv.why+', ':'')+CB.boost;CB.boost=null;}
@@ -165,7 +165,7 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
   const ini=[{a:H0,v:d(20)+HERO.dex+(HERO.init||0)},...mates.map(a=>({a,v:d(20)+(a.dex||0)})),...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
   if(heroFirst){const k=ini.findIndex(o=>o.a===H0);ini.unshift(ini.splice(k,1)[0]);}
   if(surprise)trigger.surprised=true;
-  CB.order=ini.map(o=>o.a);CB.round=1;CB.readUsed=false;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
+  CB.order=ini.map(o=>o.a);CB.round=1;CB.hitRound=1;CB.readUsed=false;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
   document.body.classList.add('fight');sfx('fight');banner(surprise?'Внезапная атака!':'Бой!');renderOrder();
   toast('Инициатива: '+ini.map(o=>(o.a===H0?'вы':o.a.name)+' '+o.v).join(', ')+(surprise?'. Враг застигнут врасплох.':''),3500);
   if(!heroFirst){await wait(1100);nextTurn();}}
@@ -177,7 +177,9 @@ function endCombat(text){CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.m
   for(const a of ALLIES){a.inFight=false;if(a.down){a.down=false;a.hp=Math.ceil(a.max/2);a.o.rotation.z=0;a.sink=0;floatText(a.name+' встаёт','#9fe0a0',a.o);}}if(text){banner(text);toast(text);}}
 const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров зачищен.':'Победа.');
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
-  CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;}const a=CB.order[CB.i];if(a.dead)return nextTurn();
+  CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;
+    // a fight where nobody has struck for three rounds (a foe across water or a wall) dies down by itself
+    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes())e.aware=false;return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}

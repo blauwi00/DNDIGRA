@@ -381,3 +381,13 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
 #c{touch-action:none}
 /* in a fight the turn order takes the top; the place name steps aside so nothing overlaps */
 body.fight .title{display:none}
+
+/* the ending card: one centred card over a dark island, scrolling inside on short screens */
+.ending{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(6,8,10,.86);padding:16px}
+.ending[hidden]{display:none}
+.en-box{max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;background:#1c1610;border:2px solid #b8913a;border-radius:14px;padding:20px 22px;text-align:center;color:#f0e6d0}
+.en-kicker{margin:0;color:#d8b04a;letter-spacing:.18em;text-transform:uppercase;font-size:12px}
+.en-box h2{margin:6px 0 10px;font-family:'Cormorant Garamond',serif;font-size:30px}
+.en-text{margin:0 0 10px;line-height:1.45;font-size:14px}.en-stats{margin:0 0 8px;color:#c8b890;font-size:13px}.en-next{margin:0 0 14px;color:#9ab0c8;font-size:13px}
+.en-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.en-row button{min-height:40px;padding:0 16px;border-radius:10px;border:1px solid #b8913a;background:#2a2016;color:#f0e6d0;font:inherit}
+.en-row button.primary{background:#b8913a;color:#1c1610}

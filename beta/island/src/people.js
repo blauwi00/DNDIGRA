@@ -30,7 +30,7 @@ const PEOPLE={
    news:w=>[w.dead?'Мёртвые больше не бродят. Я наконец сплю без свечи.':'Мне снилось, что огонь в часовне снова горит. Хорошо бы правда.','Брам сегодня добрый, даже не ворчал.',w.night?'Поздно уже… Мне ещё полы мыть.':'С утра столько пыли натаскали!'],
    rumor:['Говорят, корабли с большой земли приходят раз в год. Я каждый раз смотрю на море.','Нильс… нет, ничего. Забудь.'],
    work:w=>['Брам говорил, что ему нужен смелый человек. Поговори с ним, он в таверне.'],
-   bark:['Опять натоптали…','Мету-мету…','Ой, извини.','Чистота — это порядок.']},
+   bark:['Опять натоптали… Брам будет ворчать.','Ой, извини, задумалась.','Видел море сегодня? Тихое такое.','Корабль бы скорее пришёл…']},
  'Старик Ульф':{role:'старожил, рассказчик',temper:'ворчливый, помнит всё и всех',
    hello:['А, молодёжь пожаловала.','Садись, послушай старика.','Ты кто такой? А, помню, помню.'],
    who:['Ульф. Я на этом острове родился, когда часовню ещё строили. Всё помню.','Я тут старше всех деревьев, кроме того дуба в лесу.'],
@@ -64,7 +64,7 @@ const PEOPLE={
  'Рыбак Олав':{role:'старший рыбак пристани',temper:'добродушный, встречает всех приезжих',
    bark:['Клюёт плохо сегодня.','Море даёт, море берёт.','Эх, сети…','Ветер с севера — к шторму.']},
  'Мельник Тодор':{role:'мельник',temper:'хозяйственный, тревожится о муке',
-   bark:['Земля в этом году добрая.','Мука-мука…','Жернова скрипят — значит, живём.','Эх, разбойники…']}};
+   bark:['Земля в этом году добрая.','Мука есть — и ладно.','Жернова скрипят — значит, живём.','Эх, разбойники…']}};
 
 // a deck per person and topic: lines come in shuffled order and never repeat until all are used
 function pickLine(a,key,list){a.decks=a.decks||{};let d=a.decks[key];const sig=list.join('|');
@@ -89,5 +89,5 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
   const special=(P.race&&P.race[HEROSET&&HEROSET.race])||(P.cls&&P.cls[HEROSET&&HEROSET.cls]);if(special&&first)open=special+' '+open;
   else if(w.hurt&&Math.random()<.5)open='Ты ранен! '+open;
   const T=[['Кто ты?','who',()=>P.who],['Что нового?','news',()=>asList(P.news,W_())],['Какие слухи?','rumor',()=>P.rumor],['Есть работа?','work',()=>asList(P.work,W_())]];
-  const topics=()=>T.filter(([,k,f])=>hasMore(a,k,f())).map(([label,k,f])=>[label,()=>{const line=pickLine(a,k,f()),next=topics();say(n,next.length?line:line+' Ну, вот и всё, что я знаю.',next);}]);
+  const topics=()=>T.filter(([,k,f])=>hasMore(a,k,f())).map(([label,k,f])=>[label,()=>{const line=pickLine(a,k,f()),next=topics();if(typeof folkHeard==='function')folkHeard(line);say(n,next.length?line:line+' Ну, вот и всё, что я знаю.',next);}]);
   say(n,open,topics());}
