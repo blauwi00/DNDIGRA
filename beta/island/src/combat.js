@@ -234,7 +234,7 @@ async function allyTurn(a){const t=nearestOf(a,liveFoes());if(!t)return;if(man(a
 function allyDown(a){a.down=true;a.hp=0;a.route=null;sfx('death');floatText(a.name+' ранен и падает','#ff9a6a',a.o);tween(500,k=>{a.o.rotation.z=k*1.3;a.sink=k*.1});renderOrder();}
 // a badly hurt foe that fails its nerve runs: it counts as overcome but leaves no body
 function morale(e){if(!e.enemy||e.boss||e.dead||e.fled||e.temp)return;if(e.hp>e.max*.35)return;if(d(20)+(e.wis||0)>=11)return;flee(e);}
-function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight=false;floatText(e.model==='bandit'?'Бросает оружие и бежит':'Убегает','#cfc6b4',e.o);
+function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight=false;questKill(e);gainXP(Math.ceil(xpOf(e)/2));floatText(e.model==='bandit'?'Бросает оружие и бежит':'Убегает','#cfc6b4',e.o);
   questKill(e);gainXP(Math.round(xpOf(e)*.7));const dx=Math.sign(e.x-H0.x)||1,dz=Math.sign(e.z-H0.z)||1,x0=e.o.position.x,z0=e.o.position.z;e.face=Math.atan2(dx,dz);
   tween(1200,k=>{e.o.position.x=x0+dx*5*k;e.o.position.z=z0+dz*5*k;}).then(()=>{e.o.visible=false;});renderOrder();}
 const XPV={bandit:25,goblin:50,skeleton:50,wolf:50,boar:50,bear:100};
