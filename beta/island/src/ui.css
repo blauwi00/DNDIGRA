@@ -379,3 +379,5 @@ body.invopen .quest{opacity:0!important;pointer-events:none!important}
 /* while someone is talking the bag stays shut, so the dialog never covers it */
 body:has(.talk:not([hidden])) .inv{display:none!important}
 #c{touch-action:none}
+/* in a fight the turn order takes the top; the place name steps aside so nothing overlaps */
+body.fight .title{display:none}
