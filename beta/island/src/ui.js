@@ -196,6 +196,7 @@ function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
   const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=q.giverA||actors.find(a=>a.talkId===giver);
   if(q.state===2){if(who.z>=OUT_H){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
   if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};
+  if(q===Q.raven&&q.state===1&&q.step==='ask'){const o=q.oldA,R=o.where==='home'&&o.houseRoom;return R&&room!==R?{x:R.door[0],z:R.door[1],label:o.npc,inRoom:R}:{x:o.x,z:o.z,label:o.npc};}
   if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
   const foes=enemies.filter(e=>!e.dead&&e.name===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');

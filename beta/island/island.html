@@ -519,7 +519,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.61 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.62 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3360,7 +3360,7 @@ let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
 function questUI(){if(tutUI())return;
   if(TUT.step>=0&&Q.dead.state===0&&!Object.values(Q).some(q=>q.state===1||q.state===2)){questEl.hidden=false;questEl.innerHTML='<div class="one">Цель: расспросить Брама о беде острова</div>';return;}const act=Object.values(Q).filter(q=>q.state===1||q.state===2).concat(jobQuests());questEl.hidden=!act.length;
-  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
+  const rows=act.map(q=>'<div class="'+(q.state===2?'done':'')+'">'+q.title+(q.state===1?(q.job||q.step==='ask'||q.need==='Атаман Ворон'?'':' · осталось '+q.left):(q.job?' · за платой':' · вернитесь за наградой'))+'</div>');
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
@@ -3661,10 +3661,10 @@ window.snd={muted:()=>muted,setMuted(v){if(muted!==v)sndBtn.onclick();},vol:()=>
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
-  for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
+  for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}if(Q.raven&&d.rv){Q.raven.step=d.rv;if(d.rv==='lair')Q.raven.title='Одолеть атамана Ворона в руинах';}
   ecoLoad(d.eco);legendLoad(d.leg);
   for(const [nm,k] of d.met||[]){const v=V.find(v=>v.npc===nm);if(v)v.met=k;}
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
@@ -3872,6 +3872,7 @@ function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
   const giver=q===Q.dead||q===Q.fire?'bram':q===Q.band?'miller':'fisher',who=q.giverA||actors.find(a=>a.talkId===giver);
   if(q.state===2){if(who.z>=OUT_H){const R=ROOMS.find(R=>who.x>=R.ox&&who.x<R.ox+R.iw);return {x:R.door[0],z:R.door[1],label:who.npc,inRoom:R};}return {x:who.x,z:who.z,label:who.npc};}
   if(q===Q.fire)return {x:Z.ruins[0],z:Z.ruins[1],label:'Жаровня часовни'};
+  if(q===Q.raven&&q.state===1&&q.step==='ask'){const o=q.oldA,R=o.where==='home'&&o.houseRoom;return R&&room!==R?{x:R.door[0],z:R.door[1],label:o.npc,inRoom:R}:{x:o.x,z:o.z,label:o.npc};}
   if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
   const foes=enemies.filter(e=>!e.dead&&e.name===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');
@@ -4162,10 +4163,30 @@ function townTick(){if(!TOWN.length||CB.on)return;for(let n=0;n<4;n++){const a=T
   if(a.where==='goingHome'&&(a.far||!a.route)){inside();continue;}
   if(night&&!indoor&&a.where!=='goingHome'){a.dayAct=a.dayAct||a.workAct;if(a.far)inside();else{a.where='goingHome';goTo(a,[R.door[0],R.door[1]+1],inside);}}
   else if(!night&&indoor&&!(room===R&&Math.hypot(a.px-H0.px,a.pz-H0.pz)<3))outside();}}
+// ---------- the island's trouble: the robbers' chief Raven ----------
+// The robbers on every road answer to one man. The king learns of him from the far camp, an old woman in the
+// poorest settlement knows his hiding place in the ruins, and with him gone the bands scatter.
+{const cap=GEN.places.find(p=>p.type==='capital'),ruins=GEN.places.filter(p=>p.type==='ruins'&&!p.stamp).sort((x,y)=>Math.hypot(y.x-cap.x,y.z-cap.z)-Math.hypot(x.x-cap.x,x.z-cap.z))[0]||GEN.places.filter(p=>p.type==='bandits').pop();
+ const poor=TOWN.filter(a=>a.kind==='poor'),old=poor.find(a=>a.job==='Старуха')||poor[0]||TOWN.find(a=>a.kind==='village');
+ if(KING&&ruins&&old){Q.raven={state:0,step:'ask',need:'Атаман Ворон',left:1,title:'Найти, где прячется атаман Ворон',at:ruins,giverA:KING,gold:150,rep:5,oldA:old};
+   const boss=foe('bandit',ruins.x,ruins.z,{name:'Атаман Ворон',hp:32,max:32,ac:14,atk:5,dmg:8,dmgB:3,atkName:'Тяжёлый меч',perc:12,wander:1,boss:true});setHeld(boss.o,'R','sword_long');addBar(boss);
+   addBar(foe('bandit',ruins.x+2,ruins.z+1,{wander:2}));addBar(foe('bandit',ruins.x-2,ruins.z+1,{wander:2}));}}
+function ravenStart(){const q=Q.raven;if(!q||q.state)return;q.state=q.left===0?2:1;q.step='ask';q.title='Найти, где прячется атаман Ворон';questFocus=q;questUI();
+  say('Король Хальвдан','Один из пленных заговорил. Все шайки на острове слушаются одного человека — атамана Ворона. Где он сидит, никто не знает. Говорят, старуха в посёлке '+q.oldA.place.n+' видела его людей. Найди её. Найдёшь Ворона — получишь награду, какой ещё никто не получал.');}
+function ravenOld(n){const q=Q.raven;q.step='lair';q.title='Одолеть атамана Ворона в руинах';questUI();
+  say(n,'Ворона? Видела, как же. Его люди ходят через наш посёлок к старым руинам, '+q.at.n+'. Носят туда мешки, а назад пустые. Только ты один туда не суйся, их там много.');}
+function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
+  window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
+  // without their chief the bands scatter: the camps empty
+  for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
+  say(n,'Ворон повержен? Ты сделал то, чего не смогла вся моя стража. Без атамана шайки разбегутся, и дороги снова станут нашими. Возьми этот меч с рунами из моей оружейной — он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
 function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
   if(kin==='враг')return say(n,'Мне доложили, кто ты такой. Говорить нам не о чем. Стража, проводите.');
   if(q&&q.state<3){if(Q.road&&Q.road.state<3&&repLevel('kingdom')<2)return say(n,'Я тебя не знаю. На тракте у столицы грабят купцов — помоги страже, тогда и поговорим.');
-    const[ask,ok,done,items]=a.qtext;return offer(q,n,ask,ok,done,items);}
+    const[ask,ok,done,items]=a.qtext;const was=q.state;const r=offer(q,n,ask,ok,done,items);if(was===2&&q.state===3)setTimeout(ravenStart,1800);return r;}
+  const rv=Q.raven;if(rv&&rv.state===0&&q&&q.state===3)return ravenStart();
+  if(rv&&rv.state===2)return ravenEnd(n);
+  if(rv&&rv.state===1)return say(n,rv.step==='ask'?'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она знает, где прячется Ворон.':'Ворон в руинах '+rv.at.n+'. Возвращайся, когда с ним будет покончено.');
   return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
@@ -4193,12 +4214,14 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(a.where==='home')return ['Поздно уже. Спать ложусь, завтра поговорим.','Ночь на дворе, чего тебе?'];
   if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(Q.raven&&Q.raven.state<3&&(a.kind==='capital'||a.kind==='village'))L.push('Говорят, у разбойников теперь один главный. Ворон его кличут.');
+  if(Q.raven&&Q.raven.state===3)L.push('Слыхал? Ворона больше нет. Купцы опять поехали.');
   if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');
   const beast=GEN.places.filter(q=>['wolves','bear','boars'].includes(q.type)).sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
   if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'Ночью волки воют. Скотину пораньше загоняем.',bear:'В горах медведь ходит. Туда лучше не соваться.',boars:'Кабаны на холмах все поля перерыли.'}[beast.type]);
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
-function townTalk(a,n){if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
+function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state===1&&rv.step==='ask'&&a===rv.oldA)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
   const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
 
 // ---------- weather ----------

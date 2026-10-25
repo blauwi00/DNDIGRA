@@ -363,6 +363,21 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return bad;
     });
     assert.deepEqual(court, []);
+    step('the island trouble: the king sends for the Raven, the old woman knows his lair, his fall scatters the bands');
+    const raven = await p.evaluate(() => {
+      const bad = [], q = Q.raven, king = actors.find((a) => a.talkId === 'king'), close = () => { document.querySelector('.talk').hidden = true; };
+      if (!q) return ['no raven quest'];
+      const boss = enemies.find((e) => e.name === 'Атаман Ворон'); if (!boss || !boss.bar) bad.push('no Raven in the ruins');
+      Q.road.state = 3; Q.crown.state = 3; kingTalk(king, king.npc); close();
+      if (q.state !== 1 || q.step !== 'ask') bad.push('king did not send for the Raven ' + q.state + q.step);
+      const ts = TUT.step; TUT.step = -1; const t = questTarget(); TUT.step = ts; if (!t || t.label !== q.oldA.npc) bad.push('pointer does not lead to the old woman ' + JSON.stringify(t));
+      townTalk(q.oldA, q.oldA.npc); close(); if (q.step !== 'lair') bad.push('old woman told nothing');
+      boss.dead = true; questKill(boss); if (q.state !== 2) bad.push('Raven killed but errand not done');
+      kingTalk(king, king.npc); close(); if (q.state !== 3) bad.push('king gave no reward');
+      if (enemies.some((e) => !e.dead && e.model === 'bandit')) bad.push('bands did not scatter');
+      return bad;
+    });
+    assert.deepEqual(raven, []);
     step('layout in play: the HUD with the goal card and the hands');
     assert.deepEqual(await p.evaluate(([fn, hud]) => eval(fn)(hud), [overlaps.toString(), HUD]), []);
     for (const side of ['R', 'L']) {

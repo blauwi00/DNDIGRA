@@ -84,10 +84,30 @@ function townTick(){if(!TOWN.length||CB.on)return;for(let n=0;n<4;n++){const a=T
   if(a.where==='goingHome'&&(a.far||!a.route)){inside();continue;}
   if(night&&!indoor&&a.where!=='goingHome'){a.dayAct=a.dayAct||a.workAct;if(a.far)inside();else{a.where='goingHome';goTo(a,[R.door[0],R.door[1]+1],inside);}}
   else if(!night&&indoor&&!(room===R&&Math.hypot(a.px-H0.px,a.pz-H0.pz)<3))outside();}}
+// ---------- the island's trouble: the robbers' chief Raven ----------
+// The robbers on every road answer to one man. The king learns of him from the far camp, an old woman in the
+// poorest settlement knows his hiding place in the ruins, and with him gone the bands scatter.
+{const cap=GEN.places.find(p=>p.type==='capital'),ruins=GEN.places.filter(p=>p.type==='ruins'&&!p.stamp).sort((x,y)=>Math.hypot(y.x-cap.x,y.z-cap.z)-Math.hypot(x.x-cap.x,x.z-cap.z))[0]||GEN.places.filter(p=>p.type==='bandits').pop();
+ const poor=TOWN.filter(a=>a.kind==='poor'),old=poor.find(a=>a.job==='Старуха')||poor[0]||TOWN.find(a=>a.kind==='village');
+ if(KING&&ruins&&old){Q.raven={state:0,step:'ask',need:'Атаман Ворон',left:1,title:'Найти, где прячется атаман Ворон',at:ruins,giverA:KING,gold:150,rep:5,oldA:old};
+   const boss=foe('bandit',ruins.x,ruins.z,{name:'Атаман Ворон',hp:32,max:32,ac:14,atk:5,dmg:8,dmgB:3,atkName:'Тяжёлый меч',perc:12,wander:1,boss:true});setHeld(boss.o,'R','sword_long');addBar(boss);
+   addBar(foe('bandit',ruins.x+2,ruins.z+1,{wander:2}));addBar(foe('bandit',ruins.x-2,ruins.z+1,{wander:2}));}}
+function ravenStart(){const q=Q.raven;if(!q||q.state)return;q.state=q.left===0?2:1;q.step='ask';q.title='Найти, где прячется атаман Ворон';questFocus=q;questUI();
+  say('Король Хальвдан','Один из пленных заговорил. Все шайки на острове слушаются одного человека — атамана Ворона. Где он сидит, никто не знает. Говорят, старуха в посёлке '+q.oldA.place.n+' видела его людей. Найди её. Найдёшь Ворона — получишь награду, какой ещё никто не получал.');}
+function ravenOld(n){const q=Q.raven;q.step='lair';q.title='Одолеть атамана Ворона в руинах';questUI();
+  say(n,'Ворона? Видела, как же. Его люди ходят через наш посёлок к старым руинам, '+q.at.n+'. Носят туда мешки, а назад пустые. Только ты один туда не суйся, их там много.');}
+function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
+  window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
+  // without their chief the bands scatter: the camps empty
+  for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
+  say(n,'Ворон повержен? Ты сделал то, чего не смогла вся моя стража. Без атамана шайки разбегутся, и дороги снова станут нашими. Возьми этот меч с рунами из моей оружейной — он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
 function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
   if(kin==='враг')return say(n,'Мне доложили, кто ты такой. Говорить нам не о чем. Стража, проводите.');
   if(q&&q.state<3){if(Q.road&&Q.road.state<3&&repLevel('kingdom')<2)return say(n,'Я тебя не знаю. На тракте у столицы грабят купцов — помоги страже, тогда и поговорим.');
-    const[ask,ok,done,items]=a.qtext;return offer(q,n,ask,ok,done,items);}
+    const[ask,ok,done,items]=a.qtext;const was=q.state;const r=offer(q,n,ask,ok,done,items);if(was===2&&q.state===3)setTimeout(ravenStart,1800);return r;}
+  const rv=Q.raven;if(rv&&rv.state===0&&q&&q.state===3)return ravenStart();
+  if(rv&&rv.state===2)return ravenEnd(n);
+  if(rv&&rv.state===1)return say(n,rv.step==='ask'?'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она знает, где прячется Ворон.':'Ворон в руинах '+rv.at.n+'. Возвращайся, когда с ним будет покончено.');
   return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
@@ -115,12 +135,14 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   if(a.where==='home')return ['Поздно уже. Спать ложусь, завтра поговорим.','Ночь на дворе, чего тебе?'];
   if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
+  if(Q.raven&&Q.raven.state<3&&(a.kind==='capital'||a.kind==='village'))L.push('Говорят, у разбойников теперь один главный. Ворон его кличут.');
+  if(Q.raven&&Q.raven.state===3)L.push('Слыхал? Ворона больше нет. Купцы опять поехали.');
   if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');
   const beast=GEN.places.filter(q=>['wolves','bear','boars'].includes(q.type)).sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
   if(beast&&Math.hypot(beast.x-p.x,beast.z-p.z)<60)L.push({wolves:'Ночью волки воют. Скотину пораньше загоняем.',bear:'В горах медведь ходит. Туда лучше не соваться.',boars:'Кабаны на холмах все поля перерыли.'}[beast.type]);
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
-function townTalk(a,n){if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
+function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state===1&&rv.step==='ask'&&a===rv.oldA)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
   const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
 
 // ---------- weather ----------
