@@ -12,6 +12,7 @@ function skinPixels(){if(SKINTEX)return SKINTEX;const c=document.createElement('
     if(r()<.35){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
   x.fillStyle='#fff';x.fillRect(0,0,1,1);
   SKINTEX=new THREE.CanvasTexture(c);SKINTEX.magFilter=SKINTEX.minFilter=THREE.NearestFilter;SKINTEX.wrapS=SKINTEX.wrapT=THREE.RepeatWrapping;SKINTEX.generateMipmaps=false;return SKINTEX;}
+let HAIR_SET=new Set();
 function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
@@ -24,6 +25,16 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
    const dist=(d,list)=>Math.min(1e9,...list.map(b=>near(d,b))),gone=boxes.filter(b=>!b[8]&&!solid.includes(b));
    const host=d=>{const s=dist(d,solid);return s<.012&&s<dist(d,gone);};
    boxes=boxes.filter(d=>!d[8]||host(d));}
+  // hair is built from many strands; hairline gaps between them let the background show through as dark
+  // lines, so every hair block is grown a little: same-coloured blocks overlap instead of leaving slits
+  {const skull=boxes.filter(b=>!b[8]&&b[1]>1.0&&Math.abs(b[0])<.2),legs=new Set(boxes.filter(b=>!b[8]&&b[1]<.42).map(b=>b[6]));
+   const hairC=new Set(skull.map(b=>b[6]).filter(c=>!legs.has(c)));HAIR_SET=hairC;
+   // thin strokes drawn on hair or the back of the head much darker than the block under them read as slits: drop them
+   const lum=c=>((c>>16&255)*.3+(c>>8&255)*.59+(c&255)*.11)/255,on=(d,b)=>Math.abs(d[0]-b[0])<=b[3]/2+.02&&Math.abs(d[1]-b[1])<=b[4]/2+.02&&Math.abs(d[2]-b[2])<=b[5]/2+.02;
+   const headB=boxes.filter(b=>!b[8]&&b[1]>.78);
+   boxes=boxes.filter(d=>{if(!d[8]||d[1]<.78)return true;const thin=[d[3],d[4],d[5]].sort((a,b)=>a-b);if(!(thin[1]<.03&&thin[2]>.05))return true;
+     const host=headB.find(b=>on(d,b));if(!host)return true;if(d[2]>.12&&!hairC.has(host[6]))return true;return lum(d[6])>lum(host[6])*.55;});
+   boxes=boxes.map(b=>{if(b[8]||!hairC.has(b[6])||b[1]<.55)return b;const n=[b[0],b[1],b[2],b[3]+.016,b[4]+.016,b[5]+.016,...b.slice(6)];n.part=b.part;return n;});}
   for(const [k,p] of Object.entries(PIV)){rig[k]=new THREE.Group();rig[k].position.set(...p);g.add(rig[k]);parts[k]=[];}
   // forearms hang from an elbow joint inside each arm, so arms can bend
   for(const k of ['L','R']){const f=rig['fore'+k]=new THREE.Group();f.position.set(0,ELBOW-PIV['arm'+k][1],0);rig['arm'+k].add(f);parts['fore'+k]=[];}
@@ -77,7 +88,10 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
   // the head turns: hair hanging below the neck stays on the back and shoulders instead of sweeping through them;
   // the cape swings from the shoulders: its collar above that joint stays on the body instead of tilting into the head
   for(const [k,y,below] of [['head',PIV.head[1]-.03,true],['cape',PIV.cape[1],false]]){const keep=[];
-    for(const b of parts[k]){const [lo,hi]=cutY(b,y);const stay=below?hi:lo,move=below?lo:hi;if(stay)keep.push(stay);if(move)parts.torso.push(move);}parts[k]=keep;}
+    for(const b of parts[k]){const [lo,hi]=cutY(b,y);const stay=below?hi:lo;let move=below?lo:hi;if(stay)keep.push(stay);
+      // the part left on the body reaches a little past the cut, under the moving part, so no slit opens when the head turns
+      if(move&&stay){const g=.035;move=below?[move[0],move[1]+g/2,move[2],move[3]-.004,move[4]+g,move[5]-.004,...move.slice(6)]:[move[0],move[1]-g/2,move[2],move[3]-.004,move[4]+g,move[5]-.004,...move.slice(6)];}
+      if(move)parts.torso.push(move);}parts[k]=keep;}
   // long hair and cape flaps below the shoulders stay inside the arms' line, so a hanging or swinging arm never cuts through them;
   // the arms lean out a little where the robe, belt or hips are wider, and what still reaches the hand is trimmed above it
   {const armB=['armL','armR','foreL','foreR'].flatMap(k=>parts[k].filter(b=>!b[8])),sh=PIV.armL[1];
@@ -97,7 +111,8 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
   const mat=new THREE.MeshLambertMaterial({vertexColors:true,map:skinPixels()}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
   for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],uvs=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
     for(const[x,y,z,w,h,d,c] of list){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);
-      const base=pos.length/3,P=gb.attributes.position.array,N=gb.attributes.normal.array;for(let i=0;i<P.length;i++){pos.push(P[i]);nor.push(N[i]);}
+      const base=pos.length/3,P=gb.attributes.position.array,N=gb.attributes.normal.array,hr0=!decal&&HAIR_SET.has(c);for(let i=0;i<P.length;i++){pos.push(P[i]);nor.push(hr0&&i%3===1&&N[i]<-.5?1:hr0&&i%3!==1&&N[i-(i%3)+1]<-.5?0:N[i]);}
+      // the undersides of hair steps would be lit from below only and read as dark slits: they are lit like the top
       for(let i=0;i<P.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);
       // pixel grain on every side, at one size over the whole body: each face takes its two own axes
       if(!decal&&SKINC.has(c)){for(let i=0;i<P.length/3;i++)uvs.push(.5/16,.5/16);}
@@ -161,7 +176,7 @@ function holdItem(holder,side,id){const r=holder.userData.rig,fore=r[side==='R'?
   if(k==='shield'){bb.getCenter(_c);inner.position.set(-_c.x,-_c.y,-bb.min.z+.015);hold.scale.setScalar(1.35);hold.rotation.set(0,out*Math.PI/2,0);}
   else if(k==='bow'){inner.position.z=-WEAPONS[id].m.bend;hold.scale.setScalar(1.4);
     hold.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),out*Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2));}
-  else{const len=bb.max.y-bb.min.y;if(len>.8)inner.position.y=-(bb.min.y+len*.38);hold.scale.setScalar(TWO.has(id)?1.4:1.5);hold.rotation.x=k==='torch'?.5:Math.PI/2;}
+  else{const len=bb.max.y-bb.min.y;if(len>.8&&(k==='spear'||k==='staff'))inner.position.y=-(bb.min.y+len*.38);hold.scale.setScalar(TWO.has(id)?1.4:1.5);hold.rotation.x=k==='torch'?.5:Math.PI/2;}
   hold.position.copy(h);fore.add(hold);return hold;}
 function setHeld(holder,side,id){const fore=holder.userData.rig[side==='R'?'foreL':'foreR'];
   if(fore.userData.item){fore.remove(fore.userData.item);fore.userData.item=null;}if(!id)return;fore.userData.item=holdItem(holder,side,id);}
