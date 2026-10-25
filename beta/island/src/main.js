@@ -590,8 +590,8 @@ const silMat=c=>{const m=new THREE.MeshBasicMaterial({color:c,transparent:true,o
 const SIL=[[1,silMat(0xff5a4a)],[2,silMat(0x7fd0ff)]];let silN=0;
 function actorMats(a){a.o.traverse(m=>{if(!m.isMesh)return;for(const mt of [].concat(m.material)){if(mt.userData.actor)continue;mt.userData.actor=true;mt.userData.noSee=true;
   mt.stencilWrite=true;mt.stencilRef=1;mt.stencilFunc=THREE.AlwaysStencilFunc;mt.stencilZPass=THREE.ReplaceStencilOp;mt.needsUpdate=true;}});}
-function silhouettes(){if(window.SET&&SET.silhouettes===false)return;const mark=++silN%12===1;let any=false;
-  for(const a of actors){if(a.dead||!a.o.visible||a.far||a.hidden)continue;const l=a===H0||a.ally?2:a.enemy&&!a.calm?1:0;
+function silhouettes(){if(window.SET&&SET.silhouettes===false)return;if(paused||document.body.classList.contains('inmenu')||document.body.classList.contains('cinematic'))return;const mark=++silN%12===1;let any=false;
+  for(const a of actors){if(a.dead||!a.o.visible||a.far||a.hidden)continue;const l=a.ally?2:a.enemy&&!a.calm?1:0;
     if(mark||a.silL!==l){actorMats(a);a.o.traverse(m=>{if(m.isMesh){m.layers.disable(1);m.layers.disable(2);if(l)m.layers.enable(l);}});a.silL=l;}if(l)any=true;}
   if(!any)return;const bg=scene.background,au=renderer.autoClear,su=renderer.shadowMap.autoUpdate;scene.background=null;renderer.autoClear=false;renderer.shadowMap.autoUpdate=false;
   for(const [l,mat] of SIL){camera.layers.set(l);scene.overrideMaterial=mat;renderer.render(scene,camera);}
