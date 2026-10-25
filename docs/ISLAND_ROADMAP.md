@@ -19,6 +19,12 @@ Nothing here is implemented yet; it is the plan to discuss and schedule.
 - **Money**: most likely paid peoples (races) as purchases. This needs a way to
   verify purchases (store receipts or accounts) before it ships.
 
+- **Pacing** (2026-10-25): one island takes about 60–90 minutes. The story is
+  learned step by step through people, clues and riddles; no main errand can be
+  skipped straight to its boss (no speedruns). The Raven chain is the model:
+  king's trust, bread for the old woman, the feather, the stone at night, his past.
+- **Editor** (2026-10-25): a chosen look stays; a new class changes only clothes.
+
 ## What does not scale today
 - **Build**: ~20 source files are glued by text placeholders (`build.py`)
   into one ~800 KB page with a shared global scope. Name clashes and
