@@ -25,10 +25,10 @@ const LOOKS2=[{skin:'d9a27a',hair:'1c1612',cloth:'6a2a24',style:'short'},{skin:'
   {skin:'e9bf90',hair:'8a8a8a',cloth:'6a5a3a',style:'bald'},{skin:'e9bf90',hair:'6a2418',cloth:'284d6c',style:'tail'},{skin:'8a5a3a',hair:'1c1612',cloth:'2a2a2a',style:'short'},{skin:'f2d2b0',hair:'8a5a2a',cloth:'6a2a24',style:'long'}];
 // villagers are built by the game's character builder in plain working clothes
 const FEMALE=/а$|я$|Хильда|Агна|Марта/;
-function villagerBoxes(name,look){const C=window.Characters;if(!C)return recolor(styleHair(MODELS['fighter-male'],look.style),look);
+function villagerBoxes(name,look,extra){const C=window.Characters;if(!C)return recolor(styleHair(MODELS['fighter-male'],look.style),look);
   const gender=FEMALE.test(name.split(' ').pop())||/Марта|Агна|Хильда/.test(name)?'female':'male',cls=['rogue','cleric','rogue','fighter'][Math.floor(hash2(name.length,name.charCodeAt(0))*4)];
   const ap=C.randomLook(cls,gender,()=>hash2(name.charCodeAt(1)||3,Math.random()*1e3));ap.cape='none';ap.outfit={rogue:['tunic','vest'],cleric:['monk','surplice'],fighter:['leather','tabard']}[cls][Math.random()<.5?0:1];
-  if(ap.headgear==='helm'||ap.headgear==='crown'||ap.headgear==='wizhat')ap.headgear='none';return C.build(C.spec('hero',{classId:cls,appearance:ap}));}
+  if(ap.headgear==='helm'||ap.headgear==='crown'||ap.headgear==='wizhat')ap.headgear='none';if(extra)Object.assign(ap,extra);return C.build(C.spec('hero',{classId:cls,appearance:ap}));}
 function villager(name,look,o){const a=actor('innkeeper',...nearFree(...o.home),Object.assign({wander:0,spd:1.3,npc:name,talkId:'villager',villager:true},o));
   const m=buildModel(villagerBoxes(name,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;return a;}
 const V=[];
@@ -56,6 +56,39 @@ const TOWN=[];
      const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc,job,talkId:'town',place:p,kind,said:0});
      const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
      if(job==='Стражник')setHeld(a.o,'R','spear');a.workAct={'Стражник':'guard','Торговец':'sell','Купчиха':'sell','Глашатай':'chat1','Пахарь':'field','Крестьянка':'field','Торфяник':'field','Каменотёс':'chop','Десятник':'chat1'}[job]||'chat1';TOWN.push(a);}}}
+// ---------- the castle court, shopkeepers and people who sleep at home ----------
+// The king holds court in the throne hall with two guards and a maid; a shopkeeper stands behind the counter
+// of their own house; every other townsman owns a house of their place and goes there for the night.
+function townsman(x,z,o,fem,nm,look,extra){const a=actor('innkeeper',x,z,Object.assign({spd:1.2,talkId:'town',said:0},o));
+  const m=buildModel(villagerBoxes((fem?'а':'')+nm,look,extra));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;a.home=[a.x,a.z];return a;}
+const COURT=[];let KING=null;
+{const R=ROOMS.find(r=>r.type==='castle');if(R){const cx=Math.floor(R.iw/2),cap=R.place;
+   KING=townsman(R.ox+cx,R.oz+3,{wander:0,npc:'Король Хальвдан',talkId:'king',place:cap,kind:'castle',face:0},false,'Хальвдан',LOOKS2[3%LOOKS2.length],{headgear:'crown',cape:'long',capeColor:'#8e2a24',trim:'#d8b04a',outfit:'tabard',beard:'full'});KING.workAct='guard';setHeld(KING.o,'R','staff_moon');
+   for(const [dx,nm] of [[-2,'Ульф'],[2,'Стейн']]){const g=townsman(R.ox+cx+dx,R.oz+3,{wander:0,npc:'Стражник '+nm,job:'Стражник',place:cap,kind:'castle',face:0},false,nm,LOOKS2[(dx+5)%LOOKS2.length]);g.workAct='guard';setHeld(g.o,'R','spear');COURT.push(g);}
+   const m=townsman(R.ox+cx,R.oz+R.id-4,{wander:3,npc:'Служанка Агнета',job:'Служанка',place:cap,kind:'castle'},true,'Агнета',LOOKS2[7%LOOKS2.length]);m.workAct='sweep';COURT.push(m);}}
+const KEEPERS=[];
+{const N={smith:['Кузнец','Хокон',false],baker:['Пекарь','Эрленд',false],store:['Лавочница','Гретта',true]};let i=0;
+ for(const R of ROOMS.filter(r=>r.shop)){const [job,nm,fem]=N[R.shop];let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' из '+(R.place.type==='capital'?'столицы':R.place.n);
+   const a=townsman(R.ox+2,R.oz+1,{wander:0,npc,job,place:R.place,kind:'shop',shopKind:R.shop,houseRoom:R,face:0},fem,nm,LOOKS2[(i++*5+2)%LOOKS2.length]);a.workAct=R.shop==='smith'?'chat1':'sell';KEEPERS.push(a);}}
+// owners: the townsfolk of a place take its houses in turn; a house left over stays empty
+{const free_=new Map();for(const R of ROOMS)if(R.gen&&!R.shop&&(R.type==='house'||R.type==='poorhouse'))(free_.get(R.place)||free_.set(R.place,[]).get(R.place)).push(R);
+ for(const a of TOWN){const L=free_.get(a.place);if(L&&L.length){a.houseRoom=L.shift();a.outHome=a.home||[a.x,a.z];a.where='out';}}}
+const nightNow=()=>worldTime>=.9||worldTime<.24;
+// a townsman walks to their door at night and spends it inside; at dawn they step out again.
+// Far from the hero, where no one can see, they simply are where they should be.
+let townI=0;
+function townTick(){if(!TOWN.length||CB.on)return;for(let n=0;n<4;n++){const a=TOWN[townI++%TOWN.length],R=a.houseRoom;if(!R||a.dead||a.route&&a.where!=='goingHome'&&!a.far||waitsForHero(a))continue;
+  const night=nightNow(),indoor=a.where==='home';
+  const inside=()=>{const c=nearFree(R.ox+Math.floor(R.iw/2),R.oz+2,3);a.x=c[0];a.z=c[1];a.px=a.x+.5;a.pz=a.z+.5;a.home=[a.x,a.z];a.wander=1;a.where='home';a.workAct='sit';a.route=null;};
+  const outside=()=>{const c=nearFree(R.door[0],R.door[1]+1,4);a.x=c[0];a.z=c[1];a.px=a.x+.5;a.pz=a.z+.5;a.home=a.outHome;a.wander=a.kind==='capital'?6:3;a.where='out';a.workAct=a.dayAct||a.workAct;a.route=null;};
+  if(a.where==='goingHome'&&(a.far||!a.route)){inside();continue;}
+  if(night&&!indoor&&a.where!=='goingHome'){a.dayAct=a.dayAct||a.workAct;if(a.far)inside();else{a.where='goingHome';goTo(a,[R.door[0],R.door[1]+1],inside);}}
+  else if(!night&&indoor&&!(room===R&&Math.hypot(a.px-H0.px,a.pz-H0.pz)<3))outside();}}
+function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
+  if(kin==='враг')return say(n,'Мне доложили, кто ты такой. Говорить нам не о чем. Стража, проводите.');
+  if(q&&q.state<3){if(Q.road&&Q.road.state<3&&repLevel('kingdom')<2)return say(n,'Я тебя не знаю. На тракте у столицы грабят купцов — помоги страже, тогда и поговорим.');
+    const[ask,ok,done,items]=a.qtext;return offer(q,n,ask,ok,done,items);}
+  return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
 {const near=(type,from)=>GEN.places.filter(q=>q.type===type).sort((x,y)=>Math.hypot(x.x-from.x,x.z-from.z)-Math.hypot(y.x-from.x,y.z-from.z))[0];
@@ -65,6 +98,9 @@ const TOWN=[];
  const mk=(key,giver,at,need,left,title,ask,ok,done,items,gold,rep)=>{if(!giver||!at)return;Q[key]={state:0,need,left,title,at,giverA:giver,gold,rep};giver.qk=key;giver.qtext=[ask,ok,done,items];};
  mk('road',G(cap,'Стражник'),camp,'Разбойник',2,'Разгромить лагерь разбойников у тракта','На дороге грабят купцов. Их лагерь недалеко от тракта, там двое. Разгонишь — заплатят из казны.',
    'Разогнал? Молодец. Вот деньги, и копьё моё старое возьми.','Купцы теперь ездят спокойно. Спасибо.',[['potion',1],['spear',1]],30,3);
+ {const far=GEN.places.filter(q=>q.type==='bandits'&&q!==camp).sort((x,y)=>Math.hypot(y.x-cap.x,y.z-cap.z)-Math.hypot(x.x-cap.x,x.z-cap.z))[0]||camp;
+  if(KING)mk('crown',KING,far,'Разбойник',2,'Поручение короля: разогнать дальний лагерь','В глуши сидит ещё одна шайка. Оттуда они и ходят на мои дороги. Разгонишь её — получишь награду из казны и моё слово.',
+   'Хорошая работа. Вот золото, и возьми щит из моей оружейной.','Дороги теперь спокойнее. Я этого не забуду.',[['potion',2],['shield_kite',1]],60,3);}
  mk('boars',vil&&G(vil),boars,'Кабан',2,'Отогнать кабанов с полей: '+(vil?vil.n:''),'Кабаны с холмов все поля нам перерыли. Двое здоровых. Поможешь?',
    'Ну наконец-то! Вот, хлеба возьми.','Кабанов больше не видно. Хорошо.',[['bread',3]],15,1);
  mk('bear',works&&G(works),bear,'Медведь',1,'Прогнать медведя от каменоломни','В горах медведь мула нашего задрал. Пока он там, работать никто не идёт. Сможешь прогнать?',
@@ -74,6 +110,9 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
     L.push('Рынок там, посередине. Только цены кусаются.','В порт ночью не ходи, там ворьё.','Опять налоги подняли. А жить на что?');}
   if(a.kind==='village')L.push(p.wealth>=3?'Земля у нас хорошая, и до города возить недалеко. Не жалуемся.':'Как урожай будет, так и проживём.','Хорошо, что речка рядом. Без неё никак.');
   if(a.kind==='poor')L.push(p.poorWhy==='болото'?'Болото кругом, ничего не растёт. Клюкву собираем да торф режем.':'До рынка далеко, а дорога — одно название.','Лекаря у нас нет. Заболел — терпи.');
+  if(a.kind==='castle')L.push('Король принимает в тронном зале. Говори коротко и по делу.','Тут всегда холодно, сколько ни топи.','В замке тихо, пока на дорогах спокойно.');
+  if(a.kind==='shop')L.push({smith:'Железо везут из столицы. Дорого, а куда деваться.',baker:'Встаю затемно, тесто ждать не будет.',store:'У меня всё, что в дорогу надо. Заходи, смотри.'}[a.shopKind],'Торговля то идёт, то нет. Как разбойники на дороге, так никто не ездит.');
+  if(a.where==='home')return ['Поздно уже. Спать ложусь, завтра поговорим.','Ночь на дворе, чего тебе?'];
   if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
   if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');

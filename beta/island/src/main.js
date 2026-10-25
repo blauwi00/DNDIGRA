@@ -103,6 +103,10 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
  for(const h of PALACE)h.room=alloc(h[0],h[1],h[2],h[3],'castle','Королевский замок',h.p);
  const nm={capital:'Дом горожанина',village:'Деревенский дом',works:'Дом каменотёса'};
  for(const h of GEN_HOUSES){const p=h[4];h.room=alloc(h[0],h[1],h[2],h[3],p.poorWhy?'poorhouse':'house',p.poorWhy?'Лачуга':(nm[p.type]||'Дом'),p);}
+ // some houses are shops: the capital has a smithy, a bakery and a general store, a rich village one of them
+ {const left=new Map();for(const h of GEN_HOUSES){const p=h[4],R=h.room;if(R.type!=='house')continue;
+   if(!left.has(p))left.set(p,p.type==='capital'?['smith','baker','store']:p.type==='village'&&p.wealth>=3?[['baker','smith','store'][Math.floor(hash2(p.x,p.z)*3)]]:[]);
+   const k=left.get(p).shift();if(k){R.shop=k;R.name={smith:'Кузница',baker:'Пекарня',store:'Лавка'}[k];}}}
  H=grid.length;}
 for(let z=0;z<H;z++){height.push([]);for(let x=0;x<W;x++){const c=at(x,z);
   // outside the old district the land rises with the generated relief: hills, then rock and snow
@@ -260,6 +264,10 @@ for(const h of GEN_HOUSES){const [hx,hz,hw,hd,p]=h;defer(chunkKey(hx,hz),()=>{co
   for(const[x,z]of[[hx+.1,hz+.1],[hx+hw-.1,hz+.1],[hx+.1,hz+hd-.1],[hx+hw-.1,hz+hd-.1]]){const c=new THREE.Mesh(BOX,lam(T.bark));c.scale.set(.16,wh,.16);c.position.set(x,y+wh/2,z);g.add(c);}
   const kind=rich?(hh<.5?'tiles':'slate'):poor?(hh<.5?'thatch':'turf'):['shingle','tiles','thatch'][Math.floor(hh*3)];roofOn(g,ROOF[kind],hx,hz,hw,hd,y+wh+.32,hash2(hz,hx)<.5);
   const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);g.userData.door=dr;
+  // a shop hangs a painted board by its door: an anvil, a loaf or a sack
+  if(h.room.shop){const sx=hx+Math.floor(hw/2)+1.4,sz=hz+hd+.05,P=(m,x,yy,z,w,hh,d)=>{const b=new THREE.Mesh(BOX,m);b.scale.set(w,hh,d);b.position.set(x,yy,z);b.castShadow=true;g.add(b);};
+    P(lam(T.bark),sx,y+.9,sz,.1,1.8,.1);P(lam(T.bark),sx-.25,y+1.72,sz,.6,.08,.08);P(lam(T.p[1],{color:0x8a6a4a}),sx-.35,y+1.42,sz,.5,.4,.05);
+    P(new THREE.MeshLambertMaterial({color:{smith:0x4a4e56,baker:0xc89048,store:0x9a7a4a}[h.room.shop]}),sx-.35,y+1.42,sz+.03,.3,.2,.02);}
   if(!poor)for(const sg of[-1,1]){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+sg*(hw/2-1.1),y+wh*.62,hz+hd);g.add(win);}
   if(hash2(hx,hz*7)<.6){const ch=new THREE.Mesh(BOX,lam(T.wall,{color:0x9a948a}));ch.scale.set(.4,.9,.4);ch.position.set(hx+hw-1.2,y+wh+.9,hz+hd*.3);ch.castShadow=true;g.add(ch);}
   scene.add(g);return liveHouse(g);});}
@@ -492,6 +500,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
+  if(a.talkId==='king')return kingTalk(a,n);
   if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
@@ -561,7 +570,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;

@@ -90,7 +90,18 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     itemProp(g,R.ox+2,y+1.04,R.oz+1.12,'potion',1,'Зелье лечения','Красная склянка с печатью травницы.');itemProp(g,R.ox+4.6,y+.52,R.oz+3.4,'potion',1,'Зелье лечения','Ещё тёплое, пахнет мятой.');}
   // houses of the big island: furnished by their size and the wealth of their place; the loot is fixed by the room's number
   const lk0=looks.length;let rs=(R.i*2654435761>>>0)%2147483646+1;const rnd=()=>(rs=(rs*16807)%2147483647)/2147483647,pick=a=>a[Math.floor(rnd()*a.length)];
-  if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
+  // a shop: a counter across the left of the room with the keeper behind it, and the trade's own things
+  if(R.shop){const w=R.iw,d=R.id;I('Прилавок','Тёртые доски, на них весы и мелочь.');for(let x=1;x<=2;x++)S(x,2,1,.7,.8,lam(T.p[1],{color:0x7a5a3a}));part(g,M(0xb8a060),R.ox+2,y+.74,R.oz+2.5,.3,.06,.2);I(null);
+    if(R.shop==='smith'){I('Наковальня','Тяжёлая, в зарубках.');S(w-2,2,.5,.45,.35,M(0x3a3e44));part(g,M(0x4a4e56),R.ox+w-1.5,y+.5,R.oz+2.5,.7,.1,.3);
+      I('Горн','Угли тлеют, мехи рядом.');S(w-2,1,.8,.6,.7,lam(T.stone,{color:0x6a6058}));part(g,glow(0xff7a2a),R.ox+w-1.5,y+.62,R.oz+1.5,.4,.06,.4);
+      I('Стойка с оружием','Мечи и топоры, на продажу.');S(1,1,.9,1.2,.3,lam(T.bark));for(let i=0;i<3;i++)part(g,M(0xb8bcc4),R.ox+1.2+i*.3,y+.9,R.oz+1.4,.06,.9,.04);I(null);}
+    if(R.shop==='baker'){I('Печь','Большая, глиняная. Пахнет так, что живот сводит.');S(w-2,1,1,1,.9,lam(T.wall,{color:0xa8886a}));part(g,glow(0xff9a3a),R.ox+w-1.5,y+.4,R.oz+1.96,.5,.3,.02);
+      I('Полка с хлебом','Караваи и калачи, ещё тёплые.');S(1,1,1.6,1.1,.4,lam(T.p[2]));for(let i=0;i<4;i++)part(g,M(0xc89048),R.ox+1.2+i*.35,y+.86,R.oz+1.5,.26,.14,.2);
+      I('Мешки с мукой','Тодорова мука, с мельницы.');S(w-2,d-2,.6,.5,.5,M(0xe0d8c0));I(null);}
+    if(R.shop==='store'){I('Ящики с товаром','Факелы, верёвки, гвозди, свечи.');S(1,1,.8,.6,.6,lam(T.crate));S(w-2,1,.8,.6,.6,lam(T.crate));S(w-2,d-2,.7,.5,.6,lam(T.crate));
+      I('Бочка','Солёная рыба.');S(1,d-2,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));I(null);}
+    I('Свеча','Огарок в глиняной плошке.');part(g,M(0xe8dcc0),R.ox+1.5,y+.75,R.oz+2.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+1.5,y+.83,R.oz+2.5,.04,.06,.04);I(null);}
+  else if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
     const common=['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword'],fine=['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar'];
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(common),1]);}
     else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(common),1]);if(rich&&rnd()<.3)box.push([pick(fine),1]);}

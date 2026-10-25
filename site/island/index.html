@@ -519,7 +519,7 @@ body:has(.talk:not([hidden])) .inv{display:none!important}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.60 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.61 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2336,6 +2336,10 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
  for(const h of PALACE)h.room=alloc(h[0],h[1],h[2],h[3],'castle','Королевский замок',h.p);
  const nm={capital:'Дом горожанина',village:'Деревенский дом',works:'Дом каменотёса'};
  for(const h of GEN_HOUSES){const p=h[4];h.room=alloc(h[0],h[1],h[2],h[3],p.poorWhy?'poorhouse':'house',p.poorWhy?'Лачуга':(nm[p.type]||'Дом'),p);}
+ // some houses are shops: the capital has a smithy, a bakery and a general store, a rich village one of them
+ {const left=new Map();for(const h of GEN_HOUSES){const p=h[4],R=h.room;if(R.type!=='house')continue;
+   if(!left.has(p))left.set(p,p.type==='capital'?['smith','baker','store']:p.type==='village'&&p.wealth>=3?[['baker','smith','store'][Math.floor(hash2(p.x,p.z)*3)]]:[]);
+   const k=left.get(p).shift();if(k){R.shop=k;R.name={smith:'Кузница',baker:'Пекарня',store:'Лавка'}[k];}}}
  H=grid.length;}
 for(let z=0;z<H;z++){height.push([]);for(let x=0;x<W;x++){const c=at(x,z);
   // outside the old district the land rises with the generated relief: hills, then rock and snow
@@ -2493,6 +2497,10 @@ for(const h of GEN_HOUSES){const [hx,hz,hw,hd,p]=h;defer(chunkKey(hx,hz),()=>{co
   for(const[x,z]of[[hx+.1,hz+.1],[hx+hw-.1,hz+.1],[hx+.1,hz+hd-.1],[hx+hw-.1,hz+hd-.1]]){const c=new THREE.Mesh(BOX,lam(T.bark));c.scale.set(.16,wh,.16);c.position.set(x,y+wh/2,z);g.add(c);}
   const kind=rich?(hh<.5?'tiles':'slate'):poor?(hh<.5?'thatch':'turf'):['shingle','tiles','thatch'][Math.floor(hh*3)];roofOn(g,ROOF[kind],hx,hz,hw,hd,y+wh+.32,hash2(hz,hx)<.5);
   const dr=makeDoor();dr.g.position.set(hx+Math.floor(hw/2)+.5,y,hz+hd-.04);g.add(dr.g);g.userData.door=dr;
+  // a shop hangs a painted board by its door: an anvil, a loaf or a sack
+  if(h.room.shop){const sx=hx+Math.floor(hw/2)+1.4,sz=hz+hd+.05,P=(m,x,yy,z,w,hh,d)=>{const b=new THREE.Mesh(BOX,m);b.scale.set(w,hh,d);b.position.set(x,yy,z);b.castShadow=true;g.add(b);};
+    P(lam(T.bark),sx,y+.9,sz,.1,1.8,.1);P(lam(T.bark),sx-.25,y+1.72,sz,.6,.08,.08);P(lam(T.p[1],{color:0x8a6a4a}),sx-.35,y+1.42,sz,.5,.4,.05);
+    P(new THREE.MeshLambertMaterial({color:{smith:0x4a4e56,baker:0xc89048,store:0x9a7a4a}[h.room.shop]}),sx-.35,y+1.42,sz+.03,.3,.2,.02);}
   if(!poor)for(const sg of[-1,1]){const win=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xffc66a}));win.scale.set(.4,.32,.05);win.position.set(hx+hw/2+sg*(hw/2-1.1),y+wh*.62,hz+hd);g.add(win);}
   if(hash2(hx,hz*7)<.6){const ch=new THREE.Mesh(BOX,lam(T.wall,{color:0x9a948a}));ch.scale.set(.4,.9,.4);ch.position.set(hx+hw-1.2,y+wh+.9,hz+hd*.3);ch.castShadow=true;g.add(ch);}
   scene.add(g);return liveHouse(g);});}
@@ -2829,7 +2837,18 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     itemProp(g,R.ox+2,y+1.04,R.oz+1.12,'potion',1,'Зелье лечения','Красная склянка с печатью травницы.');itemProp(g,R.ox+4.6,y+.52,R.oz+3.4,'potion',1,'Зелье лечения','Ещё тёплое, пахнет мятой.');}
   // houses of the big island: furnished by their size and the wealth of their place; the loot is fixed by the room's number
   const lk0=looks.length;let rs=(R.i*2654435761>>>0)%2147483646+1;const rnd=()=>(rs=(rs*16807)%2147483647)/2147483647,pick=a=>a[Math.floor(rnd()*a.length)];
-  if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
+  // a shop: a counter across the left of the room with the keeper behind it, and the trade's own things
+  if(R.shop){const w=R.iw,d=R.id;I('Прилавок','Тёртые доски, на них весы и мелочь.');for(let x=1;x<=2;x++)S(x,2,1,.7,.8,lam(T.p[1],{color:0x7a5a3a}));part(g,M(0xb8a060),R.ox+2,y+.74,R.oz+2.5,.3,.06,.2);I(null);
+    if(R.shop==='smith'){I('Наковальня','Тяжёлая, в зарубках.');S(w-2,2,.5,.45,.35,M(0x3a3e44));part(g,M(0x4a4e56),R.ox+w-1.5,y+.5,R.oz+2.5,.7,.1,.3);
+      I('Горн','Угли тлеют, мехи рядом.');S(w-2,1,.8,.6,.7,lam(T.stone,{color:0x6a6058}));part(g,glow(0xff7a2a),R.ox+w-1.5,y+.62,R.oz+1.5,.4,.06,.4);
+      I('Стойка с оружием','Мечи и топоры, на продажу.');S(1,1,.9,1.2,.3,lam(T.bark));for(let i=0;i<3;i++)part(g,M(0xb8bcc4),R.ox+1.2+i*.3,y+.9,R.oz+1.4,.06,.9,.04);I(null);}
+    if(R.shop==='baker'){I('Печь','Большая, глиняная. Пахнет так, что живот сводит.');S(w-2,1,1,1,.9,lam(T.wall,{color:0xa8886a}));part(g,glow(0xff9a3a),R.ox+w-1.5,y+.4,R.oz+1.96,.5,.3,.02);
+      I('Полка с хлебом','Караваи и калачи, ещё тёплые.');S(1,1,1.6,1.1,.4,lam(T.p[2]));for(let i=0;i<4;i++)part(g,M(0xc89048),R.ox+1.2+i*.35,y+.86,R.oz+1.5,.26,.14,.2);
+      I('Мешки с мукой','Тодорова мука, с мельницы.');S(w-2,d-2,.6,.5,.5,M(0xe0d8c0));I(null);}
+    if(R.shop==='store'){I('Ящики с товаром','Факелы, верёвки, гвозди, свечи.');S(1,1,.8,.6,.6,lam(T.crate));S(w-2,1,.8,.6,.6,lam(T.crate));S(w-2,d-2,.7,.5,.6,lam(T.crate));
+      I('Бочка','Солёная рыба.');S(1,d-2,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));I(null);}
+    I('Свеча','Огарок в глиняной плошке.');part(g,M(0xe8dcc0),R.ox+1.5,y+.75,R.oz+2.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+1.5,y+.83,R.oz+2.5,.04,.06,.04);I(null);}
+  else if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
     const common=['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword'],fine=['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar'];
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(common),1]);}
     else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(common),1]);if(rich&&rnd()<.3)box.push([pick(fine),1]);}
@@ -3373,6 +3392,7 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
+  if(a.talkId==='king')return kingTalk(a,n);
   if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
@@ -3442,7 +3462,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
@@ -4083,10 +4103,10 @@ const LOOKS2=[{skin:'d9a27a',hair:'1c1612',cloth:'6a2a24',style:'short'},{skin:'
   {skin:'e9bf90',hair:'8a8a8a',cloth:'6a5a3a',style:'bald'},{skin:'e9bf90',hair:'6a2418',cloth:'284d6c',style:'tail'},{skin:'8a5a3a',hair:'1c1612',cloth:'2a2a2a',style:'short'},{skin:'f2d2b0',hair:'8a5a2a',cloth:'6a2a24',style:'long'}];
 // villagers are built by the game's character builder in plain working clothes
 const FEMALE=/а$|я$|Хильда|Агна|Марта/;
-function villagerBoxes(name,look){const C=window.Characters;if(!C)return recolor(styleHair(MODELS['fighter-male'],look.style),look);
+function villagerBoxes(name,look,extra){const C=window.Characters;if(!C)return recolor(styleHair(MODELS['fighter-male'],look.style),look);
   const gender=FEMALE.test(name.split(' ').pop())||/Марта|Агна|Хильда/.test(name)?'female':'male',cls=['rogue','cleric','rogue','fighter'][Math.floor(hash2(name.length,name.charCodeAt(0))*4)];
   const ap=C.randomLook(cls,gender,()=>hash2(name.charCodeAt(1)||3,Math.random()*1e3));ap.cape='none';ap.outfit={rogue:['tunic','vest'],cleric:['monk','surplice'],fighter:['leather','tabard']}[cls][Math.random()<.5?0:1];
-  if(ap.headgear==='helm'||ap.headgear==='crown'||ap.headgear==='wizhat')ap.headgear='none';return C.build(C.spec('hero',{classId:cls,appearance:ap}));}
+  if(ap.headgear==='helm'||ap.headgear==='crown'||ap.headgear==='wizhat')ap.headgear='none';if(extra)Object.assign(ap,extra);return C.build(C.spec('hero',{classId:cls,appearance:ap}));}
 function villager(name,look,o){const a=actor('innkeeper',...nearFree(...o.home),Object.assign({wander:0,spd:1.3,npc:name,talkId:'villager',villager:true},o));
   const m=buildModel(villagerBoxes(name,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;return a;}
 const V=[];
@@ -4114,6 +4134,39 @@ const TOWN=[];
      const look=LOOKS2[(k+i)%LOOKS2.length],a=actor('innkeeper',...nearFree(p.x+((i*5)%7)-3,p.z+((i*3)%5)-2,4),{wander:kind==='capital'?6:3,spd:1.2,npc,job,talkId:'town',place:p,kind,said:0});
      const m=buildModel(villagerBoxes((fem?'а':'')+nm,look));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;
      if(job==='Стражник')setHeld(a.o,'R','spear');a.workAct={'Стражник':'guard','Торговец':'sell','Купчиха':'sell','Глашатай':'chat1','Пахарь':'field','Крестьянка':'field','Торфяник':'field','Каменотёс':'chop','Десятник':'chat1'}[job]||'chat1';TOWN.push(a);}}}
+// ---------- the castle court, shopkeepers and people who sleep at home ----------
+// The king holds court in the throne hall with two guards and a maid; a shopkeeper stands behind the counter
+// of their own house; every other townsman owns a house of their place and goes there for the night.
+function townsman(x,z,o,fem,nm,look,extra){const a=actor('innkeeper',x,z,Object.assign({spd:1.2,talkId:'town',said:0},o));
+  const m=buildModel(villagerBoxes((fem?'а':'')+nm,look,extra));a.o.clear();[...m.children].forEach(c=>a.o.add(c));Object.assign(a.o.userData,m.userData);a.px=a.x+.5;a.pz=a.z+.5;a.home=[a.x,a.z];return a;}
+const COURT=[];let KING=null;
+{const R=ROOMS.find(r=>r.type==='castle');if(R){const cx=Math.floor(R.iw/2),cap=R.place;
+   KING=townsman(R.ox+cx,R.oz+3,{wander:0,npc:'Король Хальвдан',talkId:'king',place:cap,kind:'castle',face:0},false,'Хальвдан',LOOKS2[3%LOOKS2.length],{headgear:'crown',cape:'long',capeColor:'#8e2a24',trim:'#d8b04a',outfit:'tabard',beard:'full'});KING.workAct='guard';setHeld(KING.o,'R','staff_moon');
+   for(const [dx,nm] of [[-2,'Ульф'],[2,'Стейн']]){const g=townsman(R.ox+cx+dx,R.oz+3,{wander:0,npc:'Стражник '+nm,job:'Стражник',place:cap,kind:'castle',face:0},false,nm,LOOKS2[(dx+5)%LOOKS2.length]);g.workAct='guard';setHeld(g.o,'R','spear');COURT.push(g);}
+   const m=townsman(R.ox+cx,R.oz+R.id-4,{wander:3,npc:'Служанка Агнета',job:'Служанка',place:cap,kind:'castle'},true,'Агнета',LOOKS2[7%LOOKS2.length]);m.workAct='sweep';COURT.push(m);}}
+const KEEPERS=[];
+{const N={smith:['Кузнец','Хокон',false],baker:['Пекарь','Эрленд',false],store:['Лавочница','Гретта',true]};let i=0;
+ for(const R of ROOMS.filter(r=>r.shop)){const [job,nm,fem]=N[R.shop];let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' из '+(R.place.type==='capital'?'столицы':R.place.n);
+   const a=townsman(R.ox+2,R.oz+1,{wander:0,npc,job,place:R.place,kind:'shop',shopKind:R.shop,houseRoom:R,face:0},fem,nm,LOOKS2[(i++*5+2)%LOOKS2.length]);a.workAct=R.shop==='smith'?'chat1':'sell';KEEPERS.push(a);}}
+// owners: the townsfolk of a place take its houses in turn; a house left over stays empty
+{const free_=new Map();for(const R of ROOMS)if(R.gen&&!R.shop&&(R.type==='house'||R.type==='poorhouse'))(free_.get(R.place)||free_.set(R.place,[]).get(R.place)).push(R);
+ for(const a of TOWN){const L=free_.get(a.place);if(L&&L.length){a.houseRoom=L.shift();a.outHome=a.home||[a.x,a.z];a.where='out';}}}
+const nightNow=()=>worldTime>=.9||worldTime<.24;
+// a townsman walks to their door at night and spends it inside; at dawn they step out again.
+// Far from the hero, where no one can see, they simply are where they should be.
+let townI=0;
+function townTick(){if(!TOWN.length||CB.on)return;for(let n=0;n<4;n++){const a=TOWN[townI++%TOWN.length],R=a.houseRoom;if(!R||a.dead||a.route&&a.where!=='goingHome'&&!a.far||waitsForHero(a))continue;
+  const night=nightNow(),indoor=a.where==='home';
+  const inside=()=>{const c=nearFree(R.ox+Math.floor(R.iw/2),R.oz+2,3);a.x=c[0];a.z=c[1];a.px=a.x+.5;a.pz=a.z+.5;a.home=[a.x,a.z];a.wander=1;a.where='home';a.workAct='sit';a.route=null;};
+  const outside=()=>{const c=nearFree(R.door[0],R.door[1]+1,4);a.x=c[0];a.z=c[1];a.px=a.x+.5;a.pz=a.z+.5;a.home=a.outHome;a.wander=a.kind==='capital'?6:3;a.where='out';a.workAct=a.dayAct||a.workAct;a.route=null;};
+  if(a.where==='goingHome'&&(a.far||!a.route)){inside();continue;}
+  if(night&&!indoor&&a.where!=='goingHome'){a.dayAct=a.dayAct||a.workAct;if(a.far)inside();else{a.where='goingHome';goTo(a,[R.door[0],R.door[1]+1],inside);}}
+  else if(!night&&indoor&&!(room===R&&Math.hypot(a.px-H0.px,a.pz-H0.pz)<3))outside();}}
+function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
+  if(kin==='враг')return say(n,'Мне доложили, кто ты такой. Говорить нам не о чем. Стража, проводите.');
+  if(q&&q.state<3){if(Q.road&&Q.road.state<3&&repLevel('kingdom')<2)return say(n,'Я тебя не знаю. На тракте у столицы грабят купцов — помоги страже, тогда и поговорим.');
+    const[ask,ok,done,items]=a.qtext;return offer(q,n,ask,ok,done,items);}
+  return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
 // big-island quests: the capital wants the nearest robbers' camp gone, a village near the boar hills its fields
 // saved, the stonecutters the bear away from the quarry. Kills count only near that place.
 {const near=(type,from)=>GEN.places.filter(q=>q.type===type).sort((x,y)=>Math.hypot(x.x-from.x,x.z-from.z)-Math.hypot(y.x-from.x,y.z-from.z))[0];
@@ -4123,6 +4176,9 @@ const TOWN=[];
  const mk=(key,giver,at,need,left,title,ask,ok,done,items,gold,rep)=>{if(!giver||!at)return;Q[key]={state:0,need,left,title,at,giverA:giver,gold,rep};giver.qk=key;giver.qtext=[ask,ok,done,items];};
  mk('road',G(cap,'Стражник'),camp,'Разбойник',2,'Разгромить лагерь разбойников у тракта','На дороге грабят купцов. Их лагерь недалеко от тракта, там двое. Разгонишь — заплатят из казны.',
    'Разогнал? Молодец. Вот деньги, и копьё моё старое возьми.','Купцы теперь ездят спокойно. Спасибо.',[['potion',1],['spear',1]],30,3);
+ {const far=GEN.places.filter(q=>q.type==='bandits'&&q!==camp).sort((x,y)=>Math.hypot(y.x-cap.x,y.z-cap.z)-Math.hypot(x.x-cap.x,x.z-cap.z))[0]||camp;
+  if(KING)mk('crown',KING,far,'Разбойник',2,'Поручение короля: разогнать дальний лагерь','В глуши сидит ещё одна шайка. Оттуда они и ходят на мои дороги. Разгонишь её — получишь награду из казны и моё слово.',
+   'Хорошая работа. Вот золото, и возьми щит из моей оружейной.','Дороги теперь спокойнее. Я этого не забуду.',[['potion',2],['shield_kite',1]],60,3);}
  mk('boars',vil&&G(vil),boars,'Кабан',2,'Отогнать кабанов с полей: '+(vil?vil.n:''),'Кабаны с холмов все поля нам перерыли. Двое здоровых. Поможешь?',
    'Ну наконец-то! Вот, хлеба возьми.','Кабанов больше не видно. Хорошо.',[['bread',3]],15,1);
  mk('bear',works&&G(works),bear,'Медведь',1,'Прогнать медведя от каменоломни','В горах медведь мула нашего задрал. Пока он там, работать никто не идёт. Сможешь прогнать?',
@@ -4132,6 +4188,9 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
     L.push('Рынок там, посередине. Только цены кусаются.','В порт ночью не ходи, там ворьё.','Опять налоги подняли. А жить на что?');}
   if(a.kind==='village')L.push(p.wealth>=3?'Земля у нас хорошая, и до города возить недалеко. Не жалуемся.':'Как урожай будет, так и проживём.','Хорошо, что речка рядом. Без неё никак.');
   if(a.kind==='poor')L.push(p.poorWhy==='болото'?'Болото кругом, ничего не растёт. Клюкву собираем да торф режем.':'До рынка далеко, а дорога — одно название.','Лекаря у нас нет. Заболел — терпи.');
+  if(a.kind==='castle')L.push('Король принимает в тронном зале. Говори коротко и по делу.','Тут всегда холодно, сколько ни топи.','В замке тихо, пока на дорогах спокойно.');
+  if(a.kind==='shop')L.push({smith:'Железо везут из столицы. Дорого, а куда деваться.',baker:'Встаю затемно, тесто ждать не будет.',store:'У меня всё, что в дорогу надо. Заходи, смотри.'}[a.shopKind],'Торговля то идёт, то нет. Как разбойники на дороге, так никто не ездит.');
+  if(a.where==='home')return ['Поздно уже. Спать ложусь, завтра поговорим.','Ночь на дворе, чего тебе?'];
   if(a.kind==='works')L.push('Мы камень ломаем. Его потом в город везут, на стены.','Пыльно тут, все кашляем. Зато платят вовремя.');
   const camp=GEN.places.filter(q=>q.type==='bandits').sort((x,y)=>Math.hypot(x.x-p.x,x.z-p.z)-Math.hypot(y.x-p.x,y.z-p.z))[0];
   if(camp&&Math.hypot(camp.x-p.x,camp.z-p.z)<70)L.push('На дороге опять грабят. Говорят, они сидят где-то '+(Math.abs(camp.x-p.x)>Math.abs(camp.z-p.z)?(camp.x>p.x?'на востоке':'на западе'):(camp.z>p.z?'на юге':'на севере'))+'.');
@@ -4554,6 +4613,11 @@ const JOBS=[
    poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Много не продам, самим мало.'}};
  const traders=new Map();for(const a of TOWN)if(!traders.has(a.place)&&(a.kind!=='capital'||/Торговец|Купчиха/.test(a.job)))traders.set(a.place,a);
  for(const [p,a] of traders){const S=Object.assign({},shopFor[a.kind]);if(a.kind==='village'&&p.wealth>=3){S.k=.92;S.coin=110;S.sells=S.sells.concat(['potion']);}S.fac='kingdom';S.title+=' · '+p.n;SHOPS[a.npc]=S;}
+ // shops inside houses: the smith, the baker and the general store, dearer in the capital
+ const inHouse={smith:{title:'Кузница',sells:['dagger','sword','axe_hand','mace','spear','shield_round','sword_short','warhammer'],buys:'weapons',coin:180,line:'Сталь хорошая, сам ковал. Смотри.'},
+   baker:{title:'Пекарня',sells:['bread'],buys:['flour','herb'],coin:50,line:'Хлеб свежий, утренний. Муку тоже беру.'},
+   store:{title:'Лавка',sells:['torch','stone','bread','potion'],buys:['fish','herb','stone','bread'],coin:90,line:'Факелы, камни для пращи, еда в дорогу. Что надо?'}};
+ for(const a of KEEPERS){const p=a.place,S=Object.assign({},inHouse[a.shopKind]);S.k=p.type==='capital'?1.15:1;S.fac='kingdom';S.title+=' · '+p.n;SHOPS[a.npc]=S;}
  // work: rich and middling villages and the quarry send parcels to the capital; the poor settlement to its nearest village;
  // a capital guard pays for a round of the streets
  const cap=GEN.places.find(p=>p.type==='capital'),capT=TOWN.find(a=>a.place===cap&&/Торговец/.test(a.job)),guard=TOWN.find(a=>a.place===cap&&a.job==='Стражник');let n=0;

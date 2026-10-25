@@ -343,6 +343,26 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return [...new Set(bad)];
     });
     assert.deepEqual(doorways, []);
+    step('court and shops: the king and his guards in the throne hall, keepers behind their counters, townsfolk asleep at home at night');
+    const court = await p.evaluate(() => {
+      const bad = [], g = __game, A = actors;
+      const reach = (a, R) => { const c = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [a.x + dx, a.z + dz]).filter(([x, z]) => free(x, z));
+        return c.some(([x, z]) => { const q = path(R.exit[0], R.exit[1] - 1, x, z, H0, false, 3000); return q && q.length || (x === R.exit[0] && z === R.exit[1] - 1); }); };
+      const C = ROOMS.find((R) => R.type === 'castle'), king = A.find((a) => a.talkId === 'king');
+      if (!king) bad.push('no king'); else { if (king.x < C.ox || king.x >= C.ox + C.iw || king.z < C.oz || king.z >= C.oz + C.id) bad.push('king outside the hall'); if (!reach(king, C)) bad.push('king out of reach'); }
+      if (!Q.crown) bad.push('no royal errand');
+      for (const R of ROOMS.filter((R) => R.shop)) { const k = A.find((a) => a.houseRoom === R && a.shopKind);
+        if (!k) { bad.push('no keeper in ' + R.name); continue; } if (!SHOPS[k.npc]) bad.push('keeper does not trade: ' + k.npc); if (!R.group) buildRoom(R); if (!reach(k, R)) bad.push('keeper out of reach in ' + R.name + ' ' + R.i); }
+      if (ROOMS.filter((R) => R.shop).length < 3) bad.push('few shops');
+      const owners = A.filter((a) => a.talkId === 'town' && a.houseRoom && !a.shopKind);
+      if (owners.length < 10) bad.push('few owners ' + owners.length);
+      g.setTime(.95); for (const a of owners) a.far = true; for (let i = 0; i < owners.length * 2; i++) townTick();
+      for (const a of owners) { const R = a.houseRoom; if (a.where !== 'home' || a.x < R.ox || a.x >= R.ox + R.iw || a.z < R.oz || a.z >= R.oz + R.id) bad.push('not home at night: ' + a.npc); }
+      g.setTime(.4); for (let i = 0; i < owners.length * 2; i++) townTick();
+      for (const a of owners) if (a.where !== 'out') bad.push('still home by day: ' + a.npc);
+      return bad;
+    });
+    assert.deepEqual(court, []);
     step('layout in play: the HUD with the goal card and the hands');
     assert.deepEqual(await p.evaluate(([fn, hud]) => eval(fn)(hud), [overlaps.toString(), HUD]), []);
     for (const side of ['R', 'L']) {

@@ -37,6 +37,11 @@ const JOBS=[
    poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Много не продам, самим мало.'}};
  const traders=new Map();for(const a of TOWN)if(!traders.has(a.place)&&(a.kind!=='capital'||/Торговец|Купчиха/.test(a.job)))traders.set(a.place,a);
  for(const [p,a] of traders){const S=Object.assign({},shopFor[a.kind]);if(a.kind==='village'&&p.wealth>=3){S.k=.92;S.coin=110;S.sells=S.sells.concat(['potion']);}S.fac='kingdom';S.title+=' · '+p.n;SHOPS[a.npc]=S;}
+ // shops inside houses: the smith, the baker and the general store, dearer in the capital
+ const inHouse={smith:{title:'Кузница',sells:['dagger','sword','axe_hand','mace','spear','shield_round','sword_short','warhammer'],buys:'weapons',coin:180,line:'Сталь хорошая, сам ковал. Смотри.'},
+   baker:{title:'Пекарня',sells:['bread'],buys:['flour','herb'],coin:50,line:'Хлеб свежий, утренний. Муку тоже беру.'},
+   store:{title:'Лавка',sells:['torch','stone','bread','potion'],buys:['fish','herb','stone','bread'],coin:90,line:'Факелы, камни для пращи, еда в дорогу. Что надо?'}};
+ for(const a of KEEPERS){const p=a.place,S=Object.assign({},inHouse[a.shopKind]);S.k=p.type==='capital'?1.15:1;S.fac='kingdom';S.title+=' · '+p.n;SHOPS[a.npc]=S;}
  // work: rich and middling villages and the quarry send parcels to the capital; the poor settlement to its nearest village;
  // a capital guard pays for a round of the streets
  const cap=GEN.places.find(p=>p.type==='capital'),capT=TOWN.find(a=>a.place===cap&&/Торговец/.test(a.job)),guard=TOWN.find(a=>a.place===cap&&a.job==='Стражник');let n=0;
