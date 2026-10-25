@@ -4,12 +4,14 @@ A standalone playable prototype of the island game loop, built outside the main
 game to try ideas quickly. `island.html` is the built page (Three.js r128 from
 cdnjs); it is also published as a private Claude artifact for the owner.
 
-What it tries: an 80x60 island (dock, village, forest, bandit camp, hunter camp,
-ruins, graveyard), enterable houses with distinct interiors, two-hand inventory
-with a bag and per-item limits, chests, inspecting things, hero editor with
-classes and hairstyles, real-time exploring with turn-based D&D 5e style fights
-(initiative, action wheels, advantage, sneaking, shove, distracting stones),
-quests, day/night, synthesised sound, local save.
+What it tries: a generated 300x220 island (seed `helga`) streamed in chunks, with
+the hand-made district Заводь in the north-west (dock, village, forest, ruins),
+a capital with the king's castle, villages rich and poor, a quarry, bandit
+camps, wild beasts; a room inside every building; townsfolk who work by day and
+sleep at home; shops; a main story told step by step (Raven); two-hand
+inventory with a bag; hero editor with peoples and classes; real-time exploring
+with turn-based D&D-style fights (initiative, advantage, sneaking, companions,
+morale, levels); reputation; day/night; rendered sound; local save.
 
 Nothing here is wired into the game in `src/` yet; porting is a separate step.
 
@@ -18,11 +20,28 @@ Nothing here is wired into the game in `src/` yet; porting is a separate step.
     cd beta/island/src
     OUT=.. python3 build.py     # writes beta/island/island.html
 
-Sources: `main.js` (world, walking, frame loop; placeholders `{RIG}`,
-`{INTERIORS}`, `{COMBAT}`, `{EXTRAS}`, `{UI}` are filled by `build.py`),
-`interiors.js`, `combat.js`, `extras.js` (day/night, sound), `ui.js` (wheels,
-menus, editor), `hands.js` (inventory), `rig.js`, `tex.js`, `models.js`,
-`head.html`/`stage.html`/`ui.html`/`ui.css`.
+Sources (`build.py` glues them into one page; `main.js` has placeholders such as
+`{RIG}`, `{INTERIORS}`, `{COMBAT}`, `{EXTRAS}`, `{UI}`, `{LIFE}`, `{INTRO}`):
+
+| File | What it holds |
+|---|---|
+| `main.js` | world grid, generated island layout, houses, walking, camera, frame loop, save |
+| `islandgen.js` | seeded island generator: relief, rivers, roads, places |
+| `interiors.js` | rooms of every building, their furniture and loot |
+| `combat.js` | turn-based fights, companions, morale, experience and levels |
+| `extras.js` | day and night, rendered sound effects, ambience |
+| `ui.js`, `ui.html`, `ui.css` | wheels, menus, quest pointer, map, layout |
+| `editor.js` | hero editor |
+| `hands.js` | two hands, bag, chests, item icons |
+| `villagers.js` | Заводь's villagers and their looks |
+| `town.js` | townsfolk of the big island, the king's court, shops, homes at night, their talk |
+| `story.js` | the big island's errands and the main story (Raven) |
+| `life.js` | weather, daily routine, talk bubbles, animals, road events |
+| `people.js` | people cards: role, temper, topics, lines |
+| `economy.js`, `legend.js` | gold, shops, side jobs; reputation, the chapel artifact |
+| `intro.js`, `settings.js` | opening, tutorial, settings |
+| `rig.js`, `models.js`, `tex.js`, `weapons.js`, `beasts.js` | models, held items, textures, weapons, beasts |
+| `races.js`, `classes.js` | peoples and classes |
 
 Not tested on a physical iPhone; checked in desktop Chromium (software GL).
 

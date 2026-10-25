@@ -55,7 +55,7 @@ The home-village start with two peaceful days and the trade carriage (Notion pla
 applied to the island yet.
 
 ## Step 3 · people and beasts
-- Townsfolk (`life.js`, `TOWN`): the capital has 10 (guards with spears, traders, a scribe, a priestess…),
+- Townsfolk (`town.js`, `TOWN`): the capital has 10 (guards with spears, traders, a scribe, a priestess…),
   villages 3–5 by wealth, the quarry 3, the poor settlement 3. They wander their square and talk about their
   own place (`townLines`): why it is rich or poor, the nearest bandit camp and beast lair, the capital's
   quarters and taxes; a line is never repeated before all are told.
@@ -73,7 +73,7 @@ applied to the island yet.
 - Side jobs: every village and the quarry send a parcel (`parcel`) to the capital's merchant, the poor
   settlement to its nearest village; pay grows with the distance (×1.3 rich, ×0.6 poor). A capital guard pays
   for a round of four crossings around the market.
-- Quests (`life.js`): a capital guard — clear the robbers' camp nearest the capital; the village nearest the
+- Quests (`story.js`): a capital guard — clear the robbers' camp nearest the capital; the village nearest the
   boar hills — two boars; the stonecutters — the bear. Kills count only within 14 cells of that place;
   rewards give gold and the crown's standing.
 
