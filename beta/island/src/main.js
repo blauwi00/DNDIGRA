@@ -123,7 +123,8 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
  // most houses have an attic up a ladder, richer ones a cellar under a hatch: rooms of their own, the house's size
  for(const h of GEN_HOUSES){const [hx,hz,hw,hd,p]=h,R=h.room,hh=hash2(hx*11,hz*13);if(R.type==='poorhouse')continue;
    if(hh<.75){const A=alloc(hx,hz,hw,hd,'attic','Чердак',p);A.sub=true;A.parent=R;R.attic=A;}
-   if(p.wealth>=3||p.type==='capital'||hh>.6){const C=alloc(hx,hz,hw,hd,'cellar','Подвал',p);C.sub=true;C.parent=R;R.cellar=C;}}
+   // the attic is the house's own size; the cellar is dug under the ground: bigger than the house in a rich place, smaller elsewhere
+   if(p.wealth>=3||p.type==='capital'||hh>.6){const big=p.wealth>=3||p.type==='capital',cw=big?hw+2:Math.max(5,hw-2),cd=big?hd+1:Math.max(5,hd-1);const C=alloc(hx,hz,cw,cd,'cellar',big?'Погреб с кладовой':'Погребок',p);C.sub=true;C.parent=R;R.cellar=C;}}
  // some houses are shops: the capital has a smithy, a bakery and a general store, a rich village one of them
  {const left=new Map();for(const h of GEN_HOUSES){const p=h[4],R=h.room;if(R.type!=='house')continue;
    if(!left.has(p))left.set(p,p.type==='capital'?['smith','baker','store']:p.type==='village'&&p.wealth>=3?[['baker','smith','store'][Math.floor(hash2(p.x,p.z)*3)]]:[]);
