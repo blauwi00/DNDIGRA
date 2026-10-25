@@ -66,6 +66,11 @@ const COURT=[];let KING=null;
    KING=townsman(R.ox+cx,R.oz+3,{wander:0,npc:'Король Хальвдан',talkId:'king',place:cap,kind:'castle',face:0},false,'Хальвдан',LOOKS2[3%LOOKS2.length],{headgear:'crown',cape:'long',capeColor:'#8e2a24',trim:'#d8b04a',outfit:'tabard',beard:'full'});KING.workAct='guard';setHeld(KING.o,'R','staff_moon');
    for(const [dx,nm] of [[-2,'Ульф'],[2,'Стейн']]){const g=townsman(R.ox+cx+dx,R.oz+3,{wander:0,npc:'Стражник '+nm,job:'Стражник',place:cap,kind:'castle',face:0},false,nm,LOOKS2[(dx+5)%LOOKS2.length]);g.workAct='guard';setHeld(g.o,'R','spear');COURT.push(g);}
    const m=townsman(R.ox+cx,R.oz+R.id-4,{wander:3,npc:'Служанка Агнета',job:'Служанка',place:cap,kind:'castle'},true,'Агнета',LOOKS2[7%LOOKS2.length]);m.workAct='sweep';COURT.push(m);}}
+// a sellsword in Заводь's tavern: the first companion an island offers
+{const T=ROOMS.find(r=>r.type==='tavern');if(T){const [x,z]=nearFree(T.ox+T.iw-3,T.oz+T.id-3,3);
+  const m=townsman(x,z,{wander:1,npc:'Наёмник Сигвальд',talkId:'merc',job:'Наёмник',place:null,kind:'merc',hire:15,
+    name:'Сигвальд',hp:16,max:16,ac:14,atk:4,dmg:8,dmgB:2,dex:1,speed:6,atkName:'Топор',hireLine:'Договорились. Иду за тобой. В драке держись рядом, вдвоём отобьёмся.'},false,'Сигвальд',LOOKS2[5%LOOKS2.length],{headgear:'helm'});
+  setHeld(m.o,'R','axe_hand');m.workAct='drinkstand';}}
 const KEEPERS=[];
 {const N={smith:['Кузнец','Хокон',false],baker:['Пекарь','Эрленд',false],store:['Лавочница','Гретта',true]};let i=0;
  for(const R of ROOMS.filter(r=>r.shop)){const [job,nm,fem]=N[R.shop];let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' из '+(R.place.type==='capital'?'столицы':R.place.n);
@@ -131,7 +136,7 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
   say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уйти',()=>{}]]);}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
 function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
-  window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
+  gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
   say(n,'Ворон повержен? Рагнар… Я помню его. Лучший капитан моей стражи. Может, он был прав насчёт того налога. Посёлку я пошлю зерно — пусть хоть это останется от него. А ты возьми меч с рунами из моей оружейной, он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
 function ravenLoad(st){const q=Q.raven;if(!q||!st)return;q.step=st;q.title=RV_TITLE[st];

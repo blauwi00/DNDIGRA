@@ -84,14 +84,14 @@ function hurt(def,dmg,att,kind){if(def===H0){const R=RACES[HERO.race]||{};if(R.f
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
     H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
     setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0,'fire');},450);}
-    if(H0.hp<=0)knockOut();}else{def.hp-=dmg;if(def.hp<=0)kill(def);}}
+    if(H0.hp<=0)knockOut();}else if(def.ally){def.hp-=dmg;if(def.hp<=0)allyDown(def);}else{def.hp-=dmg;if(def.hp<=0)kill(def);else morale(def);}}
 // cantrips that call for a saving throw: no attack roll, the target resists
 async function saveSpell(def,opt){const ab={wis:def.wis||0,dex:def.dex||0,str:def.ath||0}[opt.save]||0,dc=8+HERO.spell+2;
   const res=await roll20(def.name+': спасбросок ('+({wis:'Мудрость',dex:'Ловкость',str:'Сила'})[opt.save]+') · '+opt.n,ab,dc);await projectile(H0,def,'spell');
   if(!res.ok){const dmg=await rollDamage(opt,false,[]);await knock(def,H0,dmg,'#ffd27a');if(opt.effect==='distract'){def.distracted=true;floatText('Сбит с толку','#9fc3cf',def.o);}def.aware=true;hurt(def,dmg,H0);}
   else{floatText('Устоял','#cfc6b4',def.o);def.aware=true;}rollDone();}
-function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
-function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
+function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+(typeof LV!=='undefined'&&LV.lv>1?' '+LV.lv+' ур.':'')+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
+function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);gainXP(xpOf(e));if(e.boss&&CB.on)setTimeout(()=>liveFoes().forEach(flee),700);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
   floatText(e.name+' повержен','#f2c14e',e.o);}
 
 // ---------- tricks ----------
@@ -159,9 +159,10 @@ const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+
 // ---------- turns ----------
 const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
 async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
-  const foes=enemies.filter(e=>!e.dead&&e.o.visible&&(e===trigger||Math.hypot(e.x-trigger.x,e.z-trigger.z)<=5));
+  const foes=[trigger,...enemies.filter(e=>e!==trigger&&!e.dead&&e.o.visible&&Math.hypot(e.x-trigger.x,e.z-trigger.z)<=4).sort((a,b)=>man(a,trigger)-man(b,trigger)).slice(0,1)];
+  const mates=ALLIES.filter(a=>!a.down&&man(a,H0)<=12);for(const a of mates){a.route=null;a.inFight=true;}
   for(const e of foes){e.route=null;e.investigate=null;e.inFight=true;if(!surprise||e!==trigger)e.aware=true;}
-  const ini=[{a:H0,v:d(20)+HERO.dex+(HERO.init||0)},...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
+  const ini=[{a:H0,v:d(20)+HERO.dex+(HERO.init||0)},...mates.map(a=>({a,v:d(20)+(a.dex||0)})),...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
   if(heroFirst){const k=ini.findIndex(o=>o.a===H0);ini.unshift(ini.splice(k,1)[0]);}
   if(surprise)trigger.surprised=true;
   CB.order=ini.map(o=>o.a);CB.round=1;CB.readUsed=false;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
@@ -170,15 +171,17 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
   if(!heroFirst){await wait(1100);nextTurn();}}
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
-function liveFoes(){return CB.order.filter(a=>a!==H0&&!a.dead);}
+function liveFoes(){return CB.order.filter(a=>a.enemy&&!a.dead);}
 function endCombat(text){CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
-  for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}if(text){banner(text);toast(text);}}
+  for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}
+  for(const a of ALLIES){a.inFight=false;if(a.down){a.down=false;a.hp=Math.ceil(a.max/2);a.o.rotation.z=0;a.sink=0;floatText(a.name+' встаёт','#9fe0a0',a.o);}}if(text){banner(text);toast(text);}}
 const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров зачищен.':'Победа.');
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
   CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;}const a=CB.order[CB.i];if(a.dead)return nextTurn();
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}
+  if(a.ally){if(a.down)return nextTurn();await allyTurn(a);if(H0.dead||!CB.on)return;if(!liveFoes().length)return victory();await wait(300);return nextTurn();}
   await enemyTurn(a);if(H0.dead||!CB.on)return;await wait(350);nextTurn();}
 function afterHeroAct(){if(!CB.on)return;if(!liveFoes().length)return victory();renderOrder();if(CB.move>0)showMoves();
   if(CB.acted&&CB.move<=0)setTimeout(()=>heroTurn()&&!busy&&endHeroTurn(),900);}
@@ -188,10 +191,10 @@ async function enemyTurn(e){if(man(e,H0)>3){camFocus=e;await wait(450);}try{awai
 async function enemyTurnBody(e){
   if(e.prone){e.prone=false;e.lean=0;floatText('Встаёт','#cfc6b4',e.o);await wait(600);}
   if(e.distracted){e.distracted=e.distracted>1?e.distracted-1:false;e.face+=Math.PI;floatText('Отвлёкся на шум','#9fc3cf',e.o);await wait(900);return;}
-  const range=e.range||1,mv=e.speed||6;
-  if(man(e,H0)>range){const p=path(e.x,e.z,H0.x,H0.z,e,true,2000);if(p&&p.length){let route=p.slice(0,mv);
-    if(range>1){const k=p.findIndex(c=>Math.abs(c[0]-H0.x)+Math.abs(c[1]-H0.z)<=range);if(k>=0)route=p.slice(0,Math.min(mv,k+1));}await walk(e,route);}}
-  if(man(e,H0)<=range&&!H0.dead)await attack(e,H0,{n:e.atkName||'Удар',hit:e.atk,die:e.dmg,k:e.dmgK||1,b:e.dmgB??1,range,kind:range>1?'bow':'melee'});}
+  const range=e.range||1,mv=e.speed||6,T=nearestOf(e,foeTargets());if(!T)return;
+  if(man(e,T)>range){const p=path(e.x,e.z,T.x,T.z,e,true,2000);if(p&&p.length){let route=p.slice(0,mv);
+    if(range>1){const k=p.findIndex(c=>Math.abs(c[0]-T.x)+Math.abs(c[1]-T.z)<=range);if(k>=0)route=p.slice(0,Math.min(mv,k+1));}await walk(e,route);}}
+  if(man(e,T)<=range&&!H0.dead&&!T.down)await attack(e,T,{n:e.atkName||'Удар',hit:e.atk,die:e.dmg,k:e.dmgK||1,b:e.dmgB??1,range,kind:range>1?'bow':'melee'});}
 
 // ---------- movement tiles on the hero's turn ----------
 const tilePool=[],tileMat=new THREE.MeshBasicMaterial({color:0x7fd0ff,transparent:true,opacity:.22,depthWrite:false});
@@ -207,9 +210,39 @@ async function heroMove(tx,tz){const c=moveCells().find(c=>c[0]===tx&&c[1]===tz)
 // ---------- turn order and hero status, top of the screen ----------
 function renderOrder(){orderEl.hidden=!CB.on;cstat.hidden=!heroTurn();if(!CB.on)return;orderEl.replaceChildren();
   const r=document.createElement('span');r.className='round';r.textContent='Раунд '+CB.round;orderEl.append(r);
-  CB.order.forEach((a,i)=>{if(a.dead)return;const c=document.createElement('span');c.className='chip'+(i===CB.i?' now':'')+(a===H0?' me':'');
-    c.textContent=(a===H0?'Вы':a.name)+(a!==H0?' '+Math.max(0,a.hp)+'/'+a.max:'');orderEl.append(c);});
+  const many=CB.order.filter(a=>!a.dead&&!a.down).length>4;
+  CB.order.forEach((a,i)=>{if(a.dead)return;const c=document.createElement('span');c.className='chip'+(i===CB.i?' now':'')+(a===H0||a.ally?' me':'');if(a.down)return;
+    c.textContent=(a===H0?'Вы':many?a.name.split(' ').pop().slice(0,7):a.name)+(a!==H0?' '+Math.max(0,a.hp)+(many?'':'/'+a.max):'');orderEl.append(c);});
   if(heroTurn())cstat.innerHTML='Ваш ход · шаги <b>'+CB.move+'</b> · действие '+(CB.acted?'<s>есть</s>':'<b>есть</b>')+' · бонус '+(CB.bonus?'<s>есть</s>':'<b>есть</b>')+'<br><small>нажмите на себя — конец хода и особые умения</small>';}
 function knockOut(){H0.dead=true;H0.route=null;endCombat();toast('Вы теряете сознание…');tween(500,k=>{hero.rotation.z=k*1.4});
   setTimeout(()=>{H0.dead=false;hero.rotation.z=0;H0.hp=H0.max;rest();setRoom(null);H0.x=Z.dock[0]+1;H0.z=Z.dock[1];H0.px=H0.x+.5;H0.pz=H0.z+.5;setHP();
     for(const e of enemies)if(!e.dead){e.aware=false;e.route=null;e.hp=e.max;e.x=e.home[0];e.z=e.home[1];e.px=e.x+.5;e.pz=e.z+.5;}toast('Рыбаки нашли вас и принесли на причал. Здоровье восстановлено.',4000);},2400);}
+
+// ---------- companions, morale and experience ----------
+// A lone hero against three is a lost fight in the rules too, so: a companion can be hired and fights on
+// the hero's side, a fight starts with the foe that noticed you and at most one close mate, badly hurt foes
+// may break and run (a fallen chief makes his men run), and every foe overcome gives experience.
+const ALLIES=[];
+const foeTargets=()=>[H0,...ALLIES.filter(a=>!a.down&&CB.order.includes(a))];
+const nearestOf=(e,list)=>list.reduce((b,a)=>!b||man(e,a)<man(e,b)?a:b,null);
+async function allyTurn(a){const t=nearestOf(a,liveFoes());if(!t)return;if(man(a,H0)>3){camFocus=a;await wait(400);}
+  try{if(man(a,t)>1){const p=path(a.x,a.z,t.x,t.z,a,true,2000);if(p&&p.length)await walk(a,p.slice(0,a.speed||6));}
+    if(man(a,t)<=1&&!t.dead)await attack(a,t,{n:a.atkName,hit:a.atk,die:a.dmg,k:1,b:a.dmgB,range:1,kind:'melee'});}finally{await wait(200);camFocus=null;}}
+function allyDown(a){a.down=true;a.hp=0;a.route=null;sfx('death');floatText(a.name+' ранен и падает','#ff9a6a',a.o);tween(500,k=>{a.o.rotation.z=k*1.3;a.sink=k*.1});renderOrder();}
+// a badly hurt foe that fails its nerve runs: it counts as overcome but leaves no body
+function morale(e){if(!e.enemy||e.boss||e.dead||e.fled||e.temp)return;if(e.hp>e.max*.35)return;if(d(20)+(e.wis||0)>=11)return;flee(e);}
+function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight=false;floatText(e.model==='bandit'?'Бросает оружие и бежит':'Убегает','#cfc6b4',e.o);
+  questKill(e);gainXP(Math.round(xpOf(e)*.7));const dx=Math.sign(e.x-H0.x)||1,dz=Math.sign(e.z-H0.z)||1,x0=e.o.position.x,z0=e.o.position.z;e.face=Math.atan2(dx,dz);
+  tween(1200,k=>{e.o.position.x=x0+dx*5*k;e.o.position.z=z0+dz*5*k;}).then(()=>{e.o.visible=false;});renderOrder();}
+const XPV={bandit:25,goblin:50,skeleton:50,wolf:50,boar:50,bear:100};
+const xpOf=e=>e.temp?0:e.boss?450:XPV[e.model]||25;
+const LV={xp:0,lv:1};const LV_AT=[0,300,900,2700,6500];
+const lvHP=()=>(LV.lv-1)*Math.max(4,Math.round(HERO.hp*.3));
+function gainXP(n){if(!n)return;LV.xp+=n;setTimeout(()=>floatText('+'+n+' опыта','#bfe0ff',hero),300);
+  while(LV.lv<LV_AT.length&&LV.xp>=LV_AT[LV.lv]){LV.lv++;H0.max=HERO.hp+lvHP();H0.hp=H0.max;setHP();setTimeout(()=>{banner('Новый уровень: '+LV.lv);sfx('crit');toast('Уровень '+LV.lv+': здоровье '+H0.max+'. Раны затянулись.');},900);}}
+// a hired companion walks behind the hero and is put back beside him after doors and long walks
+function allyTick(){if(CB.on)return;for(const a of ALLIES){if(a.down||a.dead)continue;const dd=Math.hypot(a.px-H0.px,a.pz-H0.pz);
+  if(dd>12||(a.z>=OUT_H)!==(H0.z>=OUT_H)){const [x,z]=nearFree(H0.x+1,H0.z+1,3);a.x=x;a.z=z;a.px=x+.5;a.pz=z+.5;a.route=null;}
+  else if(dd>2.6&&!a.route&&!busy){const p=path(a.x,a.z,H0.x,H0.z,a,true,600);if(p&&p.length)a.route=p;}}}
+function hireAlly(a,price){if(gold<price)return say(a.npc,'Плата вперёд, '+price+' монет. Нет денег — нет похода.');addGold(-price);a.ally=true;a.wander=0;a.talkId='ally';ALLIES.push(a);save();
+  say(a.npc,a.hireLine||'Договорились. Иду за тобой. В драке держись рядом.');}

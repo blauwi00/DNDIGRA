@@ -70,6 +70,7 @@ function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=ma
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
   {icon:'look',label:'Осмотреть',run:()=>toast(a.npc+(PEOPLE[a.npc]?'. '+PEOPLE[a.npc].role[0].toUpperCase()+PEOPLE[a.npc].role.slice(1)+', '+PEOPLE[a.npc].temper+'.':'. Житель острова.'))}];
   // shopkeepers trade; villagers with side jobs offer paid work
+  if(a.hire&&!a.ally)items.push({icon:'job',label:'Нанять',sub:a.hire+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?hireAlly(a,a.hire):go(n+1));go(0);}});
   if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
   const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
@@ -159,7 +160,7 @@ function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));raceScale(
 let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
 function heroFace(s){const c=document.getElementById('hpFace');if(!c||!window.Characters)return;const g=c.getContext('2d');g.clearRect(0,0,40,40);
   const p=s.game?Characters.portrait('hero',s.game,{view:'face',width:40,height:40,pixel:2}):null;if(p){g.imageSmoothingEnabled=false;g.drawImage(p,0,0);}c.hidden=!p;}
-function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
+function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp+(typeof lvHP==='function'?lvHP():0);if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
 
 // ---------- menus ----------
 let paused=true;

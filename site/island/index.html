@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.65 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.66 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3210,14 +3210,14 @@ function hurt(def,dmg,att,kind){if(def===H0){const R=RACES[HERO.race]||{};if(R.f
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
     H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
     setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0,'fire');},450);}
-    if(H0.hp<=0)knockOut();}else{def.hp-=dmg;if(def.hp<=0)kill(def);}}
+    if(H0.hp<=0)knockOut();}else if(def.ally){def.hp-=dmg;if(def.hp<=0)allyDown(def);}else{def.hp-=dmg;if(def.hp<=0)kill(def);else morale(def);}}
 // cantrips that call for a saving throw: no attack roll, the target resists
 async function saveSpell(def,opt){const ab={wis:def.wis||0,dex:def.dex||0,str:def.ath||0}[opt.save]||0,dc=8+HERO.spell+2;
   const res=await roll20(def.name+': спасбросок ('+({wis:'Мудрость',dex:'Ловкость',str:'Сила'})[opt.save]+') · '+opt.n,ab,dc);await projectile(H0,def,'spell');
   if(!res.ok){const dmg=await rollDamage(opt,false,[]);await knock(def,H0,dmg,'#ffd27a');if(opt.effect==='distract'){def.distracted=true;floatText('Сбит с толку','#9fc3cf',def.o);}def.aware=true;hurt(def,dmg,H0);}
   else{floatText('Устоял','#cfc6b4',def.o);def.aware=true;}rollDone();}
-function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
-function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
+function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+(typeof LV!=='undefined'&&LV.lv>1?' '+LV.lv+' ур.':'')+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
+function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);gainXP(xpOf(e));if(e.boss&&CB.on)setTimeout(()=>liveFoes().forEach(flee),700);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
   floatText(e.name+' повержен','#f2c14e',e.o);}
 
 // ---------- tricks ----------
@@ -3285,9 +3285,10 @@ const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+
 // ---------- turns ----------
 const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
 async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
-  const foes=enemies.filter(e=>!e.dead&&e.o.visible&&(e===trigger||Math.hypot(e.x-trigger.x,e.z-trigger.z)<=5));
+  const foes=[trigger,...enemies.filter(e=>e!==trigger&&!e.dead&&e.o.visible&&Math.hypot(e.x-trigger.x,e.z-trigger.z)<=4).sort((a,b)=>man(a,trigger)-man(b,trigger)).slice(0,1)];
+  const mates=ALLIES.filter(a=>!a.down&&man(a,H0)<=12);for(const a of mates){a.route=null;a.inFight=true;}
   for(const e of foes){e.route=null;e.investigate=null;e.inFight=true;if(!surprise||e!==trigger)e.aware=true;}
-  const ini=[{a:H0,v:d(20)+HERO.dex+(HERO.init||0)},...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
+  const ini=[{a:H0,v:d(20)+HERO.dex+(HERO.init||0)},...mates.map(a=>({a,v:d(20)+(a.dex||0)})),...foes.map(e=>({a:e,v:d(20)+(e.dex||0)}))].sort((x,y)=>y.v-x.v);
   if(heroFirst){const k=ini.findIndex(o=>o.a===H0);ini.unshift(ini.splice(k,1)[0]);}
   if(surprise)trigger.surprised=true;
   CB.order=ini.map(o=>o.a);CB.round=1;CB.readUsed=false;CB.i=heroFirst?0:-1;CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;
@@ -3296,15 +3297,17 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
   if(!heroFirst){await wait(1100);nextTurn();}}
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
-function liveFoes(){return CB.order.filter(a=>a!==H0&&!a.dead);}
+function liveFoes(){return CB.order.filter(a=>a.enemy&&!a.dead);}
 function endCombat(text){CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
-  for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}if(text){banner(text);toast(text);}}
+  for(const e of enemies){e.inFight=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}
+  for(const a of ALLIES){a.inFight=false;if(a.down){a.down=false;a.hp=Math.ceil(a.max/2);a.o.rotation.z=0;a.sink=0;floatText(a.name+' встаёт','#9fe0a0',a.o);}}if(text){banner(text);toast(text);}}
 const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров зачищен.':'Победа.');
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
   CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;}const a=CB.order[CB.i];if(a.dead)return nextTurn();
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}
+  if(a.ally){if(a.down)return nextTurn();await allyTurn(a);if(H0.dead||!CB.on)return;if(!liveFoes().length)return victory();await wait(300);return nextTurn();}
   await enemyTurn(a);if(H0.dead||!CB.on)return;await wait(350);nextTurn();}
 function afterHeroAct(){if(!CB.on)return;if(!liveFoes().length)return victory();renderOrder();if(CB.move>0)showMoves();
   if(CB.acted&&CB.move<=0)setTimeout(()=>heroTurn()&&!busy&&endHeroTurn(),900);}
@@ -3314,10 +3317,10 @@ async function enemyTurn(e){if(man(e,H0)>3){camFocus=e;await wait(450);}try{awai
 async function enemyTurnBody(e){
   if(e.prone){e.prone=false;e.lean=0;floatText('Встаёт','#cfc6b4',e.o);await wait(600);}
   if(e.distracted){e.distracted=e.distracted>1?e.distracted-1:false;e.face+=Math.PI;floatText('Отвлёкся на шум','#9fc3cf',e.o);await wait(900);return;}
-  const range=e.range||1,mv=e.speed||6;
-  if(man(e,H0)>range){const p=path(e.x,e.z,H0.x,H0.z,e,true,2000);if(p&&p.length){let route=p.slice(0,mv);
-    if(range>1){const k=p.findIndex(c=>Math.abs(c[0]-H0.x)+Math.abs(c[1]-H0.z)<=range);if(k>=0)route=p.slice(0,Math.min(mv,k+1));}await walk(e,route);}}
-  if(man(e,H0)<=range&&!H0.dead)await attack(e,H0,{n:e.atkName||'Удар',hit:e.atk,die:e.dmg,k:e.dmgK||1,b:e.dmgB??1,range,kind:range>1?'bow':'melee'});}
+  const range=e.range||1,mv=e.speed||6,T=nearestOf(e,foeTargets());if(!T)return;
+  if(man(e,T)>range){const p=path(e.x,e.z,T.x,T.z,e,true,2000);if(p&&p.length){let route=p.slice(0,mv);
+    if(range>1){const k=p.findIndex(c=>Math.abs(c[0]-T.x)+Math.abs(c[1]-T.z)<=range);if(k>=0)route=p.slice(0,Math.min(mv,k+1));}await walk(e,route);}}
+  if(man(e,T)<=range&&!H0.dead&&!T.down)await attack(e,T,{n:e.atkName||'Удар',hit:e.atk,die:e.dmg,k:e.dmgK||1,b:e.dmgB??1,range,kind:range>1?'bow':'melee'});}
 
 // ---------- movement tiles on the hero's turn ----------
 const tilePool=[],tileMat=new THREE.MeshBasicMaterial({color:0x7fd0ff,transparent:true,opacity:.22,depthWrite:false});
@@ -3333,12 +3336,42 @@ async function heroMove(tx,tz){const c=moveCells().find(c=>c[0]===tx&&c[1]===tz)
 // ---------- turn order and hero status, top of the screen ----------
 function renderOrder(){orderEl.hidden=!CB.on;cstat.hidden=!heroTurn();if(!CB.on)return;orderEl.replaceChildren();
   const r=document.createElement('span');r.className='round';r.textContent='Раунд '+CB.round;orderEl.append(r);
-  CB.order.forEach((a,i)=>{if(a.dead)return;const c=document.createElement('span');c.className='chip'+(i===CB.i?' now':'')+(a===H0?' me':'');
-    c.textContent=(a===H0?'Вы':a.name)+(a!==H0?' '+Math.max(0,a.hp)+'/'+a.max:'');orderEl.append(c);});
+  const many=CB.order.filter(a=>!a.dead&&!a.down).length>4;
+  CB.order.forEach((a,i)=>{if(a.dead)return;const c=document.createElement('span');c.className='chip'+(i===CB.i?' now':'')+(a===H0||a.ally?' me':'');if(a.down)return;
+    c.textContent=(a===H0?'Вы':many?a.name.split(' ').pop().slice(0,7):a.name)+(a!==H0?' '+Math.max(0,a.hp)+(many?'':'/'+a.max):'');orderEl.append(c);});
   if(heroTurn())cstat.innerHTML='Ваш ход · шаги <b>'+CB.move+'</b> · действие '+(CB.acted?'<s>есть</s>':'<b>есть</b>')+' · бонус '+(CB.bonus?'<s>есть</s>':'<b>есть</b>')+'<br><small>нажмите на себя — конец хода и особые умения</small>';}
 function knockOut(){H0.dead=true;H0.route=null;endCombat();toast('Вы теряете сознание…');tween(500,k=>{hero.rotation.z=k*1.4});
   setTimeout(()=>{H0.dead=false;hero.rotation.z=0;H0.hp=H0.max;rest();setRoom(null);H0.x=Z.dock[0]+1;H0.z=Z.dock[1];H0.px=H0.x+.5;H0.pz=H0.z+.5;setHP();
     for(const e of enemies)if(!e.dead){e.aware=false;e.route=null;e.hp=e.max;e.x=e.home[0];e.z=e.home[1];e.px=e.x+.5;e.pz=e.z+.5;}toast('Рыбаки нашли вас и принесли на причал. Здоровье восстановлено.',4000);},2400);}
+
+// ---------- companions, morale and experience ----------
+// A lone hero against three is a lost fight in the rules too, so: a companion can be hired and fights on
+// the hero's side, a fight starts with the foe that noticed you and at most one close mate, badly hurt foes
+// may break and run (a fallen chief makes his men run), and every foe overcome gives experience.
+const ALLIES=[];
+const foeTargets=()=>[H0,...ALLIES.filter(a=>!a.down&&CB.order.includes(a))];
+const nearestOf=(e,list)=>list.reduce((b,a)=>!b||man(e,a)<man(e,b)?a:b,null);
+async function allyTurn(a){const t=nearestOf(a,liveFoes());if(!t)return;if(man(a,H0)>3){camFocus=a;await wait(400);}
+  try{if(man(a,t)>1){const p=path(a.x,a.z,t.x,t.z,a,true,2000);if(p&&p.length)await walk(a,p.slice(0,a.speed||6));}
+    if(man(a,t)<=1&&!t.dead)await attack(a,t,{n:a.atkName,hit:a.atk,die:a.dmg,k:1,b:a.dmgB,range:1,kind:'melee'});}finally{await wait(200);camFocus=null;}}
+function allyDown(a){a.down=true;a.hp=0;a.route=null;sfx('death');floatText(a.name+' ранен и падает','#ff9a6a',a.o);tween(500,k=>{a.o.rotation.z=k*1.3;a.sink=k*.1});renderOrder();}
+// a badly hurt foe that fails its nerve runs: it counts as overcome but leaves no body
+function morale(e){if(!e.enemy||e.boss||e.dead||e.fled||e.temp)return;if(e.hp>e.max*.35)return;if(d(20)+(e.wis||0)>=11)return;flee(e);}
+function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight=false;floatText(e.model==='bandit'?'Бросает оружие и бежит':'Убегает','#cfc6b4',e.o);
+  questKill(e);gainXP(Math.round(xpOf(e)*.7));const dx=Math.sign(e.x-H0.x)||1,dz=Math.sign(e.z-H0.z)||1,x0=e.o.position.x,z0=e.o.position.z;e.face=Math.atan2(dx,dz);
+  tween(1200,k=>{e.o.position.x=x0+dx*5*k;e.o.position.z=z0+dz*5*k;}).then(()=>{e.o.visible=false;});renderOrder();}
+const XPV={bandit:25,goblin:50,skeleton:50,wolf:50,boar:50,bear:100};
+const xpOf=e=>e.temp?0:e.boss?450:XPV[e.model]||25;
+const LV={xp:0,lv:1};const LV_AT=[0,300,900,2700,6500];
+const lvHP=()=>(LV.lv-1)*Math.max(4,Math.round(HERO.hp*.3));
+function gainXP(n){if(!n)return;LV.xp+=n;setTimeout(()=>floatText('+'+n+' опыта','#bfe0ff',hero),300);
+  while(LV.lv<LV_AT.length&&LV.xp>=LV_AT[LV.lv]){LV.lv++;H0.max=HERO.hp+lvHP();H0.hp=H0.max;setHP();setTimeout(()=>{banner('Новый уровень: '+LV.lv);sfx('crit');toast('Уровень '+LV.lv+': здоровье '+H0.max+'. Раны затянулись.');},900);}}
+// a hired companion walks behind the hero and is put back beside him after doors and long walks
+function allyTick(){if(CB.on)return;for(const a of ALLIES){if(a.down||a.dead)continue;const dd=Math.hypot(a.px-H0.px,a.pz-H0.pz);
+  if(dd>12||(a.z>=OUT_H)!==(H0.z>=OUT_H)){const [x,z]=nearFree(H0.x+1,H0.z+1,3);a.x=x;a.z=z;a.px=x+.5;a.pz=z+.5;a.route=null;}
+  else if(dd>2.6&&!a.route&&!busy){const p=path(a.x,a.z,H0.x,H0.z,a,true,600);if(p&&p.length)a.route=p;}}}
+function hireAlly(a,price){if(gold<price)return say(a.npc,'Плата вперёд, '+price+' монет. Нет денег — нет похода.');addGold(-price);a.ally=true;a.wander=0;a.talkId='ally';ALLIES.push(a);save();
+  say(a.npc,a.hireLine||'Договорились. Иду за тобой. В драке держись рядом.');}
 
 // potion / bread from the hands, used by tapping a character (D&D: potion 2d4+2)
 function useConsumable(target){const h=hero.userData.held||{},id=['potion','bread'].find(x=>h.L===x||h.R===x);if(!id||target.enemy)return false;
@@ -3368,7 +3401,7 @@ function questUI(){if(tutUI())return;
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
 function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===e.name&&q.left>0&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
-function reward(q,items,line,who){q.state=3;if(q.at)repAdd('kingdom',q.rep||1,'помощь королевству');else repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);const gg=q.gold||QUEST_GOLD[k];if(gg)setTimeout(()=>addGold(gg,'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
+function reward(q,items,line,who){q.state=3;gainXP(100);if(q.at)repAdd('kingdom',q.rep||1,'помощь королевству');else repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);const gg=q.gold||QUEST_GOLD[k];if(gg)setTimeout(()=>addGold(gg,'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
@@ -3396,6 +3429,8 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
+  if(a.talkId==='merc')return say(n,'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.');
+  if(a.talkId==='ally')return say(n,['Я рядом. Если что — зови.','Втроём на одного не лезь, лучше подманивай по одному.','Устал? Отдохни у костра, я посторожу.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
@@ -3435,11 +3470,11 @@ function ai(){const now=performance.now();
       if(a.investigate){const I=a.investigate;if(!I.t){if(!a.route){const p=path(a.x,a.z,I.x,I.z,a,true,800);if(p&&p.length>0&&Math.hypot(a.x-I.x,a.z-I.z)>1.5)a.route=p;else I.t=now;}}
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
       if(!a.route&&Math.random()<.12)a.face+=(Math.random()-.5)*2.4;} // idle enemies look around, giving chances to slip behind them
-    if(a.villager||a.role==='trav'||a.hidden)continue; // the daily routine moves them
+    if(a.villager||a.role==='trav'||a.hidden||a.ally)continue; // the daily routine moves them
     if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
-function idleLife(a,r,b,t){const p=a.ph;if(a.talkId==='town'&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town')workPose(a,r,b,t);
+function idleLife(a,r,b,t){const p=a.ph;if((a.talkId==='town'||a.talkId==='merc')&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town'||a.talkId==='merc')workPose(a,r,b,t);
   if(a.act==='wipe'){r.armL.rotation.set(-1.05,Math.sin(t*3+p)*.15,Math.sin(t*3+p)*.35);b.rotation.x=.12;}
   if(a.act==='hammer'&&!a.route){a.face=Math.PI;const k=(t*1.1+p)%1,up=k<.6?k/.6:1-(k-.6)/.4*1.0,hit=k>.94;r.armL.rotation.set(-.3-1.9*Math.max(0,up),0,.1);b.rotation.x=.1+.06*up;
     if(k<a.hk&&room&&room.type==='forge')sfx('clank');a.hk=k;}
@@ -3465,7 +3500,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
@@ -3664,7 +3699,7 @@ window.snd={muted:()=>muted,setMuted(v){if(muted!==v)sndBtn.onclick();},vol:()=>
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -3674,6 +3709,8 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
+  if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
+  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door
@@ -3750,6 +3787,7 @@ function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=ma
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
   {icon:'look',label:'Осмотреть',run:()=>toast(a.npc+(PEOPLE[a.npc]?'. '+PEOPLE[a.npc].role[0].toUpperCase()+PEOPLE[a.npc].role.slice(1)+', '+PEOPLE[a.npc].temper+'.':'. Житель острова.'))}];
   // shopkeepers trade; villagers with side jobs offer paid work
+  if(a.hire&&!a.ally)items.push({icon:'job',label:'Нанять',sub:a.hire+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?hireAlly(a,a.hire):go(n+1));go(0);}});
   if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
   const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
@@ -3839,7 +3877,7 @@ function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));raceScale(
 let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
 function heroFace(s){const c=document.getElementById('hpFace');if(!c||!window.Characters)return;const g=c.getContext('2d');g.clearRect(0,0,40,40);
   const p=s.game?Characters.portrait('hero',s.game,{view:'face',width:40,height:40,pixel:2}):null;if(p){g.imageSmoothingEnabled=false;g.drawImage(p,0,0);}c.hidden=!p;}
-function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp;if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
+function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp+(typeof lvHP==='function'?lvHP():0);if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
 
 // ---------- menus ----------
 let paused=true;
@@ -4153,6 +4191,11 @@ const COURT=[];let KING=null;
    KING=townsman(R.ox+cx,R.oz+3,{wander:0,npc:'Король Хальвдан',talkId:'king',place:cap,kind:'castle',face:0},false,'Хальвдан',LOOKS2[3%LOOKS2.length],{headgear:'crown',cape:'long',capeColor:'#8e2a24',trim:'#d8b04a',outfit:'tabard',beard:'full'});KING.workAct='guard';setHeld(KING.o,'R','staff_moon');
    for(const [dx,nm] of [[-2,'Ульф'],[2,'Стейн']]){const g=townsman(R.ox+cx+dx,R.oz+3,{wander:0,npc:'Стражник '+nm,job:'Стражник',place:cap,kind:'castle',face:0},false,nm,LOOKS2[(dx+5)%LOOKS2.length]);g.workAct='guard';setHeld(g.o,'R','spear');COURT.push(g);}
    const m=townsman(R.ox+cx,R.oz+R.id-4,{wander:3,npc:'Служанка Агнета',job:'Служанка',place:cap,kind:'castle'},true,'Агнета',LOOKS2[7%LOOKS2.length]);m.workAct='sweep';COURT.push(m);}}
+// a sellsword in Заводь's tavern: the first companion an island offers
+{const T=ROOMS.find(r=>r.type==='tavern');if(T){const [x,z]=nearFree(T.ox+T.iw-3,T.oz+T.id-3,3);
+  const m=townsman(x,z,{wander:1,npc:'Наёмник Сигвальд',talkId:'merc',job:'Наёмник',place:null,kind:'merc',hire:15,
+    name:'Сигвальд',hp:16,max:16,ac:14,atk:4,dmg:8,dmgB:2,dex:1,speed:6,atkName:'Топор',hireLine:'Договорились. Иду за тобой. В драке держись рядом, вдвоём отобьёмся.'},false,'Сигвальд',LOOKS2[5%LOOKS2.length],{headgear:'helm'});
+  setHeld(m.o,'R','axe_hand');m.workAct='drinkstand';}}
 const KEEPERS=[];
 {const N={smith:['Кузнец','Хокон',false],baker:['Пекарь','Эрленд',false],store:['Лавочница','Гретта',true]};let i=0;
  for(const R of ROOMS.filter(r=>r.shop)){const [job,nm,fem]=N[R.shop];let npc=job+' '+nm;while(actors.some(o=>o.npc===npc))npc+=' из '+(R.place.type==='capital'?'столицы':R.place.n);
@@ -4218,7 +4261,7 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
   say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уйти',()=>{}]]);}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
 function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
-  window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
+  gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
   say(n,'Ворон повержен? Рагнар… Я помню его. Лучший капитан моей стражи. Может, он был прав насчёт того налога. Посёлку я пошлю зерно — пусть хоть это останется от него. А ты возьми меч с рунами из моей оружейной, он твой по праву. Получено: рунный меч, зелье лечения ×3.');}
 function ravenLoad(st){const q=Q.raven;if(!q||!st)return;q.step=st;q.title=RV_TITLE[st];

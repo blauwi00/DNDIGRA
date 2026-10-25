@@ -473,7 +473,7 @@ function questUI(){if(tutUI())return;
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
 function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===e.name&&q.left>0&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
-function reward(q,items,line,who){q.state=3;if(q.at)repAdd('kingdom',q.rep||1,'помощь королевству');else repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);const gg=q.gold||QUEST_GOLD[k];if(gg)setTimeout(()=>addGold(gg,'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
+function reward(q,items,line,who){q.state=3;gainXP(100);if(q.at)repAdd('kingdom',q.rep||1,'помощь королевству');else repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);const gg=q.gold||QUEST_GOLD[k];if(gg)setTimeout(()=>addGold(gg,'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
@@ -501,6 +501,8 @@ function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.p
   if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
+  if(a.talkId==='merc')return say(n,'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.');
+  if(a.talkId==='ally')return say(n,['Я рядом. Если что — зови.','Втроём на одного не лезь, лучше подманивай по одному.','Устал? Отдохни у костра, я посторожу.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='town')return townTalk(a,n);
   if(a.talkId==='smith')return say(n,'Меч у тебя добрый, но щит держи выше. Лук бьёт на шесть клеток, а с посохом и двумя руками — не до щита.');
   if(a.talkId==='herb'){if(!a.gave){a.gave=1;window.handsGive&&window.handsGive([['potion',1]],'Подарок');return say(n,'Ты бледен. Вот, отвар из болотной мяты — зелье лечения. Когда будет худо, нажми на себя и выбери «Зелье».');}
@@ -540,11 +542,11 @@ function ai(){const now=performance.now();
       if(a.investigate){const I=a.investigate;if(!I.t){if(!a.route){const p=path(a.x,a.z,I.x,I.z,a,true,800);if(p&&p.length>0&&Math.hypot(a.x-I.x,a.z-I.z)>1.5)a.route=p;else I.t=now;}}
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
       if(!a.route&&Math.random()<.12)a.face+=(Math.random()-.5)*2.4;} // idle enemies look around, giving chances to slip behind them
-    if(a.villager||a.role==='trav'||a.hidden)continue; // the daily routine moves them
+    if(a.villager||a.role==='trav'||a.hidden||a.ally)continue; // the daily routine moves them
     if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
-function idleLife(a,r,b,t){const p=a.ph;if(a.talkId==='town'&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town')workPose(a,r,b,t);
+function idleLife(a,r,b,t){const p=a.ph;if((a.talkId==='town'||a.talkId==='merc')&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town'||a.talkId==='merc')workPose(a,r,b,t);
   if(a.act==='wipe'){r.armL.rotation.set(-1.05,Math.sin(t*3+p)*.15,Math.sin(t*3+p)*.35);b.rotation.x=.12;}
   if(a.act==='hammer'&&!a.route){a.face=Math.PI;const k=(t*1.1+p)%1,up=k<.6?k/.6:1-(k-.6)/.4*1.0,hit=k>.94;r.armL.rotation.set(-.3-1.9*Math.max(0,up),0,.1);b.rotation.x=.1+.06*up;
     if(k<a.hk&&room&&room.type==='forge')sfx('clank');a.hk=k;}
@@ -570,7 +572,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();}}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
@@ -615,7 +617,7 @@ function menuCam(dt){menuT+=dt;const seg=16,n=MENU_PATH.length,i=Math.floor(menu
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -625,6 +627,8 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
+  if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
+  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){d.x=ROOMS[d.room].exit[0];d.z=ROOMS[d.room].exit[1]-1;} // rooms moved and grew: a saved hero indoors wakes by the door

@@ -368,6 +368,21 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return bad;
     });
     assert.deepEqual(court, []);
+    step('fights: a hired companion is on the hero side, a fight starts with at most two foes, hurt foes may run, experience levels the hero');
+    const fights = await p.evaluate(() => {
+      const bad = [], m = actors.find((a) => a.npc === 'Наёмник Сигвальд'), close = () => { document.querySelector('.talk').hidden = true; };
+      if (!m) return ['no sellsword in the tavern'];
+      const g0 = gold; addGold(20); hireAlly(m, 15); close(); if (!m.ally || !ALLIES.includes(m) || gold !== g0 + 5) bad.push('hiring failed');
+      const camp = enemies.filter((e) => e.model === 'bandit' && !e.dead && !e.dormant);
+      const trio = enemies.find((e) => !e.dead && !e.dormant && enemies.filter((o) => o !== e && !o.dead && !o.dormant && Math.hypot(o.x - e.x, o.z - e.z) <= 4).length >= 2);
+      if (trio) { const sv = [H0.x, H0.z, H0.px, H0.pz]; H0.x = trio.x; H0.z = trio.z + 3; m.x = H0.x + 1; m.z = H0.z; startCombat(trio, false, true);
+        if (liveFoes().length > 2) bad.push('fight began with ' + liveFoes().length + ' foes'); if (!CB.order.includes(m)) bad.push('companion not in the fight');
+        if (liveFoes().includes(m)) bad.push('companion counted as a foe'); endCombat(''); [H0.x, H0.z, H0.px, H0.pz] = sv; }
+      const lv0 = LV.lv, max0 = H0.max; gainXP(300); if (LV.lv !== lv0 + 1 || H0.max <= max0 || H0.hp !== H0.max) bad.push('no level up');
+      const wolf = enemies.find((e) => e.model === 'wolf' && !e.dead && !e.dormant); if (wolf) { flee(wolf); if (!wolf.dead || !wolf.fled) bad.push('flee failed'); }
+      return bad;
+    });
+    assert.deepEqual(fights, []);
     step('the island trouble, told slowly: king, bread for the old woman, the feather, the stone at night, the Raven');
     const raven = await p.evaluate(() => {
       const bad = [], q = Q.raven, king = actors.find((a) => a.talkId === 'king'), close = () => { document.querySelector('.talk').hidden = true; };
