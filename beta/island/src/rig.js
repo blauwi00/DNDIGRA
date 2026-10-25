@@ -8,17 +8,39 @@ const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Ma
 var SKIN_PX=.032,SKINTEX=null;
 function skinPixels(){if(SKINTEX)return SKINTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
   // soft patches two pixels wide, a few shades apart, like a hand-drawn block skin; pixel (0,0) stays plain for skin
-  const tones=[.87,.93,1,1,1.05];for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=tones[Math.floor(r()*tones.length)],g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
-    if(r()<.35){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
+  // a few close shades and no single-pixel speckles, so the grain reads as cloth and hair, not as a rash
+  const tones=[.92,.96,1,1,1.03];for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=tones[Math.floor(r()*tones.length)],g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
+    if(r()<0){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
   x.fillStyle='#fff';x.fillRect(0,0,1,1);
   SKINTEX=new THREE.CanvasTexture(c);SKINTEX.magFilter=SKINTEX.minFilter=THREE.NearestFilter;SKINTEX.wrapS=SKINTEX.wrapT=THREE.RepeatWrapping;SKINTEX.generateMipmaps=false;return SKINTEX;}
 let HAIR_SET=new Set();
 var HAIRTEX=null;
 function hairPixels(){if(HAIRTEX)return HAIRTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=31;const r=()=>(s=(s*16807)%2147483647)/2147483647;
-  const tones=[.78,.86,.93,1,1.06,1.14];for(let i=0;i<16;i++){let t=Math.floor(r()*tones.length);for(let j=0;j<16;){const run=2+Math.floor(r()*4);if(r()<.5)t=Math.max(0,Math.min(tones.length-1,t+(r()<.5?-1:1)));
-    const g=Math.round(Math.min(1,tones[t]/1.14)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,1,run);j+=run;}}
+  const tones=[.86,.91,.95,1,1.04,1.08];for(let i=0;i<16;i++){let t=Math.floor(r()*tones.length);for(let j=0;j<16;){const run=2+Math.floor(r()*4);if(r()<.5)t=Math.max(0,Math.min(tones.length-1,t+(r()<.5?-1:1)));
+    const g=Math.round(Math.min(1,tones[t]/1.08)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,1,run);j+=run;}}
   HAIRTEX=new THREE.CanvasTexture(c);HAIRTEX.magFilter=HAIRTEX.minFilter=THREE.NearestFilter;HAIRTEX.wrapS=HAIRTEX.wrapT=THREE.RepeatWrapping;HAIRTEX.generateMipmaps=false;return HAIRTEX;}
-function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig={},parts={};
+// Two of the shared builder's hairstyles are reshaped here, found by their own block sizes (saved looks keep working):
+// the mohawk becomes one solid crest from brow to nape without the dark side stripes, and the curly mop
+// becomes small curls lying close to the head instead of a wide box. Marks drawn on the old blocks go with them.
+var HAIR_OWN=false;
+function fixHair(boxes){HAIR_OWN=false;const near=(a,v,e)=>Math.abs(a-v)<(e||.012),solid=boxes.filter(b=>!b[8]);
+  const mo=solid.find(b=>near(b[0],0)&&near(b[3],.12)&&near(b[4],.22)&&near(b[5],.42)),cu=solid.find(b=>near(b[0],0)&&near(b[3],.62)&&near(b[4],.28)&&near(b[5],.56));
+  if(!mo&&!cu)return boxes;HAIR_OWN=true;const h=(mo||cu)[6],y0=(mo||cu)[1]-(mo?1.22:1.2);
+  const on=(d,b)=>Math.abs(d[0]-b[0])<=b[3]/2+.02&&Math.abs(d[1]-b[1])<=b[4]/2+.02&&Math.abs(d[2]-b[2])<=b[5]/2+.02;
+  // a hair block of this style above the ears: all of them are rebuilt
+  const old=solid.filter(b=>b[1]-y0>.95&&Math.min(b[3],b[4],b[5])>.015&&(b[6]===h||(mo&&near(Math.abs(b[0]),.245)&&near(b[3],.02))));
+  const kept=solid.filter(b=>!old.includes(b)),out=boxes.filter(b=>!old.includes(b)&&!(b[8]&&old.some(o=>on(b,o))&&!kept.some(k=>on(b,k))));
+  const H=(x,y,z,w,hh,d)=>out.push([x,y+y0,z,w,hh,d,h,false]);
+  if(mo){H(0,1.125,0,.3,.05,.44);H(0,1.25,-.01,.14,.3,.46);H(0,1.0,-.215,.14,.32,.06);}
+  else{H(0,1.02,-.02,.48,.18,.44);H(0,1.165,-.01,.5,.1,.48);H(0,.97,-.245,.5,.34,.07);
+    for(const sx of [-1,1])H(sx*.255,1.0,-.01,.06,.24,.44);
+    // curls: small knobs in a staggered grid on the crown, the sides, the back and along the hairline
+    for(let i=0;i<5;i++)for(let j=0;j<5;j++)if((i+j)%2===0)H(-.2+i*.1,1.23,-.2+j*.1,.09,.05,.09);
+    for(const sx of [-1,1])for(let j=0;j<4;j++)H(sx*.29,1.1-(j%2)*.1,-.15+j*.1,.04,.08,.08);
+    for(let i=0;i<5;i++)H(-.2+i*.1,1.08-(i%2)*.12,-.29,.08,.08,.04);
+    for(let i=0;i<5;i++)H(-.2+i*.1,1.08+(i%2)*.03,.22,.08,.06,.05);}
+  return out;}
+function buildModel(boxes){boxes=fixHair(boxes);const all_=boxes;const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
   // and a drawn mark that lies on no block is dropped, so nothing hovers beside the body
@@ -111,7 +133,8 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
      if(nr-nl>.004)out.push([(nl+nr)/2,up[1],up[2],nr-nl,...up.slice(4)]);return out;});}
   // hair is not cut square: locks of different lengths hang from its lower edges (at the back and sides, and at the
   // front only below or above the face), so the outline is ragged like real hair
-  for(const k of ['head','torso','cape'])if(parts[k]){const add=[];for(const b of parts[k]){if(b[8]||!HAIR_SET.has(b[6])||b[3]<.06||b[5]<.06||b[4]<.05)continue;
+  // (the reshaped mohawk and curls have their own outline and get no extra locks)
+  if(!HAIR_OWN)for(const k of ['head','torso','cape'])if(parts[k]){const add=[];for(const b of parts[k]){if(b[8]||!HAIR_SET.has(b[6])||b[3]<.06||b[5]<.06||b[4]<.05)continue;
     let sd=Math.abs(Math.round(b[0]*977+b[1]*613+b[2]*379))+7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,lo=b[1]-b[4]/2;
     const face=lo>.8&&lo<1.12;
     const edge=(x0,z0,x1,z1,front)=>{const L=Math.hypot(x1-x0,z1-z0),n=Math.max(1,Math.round(L/.045));if(front&&face)return;
