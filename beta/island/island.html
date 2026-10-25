@@ -531,7 +531,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.83 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.84 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3392,7 +3392,7 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   if(def.enemy){def.aware=true;def.distracted=false;}
   if(dmg)hurt(def,dmg,att);rollDone();}
 // damage taken by the hero passes through rage, shell, stone endurance; an orc stays up once; a tiefling burns back
-function hurt(def,dmg,att,kind){if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
+function hurt(def,dmg,att,kind){if(CB.on&&dmg>0)CB.hitRound=CB.round;if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
     {const h=hero.userData.held||{};if(CB.on&&dmg>0&&!CB.blockUsed&&[h.L,h.R].some(id=>WEAPONS[id]?.block)){CB.blockUsed=true;dmg=0;floatText('Щит дозора','#e8c27a',hero);}}
     if(CB.rage)dmg=Math.ceil(dmg/2);if(CB.shell){dmg=Math.ceil(dmg/2);CB.shell=false;floatText('Панцирь','#c8b890',hero);}
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
@@ -3493,7 +3493,7 @@ const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
   CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;
     // a fight where nobody has struck for three rounds (a foe across water or a wall) dies down by itself
-    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes())e.aware=false;return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
+    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes()){e.aware=false;e.slipUntil=performance.now()+60000;}return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}
@@ -3919,7 +3919,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
-  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function')shipArrive(true);
+  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function'){shipArrive(true);if(Q.ship&&d.q&&d.q.ship)Q.ship.state=d.q.ship[0];}
   dealsLoad(d.deals);objsLoad(d.objs);campaignLoad(d.camp);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
@@ -4944,7 +4944,7 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
    'Писарь':{who:['Пишу письма тем, кто не умеет. И жалобы королю.','Писарь. Знаю, кто кому сколько должен.'],bark:['Чернила кончаются…','Опять жалоба на налог.']},
    'Ремесленник':{who:['Чиню всё, что ломается: замки, сундуки, телеги.','Руки у меня золотые, а кошелёк пустой.'],bark:['Где мой молоток?','Ещё одна телега без колеса…']},
    'Горожанка':{who:['Живу тут с детства. Город шумный, но я привыкла.','Мы с соседками всё знаем: кто женился, кто уехал.'],bark:['Ох, ноги гудят.','Опять хлеб подорожал.']},
-   'Жрица':{who:['Служу при храме. Лечу, если могу, утешаю, если не могу.','Я жрица. Молюсь за тех, кто в море, и за тех, кто на дорогах.'],bark:['Мир тебе.','Береги себя в пути.']},
+   'Жрица':{who:['Служу при храме. Лечу, если могу, утешаю, если не могу.','Я жрица. Молюсь за тех, кто в море, и за тех, кто на дорогах.'],bark:['Здравствуй.','Береги себя в пути.']},
    'Подмастерье':{who:['Учусь у мастера. Пока что больше подметаю, чем мастерю.','Подмастерье я. Через год сам буду мастер. Может быть.'],bark:['Мастер ругаться будет…','Бегу, бегу!']},
    'Глашатай':{who:['Кричу новости на площади. Голос сорвал, а платят за каждый указ.','Глашатай. Если король что-то решил — я первый знаю.'],bark:['Слушайте все!','Указ короля!']},
    'Нищий':{who:['Был плотником, пока руку не сломал. Теперь вот…','Звали меня Эйриком. Теперь никак не зовут.'],bark:['Подай медяк, добрый человек.','Холодно сегодня…']},
@@ -4960,21 +4960,21 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
    'Сборщица клюквы':{who:['Собираю клюкву. Продаю в соседней деревне, если повезёт.','Клюква — всё, что у нас растёт.'],bark:['Руки красные от ягод.','Клюква, кому клюква…']},
    'Старуха':{who:['Живу тут дольше всех. Многое видела, о многом молчу.','Старая я. Внуки на мне, а сил мало.'],bark:['Ох-хо-хо…','Внуки, домой!']},
    'Батрак':{who:['Работаю на того, кто платит. Сегодня — тут.','Батрак. Своей земли нет, своего дома нет.'],bark:['Еле стою.','Ещё бы монетку…']},
-   'Кузнец':{who:['Кую оружие и подковы. Хорошая сталь дорогая, плохую не держу.','Кузнец. Огонь, железо и молот — вот и вся жизнь.'],bark:['Горн остывает…','Сталь любит терпение.']},
+   'Кузнец':{who:['Кую оружие и подковы. Хорошая сталь дорогая, плохую не держу.','Кузнец. Огонь, железо и молот — вот и вся жизнь.'],bark:['Горн остывает…','Сталь спешки не любит.']},
    'Пекарь':{who:['Пеку хлеб с ночи. К рассвету весь город завтракает моим хлебом.','Пекарь. Мука, вода, огонь — и руки.'],bark:['Тесто подходит…','Свежий хлеб!']},
    'Лавочница':{who:['В моей лавке всё для дороги: факелы, верёвки, сухари.','Лавочница. Знаю, что нужно путнику, раньше него самого.'],bark:['Заходи, глянь товар.','Факелы, кремни!']},
    'Служанка':{who:['Служу в замке. Мою полы, ношу воду, молчу.','Служанка. Король добрый, а вот повар — нет.'],bark:['Полы сами не помоются.','Тише, король принимает.']},
    'Наёмник':{who:['Меч продаю, а не совесть. За плату пойду с тобой куда угодно.','Сигвальд. Воевал на большой земле, теперь вот тут.'],bark:['Скучно без драки.','Деньги вперёд.']},
-   'Вожак стаи':{who:['Меня зовут Седой. Больше тебе знать не нужно.'],bark:['…','Лес слушает.']}};
+   'Вожак стаи':{who:['Меня зовут Седой. Больше тебе знать не нужно.'],bark:['…','Не шуми тут.']}};
  const TEMPER=[['Здравствуй.','А, это ты.','Чего тебе?'],['Ой, привет!','Добрый день! Заходи, поговорим.','Рада видеть!'],['Ну?','Говори быстро, мне некогда.','Опять ты.']];
  const rumors=a=>{const L=[],rv=Q.raven,cap=GEN.places.find(p=>p.type==='capital');
    if(rv&&rv.state<3){L.push(['rumor','Говорят, у разбойников один главный. Ворон его кличут. Кто он — никто не знает.']);
-     if(a.kind==='poor')L.push(['old','Старуха наша что-то знает про людей с чёрными перьями. Только просто так не скажет.']);
+     if(a.kind==='poor'&&a!==rv.oldA)L.push(['old','Старуха наша что-то знает про людей с чёрными перьями. Только просто так не скажет.']);
      if(a.kind==='capital'||a.kind==='castle')L.push(['list','В замке, говорят, висит список стражи. Одно имя там вычеркнуто, и про него не говорят.']);}
    else if(rv&&rv.state===3)L.push([null,rv.spared?'Ворона, говорят, не казнили. Король его на маяк сослал. Чудно.':'Ворона больше нет. Купцы опять поехали по тракту.']);
-   L.push(['pack','В глухом лесу живёт старик со стаей. Седой. Волки его слушаются, будто он их отец.']);
+   if(a.npc!=='Седой')L.push(['pack',typeof PACK_ANGRY!=='undefined'&&PACK_ANGRY?'Седой со своей стаей озлобился. В глухой лес теперь лучше не ходить.':'В глухом лесу живёт старик со стаей. Седой. Волки его слушаются, будто он их отец.']);
    L.push([null,chapel.lit?'В старой часовне в Заводи опять горит огонь. Мёртвые, говорят, присмирели.':'В Заводи часовня погасла. Ночью у руин лучше не ходить.']);
-   L.push([null,'Корабль с большой земли не приходил уже давно. Говорят, пока на дорогах неспокойно, капитаны сюда не ходят.']);
+   if(!(typeof SHIP!=='undefined'&&SHIP.on))L.push([null,'Корабль с большой земли не приходил уже давно. Говорят, пока на дорогах неспокойно, капитаны сюда не ходят.']);
    if(cap&&a.kind!=='capital')L.push([null,'В столице налоги подняли. Король, говорят, сам не рад, да казна пустая.']);
    return L;};
  const work=a=>{const js=typeof jobsOf==='function'?jobsOf(a):[];if(js.length)return ['Есть у меня одно дело: '+js[0].title.toLowerCase()+'. Плачу честно.'];
@@ -4986,7 +4986,7 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
    PEOPLE[a.npc]={role:(a.job||'житель').toLowerCase(),temper:'',hello:t,who:J.who,news:()=>townLines(a).filter(l=>!/Поздно уже|Ночь на дворе/.test(l)),
      rumorsOf:a,get rumor(){return rumors(a).map(r=>r[1]);},work:()=>work(a),bark:J.bark};}}
 // a rumour about the island's story is written into the chronicle when heard
-function folkHeard(line){for(const k of ['rumor','old','list','pack'])if(CAMPAIGN.facts[k]&&line&&(k==='rumor'&&/Ворон/.test(line)||k==='old'&&/Старуха наша/.test(line)||k==='list'&&/список стражи/.test(line)||k==='pack'&&/Седой/.test(line)))learn(k);}
+function folkHeard(line){for(const k of ['rumor','old','list','pack'])if(CAMPAIGN.facts[k]&&line&&(k==='rumor'&&/один главный/.test(line)||k==='old'&&/Старуха наша/.test(line)||k==='list'&&/список стражи/.test(line)||k==='pack'&&/Седой/.test(line)))learn(k);}
 
 // ---------- the end of the island: a ship to other islands ----------
 // While robbers hold the roads no captain sails here. Once the Raven's story is over, a ship moors by the
@@ -5013,7 +5013,7 @@ function shipArrive(quiet){if(SHIP.on)return;SHIP.on=true;SHIP.g.visible=true;SH
 function shipTick(t){if(!SHIP.on&&Q.raven&&Q.raven.state===3)shipArrive();if(SHIP.on){SHIP.g.position.y=Math.sin(t*.8)*.04;SHIP.g.rotation.z=Math.sin(t*.6)*.015;}}
 function captainTalk(a,n){const rv=Q.raven;
   if(!SHIP.on)return say(n,'Пока на дорогах разбой, корабли сюда не ходят.');
-  say(n,(rv&&rv.spared?'Это ты уговорил Ворона сдаться? В порту только о тебе и говорят. ':'Это ты разобрался с Вороном? Купцы на большой земле уже знают. ')+
+  say(n,(rv&&rv.spared?'Так это после разговора с тобой Ворон сдался? В порту только о тебе и говорят. ':'Это ты разобрался с Вороном? Купцы на большой земле уже знают. ')+
     'Мы идём к другим островам, и место на борту есть. Только учти: обратно скоро не будет. Если остались дела — доделай.',
     [['Отплыть',()=>confirmBox('Отплыть с острова?','История острова Хельги закончится. Сохранение останется: можно вернуться и жить на острове дальше.','Отплыть',()=>sailAway())],
      ['Куда идёт корабль?',()=>say(n,'На восток, к Солёным островам. Там свои беды, говорят, похуже ваших. Но об этом в пути.')]]);}

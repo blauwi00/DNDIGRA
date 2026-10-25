@@ -78,7 +78,7 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   if(def.enemy){def.aware=true;def.distracted=false;}
   if(dmg)hurt(def,dmg,att);rollDone();}
 // damage taken by the hero passes through rage, shell, stone endurance; an orc stays up once; a tiefling burns back
-function hurt(def,dmg,att,kind){if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
+function hurt(def,dmg,att,kind){if(CB.on&&dmg>0)CB.hitRound=CB.round;if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
     {const h=hero.userData.held||{};if(CB.on&&dmg>0&&!CB.blockUsed&&[h.L,h.R].some(id=>WEAPONS[id]?.block)){CB.blockUsed=true;dmg=0;floatText('Щит дозора','#e8c27a',hero);}}
     if(CB.rage)dmg=Math.ceil(dmg/2);if(CB.shell){dmg=Math.ceil(dmg/2);CB.shell=false;floatText('Панцирь','#c8b890',hero);}
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
@@ -179,7 +179,7 @@ const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
   CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;
     // a fight where nobody has struck for three rounds (a foe across water or a wall) dies down by itself
-    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes())e.aware=false;return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
+    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes()){e.aware=false;e.slipUntil=performance.now()+60000;}return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}

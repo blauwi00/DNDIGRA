@@ -707,7 +707,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
-  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function')shipArrive(true);
+  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function'){shipArrive(true);if(Q.ship&&d.q&&d.q.ship)Q.ship.state=d.q.ship[0];}
   dealsLoad(d.deals);objsLoad(d.objs);campaignLoad(d.camp);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
