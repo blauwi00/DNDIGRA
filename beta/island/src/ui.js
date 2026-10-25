@@ -104,7 +104,7 @@ function lookWheel(L,mesh){const p=new THREE.Vector3();mesh.getWorldPosition(p);
   if(L.action){const A=L.action();if(A)items.unshift(A);}
   showWheel({pos:p},items,L.n);}
 // look: the wheel is already gone, the camera leans in, the hero studies the thing; the text comes after, at the top
-function inspect(L,x,z,grab){if(CB.on)return toast('Не время разглядывать.');goDo(x,z,false,async()=>{H0.face=Math.atan2(x+.5-H0.px,z+.5-H0.pz);zoomTarget=.62;
+function inspect(L,x,z,grab){if(CB.on)return toast('Не время разглядывать.');if(L.n==='Список стражи')learn('list');goDo(x,z,false,async()=>{H0.face=Math.atan2(x+.5-H0.px,z+.5-H0.pz);zoomTarget=.62;
   heroPose(grab?'pickup':'look',grab?900:1500);window.handsGesture&&window.handsGesture(grab?'pickup':'inspect');await wait(grab?450:1400);
   if(L.loot&&!L.taken&&(grab||!L.item)){const got=window.handsGive(L.loot,'Найдено');if(got.length){L.taken=true;if(L.grp)L.grp.visible=false;}else toast('Больше не унести: '+window.handsItemName(L.loot[0][0])+'.');}
   if(!grab||!L.item)note(L.n,L.t);setTimeout(()=>zoomTarget=1,grab?500:2200);});}
@@ -245,3 +245,4 @@ document.getElementById('mapIn').onclick=()=>{sfx('click');mapZoom(1.6);};docume
    else{MV.x+=p[0]-old[0];MV.y+=p[1]-old[1];mapApply();}});
  const up=e=>{MV.pts.delete(e.pointerId);MV.pinch=null;};win.addEventListener('pointerup',up);win.addEventListener('pointercancel',up);}
 document.getElementById('pMap').onclick=()=>openMap();
+document.getElementById('pJournal').onclick=()=>{screen(null);journal();};

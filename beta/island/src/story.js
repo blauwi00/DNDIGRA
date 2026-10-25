@@ -37,12 +37,13 @@ const GANG=[];
    {const [x,z]=nearFree(fcamp.x+1,fcamp.z-1,3),y=groundAt(x,z),grp=heldGroup('feather');grp.scale.setScalar(1.6);grp.position.set(x+.5,y+.04,z+.5);grp.rotation.set(0,.7,Math.PI/2);scene.add(grp);
     const ms=[];grp.traverse(o=>o.isMesh&&ms.push(o));const it={mesh:ms[0],extra:ms.slice(1),x,z,stand:true,name:'Чёрное перо',grp,use(){ravenFeather(this);}};interact.push(it);Q.raven.featherIt=it;Q.raven.feather=[x,z];}}}
 const RV_TITLE={ask:'Узнать, кто такой атаман Ворон',feather:'Найти чёрное перо людей Ворона',stone:'Разгадать камень с вороном в руинах',lair:'Одолеть атамана Ворона'};
-function ravenStep(st){const q=Q.raven;q.step=st;q.title=RV_TITLE[st];questFocus=q;questUI();save();}
+function ravenStep(st){const q=Q.raven;q.step=st;q.title=RV_TITLE[st];questFocus=q;questUI();actCheck();save();}
 function ravenStart(){const q=Q.raven;if(!q||q.state)return;q.state=1;ravenStep('ask');
+  learn('king');
   say('Король Хальвдан','Один из пленных заговорил. Все шайки на острове слушаются одного человека. Зовут его Ворон. Кто он и где сидит — не знаю. Говорят, старуха в посёлке '+q.oldA.place.n+' видела его людей. Начни с неё.');}
 function ravenOld(n){const q=Q.raven;
   if(q.step==='ask'){if((window.handsCount?window.handsCount('bread'):0)<2)return say(n,'Ворон? Может, и слыхала. Только на пустой живот память плохая. Внуки второй день без хлеба. Принеси две краюхи — тогда поговорим.');
-    window.handsConsume('bread');window.handsConsume('bread');repAdd('village',1,'накормил бедных');ravenStep('feather');
+    window.handsConsume('bread');window.handsConsume('bread');repAdd('village',1,'накормил бедных');ravenStep('feather');learn('old');
     return say(n,'Спасибо, родной. Слушай. Люди Ворона ходят через наш посёлок по ночам, к старым руинам, '+q.at.n+'. Днём там пусто, сама ходила. А у каждого на шапке чёрное перо. Без пера, говорят, к Ворону не попасть. Перья эти у разбойников в лагерях. Поищи у костра.');}
   if(q.step==='feather')return say(n,'Чёрное перо ищи у разбойников, у костра в лагере. Не у тех, что у тракта, — у других.');
   if(q.step==='stone')return say(n,'В руинах камень стоит, а на нём ворон вырезан. Я к нему подходить боюсь. Говорят, ночью он гудит.');
@@ -50,10 +51,11 @@ function ravenOld(n){const q=Q.raven;
 function ravenFeather(it){const q=Q.raven;if(!q||!window.handsGive)return;
   if(q.state!==1||q.step==='ask')return say('Чёрное перо','Обычное воронье перо, только зачем-то перевязано красной ниткой. Кто-то обронил у костра.');
   if(!window.handsGive([['feather',1]],'Находка').length)return say('Чёрное перо','Руки и сумка заняты. Освободите место.');
-  it.grp.visible=false;interact.splice(interact.indexOf(it),1);if(q.step==='feather')ravenStep('stone');
+  it.grp.visible=false;interact.splice(interact.indexOf(it),1);if(q.step==='feather')ravenStep('stone');learn('feather');
   say('Чёрное перо','Перо перевязано красной ниткой. Такое носят люди Ворона. Теперь — в руины, к камню с вороном.');}
 function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,has=window.handsCount&&window.handsCount('feather')>0;
   const riddle='На камне вырезан ворон под луной, а ниже слова: «Днём я сплю, ночью летаю. Покажи мне моё перо — и я пущу тебя к хозяину».';
+  learn('riddle');
   if(q.state!==1||q.step==='ask'||q.step==='feather')return say('Камень с вороном',riddle+' Камень холодный и молчит.');
   if(q.step==='lair'||q.state>1)return say('Камень с вороном','Камень отодвинут. Под ним — ступени вниз.');
   const force=['Сдвинуть силой · '+chance(HERO.athletics,18,0)+'%',async()=>{const r=await roll20('Атлетика → Камень с вороном',HERO.athletics,18);rollDone(2000);
@@ -61,7 +63,7 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
     say('Атаман Ворон','Камень со скрежетом отъезжает. Снизу уже бегут — грохот услышали все. «Кто ломится ко мне без пера? Взять его!»',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}]]);}];
   if(!has)return say('Камень с вороном',riddle+' Нужно перо. Или можно попробовать сдвинуть камень силой — но тогда тихо не выйдет.',[force]);
   if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.',[force]);
-  ravenWake();ravenStep('lair');sfx('door');shake=.25;
+  ravenWake();ravenStep('lair');learn('ragnar');sfx('door');shake=.25;
   say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уговорить сдаться · '+chance(talkMod(0)+ravenSway(),15,0)+'%',()=>ravenPlead()]]);}
 // the poor know what the hero did for them, and so does Raven: kindness to the village makes him listen
 const ravenSway=()=>repLevel('village')>=3?2:0;
@@ -70,7 +72,7 @@ async function ravenPlead(){const q=Q.raven;const res=await roll20('Убежде
   for(const e of GANG){e.dead=true;e.dormant=false;e.o.visible=false;}q.state=2;q.spared=true;gainXP(450);questUI();save();
   say('Атаман Ворон','Рагнар долго молчит. Потом бросает меч на камни. «Ладно. Пойду к королю сам. Но скажи ему про тот посёлок. Пусть хоть раз посмотрит, как там живут». Его люди расходятся в темноту.');}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
-function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
+function ravenEnd(n){const q=Q.raven;q.state=3;questUI();actCheck();setTimeout(()=>{if(talkEl.hidden)journalEnd();},9000);repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
   gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
   if(q.spared)return say(n,'Рагнар пришёл сам. Стоял тут, где ты стоишь, и рассказывал про тот посёлок. Я отменил налог. А Рагнара отправлю на дальний маяк — это лучше, чем петля. Ты сделал больше, чем просто победил. Возьми меч с рунами. Получено: рунный меч, зелье лечения ×3.');
@@ -87,3 +89,6 @@ function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
   if(rv&&rv.state===2)return ravenEnd(n);
   if(rv&&rv.state===1)return say(n,{ask:'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она видела его людей.',feather:'Чёрное перо, говоришь? Значит, его люди так друг друга узнают. Найди такое перо.',stone:'Камень с вороном в руинах? Я про такой не слышал. Будь там осторожен.',lair:'Ты видел Ворона? Возвращайся, когда с ним будет покончено.'}[rv.step]);
   return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
+
+// the ending: once the king has spoken, the chronicle tells what became of the island
+function journalEnd(){say('Летопись острова','«'+CAMPAIGN.title+'» окончена. '+epilogue());}

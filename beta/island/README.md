@@ -36,6 +36,9 @@ Sources (`build.py` glues them into one page; `main.js` has placeholders such as
 | `villagers.js` | Заводь's villagers and their looks |
 | `town.js` | townsfolk of the big island, the king's court, shops, homes at night, their talk |
 | `story.js` | the big island's errands and the main story (Raven) |
+| `social.js` | talk actions (persuade, deceive, intimidate, gift), Седой and his pack |
+| `worldacts.js` | actions by a thing's properties: oil barrels, locked chests |
+| `campaign.js` | the island's campaign: acts, chronicle of learned facts, ending (docs/CAMPAIGN.md) |
 | `life.js` | weather, daily routine, talk bubbles, animals, road events |
 | `people.js` | people cards: role, temper, topics, lines |
 | `economy.js`, `legend.js` | gold, shops, side jobs; reputation, the chapel artifact |

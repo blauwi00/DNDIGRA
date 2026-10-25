@@ -432,6 +432,9 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       if (CB.on) endCombat(''); __game.setTime(.4);
       boss.dead = true; questKill(boss); if (q.state !== 2) bad.push('Raven killed but errand not done');
       kingTalk(king, king.npc); close(); if (q.state !== 3) bad.push('king gave no reward');
+      for (const k of ['king', 'old', 'feather', 'riddle', 'ragnar']) if (!KNOWN.has(k)) bad.push('chronicle lacks ' + k);
+      if (actNow() !== 3) bad.push('act not final'); journal(); const pages = []; for (let i = 0; i < 9 && !document.querySelector('.talk').hidden; i++) { pages.push(document.querySelector('.talk p').textContent); const nb = [...document.querySelectorAll('.talk .choices button')].find((b) => b.textContent === 'Дальше'); if (!nb) break; nb.click(); } close();
+      if (pages.length < 3 || !/Рагнар/.test(pages.join(' '))) bad.push('chronicle pages missing');
       if (enemies.some((e) => !e.dead && e.model === 'bandit')) bad.push('bands did not scatter');
       return bad;
     });

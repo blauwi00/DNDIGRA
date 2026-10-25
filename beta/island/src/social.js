@@ -41,7 +41,7 @@ const PACK=[];let SEDOY=null,KLYK=null;
 let PACK_ANGRY=false;
 function packFriend(quiet){for(const w of PACK){w.calm=true;w.aware=false;}PACK_ANGRY=false;if(!quiet)repAdd('village',0);}
 function packAnger(){PACK_ANGRY=true;for(const w of PACK){w.calm=false;w.aware=true;}if(SEDOY&&SEDOY.deal)SEDOY.deal.done=true;}
-function packTalk(a,n){const D=a.deal;if(PACK_ANGRY)return say(n,'Уходи. Стая помнит тебя.');
+function packTalk(a,n){const D=a.deal;learn('pack');if(PACK_ANGRY)return say(n,'Уходи. Стая помнит тебя.');
   if(!D.done)return dealWheel(a);
   const ch=[];if(KLYK&&!KLYK.ally&&!KLYK.dead)ch.push(['Взять Клыка с собой',()=>takeKlyk()]);
   say(n,['Лес шумит спокойно. Это хорошо.','Капканов стало меньше. Твоя работа?','Луна скоро полная. В такие ночи я плохо помню, кто я.'][(a.said=(a.said||0)+1)%3],ch);}

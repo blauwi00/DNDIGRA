@@ -66,5 +66,5 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
 function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state>=1&&a===rv.oldA&&rv.state<3)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
-  const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
+  const L=townLines(a);const line=L[a.said%L.length];a.said++;if(/Ворон/.test(line))learn('rumor');return say(n,line);}
 

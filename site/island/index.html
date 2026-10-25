@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.70 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.71 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -531,7 +531,7 @@ body.fight .title{display:none}
   </div></div>
 <div class="screen pause" id="pause" hidden>
   <div class="mm"><h2>Пауза</h2><div class="sheet" id="sheet"></div>
-    <button id="pResume">Продолжить</button><button id="pMap">Карта острова</button><button id="pSettings">Настройки</button><button id="pMain">Главное меню</button></div></div>
+    <button id="pResume">Продолжить</button><button id="pMap">Карта острова</button><button id="pJournal">Летопись</button><button id="pSettings">Настройки</button><button id="pMain">Главное меню</button></div></div>
 <div class="screen editor" id="editor" hidden>
   <div class="hc">
     <section class="hc-stage">
@@ -3701,7 +3701,7 @@ window.snd={muted:()=>muted,setMuted(v){if(muted!==v)sndBtn.onclick();},vol:()=>
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,objs:OBJS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,objs:OBJS,camp:campaignSave(),packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -3711,7 +3711,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
-  dealsLoad(d.deals);objsLoad(d.objs);if(d.packAngry)packAnger();
+  dealsLoad(d.deals);objsLoad(d.objs);campaignLoad(d.camp);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
@@ -3824,7 +3824,7 @@ function lookWheel(L,mesh){const p=new THREE.Vector3();mesh.getWorldPosition(p);
   if(L.action){const A=L.action();if(A)items.unshift(A);}
   showWheel({pos:p},items,L.n);}
 // look: the wheel is already gone, the camera leans in, the hero studies the thing; the text comes after, at the top
-function inspect(L,x,z,grab){if(CB.on)return toast('Не время разглядывать.');goDo(x,z,false,async()=>{H0.face=Math.atan2(x+.5-H0.px,z+.5-H0.pz);zoomTarget=.62;
+function inspect(L,x,z,grab){if(CB.on)return toast('Не время разглядывать.');if(L.n==='Список стражи')learn('list');goDo(x,z,false,async()=>{H0.face=Math.atan2(x+.5-H0.px,z+.5-H0.pz);zoomTarget=.62;
   heroPose(grab?'pickup':'look',grab?900:1500);window.handsGesture&&window.handsGesture(grab?'pickup':'inspect');await wait(grab?450:1400);
   if(L.loot&&!L.taken&&(grab||!L.item)){const got=window.handsGive(L.loot,'Найдено');if(got.length){L.taken=true;if(L.grp)L.grp.visible=false;}else toast('Больше не унести: '+window.handsItemName(L.loot[0][0])+'.');}
   if(!grab||!L.item)note(L.n,L.t);setTimeout(()=>zoomTarget=1,grab?500:2200);});}
@@ -3965,6 +3965,7 @@ document.getElementById('mapIn').onclick=()=>{sfx('click');mapZoom(1.6);};docume
    else{MV.x+=p[0]-old[0];MV.y+=p[1]-old[1];mapApply();}});
  const up=e=>{MV.pts.delete(e.pointerId);MV.pinch=null;};win.addEventListener('pointerup',up);win.addEventListener('pointercancel',up);}
 document.getElementById('pMap').onclick=()=>openMap();
+document.getElementById('pJournal').onclick=()=>{screen(null);journal();};
 
 // ---------- hero editor ----------
 // Built on the game's own character builder (Characters): every option the game
@@ -4237,7 +4238,7 @@ function townLines(a){const p=a.place,L=[],kin=repName('kingdom');
   return L;}
 // each talk says the next line, so a villager never repeats one before all are told
 function townTalk(a,n){const rv=Q.raven;if(rv&&rv.state>=1&&a===rv.oldA&&rv.state<3)return ravenOld(n);if(a.qk&&Q[a.qk].state<3){const[ask,ok,done,items]=a.qtext;return offer(Q[a.qk],n,ask,ok,done,items);}
-  const L=townLines(a);const line=L[a.said%L.length];a.said++;return say(n,line);}
+  const L=townLines(a);const line=L[a.said%L.length];a.said++;if(/Ворон/.test(line))learn('rumor');return say(n,line);}
 
 
 // ---------- the big island's errands and its main story ----------
@@ -4279,12 +4280,13 @@ const GANG=[];
    {const [x,z]=nearFree(fcamp.x+1,fcamp.z-1,3),y=groundAt(x,z),grp=heldGroup('feather');grp.scale.setScalar(1.6);grp.position.set(x+.5,y+.04,z+.5);grp.rotation.set(0,.7,Math.PI/2);scene.add(grp);
     const ms=[];grp.traverse(o=>o.isMesh&&ms.push(o));const it={mesh:ms[0],extra:ms.slice(1),x,z,stand:true,name:'Чёрное перо',grp,use(){ravenFeather(this);}};interact.push(it);Q.raven.featherIt=it;Q.raven.feather=[x,z];}}}
 const RV_TITLE={ask:'Узнать, кто такой атаман Ворон',feather:'Найти чёрное перо людей Ворона',stone:'Разгадать камень с вороном в руинах',lair:'Одолеть атамана Ворона'};
-function ravenStep(st){const q=Q.raven;q.step=st;q.title=RV_TITLE[st];questFocus=q;questUI();save();}
+function ravenStep(st){const q=Q.raven;q.step=st;q.title=RV_TITLE[st];questFocus=q;questUI();actCheck();save();}
 function ravenStart(){const q=Q.raven;if(!q||q.state)return;q.state=1;ravenStep('ask');
+  learn('king');
   say('Король Хальвдан','Один из пленных заговорил. Все шайки на острове слушаются одного человека. Зовут его Ворон. Кто он и где сидит — не знаю. Говорят, старуха в посёлке '+q.oldA.place.n+' видела его людей. Начни с неё.');}
 function ravenOld(n){const q=Q.raven;
   if(q.step==='ask'){if((window.handsCount?window.handsCount('bread'):0)<2)return say(n,'Ворон? Может, и слыхала. Только на пустой живот память плохая. Внуки второй день без хлеба. Принеси две краюхи — тогда поговорим.');
-    window.handsConsume('bread');window.handsConsume('bread');repAdd('village',1,'накормил бедных');ravenStep('feather');
+    window.handsConsume('bread');window.handsConsume('bread');repAdd('village',1,'накормил бедных');ravenStep('feather');learn('old');
     return say(n,'Спасибо, родной. Слушай. Люди Ворона ходят через наш посёлок по ночам, к старым руинам, '+q.at.n+'. Днём там пусто, сама ходила. А у каждого на шапке чёрное перо. Без пера, говорят, к Ворону не попасть. Перья эти у разбойников в лагерях. Поищи у костра.');}
   if(q.step==='feather')return say(n,'Чёрное перо ищи у разбойников, у костра в лагере. Не у тех, что у тракта, — у других.');
   if(q.step==='stone')return say(n,'В руинах камень стоит, а на нём ворон вырезан. Я к нему подходить боюсь. Говорят, ночью он гудит.');
@@ -4292,10 +4294,11 @@ function ravenOld(n){const q=Q.raven;
 function ravenFeather(it){const q=Q.raven;if(!q||!window.handsGive)return;
   if(q.state!==1||q.step==='ask')return say('Чёрное перо','Обычное воронье перо, только зачем-то перевязано красной ниткой. Кто-то обронил у костра.');
   if(!window.handsGive([['feather',1]],'Находка').length)return say('Чёрное перо','Руки и сумка заняты. Освободите место.');
-  it.grp.visible=false;interact.splice(interact.indexOf(it),1);if(q.step==='feather')ravenStep('stone');
+  it.grp.visible=false;interact.splice(interact.indexOf(it),1);if(q.step==='feather')ravenStep('stone');learn('feather');
   say('Чёрное перо','Перо перевязано красной ниткой. Такое носят люди Ворона. Теперь — в руины, к камню с вороном.');}
 function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,has=window.handsCount&&window.handsCount('feather')>0;
   const riddle='На камне вырезан ворон под луной, а ниже слова: «Днём я сплю, ночью летаю. Покажи мне моё перо — и я пущу тебя к хозяину».';
+  learn('riddle');
   if(q.state!==1||q.step==='ask'||q.step==='feather')return say('Камень с вороном',riddle+' Камень холодный и молчит.');
   if(q.step==='lair'||q.state>1)return say('Камень с вороном','Камень отодвинут. Под ним — ступени вниз.');
   const force=['Сдвинуть силой · '+chance(HERO.athletics,18,0)+'%',async()=>{const r=await roll20('Атлетика → Камень с вороном',HERO.athletics,18);rollDone(2000);
@@ -4303,7 +4306,7 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
     say('Атаман Ворон','Камень со скрежетом отъезжает. Снизу уже бегут — грохот услышали все. «Кто ломится ко мне без пера? Взять его!»',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}]]);}];
   if(!has)return say('Камень с вороном',riddle+' Нужно перо. Или можно попробовать сдвинуть камень силой — но тогда тихо не выйдет.',[force]);
   if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.',[force]);
-  ravenWake();ravenStep('lair');sfx('door');shake=.25;
+  ravenWake();ravenStep('lair');learn('ragnar');sfx('door');shake=.25;
   say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уговорить сдаться · '+chance(talkMod(0)+ravenSway(),15,0)+'%',()=>ravenPlead()]]);}
 // the poor know what the hero did for them, and so does Raven: kindness to the village makes him listen
 const ravenSway=()=>repLevel('village')>=3?2:0;
@@ -4312,7 +4315,7 @@ async function ravenPlead(){const q=Q.raven;const res=await roll20('Убежде
   for(const e of GANG){e.dead=true;e.dormant=false;e.o.visible=false;}q.state=2;q.spared=true;gainXP(450);questUI();save();
   say('Атаман Ворон','Рагнар долго молчит. Потом бросает меч на камни. «Ладно. Пойду к королю сам. Но скажи ему про тот посёлок. Пусть хоть раз посмотрит, как там живут». Его люди расходятся в темноту.');}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
-function ravenEnd(n){const q=Q.raven;q.state=3;questUI();repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
+function ravenEnd(n){const q=Q.raven;q.state=3;questUI();actCheck();setTimeout(()=>{if(talkEl.hidden)journalEnd();},9000);repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
   gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
   if(q.spared)return say(n,'Рагнар пришёл сам. Стоял тут, где ты стоишь, и рассказывал про тот посёлок. Я отменил налог. А Рагнара отправлю на дальний маяк — это лучше, чем петля. Ты сделал больше, чем просто победил. Возьми меч с рунами. Получено: рунный меч, зелье лечения ×3.');
@@ -4329,6 +4332,9 @@ function kingTalk(a,n){const kin=repName('kingdom'),q=Q.crown;
   if(rv&&rv.state===2)return ravenEnd(n);
   if(rv&&rv.state===1)return say(n,{ask:'Поговори со старухой в посёлке '+rv.oldA.place.n+'. Она видела его людей.',feather:'Чёрное перо, говоришь? Значит, его люди так друг друга узнают. Найди такое перо.',stone:'Камень с вороном в руинах? Я про такой не слышал. Будь там осторожен.',lair:'Ты видел Ворона? Возвращайся, когда с ним будет покончено.'}[rv.step]);
   return say(n,kin==='герой'?'Вся столица говорит о тебе. Двери замка для тебя всегда открыты.':kin==='друг'?'Рад тебя видеть. Если снова будет нужна помощь, я позову.':'Спасибо за службу. Королевство это помнит.');}
+
+// the ending: once the king has spoken, the chronicle tells what became of the island
+function journalEnd(){say('Летопись острова','«'+CAMPAIGN.title+'» окончена. '+epilogue());}
 
 // ---------- talking your way through: persuade, deceive, intimidate, or a gift ----------
 // As at the table: one goal, several ways to it. Each way is a d20 roll with the hero's skill against
@@ -4373,7 +4379,7 @@ const PACK=[];let SEDOY=null,KLYK=null;
 let PACK_ANGRY=false;
 function packFriend(quiet){for(const w of PACK){w.calm=true;w.aware=false;}PACK_ANGRY=false;if(!quiet)repAdd('village',0);}
 function packAnger(){PACK_ANGRY=true;for(const w of PACK){w.calm=false;w.aware=true;}if(SEDOY&&SEDOY.deal)SEDOY.deal.done=true;}
-function packTalk(a,n){const D=a.deal;if(PACK_ANGRY)return say(n,'Уходи. Стая помнит тебя.');
+function packTalk(a,n){const D=a.deal;learn('pack');if(PACK_ANGRY)return say(n,'Уходи. Стая помнит тебя.');
   if(!D.done)return dealWheel(a);
   const ch=[];if(KLYK&&!KLYK.ally&&!KLYK.dead)ch.push(['Взять Клыка с собой',()=>takeKlyk()]);
   say(n,['Лес шумит спокойно. Это хорошо.','Капканов стало меньше. Твоя работа?','Луна скоро полная. В такие ночи я плохо помню, кто я.'][(a.said=(a.said||0)+1)%3],ch);}
@@ -4421,6 +4427,38 @@ for(const p of GPL.filter(p=>p.type==='bandits')){
       const lock=new THREE.Mesh(BOX,lam(T.stone,{color:0xd0a94a}));lock.scale.set(.12,.12,.03);lock.position.set(0,0,.48);lid.add(lock);g.add(lid);g.userData.lid=lid;},'Сундук разбойников');
     it.lid=it.g.userData.lid;it.use=()=>chestUse(it);}}
 function objsLoad(d){for(const k of Object.keys(d||{})){OBJS[k]=1;const it=interact.find(i=>i.key===k);if(!it)continue;if(k.startsWith('barrel'))objGone(it);if(k.startsWith('chest')){it.open=true;it.lid.rotation.x=-1.2;}}}
+
+// ---------- the island's campaign: acts, what the hero has learned, how it ends ----------
+// One island is one campaign, as one party at the table: a trouble in plain sight (act 1), the truth
+// behind it (act 2), the confrontation and its choice (act 3), and an ending put together from what the
+// hero did. Facts are written into the chronicle as the hero learns them, so the story can be re-read.
+// Format and how to add more secrets: docs/CAMPAIGN.md.
+const CAMPAIGN={id:'tax',title:'Голодный налог',
+  acts:[{n:'Беда на дорогах',goal:'Помочь страже на тракте и заслужить доверие короля.'},{n:'Кто такой Ворон',goal:'Узнать, кто стоит за всеми шайками острова.'},
+    {n:'Рагнар',goal:'Решить судьбу атамана.'},{n:'После',goal:'Остров живёт дальше.'}],
+  facts:{rumor:'Жители говорят, что у разбойников появился один главный — Ворон.',
+    king:'Король: все шайки слушаются Ворона. Начать со старухи в бедном посёлке.',
+    old:'Старуха: люди Ворона ходят ночью к руинам и носят чёрные перья. Днём там пусто.',
+    feather:'Чёрное перо с красной ниткой — знак людей Ворона.',
+    riddle:'Камень в руинах: «Днём я сплю, ночью летаю. Покажи мне моё перо — и я пущу тебя к хозяину».',
+    list:'В замке, в списке стражи, имя «капитан Рагнар» вычеркнуто так, что прорвана бумага.',
+    ragnar:'Ворон — это Рагнар, бывший капитан стражи. Его выгнали за отказ выбивать налог из голодного посёлка.',
+    pack:'В глухом лесу живёт Седой — вожак волков. С ним можно говорить.'}};
+const KNOWN=new Set();let actShown=0;
+function learn(k){if(KNOWN.has(k)||!CAMPAIGN.facts[k])return;KNOWN.add(k);toast('Летопись: новая запись');save();}
+function actNow(){const q=Q.raven;if(!q||q.state===0)return 0;if(q.state===3)return 3;return q.step==='lair'||q.state===2?2:1;}
+function actCheck(){const a=actNow();if(a>actShown){actShown=a;setTimeout(()=>banner('Акт '+(a+1)+' · '+CAMPAIGN.acts[a].n),1200);}}
+function epilogue(){const q=Q.raven,L=[];
+  L.push(q.spared?'Рагнар служит на дальнем маяке. Налог с бедных посёлков отменён, и в посёлке '+q.oldA.place.n+' впервые за много лет хватает хлеба.':'Рагнара похоронили без имени. Налог остался, но на дорогах снова спокойно.');
+  L.push(PACK_ANGRY?'Стая Седого помнит обиду: по ночам в лесу опасно.':SEDOY&&SEDOY.deal&&SEDOY.deal.done?'Волки Седого не трогают людей, а охотники больше не ставят капканы.':'Седой так и живёт в глухом лесу, сам по себе.');
+  L.push({left:'Огонь часовни горит ровно.',broken:'Часовня стоит тёмной: мёртвые больше не встают.',kept:'Сердце часовни у вас, и огонь там едва теплится.',absorbed:'Пламя часовни живёт теперь в вас.'}[ART.fate]||'Часовня в руинах ждёт своего часа.');
+  L.push('Для Заводи вы — '+repName('village')+', для королевства — '+repName('kingdom')+'.');return L.join(' ');}
+function journal(){const a=actNow(),A=CAMPAIGN.acts[a],facts=[...KNOWN].map(k=>CAMPAIGN.facts[k]);
+  const pages=['«'+CAMPAIGN.title+'». Акт '+(a+1)+' · '+A.n+'. '+A.goal+(facts.length?'':' Записей пока нет: расспрашивайте людей.')];
+  for(let i=0;i<facts.length;i+=2)pages.push(facts.slice(i,i+2).join(' '));if(a===3)pages.push(epilogue());
+  const show=i=>say('Летопись острова',pages[i],i+1<pages.length?[['Дальше',()=>show(i+1)]]:[]);show(0);}
+function campaignSave(){return {known:[...KNOWN],act:actShown};}
+function campaignLoad(d){if(!d)return;for(const k of d.known||[])KNOWN.add(k);actShown=d.act||0;}
 
 // ---------- weather ----------
 const WX={rain:0,target:0,next:0};
