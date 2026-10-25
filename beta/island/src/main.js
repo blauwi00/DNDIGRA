@@ -632,12 +632,21 @@ function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=
   if(T==='shift'){b.rotation.z=Math.sin(k*Math.PI*2)*.06;r.legL.rotation.x=.15*s;}
   // a strike: wind up, hit, come back; each kind of weapon moves the arms its own way
   if(T==='atk'){const st=a.pose.style,w=k<.4?Math.sin(k/.4*Math.PI/2):k<.58?1-(k-.4)/.18:0,h=k<.4?0:k<.58?(k-.4)/.18:Math.max(0,1-(k-.58)/.42),two=a.pose.two;
-    if(st==='sword'||st==='axe'&&!two){r.armR.rotation.set(-2.5*w-1.1*h,0,-.6*w+.6*h);b.rotation.y=.45*w-.55*h;}
-    else if(st==='dagger'){r.armR.rotation.set(-.5*w-1.6*h,0,-.1*h);r.armL.rotation.set(-.4*w,0,.2*w);b.rotation.y=.2*w-.25*h;}
+    // the weapon sits in the hero's right hand, which is the armL/foreL group (W); armR is the free hand (O).
+    // For W a negative z swings the arm out to the side, a positive z across the front of the body.
+    const W=r.armL,WF=r.foreL,O=r.armR,OF=r.foreR;
+    if(st==='sword'||st==='axe'&&!two){W.rotation.set(-2.5*w-1.25*h,0,-.75*w+.55*h);WF.rotation.set(-.7*w-.15*h,0,0);O.rotation.set(-.4*w-.2*h,0,.15);
+      b.rotation.y=-.5*w+.6*h;b.rotation.x+=-.08*w+.2*h;}
+    else if(st==='dagger'){W.rotation.set(.55*w-1.6*h,0,-.1*w+.15*h);WF.rotation.set(-1.5*w-.05*h,0,0);O.rotation.set(-.7*w-.3*h,0,.2);OF.rotation.set(-1,0,0);
+      b.rotation.y=-.3*w+.3*h;b.rotation.x+=.22*h;}
     else if(st==='spear'){const x=.5-.2*w+.05*h;r.armR.rotation.set(x,0,-.1);r.armL.rotation.set(x-.6,0,.35);b.rotation.y=-.3*w+.15*h;b.rotation.x+=-.12*w+.22*h;}
-    else if(st==='mace'||st==='hammer'||st==='axe'){if(two){r.armR.rotation.set(-2.9*w-1.2*h,0,-.2);r.armL.rotation.set(-2.9*w-1.2*h,0,.2);}else r.armR.rotation.set(-2.9*w-1.2*h,0,-.2*w);b.rotation.x+=-.15*w+.3*h;}
-    else if(st==='staff'){r.armR.rotation.set(-1.1,0,-.3);r.armL.rotation.set(-1.1,0,.3);b.rotation.y=.8*w-.9*h;}
-    else{r.armR.rotation.set(-.3*w-1.6*h,0,0);r.armL.rotation.set(-.6*w+.3*h,0,.15);b.rotation.y=.25*w-.3*h;}}
+    else if(st==='mace'||st==='hammer'||st==='axe'){W.rotation.set(-3.05*w-.95*h,0,-.12*w+(two?.15:0));WF.rotation.set(-.6*w,0,0);
+      if(two){O.rotation.set(-3.05*w-.95*h,0,.12*w-.15);OF.rotation.set(-.6*w,0,0);}else O.rotation.set(-.3*h,0,.15);
+      b.rotation.x+=-.22*w+.4*h;a.crouch=.06*h;}
+    else if(st==='staff'){W.rotation.set(-1.2-.3*w,0,-.5*w+.5*h);O.rotation.set(-1.2-.3*w,0,.2+.3*w-.3*h);WF.rotation.set(-.3,0,0);OF.rotation.set(-.5,0,0);
+      b.rotation.y=-1*w+1.1*h;b.rotation.x+=.18*h;}
+    else{W.rotation.set(.35*w-1.6*h,0,.1*h);WF.rotation.set(-1.7*w-.1*h,0,0);O.rotation.set(-.9,0,.25);OF.rotation.set(-1.5,0,0);
+      b.rotation.y=-.4*w+.45*h;b.rotation.x+=.18*h;}}
   if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
 // a character behind a tree or a wall shows through it as a flat silhouette: foes red, the hero and
 // companions blue. The actors are drawn once more with only the hidden parts passing the depth test.
