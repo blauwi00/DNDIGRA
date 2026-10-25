@@ -3,7 +3,16 @@
 // and arms can swing; boxes held at the hands (|x|>.31) are dropped and real
 // items are attached to the hands from the two-hand inventory instead.
 const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Math.min(255,((c>>8)&255)*k|0)<<8)|Math.min(255,(c&255)*k|0);const PIV={cape:[0,.72,-.17],head:[0,.77,0],torso:[0,.45,0],armL:[-.23,.66,0],armR:[.23,.66,0],legL:[-.1,.34,0],legR:[.1,.34,0]};
-function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
+// a 16x16 tile of light and dark grain, laid on every face of a character at SKIN_PX per pixel, so cloth,
+// skin and hair read as pixel art from the front, the sides and the back, like a block-game skin
+var SKIN_PX=.032,SKINTEX=null;
+function skinPixels(){if(SKINTEX)return SKINTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  // soft patches two pixels wide, a few shades apart, like a hand-drawn block skin; pixel (0,0) stays plain for skin
+  for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=.95+r()*.07-(r()<.15?.04:0),g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
+    if(r()<.35){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
+  x.fillStyle='#fff';x.fillRect(0,0,1,1);
+  SKINTEX=new THREE.CanvasTexture(c);SKINTEX.magFilter=SKINTEX.minFilter=THREE.NearestFilter;SKINTEX.wrapS=SKINTEX.wrapT=THREE.RepeatWrapping;SKINTEX.generateMipmaps=false;return SKINTEX;}
+function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
   // and a drawn mark that lies on no block is dropped, so nothing hovers beside the body
@@ -84,13 +93,19 @@ function buildModel(boxes){const g=new THREE.Group();const rig={},parts={};
   // One merged, vertex-coloured mesh per limb instead of ~100 separate boxes.
   // thin decals (brows, mouth, beard edges, texel shading) lie on other faces: they get their own mesh drawn slightly in front,
   // as in the game's renderer, otherwise they flicker and leave holes
-  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
-  for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
+  const SKINC=new Set(all_.filter(b=>!b[8]&&Math.abs(b[0])<.12&&b[1]>.82&&b[1]<1.02&&b[2]>.15).map(b=>b[6]));
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,map:skinPixels()}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  for(const [k,all] of Object.entries(parts))for(const decal of [false,true]){const list=all.filter(b=>!!b[8]===decal);if(!list.length)continue;const t=rig[k],pos=[],nor=[],cols=[],idx=[],uvs=[],o=new THREE.Vector3();if(k.startsWith('fore'))o.copy(t.position).add(t.parent.position);else o.copy(t.position);
     for(const[x,y,z,w,h,d,c] of list){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);
       const base=pos.length/3,P=gb.attributes.position.array,N=gb.attributes.normal.array;for(let i=0;i<P.length;i++){pos.push(P[i]);nor.push(N[i]);}
-      for(let i=0;i<P.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
+      for(let i=0;i<P.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);
+      // pixel grain on every side, at one size over the whole body: each face takes its two own axes
+      if(!decal&&SKINC.has(c)){for(let i=0;i<P.length/3;i++)uvs.push(.5/16,.5/16);}
+      else if(!decal){const sh=(x*7.31+y*3.17+z*5.11)%1;for(let i=0;i<P.length/3;i++){const ax=Math.abs(N[i*3]),ay=Math.abs(N[i*3+1]),px=P[i*3],py=P[i*3+1],pz=P[i*3+2],K=1/(SKIN_PX*16);
+        uvs.push(...(ax>.5?[pz*K+sh,py*K]:ay>.5?[px*K,pz*K+sh]:[px*K+sh,py*K]));}}
+      gb.dispose();}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
-    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));if(uvs.length)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(idx);const m=new THREE.Mesh(geo,decal?dmat:mat);m.castShadow=!decal;t.add(m);}
   // the hand is the lowest block of each forearm; items are put inside it, at its centre
   for(const k of ['L','R']){const list=parts['fore'+k],f=rig['fore'+k],o=f.position.clone().add(f.parent.position);
     // only solid blocks on the arm's own axis count: a builder's held item or its decals would pull the hand forward
@@ -109,7 +124,7 @@ function buildQuad(boxes){const g=new THREE.Group(),rig={quad:true};const legTop
   for(const b of boxes){const[x,y,z]=b;let k='body';
     if(legs.includes(b)||b[1]+b[4]/2<=legTop+.06&&Math.abs(x)>.05&&b[5]<.02)k=(z>(fz+bz)/2?'F':'B')+(x<0?'L':'R');
     else if(z>=neck)k='head';else if(z<=tailZ)k='tail';parts[k].push(b);}
-  const mat=new THREE.MeshLambertMaterial({vertexColors:true}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,map:skinPixels()}),dmat=new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}),col=new THREE.Color();
   for(const[k,list]of Object.entries(parts))for(const decal of[false,true]){const L=list.filter(b=>(Math.min(b[3],b[4],b[5])<=.012)===decal);if(!L.length)continue;const o=rig[k].position,pos=[],nor=[],cols=[],idx=[];
     for(const[x,y,z,w,h,d,c,e]of L){const gb=new THREE.BoxGeometry(w,h,d);gb.translate(x-o.x,y-o.y,z-o.z);col.setHex(c);const base=pos.length/3,Pa=gb.attributes.position.array,N=gb.attributes.normal.array;
       for(let i=0;i<Pa.length;i++){pos.push(Pa[i]);nor.push(N[i]);}for(let i=0;i<Pa.length/3;i++)cols.push(col.r,col.g,col.b);for(const i of gb.index.array)idx.push(base+i);gb.dispose();}
