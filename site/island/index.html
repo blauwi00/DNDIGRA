@@ -531,7 +531,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.82 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.88 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2665,17 +2665,39 @@ const ELBOW=.52;const capeShade=(c,k)=>(Math.min(255,((c>>16)&255)*k|0)<<16)|(Ma
 var SKIN_PX=.032,SKINTEX=null;
 function skinPixels(){if(SKINTEX)return SKINTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
   // soft patches two pixels wide, a few shades apart, like a hand-drawn block skin; pixel (0,0) stays plain for skin
-  const tones=[.87,.93,1,1,1.05];for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=tones[Math.floor(r()*tones.length)],g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
-    if(r()<.35){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
+  // a few close shades and no single-pixel speckles, so the grain reads as cloth and hair, not as a rash
+  const tones=[.92,.96,1,1,1.03];for(let j=0;j<16;j+=2)for(let i=0;i<16;i+=2){const v=tones[Math.floor(r()*tones.length)],g=Math.round(Math.min(1,v)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,2,2);
+    if(r()<0){const w=Math.round(Math.min(1,v+(r()<.5?.03:-.03))*255);x.fillStyle='rgb('+w+','+w+','+w+')';x.fillRect(i+(r()<.5?0:1),j+(r()<.5?0:1),1,1);}}
   x.fillStyle='#fff';x.fillRect(0,0,1,1);
   SKINTEX=new THREE.CanvasTexture(c);SKINTEX.magFilter=SKINTEX.minFilter=THREE.NearestFilter;SKINTEX.wrapS=SKINTEX.wrapT=THREE.RepeatWrapping;SKINTEX.generateMipmaps=false;return SKINTEX;}
 let HAIR_SET=new Set();
 var HAIRTEX=null;
 function hairPixels(){if(HAIRTEX)return HAIRTEX;const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');let s=31;const r=()=>(s=(s*16807)%2147483647)/2147483647;
-  const tones=[.78,.86,.93,1,1.06,1.14];for(let i=0;i<16;i++){let t=Math.floor(r()*tones.length);for(let j=0;j<16;){const run=2+Math.floor(r()*4);if(r()<.5)t=Math.max(0,Math.min(tones.length-1,t+(r()<.5?-1:1)));
-    const g=Math.round(Math.min(1,tones[t]/1.14)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,1,run);j+=run;}}
+  const tones=[.86,.91,.95,1,1.04,1.08];for(let i=0;i<16;i++){let t=Math.floor(r()*tones.length);for(let j=0;j<16;){const run=2+Math.floor(r()*4);if(r()<.5)t=Math.max(0,Math.min(tones.length-1,t+(r()<.5?-1:1)));
+    const g=Math.round(Math.min(1,tones[t]/1.08)*255);x.fillStyle='rgb('+g+','+g+','+g+')';x.fillRect(i,j,1,run);j+=run;}}
   HAIRTEX=new THREE.CanvasTexture(c);HAIRTEX.magFilter=HAIRTEX.minFilter=THREE.NearestFilter;HAIRTEX.wrapS=HAIRTEX.wrapT=THREE.RepeatWrapping;HAIRTEX.generateMipmaps=false;return HAIRTEX;}
-function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig={},parts={};
+// Two of the shared builder's hairstyles are reshaped here, found by their own block sizes (saved looks keep working):
+// the mohawk becomes one solid crest from brow to nape without the dark side stripes, and the curly mop
+// becomes small curls lying close to the head instead of a wide box. Marks drawn on the old blocks go with them.
+var HAIR_OWN=false;
+function fixHair(boxes){HAIR_OWN=false;const near=(a,v,e)=>Math.abs(a-v)<(e||.012),solid=boxes.filter(b=>!b[8]);
+  const mo=solid.find(b=>near(b[0],0)&&near(b[3],.12)&&near(b[4],.22)&&near(b[5],.42)),cu=solid.find(b=>near(b[0],0)&&near(b[3],.62)&&near(b[4],.28)&&near(b[5],.56));
+  if(!mo&&!cu)return boxes;HAIR_OWN=true;const h=(mo||cu)[6],y0=(mo||cu)[1]-(mo?1.22:1.2);
+  const on=(d,b)=>Math.abs(d[0]-b[0])<=b[3]/2+.02&&Math.abs(d[1]-b[1])<=b[4]/2+.02&&Math.abs(d[2]-b[2])<=b[5]/2+.02;
+  // a hair block of this style above the ears: all of them are rebuilt
+  const old=solid.filter(b=>b[1]-y0>.95&&Math.min(b[3],b[4],b[5])>.015&&(b[6]===h||(mo&&near(Math.abs(b[0]),.245)&&near(b[3],.02))));
+  const kept=solid.filter(b=>!old.includes(b)),out=boxes.filter(b=>!old.includes(b)&&!(b[8]&&old.some(o=>on(b,o))&&!kept.some(k=>on(b,k))));
+  const H=(x,y,z,w,hh,d)=>out.push([x,y+y0,z,w,hh,d,h,false]);
+  if(mo){H(0,1.125,0,.3,.05,.44);H(0,1.25,-.01,.14,.3,.46);H(0,1.0,-.215,.14,.32,.06);}
+  else{H(0,1.02,-.02,.48,.18,.44);H(0,1.165,-.01,.5,.1,.48);H(0,.97,-.245,.5,.34,.07);
+    for(const sx of [-1,1])H(sx*.255,1.0,-.01,.06,.24,.44);
+    // curls: small knobs in a staggered grid on the crown, the sides, the back and along the hairline
+    for(let i=0;i<5;i++)for(let j=0;j<5;j++)if((i+j)%2===0)H(-.2+i*.1,1.23,-.2+j*.1,.09,.05,.09);
+    for(const sx of [-1,1])for(let j=0;j<4;j++)H(sx*.29,1.1-(j%2)*.1,-.15+j*.1,.04,.08,.08);
+    for(let i=0;i<5;i++)H(-.2+i*.1,1.08-(i%2)*.12,-.29,.08,.08,.04);
+    for(let i=0;i<5;i++)H(-.2+i*.1,1.08+(i%2)*.03,.22,.08,.06,.05);}
+  return out;}
+function buildModel(boxes){boxes=fixHair(boxes);const all_=boxes;const g=new THREE.Group();const rig={},parts={};
   const minY=Math.min(...boxes.filter(b=>Math.abs(b[0])<=.31).map(b=>b[1]-b[4]/2));g.position.y=-minY; // feet on the ground
   // the model is one piece: a block that touches nothing (a leaf, a nose, a fin) is moved onto its nearest neighbour,
   // and a drawn mark that lies on no block is dropped, so nothing hovers beside the body
@@ -2768,7 +2790,8 @@ function buildModel(boxes){const all_=boxes;const g=new THREE.Group();const rig=
      if(nr-nl>.004)out.push([(nl+nr)/2,up[1],up[2],nr-nl,...up.slice(4)]);return out;});}
   // hair is not cut square: locks of different lengths hang from its lower edges (at the back and sides, and at the
   // front only below or above the face), so the outline is ragged like real hair
-  for(const k of ['head','torso','cape'])if(parts[k]){const add=[];for(const b of parts[k]){if(b[8]||!HAIR_SET.has(b[6])||b[3]<.06||b[5]<.06||b[4]<.05)continue;
+  // (the reshaped mohawk and curls have their own outline and get no extra locks)
+  if(!HAIR_OWN)for(const k of ['head','torso','cape'])if(parts[k]){const add=[];for(const b of parts[k]){if(b[8]||!HAIR_SET.has(b[6])||b[3]<.06||b[5]<.06||b[4]<.05)continue;
     let sd=Math.abs(Math.round(b[0]*977+b[1]*613+b[2]*379))+7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,lo=b[1]-b[4]/2;
     const face=lo>.8&&lo<1.12;
     const edge=(x0,z0,x1,z1,front)=>{const L=Math.hypot(x1-x0,z1-z0),n=Math.max(1,Math.round(L/.045));if(front&&face)return;
@@ -2843,6 +2866,8 @@ const HELD={
 // a bow by the grip in the middle of its arc (never by the string), a shield by the strap
 // on its back, face out along the outside of the arm.
 const TWO={has:id=>!!(id&&WEAPONS[id]&&WEAPONS[id].two)};
+// a broom and a hoe work with their head on the ground ahead: the shaft leaves the fist pointing forward and down
+const TOOL_TILT={broom:2.45,hoe:2.45};
 const _c=new THREE.Vector3();
 // shafts (spears, staves) are held at their balance point; blades and hafts by the grip at their own origin
 function holdItem(holder,side,id){const r=holder.userData.rig,fore=r[side==='R'?'foreL':'foreR'],h=r[side==='R'?'handL':'handR'],k=kindOf(id),out=side==='R'?-1:1;
@@ -2850,7 +2875,7 @@ function holdItem(holder,side,id){const r=holder.userData.rig,fore=r[side==='R'?
   if(k==='shield'){bb.getCenter(_c);inner.position.set(-_c.x,-_c.y,-bb.min.z+.015);hold.scale.setScalar(1.35);hold.rotation.set(0,out*Math.PI/2,0);}
   else if(k==='bow'){inner.position.z=-WEAPONS[id].m.bend;hold.scale.setScalar(1.4);
     hold.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),out*Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2));}
-  else{const len=bb.max.y-bb.min.y;if(len>.8&&(k==='spear'||k==='staff'))inner.position.y=-(bb.min.y+len*.38);hold.scale.setScalar(TWO.has(id)?1.4:1.5);hold.rotation.x=k==='torch'?.5:Math.PI/2;}
+  else{const len=bb.max.y-bb.min.y;if(len>.8&&(k==='spear'||k==='staff'))inner.position.y=-(bb.min.y+len*.38);hold.scale.setScalar(TWO.has(id)?1.4:1.5);hold.rotation.x=k==='torch'?.5:TOOL_TILT[k]||Math.PI/2;}
   hold.position.copy(h);fore.add(hold);return hold;}
 function setHeld(holder,side,id){const fore=holder.userData.rig[side==='R'?'foreL':'foreR'];
   if(fore.userData.item){fore.remove(fore.userData.item);fore.userData.item=null;}if(!id)return;fore.userData.item=holdItem(holder,side,id);}
@@ -2865,6 +2890,14 @@ function armPose(o,walk,sw,breathe){const r=o.userData.rig,b=breathe*.03;
 window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;hero.userData.held={L:two?null:L,R:two?null:R,two};
   setHeld(hero,'L',two?null:L);setHeld(hero,'R',two?null:R);setTwoHanded(hero,two);};
 
+// Townsfolk ease into each new pose: every joint follows the pose set this frame with a short lag, so a
+// work stroke ending, a turn to talk or the first step never snaps the limbs from one angle to another.
+const POSE_J=['armL','armR','foreL','foreR','legL','legR','head'];
+function smoothPose(a,r,b,dt){const s=a._sp||(a._sp={}),k=1-Math.exp(-dt*14);
+  for(const n of POSE_J){const o=r[n]&&r[n].rotation;if(!o)continue;const p=s[n];if(!p){s[n]=[o.x,o.y,o.z];continue;}
+    p[0]+=(o.x-p[0])*k;p[1]+=(o.y-p[1])*k;p[2]+=(o.z-p[2])*k;o.set(p[0],p[1],p[2]);}
+  const o=b.rotation,p=s.body;if(!p)s.body=[o.x,o.y,o.z];else{p[0]+=(o.x-p[0])*k;p[1]+=(o.y-p[1])*k;p[2]+=(o.z-p[2])*k;o.set(p[0],p[1],p[2]);}
+  a.crouchS=(a.crouchS||0)+((a.crouch||0)-(a.crouchS||0))*k;}
 // ---------- house interiors ----------
 // Rooms are drawn as plain meshes per room; only the room the hero is in is shown.
 const interact=[]; // tappable things: {mesh,x,z,use()}
@@ -3357,8 +3390,9 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   let res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
   if(isHero&&!res.ok&&RACES[HERO.race]?.reroll&&SP.frag){SP.frag=0;floatText('Эльфийская точность','#9ae0ff',hero);rollDone();await wait(350);
     res=await roll20(opt.n+' → '+def.name+' · переброс',opt.hit,acOf(def),adv.v,adv.why);}
-  const ranged=opt.range>1&&man(att,def)>1;let back=null;
-  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else back=await lunge(att,def);
+  const ranged=opt.kind!=='melee'&&opt.range>1&&man(att,def)>1;let back=null;
+  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else{const w=WEAPONS[opt.id]||(att!==H0&&att.o.userData.held&&WEAPONS[att.o.userData.held.R]);
+    att.pose={type:'atk',style:w?w.kind:'fist',two:!!(w&&(w.two||w.kind==='spear'||w.kind==='staff')),t0:performance.now(),ms:820};back=await lunge(att,def);}
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex
@@ -3369,7 +3403,7 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   if(def.enemy){def.aware=true;def.distracted=false;}
   if(dmg)hurt(def,dmg,att);rollDone();}
 // damage taken by the hero passes through rage, shell, stone endurance; an orc stays up once; a tiefling burns back
-function hurt(def,dmg,att,kind){if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
+function hurt(def,dmg,att,kind){if(CB.on&&dmg>0)CB.hitRound=CB.round;if(def===H0){const R=RACES[HERO.race]||{};if(R.fireRes&&kind==='fire'&&dmg>0){dmg=Math.floor(dmg/2);floatText('Огнестойкость','#ffb36a',hero);}
     {const h=hero.userData.held||{};if(CB.on&&dmg>0&&!CB.blockUsed&&[h.L,h.R].some(id=>WEAPONS[id]?.block)){CB.blockUsed=true;dmg=0;floatText('Щит дозора','#e8c27a',hero);}}
     if(CB.rage)dmg=Math.ceil(dmg/2);if(CB.shell){dmg=Math.ceil(dmg/2);CB.shell=false;floatText('Панцирь','#c8b890',hero);}
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
@@ -3470,7 +3504,7 @@ const victory=()=>endCombat(enemies.every(x=>x.dead)?'Победа. Остров
 async function nextTurn(){if(!CB.on||H0.dead)return;if(!liveFoes().length)return victory();
   CB.i++;if(CB.i>=CB.order.length){CB.i=0;CB.round++;
     // a fight where nobody has struck for three rounds (a foe across water or a wall) dies down by itself
-    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes())e.aware=false;return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
+    if(CB.round-(CB.hitRound||1)>=3&&!liveFoes().some(e=>man(e,H0)<=1)){for(const e of liveFoes()){e.aware=false;e.slipUntil=performance.now()+60000;}return endCombat('Враги не могут до вас добраться. Бой затих.');}}const a=CB.order[CB.i];if(a.dead)return nextTurn();
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}
@@ -3524,7 +3558,7 @@ async function allyTurn(a){const t=nearestOf(a,liveFoes());if(!t)return;if(man(a
 function allyDown(a){a.down=true;a.hp=0;a.route=null;sfx('death');floatText(a.name+' ранен и падает','#ff9a6a',a.o);tween(500,k=>{a.o.rotation.z=k*1.3;a.sink=k*.1});renderOrder();}
 // a badly hurt foe that fails its nerve runs: it counts as overcome but leaves no body
 function morale(e){if(!e.enemy||e.boss||e.dead||e.fled||e.temp)return;if(e.hp>e.max*.35)return;if(d(20)+(e.wis||0)>=11)return;flee(e);}
-function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight=false;floatText(e.model==='bandit'?'Бросает оружие и бежит':'Убегает','#cfc6b4',e.o);
+function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight=false;questKill(e);gainXP(Math.ceil(xpOf(e)/2));floatText(e.model==='bandit'?'Бросает оружие и бежит':'Убегает','#cfc6b4',e.o);
   questKill(e);gainXP(Math.round(xpOf(e)*.7));const dx=Math.sign(e.x-H0.x)||1,dz=Math.sign(e.z-H0.z)||1,x0=e.o.position.x,z0=e.o.position.z;e.face=Math.atan2(dx,dz);
   tween(1200,k=>{e.o.position.x=x0+dx*5*k;e.o.position.z=z0+dz*5*k;}).then(()=>{e.o.visible=false;});renderOrder();}
 const XPV={bandit:25,goblin:50,skeleton:50,wolf:50,boar:50,bear:100};
@@ -3573,7 +3607,7 @@ function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
   if(q.left===0){q.state=2;return reward(q,items,ok,who);}
   say(who,ask,[['Берусь',()=>{q.state=1;questFocus=q;questUI();say(who,'Да хранит тебя море.');}]]);}
-function talk(a){a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
+function talk(a){window.talkWho=a;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.face=Math.atan2(a.px-H0.px,a.pz-H0.pz);const n=a.npc;
   if(!tutOn()&&jobDeliverTo(a))return;
   // the tutorial's own lines first
   if(tutOn()){const s=TUT.step;
@@ -3644,7 +3678,9 @@ function ai(){const now=performance.now();
     if(!a.route&&!(a.hold>now)&&!waitsForHero(a)&&Math.random()<.2){const tx=a.home[0]+Math.round((Math.random()-.5)*2*a.wander),tz=a.home[1]+Math.round((Math.random()-.5)*2*a.wander);
       if(free(tx,tz)){const p=path(a.x,a.z,tx,tz,a,false,300);a.route=p&&p.length?p:null;}}}}
 // life when standing still: villagers work, enemies fidget, the hero gets restless
-function idleLife(a,r,b,t){const p=a.ph;if((a.talkId==='town'||a.talkId==='merc')&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town'||a.talkId==='merc')workPose(a,r,b,t);
+function idleLife(a,r,b,t){const p=a.ph;
+  // anyone the hero speaks to turns to them and talks with light gestures (a seated guest just turns)
+  if(a.npc&&!a.enemy&&!r.quad&&a.act!=='sit'&&a===window.talkWho&&!talkEl.hidden){a.hold=performance.now()+1500;talkPose(a,r,b,t,false);return;}if((a.talkId==='town'||a.talkId==='merc')&&!a.route&&a.workAct)a.act=a.workAct;if(a.villager||a.role==='trav'||a.talkId==='town'||a.talkId==='merc')workPose(a,r,b,t);
   if(a.act==='wipe'){r.armL.rotation.set(-1.05,Math.sin(t*3+p)*.15,Math.sin(t*3+p)*.35);b.rotation.x=.12;}
   if(a.act==='hammer'&&!a.route){a.face=Math.PI;const k=(t*1.1+p)%1,up=k<.6?k/.6:1-(k-.6)/.4*1.0,hit=k>.94;r.armL.rotation.set(-.3-1.9*Math.max(0,up),0,.1);b.rotation.x=.1+.06*up;
     if(k<a.hk&&room&&room.type==='forge')sfx('clank');a.hk=k;}
@@ -3663,6 +3699,14 @@ function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=
   if(T==='stretch'){r.armL.rotation.set(-2.6*s,0,.3*s);r.armR.rotation.set(-2.6*s,0,-.3*s);b.rotation.x=-.12*s;}
   if(T==='around'){r.head.rotation.y=Math.sin(k*Math.PI*2)*.9*s;}
   if(T==='shift'){b.rotation.z=Math.sin(k*Math.PI*2)*.06;r.legL.rotation.x=.15*s;}
+  // a strike: wind up, hit, come back; each kind of weapon moves the arms its own way
+  if(T==='atk'){const st=a.pose.style,w=k<.4?Math.sin(k/.4*Math.PI/2):k<.58?1-(k-.4)/.18:0,h=k<.4?0:k<.58?(k-.4)/.18:Math.max(0,1-(k-.58)/.42),two=a.pose.two;
+    if(st==='sword'||st==='axe'&&!two){r.armR.rotation.set(-2.5*w-1.1*h,0,-.6*w+.6*h);b.rotation.y=.45*w-.55*h;}
+    else if(st==='dagger'){r.armR.rotation.set(-.5*w-1.6*h,0,-.1*h);r.armL.rotation.set(-.4*w,0,.2*w);b.rotation.y=.2*w-.25*h;}
+    else if(st==='spear'){const x=.5-.2*w+.05*h;r.armR.rotation.set(x,0,-.1);r.armL.rotation.set(x-.6,0,.35);b.rotation.y=-.3*w+.15*h;b.rotation.x+=-.12*w+.22*h;}
+    else if(st==='mace'||st==='hammer'||st==='axe'){if(two){r.armR.rotation.set(-2.9*w-1.2*h,0,-.2);r.armL.rotation.set(-2.9*w-1.2*h,0,.2);}else r.armR.rotation.set(-2.9*w-1.2*h,0,-.2*w);b.rotation.x+=-.15*w+.3*h;}
+    else if(st==='staff'){r.armR.rotation.set(-1.1,0,-.3);r.armL.rotation.set(-1.1,0,.3);b.rotation.y=.8*w-.9*h;}
+    else{r.armR.rotation.set(-.3*w-1.6*h,0,0);r.armL.rotation.set(-.6*w+.3*h,0,.15);b.rotation.y=.25*w-.3*h;}}
   if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
 // a character behind a tree or a wall shows through it as a flat silhouette: foes red, the hero and
 // companions blue. The actors are drawn once more with only the hidden parts passing the depth test.
@@ -3694,16 +3738,19 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
     const moving=(a!==H0||!H0.dead)&&step(a,dt);a.walkW=(a.walkW||0)+((moving?1:0)-(a.walkW||0))*Math.min(1,dt*(moving?9:6));
     if(moving)a.walkT=(a.walkT||0)+dt*a.spd*4.2;
     const o=a.o,b=o.userData.body,walk=a.walkW>.03?(a.walkT||.001):0;const sw=reduce?0:Math.sin(a.walkT||0)*a.walkW,breathe=reduce?0:Math.sin(t*2+a.ph);
-    a.gy=(a.gy??groundAt(a.px,a.pz))+(groundAt(a.px,a.pz)-(a.gy??0))*Math.min(1,dt*12);o.position.set(a.px+(a.off?a.off[0]:0),a.gy+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a.crouch||0),a.pz+(a.off?a.off[1]:0));
+    a.gy=(a.gy??groundAt(a.px,a.pz))+(groundAt(a.px,a.pz)-(a.gy??0))*Math.min(1,dt*12);o.position.set(a.px+(a.off?a.off[0]:0),a.gy+(walk?Math.abs(sw)*.03:0)-(a.sink||0)-(a.sneak?.07:0)-(a!==H0&&!a.inFight&&a.crouchS!=null?a.crouchS:(a.crouch||0)),a.pz+(a.off?a.off[1]:0));
     // the body turns towards where it goes instead of snapping round
     if(a!==H0||!H0.dead){let dr=a.face-o.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));o.rotation.y+=dr*Math.min(1,dt*12);}b.rotation.x=(a.lean||0)+(a.sneak?.3:0);b.rotation.y=0;b.rotation.z=walk?sw*.03:0;
     const r=o.userData.rig;if(r&&r.quad){quadPose(r,walk,sw,t,a.ph);if(!walk&&!a.off&&a.enemy&&!a.inFight)r.head.rotation.x=.25+Math.max(0,Math.sin(t*1.6+a.ph))*.35;}
     else if(r){r.legL.rotation.x=walk?sw*.7:0;r.legR.rotation.x=walk?-sw*.7:0;
       armPose(o,walk,sw,breathe);
       if(a===H0&&walk){const s=Math.sign(sw);if(s&&s!==a.lastSw)stepSound(at(Math.floor(a.px),Math.floor(a.pz)),a.sneak);a.lastSw=s;}
+      // the head's quiet look-around comes first, so a work or talk pose can turn and nod it
+      r.torso.scale.y=1+(walk?0:breathe*.012);r.head.rotation.set(0,walk?0:Math.sin(t*.5+a.ph)*.15,0);
       if(!walk&&!a.off)idleLife(a,r,b,t);
-      r.torso.scale.y=1+(walk?0:breathe*.012);r.head.rotation.y=walk?0:Math.sin(t*.5+a.ph)*.15;r.head.rotation.x=0;
-      if(a.pose)applyPose(a,r,b,now);else if(walk||!a.act)a.crouch=0;}}
+      if(a.pose)applyPose(a,r,b,now);else if(walk||!a.act)a.crouch=0;
+      // townsfolk ease from one pose into the next instead of snapping (a stroke ends, a talk starts, they set off)
+      if(a!==H0&&!a.inFight)smoothPose(a,r,b,dt);}}
   for(const e of enemies){const b=e.bar;b.g.visible=!e.dead&&e.o.visible&&(e.inFight||e.hp<e.max);if(!b.g.visible)continue;
     b.g.position.set(e.o.position.x,e.o.position.y+1.15*(e.scale||1),e.o.position.z);b.g.quaternion.copy(camera.quaternion);const k=Math.max(0,e.hp/e.max);b.fg.scale.x=k;b.fg.position.x=-.28*(1-k);}
   if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});
@@ -3896,7 +3943,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   (d.dead||[]).forEach((v,i)=>{const e=enemies[i];if(v&&e){e.dead=true;e.o.visible=false;}});
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
-  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function')shipArrive(true);
+  if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function'){shipArrive(true);if(Q.ship&&d.q&&d.q.ship)Q.ship.state=d.q.ship[0];}
   dealsLoad(d.deals);objsLoad(d.objs);campaignLoad(d.camp);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
@@ -4325,8 +4372,8 @@ const DOOR=i=>ROOMS[i].door,TAV=ROOMS[0];
 Object.assign(HELD,{
   rod:[[0,.2,0,.03,.8,.03,0x6a4426],[0,.62,0,.02,.12,.02,0x3a2416],[0,.4,.0,.006,.6,.006,0xe8e0c8]],
   axe:[[0,.14,0,.05,.46,.05,0x6a4426],[.07,.34,0,.14,.12,.03,0xa8adb5]],
-  broom:[[0,.2,0,.04,.7,.04,0x8a6a40],[0,-.18,0,.16,.14,.06,0xc8a858]],
-  hoe:[[0,.2,0,.04,.72,.04,0x6a4426],[.06,-.14,0,.14,.04,.05,0x8a8e94]],
+  broom:[[0,.2,0,.04,.54,.04,0x8a6a40],[0,.52,0,.18,.16,.08,0xc8a858],[0,.61,0,.2,.04,.09,0xa88a40]],
+  hoe:[[0,.26,0,.04,.66,.04,0x6a4426],[0,.6,.05,.12,.05,.12,0x8a8e94]],
   mug:[[0,.06,.04,.1,.12,.1,0x8a6a4a],[.07,.06,.04,.03,.07,.03,0x8a6a4a]],
   spear:[[0,.25,0,.04,1,.04,0x6a4426],[0,.78,0,.06,.14,.03,0xc8ccd2]]});
 // work places around the village
@@ -4676,7 +4723,7 @@ function goTo(a,[x,z],then){const t=nearFree(x,z,3);const p=path(a.x,a.z,t[0],t[
 let lifeI=0;
 // Olav waits on the pier until the new hero has spoken to him: the tutorial sends the player to him
 const waitsForHero=a=>a.talkId==='fisher'&&typeof TUT!=='undefined'&&TUT.step>=0&&TUT.step<=1&&!TUT.flags.olav;
-function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
+function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a===window.talkWho&&!talkEl.hidden)return;if(a.dead||a.hold>performance.now()||waitsForHero(a)||CB.on)return;const ph=phaseNow();
   if(a.role==='patrol'&&ph!=='home'){if(a.hidden)appear(a,DOOR(a.house));if(!a.route){a.pi=((a.pi||0)+1)%SPOTS.patrol.length;goTo(a,SPOTS.patrol[a.pi]);}a.act=null;return;}
   if(a.route)return;
   if(ph==='home'){if(a.where==='home')return;if(a.where==='goingHome'&&a.route)return;if(a.where==='tavern'){leaveTavern(a);return;}a.act=null;a.tool&&setHeld(a.o,'R',null);a.where='goingHome';goTo(a,DOOR(a.house),()=>hideIn(a));return;}
@@ -4694,7 +4741,7 @@ function lifeTick(){if(!V.length)return;const a=V[lifeI++%V.length];if(a.dead||a
   if(a.where==='tavern'){leaveTavern(a);return;}if(a.hidden)appear(a,DOOR(a.house));
   const spot=SPOTS[a.role];if(Math.abs(a.x-spot[0])+Math.abs(a.z-spot[1])>2){a.act=null;goTo(a,spot);a.where='out';return;}
   if(a.act!==a.role){a.act=a.role;if(a.tool)setHeld(a.o,'R',a.tool);
-    a.face={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2}[a.role]??a.face;}}
+    a.face=a.workFace={fish1:-Math.PI/2,fish2:-Math.PI/2,chop:Math.PI/2,sell:0,chat1:Math.PI/2,chat2:-Math.PI/2,sweep:Math.PI/2,field:0}[a.role]??a.face;}}
 // who goes out tonight: decided per villager and per day
 function goesOut(a){const d=typeof dayN==='number'?dayN:0;return hash2(V.indexOf(a)*7+3,d*13+1)<.5;}
 function leaveTavern(a){a.act=null;a.seat=null;a.where='leaving';goTo(a,[TAV.exit[0],TAV.exit[1]-1],()=>{appear(a,DOOR(0));a.where='out';});}
@@ -4702,7 +4749,23 @@ function leaveTavern(a){a.act=null;a.seat=null;a.where='leaving';goTo(a,[TAV.exi
 // Work motions use the whole body: both arms, the forearms, a lean of the trunk and bent knees, in a rhythm
 // with a quick working stroke and a slower recovery. armL/foreL is the hand that holds the tool.
 const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
-function workPose(a,r,b,t){const p=a.ph,k=t+p;switch(a.act){
+// The arms' sideways angle: for the left-hand group (armL, at -x) a negative z swings the hand out, a positive z
+// in across the body; armR is the mirror. Arms only cross inwards when they are lifted well forward, so a hand never
+// passes through the chest or belly.
+const bump=x=>{const s=Math.sin(x);return s>0?s*s:0;};
+// talking to the hero: turned to face them, the tool lowered, the free hand moves with the words, small nods;
+// someone who just called out to the hero lifts a hand in greeting
+function talkPose(a,r,b,t,greet){const k=t+a.ph,sp=r.splay||0;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);a.crouch=0;
+  const tool=!!(r.foreL.userData.item||r.foreL.userData.two),g=bump(k*1.9),g2=bump(k*1.3+2.1);
+  r.armL.rotation.set(tool?-.18:-.15-g2*.45,0,-sp-.04-(tool?0:g2*.12));r.foreL.rotation.set(tool?-.35:-.3-g2*.7,0,0);
+  if(greet){const w=Math.sin(k*9)*.22;r.armR.rotation.set(-2.5,0,sp+.3+w);r.foreR.rotation.set(-.3,0,0);}
+  else{r.armR.rotation.set(-.2-g*.6,0,sp+.06+g*.18);r.foreR.rotation.set(-.35-g*.75,0,0);}
+  r.head.rotation.set(Math.sin(k*2.1)*.05+(greet?-.08:.02),0,Math.sin(k*.8)*.04);b.rotation.set(0,0,Math.sin(k*.6)*.02);}
+function workPose(a,r,b,t){const p=a.ph,k=t+p,now=performance.now();
+  if(a.act!=='sit'){if(a===window.talkWho&&!talkEl.hidden){a.hold=now+1500;return talkPose(a,r,b,t,false);}
+    if(a.greetT>now)return talkPose(a,r,b,t,true);}
+  if(a.workFace!=null&&a.act===a.role)a.face=a.workFace;
+  switch(a.act){
   case 'fish1':case 'fish2':{ // rod held out in both hands, the tip bobbing; now and then a sharp tug
     const tug=Math.max(0,Math.sin(k*.45))>.97?1:0,bob=Math.sin(k*1.6)*.05;
     r.armL.rotation.set(-1.05+bob-tug*.5,0,.18);r.foreL.rotation.set(-.35-tug*.3,0,0);r.armR.rotation.set(-.85+bob,0,-.25);r.foreR.rotation.set(-.6,0,0);
@@ -4712,18 +4775,18 @@ function workPose(a,r,b,t){const p=a.ph,k=t+p;switch(a.act){
     for(const[arm,fore,z]of[[r.armL,r.foreL,-.12],[r.armR,r.foreR,.12]]){arm.rotation.set(-.35-2.25*up,0,z);fore.rotation.set(-.2-.5*up,0,0);}
     b.rotation.x=.32*(1-up);a.crouch=.05*(1-up);if(c<a.ck&&up<.2&&!room&&man(a,H0)<9)sfx('chopw');a.ck=c;break;}
   case 'sweep':{ // broom low in both hands, long strokes left and right, shoulders turning with them
-    const sw=Math.sin(k*2.2);r.armL.rotation.set(-.55,0,sw*.35);r.armR.rotation.set(-.75,0,sw*.35-.1);r.foreL.rotation.set(-.3,0,0);r.foreR.rotation.set(-.5,0,0);
-    b.rotation.y=sw*.22;b.rotation.x=.18;r.head.rotation.x=.25;break;}
+    const sw=Math.sin(k*2.2),sp=r.splay||0;r.armL.rotation.set(-.38,sw*.1,-sp+sw*.12);r.foreL.rotation.set(-.2,0,0);r.armR.rotation.set(-.62,0,.22+sw*.12);r.foreR.rotation.set(-.55,0,0);
+    b.rotation.y=sw*.2;b.rotation.x=.14;r.head.rotation.x=.22;r.head.rotation.y=-sw*.12;break;}
   case 'field':{ // the hoe rises in both hands and bites the ground; the worker bends low on each stroke
     const c=(k*.6)%1,up=c<.55?ease(c/.55):1-ease(Math.min(1,(c-.55)/.25));
-    for(const[arm,fore]of[[r.armL,r.foreL],[r.armR,r.foreR]]){arm.rotation.set(-.3-1.6*up,0,0);fore.rotation.set(-.3-.4*up,0,0);}
+    r.armL.rotation.set(-.3-1.6*up,0,-(r.splay||0));r.foreL.rotation.set(-.2-.4*up,0,0);r.armR.rotation.set(-.55-1.5*up,0,.2);r.foreR.rotation.set(-.5-.3*up,0,0);
     b.rotation.x=.38*(1-up)+.08;a.crouch=.06*(1-up);break;}
   case 'sell':{ // calls to passers-by: one hand waves the goods, the other rests on the stall, weight shifting
-    const w=Math.max(0,Math.sin(k*1.1));r.armR.rotation.set(-.5-w*1.2,0,-.3);r.foreR.rotation.set(-.6-w*.5,0,0);r.armL.rotation.set(-.45,0,.15);r.foreL.rotation.set(-.9,0,0);
+    const w=bump(k*1.1),sp=r.splay||0;r.armR.rotation.set(-.35-w*1.5,0,sp+.08+w*.3);r.foreR.rotation.set(-.45-w*.4,0,0);r.armL.rotation.set(-.55,0,.12);r.foreL.rotation.set(-1,0,0);
     r.head.rotation.y=Math.sin(k*.5)*.5;b.rotation.z=Math.sin(k*.4)*.04;break;}
   case 'chat1':case 'chat2':{ // talking with hands: alternate gestures, nods and a shift of weight
-    const g1=Math.max(0,Math.sin(k*1.7)),g2=Math.max(0,Math.sin(k*1.7+2.4));r.armR.rotation.set(-.3-g1*.8,0,-.2);r.foreR.rotation.set(-.5-g1*.7,0,0);
-    r.armL.rotation.set(-.2-g2*.6,0,.2);r.foreL.rotation.set(-.4-g2*.6,0,0);r.head.rotation.x=Math.sin(k*2.3)*.1;r.head.rotation.y=Math.sin(k*.7)*.2;b.rotation.z=Math.sin(k*.5)*.035;break;}
+    const g1=bump(k*1.7),g2=bump(k*1.7+2.4),sp=r.splay||0;r.armR.rotation.set(-.15-g1*.75,0,sp+.06+g1*.2);r.foreR.rotation.set(-.3-g1*.8,0,0);
+    r.armL.rotation.set(-.12-g2*.6,0,-sp-.06-g2*.18);r.foreL.rotation.set(-.3-g2*.7,0,0);r.head.rotation.x=Math.sin(k*2.3)*.1;r.head.rotation.y=Math.sin(k*.7)*.2;b.rotation.z=Math.sin(k*.5)*.035;break;}
   case 'guard':{ // a guard stands straight, spear upright at his side, and looks the street up and down
     r.armL.rotation.set(-.25,0,.05);r.foreL.rotation.set(-.6,0,0);r.armR.rotation.set(0,0,-.08);r.head.rotation.y=Math.sin(k*.35)*.8;break;}
   case 'sit':{ // seated, forearms on the knees; now and then a sip from the mug
@@ -4753,7 +4816,7 @@ function barkTick(now){for(let i=bubbles.length-1;i>=0;i--){const B=bubbles[i],a
   // one voice at a time, never over a conversation, no line twice in a row
   if(CB.on||paused||!talkEl.hidden||bubbles.length)return;
   for(const a of actors){if(!a.npc||a.hidden||!a.o.visible||a.barkT>now-22000)continue;const d=Math.hypot(a.px-H0.px,a.pz-H0.pz);
-    if(d<3.2&&Math.random()<.02){speak(a,lastLine=PEOPLE[a.npc]?personBark(a):pickLine(a,'b',barkLines(a)));a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);break;}}
+    if(d<3.2&&Math.random()<.02){speak(a,lastLine=PEOPLE[a.npc]?personBark(a):pickLine(a,'b',barkLines(a)));a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);if(!a.route)a.greetT=now+1600;break;}}
   // villagers chatting with each other nearby
   const pair=[V.find(v=>v.act==='chat1'),V.find(v=>v.act==='chat2')];if(pair[0]&&pair[1]&&Math.hypot(pair[0].px-H0.px,pair[0].pz-H0.pz)<9&&Math.random()<.006){const s=pair[Math.random()<.5?0:1];
     if(s.barkT<now-6000||!s.barkT){const L=['А рыбак-то, слышала, снова сети порвал!','Брам новое пиво сварил.','Травница говорит, скоро шторм.','Ох, мои колени к дождю…','Чужак-то наш, видать, не робкого десятка.'];speak(s,L[Math.floor(Math.random()*L.length)]);}}
@@ -4921,7 +4984,7 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
    'Писарь':{who:['Пишу письма тем, кто не умеет. И жалобы королю.','Писарь. Знаю, кто кому сколько должен.'],bark:['Чернила кончаются…','Опять жалоба на налог.']},
    'Ремесленник':{who:['Чиню всё, что ломается: замки, сундуки, телеги.','Руки у меня золотые, а кошелёк пустой.'],bark:['Где мой молоток?','Ещё одна телега без колеса…']},
    'Горожанка':{who:['Живу тут с детства. Город шумный, но я привыкла.','Мы с соседками всё знаем: кто женился, кто уехал.'],bark:['Ох, ноги гудят.','Опять хлеб подорожал.']},
-   'Жрица':{who:['Служу при храме. Лечу, если могу, утешаю, если не могу.','Я жрица. Молюсь за тех, кто в море, и за тех, кто на дорогах.'],bark:['Мир тебе.','Береги себя в пути.']},
+   'Жрица':{who:['Служу при храме. Лечу, если могу, утешаю, если не могу.','Я жрица. Молюсь за тех, кто в море, и за тех, кто на дорогах.'],bark:['Здравствуй.','Береги себя в пути.']},
    'Подмастерье':{who:['Учусь у мастера. Пока что больше подметаю, чем мастерю.','Подмастерье я. Через год сам буду мастер. Может быть.'],bark:['Мастер ругаться будет…','Бегу, бегу!']},
    'Глашатай':{who:['Кричу новости на площади. Голос сорвал, а платят за каждый указ.','Глашатай. Если король что-то решил — я первый знаю.'],bark:['Слушайте все!','Указ короля!']},
    'Нищий':{who:['Был плотником, пока руку не сломал. Теперь вот…','Звали меня Эйриком. Теперь никак не зовут.'],bark:['Подай медяк, добрый человек.','Холодно сегодня…']},
@@ -4937,21 +5000,21 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
    'Сборщица клюквы':{who:['Собираю клюкву. Продаю в соседней деревне, если повезёт.','Клюква — всё, что у нас растёт.'],bark:['Руки красные от ягод.','Клюква, кому клюква…']},
    'Старуха':{who:['Живу тут дольше всех. Многое видела, о многом молчу.','Старая я. Внуки на мне, а сил мало.'],bark:['Ох-хо-хо…','Внуки, домой!']},
    'Батрак':{who:['Работаю на того, кто платит. Сегодня — тут.','Батрак. Своей земли нет, своего дома нет.'],bark:['Еле стою.','Ещё бы монетку…']},
-   'Кузнец':{who:['Кую оружие и подковы. Хорошая сталь дорогая, плохую не держу.','Кузнец. Огонь, железо и молот — вот и вся жизнь.'],bark:['Горн остывает…','Сталь любит терпение.']},
+   'Кузнец':{who:['Кую оружие и подковы. Хорошая сталь дорогая, плохую не держу.','Кузнец. Огонь, железо и молот — вот и вся жизнь.'],bark:['Горн остывает…','Сталь спешки не любит.']},
    'Пекарь':{who:['Пеку хлеб с ночи. К рассвету весь город завтракает моим хлебом.','Пекарь. Мука, вода, огонь — и руки.'],bark:['Тесто подходит…','Свежий хлеб!']},
    'Лавочница':{who:['В моей лавке всё для дороги: факелы, верёвки, сухари.','Лавочница. Знаю, что нужно путнику, раньше него самого.'],bark:['Заходи, глянь товар.','Факелы, кремни!']},
    'Служанка':{who:['Служу в замке. Мою полы, ношу воду, молчу.','Служанка. Король добрый, а вот повар — нет.'],bark:['Полы сами не помоются.','Тише, король принимает.']},
    'Наёмник':{who:['Меч продаю, а не совесть. За плату пойду с тобой куда угодно.','Сигвальд. Воевал на большой земле, теперь вот тут.'],bark:['Скучно без драки.','Деньги вперёд.']},
-   'Вожак стаи':{who:['Меня зовут Седой. Больше тебе знать не нужно.'],bark:['…','Лес слушает.']}};
+   'Вожак стаи':{who:['Меня зовут Седой. Больше тебе знать не нужно.'],bark:['…','Не шуми тут.']}};
  const TEMPER=[['Здравствуй.','А, это ты.','Чего тебе?'],['Ой, привет!','Добрый день! Заходи, поговорим.','Рада видеть!'],['Ну?','Говори быстро, мне некогда.','Опять ты.']];
  const rumors=a=>{const L=[],rv=Q.raven,cap=GEN.places.find(p=>p.type==='capital');
    if(rv&&rv.state<3){L.push(['rumor','Говорят, у разбойников один главный. Ворон его кличут. Кто он — никто не знает.']);
-     if(a.kind==='poor')L.push(['old','Старуха наша что-то знает про людей с чёрными перьями. Только просто так не скажет.']);
+     if(a.kind==='poor'&&a!==rv.oldA)L.push(['old','Старуха наша что-то знает про людей с чёрными перьями. Только просто так не скажет.']);
      if(a.kind==='capital'||a.kind==='castle')L.push(['list','В замке, говорят, висит список стражи. Одно имя там вычеркнуто, и про него не говорят.']);}
    else if(rv&&rv.state===3)L.push([null,rv.spared?'Ворона, говорят, не казнили. Король его на маяк сослал. Чудно.':'Ворона больше нет. Купцы опять поехали по тракту.']);
-   L.push(['pack','В глухом лесу живёт старик со стаей. Седой. Волки его слушаются, будто он их отец.']);
+   if(a.npc!=='Седой')L.push(['pack',typeof PACK_ANGRY!=='undefined'&&PACK_ANGRY?'Седой со своей стаей озлобился. В глухой лес теперь лучше не ходить.':'В глухом лесу живёт старик со стаей. Седой. Волки его слушаются, будто он их отец.']);
    L.push([null,chapel.lit?'В старой часовне в Заводи опять горит огонь. Мёртвые, говорят, присмирели.':'В Заводи часовня погасла. Ночью у руин лучше не ходить.']);
-   L.push([null,'Корабль с большой земли не приходил уже давно. Говорят, пока на дорогах неспокойно, капитаны сюда не ходят.']);
+   if(!(typeof SHIP!=='undefined'&&SHIP.on))L.push([null,'Корабль с большой земли не приходил уже давно. Говорят, пока на дорогах неспокойно, капитаны сюда не ходят.']);
    if(cap&&a.kind!=='capital')L.push([null,'В столице налоги подняли. Король, говорят, сам не рад, да казна пустая.']);
    return L;};
  const work=a=>{const js=typeof jobsOf==='function'?jobsOf(a):[];if(js.length)return ['Есть у меня одно дело: '+js[0].title.toLowerCase()+'. Плачу честно.'];
@@ -4963,7 +5026,7 @@ function personTalk(a,n){const P=PEOPLE[a.npc];if(!P){const L=barkLines(a);retur
    PEOPLE[a.npc]={role:(a.job||'житель').toLowerCase(),temper:'',hello:t,who:J.who,news:()=>townLines(a).filter(l=>!/Поздно уже|Ночь на дворе/.test(l)),
      rumorsOf:a,get rumor(){return rumors(a).map(r=>r[1]);},work:()=>work(a),bark:J.bark};}}
 // a rumour about the island's story is written into the chronicle when heard
-function folkHeard(line){for(const k of ['rumor','old','list','pack'])if(CAMPAIGN.facts[k]&&line&&(k==='rumor'&&/Ворон/.test(line)||k==='old'&&/Старуха наша/.test(line)||k==='list'&&/список стражи/.test(line)||k==='pack'&&/Седой/.test(line)))learn(k);}
+function folkHeard(line){for(const k of ['rumor','old','list','pack'])if(CAMPAIGN.facts[k]&&line&&(k==='rumor'&&/один главный/.test(line)||k==='old'&&/Старуха наша/.test(line)||k==='list'&&/список стражи/.test(line)||k==='pack'&&/Седой/.test(line)))learn(k);}
 
 // ---------- the end of the island: a ship to other islands ----------
 // While robbers hold the roads no captain sails here. Once the Raven's story is over, a ship moors by the
@@ -4990,7 +5053,7 @@ function shipArrive(quiet){if(SHIP.on)return;SHIP.on=true;SHIP.g.visible=true;SH
 function shipTick(t){if(!SHIP.on&&Q.raven&&Q.raven.state===3)shipArrive();if(SHIP.on){SHIP.g.position.y=Math.sin(t*.8)*.04;SHIP.g.rotation.z=Math.sin(t*.6)*.015;}}
 function captainTalk(a,n){const rv=Q.raven;
   if(!SHIP.on)return say(n,'Пока на дорогах разбой, корабли сюда не ходят.');
-  say(n,(rv&&rv.spared?'Это ты уговорил Ворона сдаться? В порту только о тебе и говорят. ':'Это ты разобрался с Вороном? Купцы на большой земле уже знают. ')+
+  say(n,(rv&&rv.spared?'Так это после разговора с тобой Ворон сдался? В порту только о тебе и говорят. ':'Это ты разобрался с Вороном? Купцы на большой земле уже знают. ')+
     'Мы идём к другим островам, и место на борту есть. Только учти: обратно скоро не будет. Если остались дела — доделай.',
     [['Отплыть',()=>confirmBox('Отплыть с острова?','История острова Хельги закончится. Сохранение останется: можно вернуться и жить на острове дальше.','Отплыть',()=>sailAway())],
      ['Куда идёт корабль?',()=>say(n,'На восток, к Солёным островам. Там свои беды, говорят, похуже ваших. Но об этом в пути.')]]);}
