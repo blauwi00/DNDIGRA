@@ -29,3 +29,6 @@ Checked by `tests/island-beta-browser.cjs` («peoples» step).
 
 Proposals for new peoples (owner to choose) must use mechanics that exist;
 jumping and swimming do not exist yet.
+
+## Решение владельца 2026-10-26: ночное зрение
+Ночное зрение у народа разрешено как его особенность, но оно ограничено (небольшой радиус вокруг героя) и заметно на экране: в этом радиусе ночь видна приглушённо и без цвета, за его краем — обычная тьма.
