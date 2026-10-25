@@ -634,7 +634,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   moon.target.position.copy(focus);
   if(!paused){worldTick(dt);weatherTick(dt);critterTick(dt,t);eventTick(now);}else if(inMenuBg()){critterTick(dt,t);}barkTick(now);tutTick();miniTick(now);zoneCheck();
   // at 30 frames a second every other frame is skipped, which keeps phones cooler
-  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;seeTick();renderer.render(scene,camera);silhouettes();requestAnimationFrame(frame)}
+  if(window.SET&&SET.fps===30&&now-lastDraw<30){requestAnimationFrame(frame);return;}lastDraw=now;seeTick();renderer.render(scene,camera);silhouettes();SEE.on.value=0;requestAnimationFrame(frame)}
 let lastDraw=0;
 // ---------- the main menu backdrop: a slow flight over the living island ----------
 const inMenuBg=()=>typeof mainEl!=='undefined'&&!mainEl.hidden&&!room;
