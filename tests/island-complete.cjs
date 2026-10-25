@@ -148,7 +148,10 @@ const MORE = () => {
   await new Promise((r) => server.listen(0, r));
   const browser = await chromium.launch({args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader']});
   const vp = [[844, 390], [667, 375], [1280, 720], [932, 430]][bot % 4];
-  const p = await browser.newPage({viewport: {width: vp[0], height: vp[1]}, hasTouch: true});
+  // SHOTS=<dir> saves a picture every 20 s; VIDEO=<dir> records the whole run as a video
+  const ctx = await browser.newContext({viewport: {width: vp[0], height: vp[1]}, hasTouch: true, ...(process.env.VIDEO ? {recordVideo: {dir: process.env.VIDEO, size: {width: vp[0], height: vp[1]}}} : {})});
+  const p = await ctx.newPage();
+  let shotN = 0; const shots = process.env.SHOTS && setInterval(() => { p.screenshot({path: process.env.SHOTS + '/bot' + bot + '-' + String(shotN++).padStart(4, '0') + '.jpg', type: 'jpeg', quality: 70}).catch(() => {}); }, 20000);
   p.setDefaultTimeout(3600000);
   const errors = [];
   p.on('pageerror', (e) => errors.push(e.message));
@@ -162,7 +165,8 @@ const MORE = () => {
   await p.evaluate(HELPERS); await p.evaluate(MORE);
   const log = [], t0 = Date.now();
   const run = async (name, src) => { const t = Date.now(); let r;
-    try { r = await p.evaluate(src); } catch (e) { r = 'crash: ' + e.message.split('\n')[0]; }
+    try { r = await Promise.race([p.evaluate(src), new Promise((res) => setTimeout(() => res('timeout after 15 min'), 900000))]);
+      if (String(r).startsWith('timeout')) r += ' ' + await p.evaluate(() => JSON.stringify({x: H0.x, z: H0.z, room: room && room.name, cb: CB.on, busy, paused, route: H0.route && H0.route.length, talk: PT.text().slice(0, 80)})).catch(() => ''); } catch (e) { r = 'crash: ' + e.message.split('\n')[0]; }
     const line = {step: name, result: r === undefined ? 'ok' : r, secs: Math.round((Date.now() - t) / 1000), errors: errors.splice(0)};
     log.push(line); console.log('[bot ' + bot + '] ' + (line.result === 'ok' ? 'ok   ' : 'FAIL ') + name + (line.result === 'ok' ? '' : ' — ' + line.result) + ' (' + line.secs + 's)' + (line.errors.length ? ' ERRORS: ' + line.errors.join(' | ') : '')); };
   // the story up to the ship, then every side phase in this bot's order, then the ship
@@ -176,5 +180,5 @@ const MORE = () => {
   console.log('[bot ' + bot + '] done: ' + JSON.stringify(co.done) + ' rep ' + JSON.stringify(co.rep) + ' failures ' + co.fail.length);
   for (const f of co.fail) console.log('[bot ' + bot + ']   ' + f);
   if (reportFile) fs.writeFileSync(reportFile, JSON.stringify(rep, null, 1));
-  await browser.close(); server.close();
+  if (shots) clearInterval(shots); await ctx.close(); await browser.close(); server.close();
 })().catch((e) => { console.error(e); process.exit(1); });
