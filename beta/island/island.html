@@ -531,7 +531,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.84 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.85 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3380,8 +3380,9 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   let res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
   if(isHero&&!res.ok&&RACES[HERO.race]?.reroll&&SP.frag){SP.frag=0;floatText('Эльфийская точность','#9ae0ff',hero);rollDone();await wait(350);
     res=await roll20(opt.n+' → '+def.name+' · переброс',opt.hit,acOf(def),adv.v,adv.why);}
-  const ranged=opt.range>1&&man(att,def)>1;let back=null;
-  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else back=await lunge(att,def);
+  const ranged=opt.kind!=='melee'&&opt.range>1&&man(att,def)>1;let back=null;
+  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else{const w=WEAPONS[opt.id]||(att!==H0&&att.o.userData.held&&WEAPONS[att.o.userData.held.R]);
+    att.pose={type:'atk',style:w?w.kind:'fist',two:!!(w&&(w.two||w.kind==='spear'||w.kind==='staff')),t0:performance.now(),ms:820};back=await lunge(att,def);}
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex
@@ -3686,6 +3687,14 @@ function applyPose(a,r,b,now){const k=(now-a.pose.t0)/a.pose.ms;if(k>=1){a.pose=
   if(T==='stretch'){r.armL.rotation.set(-2.6*s,0,.3*s);r.armR.rotation.set(-2.6*s,0,-.3*s);b.rotation.x=-.12*s;}
   if(T==='around'){r.head.rotation.y=Math.sin(k*Math.PI*2)*.9*s;}
   if(T==='shift'){b.rotation.z=Math.sin(k*Math.PI*2)*.06;r.legL.rotation.x=.15*s;}
+  // a strike: wind up, hit, come back; each kind of weapon moves the arms its own way
+  if(T==='atk'){const st=a.pose.style,w=k<.4?Math.sin(k/.4*Math.PI/2):k<.58?1-(k-.4)/.18:0,h=k<.4?0:k<.58?(k-.4)/.18:Math.max(0,1-(k-.58)/.42),two=a.pose.two;
+    if(st==='sword'||st==='axe'&&!two){r.armR.rotation.set(-2.5*w-1.1*h,0,-.6*w+.6*h);b.rotation.y=.45*w-.55*h;}
+    else if(st==='dagger'){r.armR.rotation.set(-.5*w-1.6*h,0,-.1*h);r.armL.rotation.set(-.4*w,0,.2*w);b.rotation.y=.2*w-.25*h;}
+    else if(st==='spear'){const x=.5-.2*w+.05*h;r.armR.rotation.set(x,0,-.1);r.armL.rotation.set(x-.6,0,.35);b.rotation.y=-.3*w+.15*h;b.rotation.x+=-.12*w+.22*h;}
+    else if(st==='mace'||st==='hammer'||st==='axe'){if(two){r.armR.rotation.set(-2.9*w-1.2*h,0,-.2);r.armL.rotation.set(-2.9*w-1.2*h,0,.2);}else r.armR.rotation.set(-2.9*w-1.2*h,0,-.2*w);b.rotation.x+=-.15*w+.3*h;}
+    else if(st==='staff'){r.armR.rotation.set(-1.1,0,-.3);r.armL.rotation.set(-1.1,0,.3);b.rotation.y=.8*w-.9*h;}
+    else{r.armR.rotation.set(-.3*w-1.6*h,0,0);r.armL.rotation.set(-.6*w+.3*h,0,.15);b.rotation.y=.25*w-.3*h;}}
   if(T==='drink'){r.armR.rotation.set(-2.2*s,0,-.4*s);r.head.rotation.x=-.4*s;}}
 // a character behind a tree or a wall shows through it as a flat silhouette: foes red, the hero and
 // companions blue. The actors are drawn once more with only the hidden parts passing the depth test.

@@ -66,8 +66,9 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   let res=await roll20((isHero?opt.n:att.name+': '+opt.n)+' → '+(def===H0?'вы':def.name),opt.hit,acOf(def),adv.v,adv.why,isHero&&HERO.race==='halfling');
   if(isHero&&!res.ok&&RACES[HERO.race]?.reroll&&SP.frag){SP.frag=0;floatText('Эльфийская точность','#9ae0ff',hero);rollDone();await wait(350);
     res=await roll20(opt.n+' → '+def.name+' · переброс',opt.hit,acOf(def),adv.v,adv.why);}
-  const ranged=opt.range>1&&man(att,def)>1;let back=null;
-  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else back=await lunge(att,def);
+  const ranged=opt.kind!=='melee'&&opt.range>1&&man(att,def)>1;let back=null;
+  if(ranged){opt0=opt;await projectile(att,def,opt.kind);opt0=null;}else{const w=WEAPONS[opt.id]||(att!==H0&&att.o.userData.held&&WEAPONS[att.o.userData.held.R]);
+    att.pose={type:'atk',style:w?w.kind:'fist',two:!!(w&&(w.two||w.kind==='spear'||w.kind==='staff')),t0:performance.now(),ms:820};back=await lunge(att,def);}
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex
