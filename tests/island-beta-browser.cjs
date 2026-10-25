@@ -393,12 +393,26 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       const keep = JSON.stringify(TALK_MOD[HERO.cls]); TALK_MOD[HERO.cls] = [-30, -30, -30];
       await dealRoll(SEDOY, 2, talkMod(2), D.dc[2]); close(); if (!PACK_ANGRY || PACK.some((w) => w.calm)) bad.push('failed threat did not turn the pack');
       PACK_ANGRY = false; packFriend(true); D.done = false; D.tried = {}; TALK_MOD[HERO.cls] = [30, 30, 30];
-      await dealRoll(SEDOY, 0, talkMod(0), D.dc[0]); close(); TALK_MOD[HERO.cls] = JSON.parse(keep);
+      for (let t = 0; t < 4 && !D.done; t++) { D.tried = {}; await dealRoll(SEDOY, 0, talkMod(0), D.dc[0]); close(); } TALK_MOD[HERO.cls] = JSON.parse(keep); // a natural 1 fails any roll
       if (!D.done || PACK.some((w) => !w.calm) || !DEALS.sedoy || !DEALS.sedoy.done) bad.push('persuasion did not win the pack');
       takeKlyk(); if (!KLYK.ally || !ALLIES.includes(KLYK) || KLYK.hidden) bad.push('Клык did not join');
       return bad;
     });
     assert.deepEqual(deals, []);
+    step('things have properties: an oil barrel blows up the robbers by it, a locked chest opens by skill or force');
+    const things = await p.evaluate(async () => {
+      const bad = [], close = () => { document.querySelector('.talk').hidden = true; };
+      const barrels = interact.filter((i) => i.key && i.key.startsWith('barrel')), chests = interact.filter((i) => i.key && i.key.startsWith('chest'));
+      if (!barrels.length || barrels.length !== chests.length) return ['camps lack barrels or chests ' + barrels.length + '/' + chests.length];
+      const b = barrels[0], near = enemies.filter((e) => !e.dead && !e.dormant && Math.hypot(e.x - b.x, e.z - b.z) <= 1.6);
+      for (const e of near) e.hp = 1;
+      const sv = [H0.x, H0.z]; H0.x = b.x; H0.z = b.z + 4; barrelBlast(b); [H0.x, H0.z] = sv;
+      if (interact.includes(b) || !OBJS[b.key]) bad.push('barrel did not burst'); if (near.some((e) => !e.dead)) bad.push('robbers by the barrel unhurt');
+      const c = chests[0], keep = HERO.stealth; HERO.stealth = 40; const g0 = gold; for (let t = 0; t < 4 && !c.open; t++) { c.tries = 0; chestUse(c); document.querySelector('.talk .choices button').click(); for (let w = 0; w < 40 && !c.open && document.querySelector('.talk').hidden; w++) await new Promise((r) => setTimeout(r, 300)); close(); } HERO.stealth = keep;
+      if (!c.open || gold <= g0) bad.push('chest did not open by lockpicking');
+      return bad;
+    });
+    assert.deepEqual(things, []);
     step('the island trouble, told slowly: king, bread for the old woman, the feather, the stone at night, the Raven');
     const raven = await p.evaluate(() => {
       const bad = [], q = Q.raven, king = actors.find((a) => a.talkId === 'king'), close = () => { document.querySelector('.talk').hidden = true; };

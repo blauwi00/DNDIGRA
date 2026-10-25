@@ -56,8 +56,11 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
   const riddle='На камне вырезан ворон под луной, а ниже слова: «Днём я сплю, ночью летаю. Покажи мне моё перо — и я пущу тебя к хозяину».';
   if(q.state!==1||q.step==='ask'||q.step==='feather')return say('Камень с вороном',riddle+' Камень холодный и молчит.');
   if(q.step==='lair'||q.state>1)return say('Камень с вороном','Камень отодвинут. Под ним — ступени вниз.');
-  if(!has)return say('Камень с вороном',riddle+' Нужно перо.');
-  if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.');
+  const force=['Сдвинуть силой · '+chance(HERO.athletics,18,0)+'%',async()=>{const r=await roll20('Атлетика → Камень с вороном',HERO.athletics,18);rollDone(2000);
+    if(!r.ok)return say('Камень с вороном','Камень чуть качнулся и встал на место. Спина ноет.');ravenWake();ravenStep('lair');sfx('door');shake=.3;for(const e of GANG)e.aware=true;
+    say('Атаман Ворон','Камень со скрежетом отъезжает. Снизу уже бегут — грохот услышали все. «Кто ломится ко мне без пера? Взять его!»',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}]]);}];
+  if(!has)return say('Камень с вороном',riddle+' Нужно перо. Или можно попробовать сдвинуть камень силой — но тогда тихо не выйдет.',[force]);
+  if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.',[force]);
   ravenWake();ravenStep('lair');sfx('door');shake=.25;
   say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уговорить сдаться · '+chance(talkMod(0)+ravenSway(),15,0)+'%',()=>ravenPlead()]]);}
 // the poor know what the hero did for them, and so does Raven: kindness to the village makes him listen

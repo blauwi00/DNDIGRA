@@ -420,7 +420,7 @@ canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())ret
   const rk=room?null:ray.intersectObjects(rockMeshes)[0],gh=ray.intersectObjects(pickable)[0];
   if(rk&&(!gh||rk.distance<=gh.distance+.3)){const [x,z]=rk.object.userData.cells[rk.instanceId];rockWheel(x,z);return;}
   const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
-  const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on){hint.textContent='Сначала закончите бой.';return;}if(it){goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
+  const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on&&!it.fight){hint.textContent='Сначала закончите бой.';return;}if(it&&CB.on){if(!heroTurn())return toast('Сейчас ход противника.');if(CB.acted)return toast('Действие уже потрачено.');it.use();return;}if(it){if(it.far)return it.use();goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
   if(hits.object.userData.look){lookWheel(hits.object.userData.look,hits.object);return;}
   {let o=hits.object;while(o&&o.userData.house==null)o=o.parent;if(o){houseWheel(ROOMS[o.userData.house],hits.object);return;}}
   const [tx,tz]=hits.instanceId!=null&&hits.object.userData.cells?hits.object.userData.cells[hits.instanceId]:[Math.floor(hits.point.x),Math.floor(hits.point.z)];
@@ -619,7 +619,7 @@ function menuCam(dt){menuT+=dt;const seg=16,n=MENU_PATH.length,i=Math.floor(menu
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,objs:OBJS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -629,7 +629,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
-  dealsLoad(d.deals);if(d.packAngry)packAnger();
+  dealsLoad(d.deals);objsLoad(d.objs);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);

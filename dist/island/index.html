@@ -521,7 +521,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.69 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.70 · 25.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2965,7 +2965,7 @@ canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())ret
   const rk=room?null:ray.intersectObjects(rockMeshes)[0],gh=ray.intersectObjects(pickable)[0];
   if(rk&&(!gh||rk.distance<=gh.distance+.3)){const [x,z]=rk.object.userData.cells[rk.instanceId];rockWheel(x,z);return;}
   const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
-  const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on){hint.textContent='Сначала закончите бой.';return;}if(it){goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
+  const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on&&!it.fight){hint.textContent='Сначала закончите бой.';return;}if(it&&CB.on){if(!heroTurn())return toast('Сейчас ход противника.');if(CB.acted)return toast('Действие уже потрачено.');it.use();return;}if(it){if(it.far)return it.use();goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
   if(hits.object.userData.look){lookWheel(hits.object.userData.look,hits.object);return;}
   {let o=hits.object;while(o&&o.userData.house==null)o=o.parent;if(o){houseWheel(ROOMS[o.userData.house],hits.object);return;}}
   const [tx,tz]=hits.instanceId!=null&&hits.object.userData.cells?hits.object.userData.cells[hits.instanceId]:[Math.floor(hits.point.x),Math.floor(hits.point.z)];
@@ -3702,7 +3702,7 @@ window.snd={muted:()=>muted,setMuted(v){if(muted!==v)sndBtn.onclick();},vol:()=>
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,objs:OBJS,packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -3712,7 +3712,7 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   Object.assign(PEND.chests,d.gch||{});Object.assign(PEND.looted,d.glt||{});const cs=interact.filter(i=>i.chest&&!i.key);(d.chests||[]).forEach((c,i)=>{const it=cs[i];if(it&&c&&c.items){it.items=c.items;if(c.o)it.open();}});
   const lk=looks.filter(l=>!l.key);(d.looted||[]).forEach((v,i)=>{const L=lk[i];if(v&&L){L.taken=true;if(L.grp)L.grp.visible=false;}});(d.rocks||[]).forEach(k=>usedRocks.add(k));
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);
-  dealsLoad(d.deals);if(d.packAngry)packAnger();
+  dealsLoad(d.deals);objsLoad(d.objs);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
   for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
@@ -4299,8 +4299,11 @@ function ravenStone(){const q=Q.raven;if(!q)return;const night=nightness()>.6,ha
   const riddle='На камне вырезан ворон под луной, а ниже слова: «Днём я сплю, ночью летаю. Покажи мне моё перо — и я пущу тебя к хозяину».';
   if(q.state!==1||q.step==='ask'||q.step==='feather')return say('Камень с вороном',riddle+' Камень холодный и молчит.');
   if(q.step==='lair'||q.state>1)return say('Камень с вороном','Камень отодвинут. Под ним — ступени вниз.');
-  if(!has)return say('Камень с вороном',riddle+' Нужно перо.');
-  if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.');
+  const force=['Сдвинуть силой · '+chance(HERO.athletics,18,0)+'%',async()=>{const r=await roll20('Атлетика → Камень с вороном',HERO.athletics,18);rollDone(2000);
+    if(!r.ok)return say('Камень с вороном','Камень чуть качнулся и встал на место. Спина ноет.');ravenWake();ravenStep('lair');sfx('door');shake=.3;for(const e of GANG)e.aware=true;
+    say('Атаман Ворон','Камень со скрежетом отъезжает. Снизу уже бегут — грохот услышали все. «Кто ломится ко мне без пера? Взять его!»',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}]]);}];
+  if(!has)return say('Камень с вороном',riddle+' Нужно перо. Или можно попробовать сдвинуть камень силой — но тогда тихо не выйдет.',[force]);
+  if(!night)return say('Камень с вороном',riddle+' Вы прикладываете перо, но ничего не происходит. Днём ворон спит.',[force]);
   ravenWake();ravenStep('lair');sfx('door');shake=.25;
   say('Атаман Ворон','Камень с гулом уходит в сторону, и из-под земли выходят люди с чёрными перьями. Последним выходит высокий человек в старом плаще королевской стражи. «Я Рагнар. Тут меня зовут Ворон. Двадцать лет я служил королю, пока он не велел мне выбить налог из голодного посёлка. Я отказался — и меня выгнали. Теперь я сам беру с короля. Уходи, пока цел. Или дерись».',[['Драться',()=>{const b=GANG[0];if(b&&!b.dead)startCombat(b);}],['Уговорить сдаться · '+chance(talkMod(0)+ravenSway(),15,0)+'%',()=>ravenPlead()]]);}
 // the poor know what the hero did for them, and so does Raven: kindness to the village makes him listen
@@ -4378,6 +4381,47 @@ function packTalk(a,n){const D=a.deal;if(PACK_ANGRY)return say(n,'Уходи. С
 function takeKlyk(){const a=KLYK;a.hidden=false;a.o.visible=true;const [x,z]=nearFree(H0.x+1,H0.z,3);a.x=x;a.z=z;a.px=x+.5;a.pz=z+.5;a.ally=true;ALLIES.push(a);save();toast('Клык идёт с вами.');}
 // attacking a calm wolf of the pack ends the peace
 function onFightStart(trigger){if(trigger&&trigger.calm&&PACK.includes(trigger))packAnger();}
+
+// ---------- things in the world have properties, and properties allow actions ----------
+// No script per door: an oil barrel burns, a lock can be picked or broken, a heavy stone can be moved.
+// The game offers what the thing allows and rolls d20 + the hero's skill against its difficulty,
+// as a game master would. In a fight such an action costs the hero's action.
+const OBJS={}; // by key: the saved state
+const holds=id=>{const h=hero.userData.held||{};return h.L===id||h.R===id;};
+const canFire=()=>holds('torch')||['mage','sorcerer','warlock'].includes(HERO.cls);
+function objPut(key,x,z,build,name){const g=new THREE.Group();build(g,groundAt(x,z));scene.add(g);blockCell(x,z);const ms=[];g.traverse(m=>m.isMesh&&ms.push(m));
+  const it={key,mesh:ms[0],extra:ms.slice(1),x,z,name,g};interact.push(it);return it;}
+function objGone(it){it.g.visible=false;interact.splice(interact.indexOf(it),1);solid.delete(it.x+','+it.z);OBJS[it.key]=1;}
+// ---- oil barrels by the robbers' fires: a torch thrown from a safe distance ----
+function barrelBlast(it){const R=1.6,hit=enemies.filter(e=>!e.dead&&!e.dormant&&Math.hypot(e.x-it.x,e.z-it.z)<=R);objGone(it);sfx('spell');shake=.45;
+  floatText('Взрыв!','#ff8a3a',{position:new THREE.Vector3(it.x+.5,groundAt(it.x,it.z),it.z+.5)});
+  for(const e of hit){const dmg=d(6)+d(6);floatText('-'+dmg,'#ff8a3a',e.o);e.aware=true;hurt(e,dmg,H0,'fire');}
+  if(Math.hypot(H0.x-it.x,H0.z-it.z)<=R){const dmg=d(6);floatText('-'+dmg,'#ff8a3a',hero);hurt(H0,dmg,null,'fire');}
+  return hit.filter(e=>!e.dead);}
+function barrelUse(it){const dist=Math.hypot(H0.x-it.x,H0.z-it.z);
+  const ch=[];if(canFire())ch.push([holds('torch')?'Бросить факел':'Поджечь искрой',()=>{
+    if(dist>6)return say(it.name,'Слишком далеко, не добросить. Подойдите на шесть шагов.');
+    const run=()=>{if(holds('torch')&&window.handsConsume)window.handsConsume('torch');const left=barrelBlast(it);if(!CB.on&&left.length)startCombat(left[0],true,true);};
+    if(CB.on)doVerb(null,async()=>run());else run();save();}]);
+  say(it.name,'Бочка с маслом, рядом с костром. Разбойники держат её для фонарей. Если поджечь — рванёт так, что достанется всем вокруг.'+(canFire()?'':' Нужен огонь: факел в руке.'),ch);}
+// ---- the robbers' locked chest: pick the lock quietly or break it loudly ----
+function chestUse(it){if(it.open)return;
+  const pick=HERO.stealth+(holds('dagger')||holds('dagger_curved')?2:0),brk=HERO.athletics;
+  const ch=[['Вскрыть замок · '+chance(pick,13,0)+'%',async()=>{const r=await roll20('Взлом',pick,13);rollDone(2000);if(r.ok)return chestOpen(it);it.tries=(it.tries||0)+1;say(it.name,'Отмычка срывается. '+(it.tries<2?'Можно попробовать ещё раз.':'Замок заклинило — теперь только силой.'));}],
+    ['Выбить крышку · '+chance(brk,15,0)+'%',async()=>{const r=await roll20('Атлетика',brk,15);rollDone(2000);campNoise(it);if(r.ok)return chestOpen(it);say(it.name,'Крышка трещит, но держится. Грохот слышно на весь лес.');}]];
+  if(it.tries>=2)ch.shift();say(it.name,'Окованный сундук разбойников с тяжёлым замком.',ch);}
+function chestOpen(it){it.open=true;OBJS[it.key]=1;sfx('chest');const loot=[['potion',1],[['dagger_curved','sword_scimitar','bow_short'][Math.floor(hash2(it.x,it.z)*3)],1]];
+  window.handsGive&&window.handsGive(loot,'Сундук разбойников');addGold(15+Math.floor(hash2(it.z,it.x)*20),'Сундук разбойников');it.lid.rotation.x=-1.2;}
+function campNoise(it){const near=enemies.filter(e=>!e.dead&&!e.dormant&&!e.calm&&Math.hypot(e.x-it.x,e.z-it.z)<=9);if(near.length&&!CB.on){for(const e of near)e.aware=true;startCombat(near[0]);}}
+// every robbers' camp of the big island gets a barrel by its fire and a locked chest
+for(const p of GPL.filter(p=>p.type==='bandits')){
+  {const [x,z]=nearFree(p.x+3,p.z-1,3),key='barrel'+p.x+'_'+p.z;if(!OBJS[key]){const it=objPut(key,x,z,(g,y)=>{const B=(m,px,py,pz,w,h,d)=>{const b=new THREE.Mesh(BOX,m);b.scale.set(w,h,d);b.position.set(px,py,pz);b.castShadow=true;g.add(b);};
+      const wood=lam(T.p[1],{color:0x7a4a2a}),iron=lam(T.stone,{color:0x3a3a40});B(wood,x+.5,y+.32,z+.5,.5,.64,.5);B(iron,x+.5,y+.12,z+.5,.54,.05,.54);B(iron,x+.5,y+.52,z+.5,.54,.05,.54);B(new THREE.MeshLambertMaterial({color:0xc8402a}),x+.5,y+.34,z+.76,.22,.16,.02);},'Бочка с маслом');it.use=()=>barrelUse(it);it.far=true;it.fight=true;}}
+  {const [x,z]=nearFree(p.x-3,p.z-1,3),key='chest'+p.x+'_'+p.z;const it=objPut(key,x,z,(g,y)=>{const c=new THREE.Mesh(BOX,lam(T.crate,{color:0x6a4a2a}));c.scale.set(.7,.4,.45);c.position.set(x+.5,y+.2,z+.5);c.castShadow=true;g.add(c);
+      const lid=new THREE.Group();lid.position.set(x+.5,y+.4,z+.28);const l=new THREE.Mesh(BOX,lam(T.p[1],{color:0x5a3a22}));l.scale.set(.74,.1,.5);l.position.set(0,.05,.22);lid.add(l);
+      const lock=new THREE.Mesh(BOX,lam(T.stone,{color:0xd0a94a}));lock.scale.set(.12,.12,.03);lock.position.set(0,0,.48);lid.add(lock);g.add(lid);g.userData.lid=lid;},'Сундук разбойников');
+    it.lid=it.g.userData.lid;it.use=()=>chestUse(it);}}
+function objsLoad(d){for(const k of Object.keys(d||{})){OBJS[k]=1;const it=interact.find(i=>i.key===k);if(!it)continue;if(k.startsWith('barrel'))objGone(it);if(k.startsWith('chest')){it.open=true;it.lid.rotation.x=-1.2;}}}
 
 // ---------- weather ----------
 const WX={rain:0,target:0,next:0};
