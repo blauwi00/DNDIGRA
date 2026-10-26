@@ -38,15 +38,17 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     interact.push({mesh:c,extra:[lid],x:R.ox+dx,z:R.oz+dz,name:label||'Сундук',chest:true,key:R.gen?R.i+':'+dx+':'+dz:null,items:items.map(([id,n])=>({id,n})),
       open(){this.opened=true;const f=hinge.rotation.x;tween(420,k=>hinge.rotation.x=f+(-1.25-f)*k);},close(){const f=hinge.rotation.x;tween(320,k=>hinge.rotation.x=f*(1-k)).then(()=>sfx('lidclose'));},
       use(){this.open();sfx('chest');heroPose('open',900);window.handsGesture&&window.handsGesture('chest');setTimeout(()=>window.handsOpenChest&&window.handsOpenChest(this),350);}});};
-  const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');S(dx,dz,.9*w,.06,.8,lam(T.p[2])).position.y=y+.48;for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
+  // with the voxel look the furniture is built of small voxels; the plain block stays, hidden, to block the cell and take taps
+  const vf=(name,m,dx,dz,sx=1,ry=0)=>{if(!VOX.on)return;m.visible=false;const v=voxProp(name,R.ox+dx+.5,y,R.oz+dz+.5,ry);v.scale.set(sx,1,1);g.add(v);};
+  const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');const tm=S(dx,dz,.9*w,.06,.8,lam(T.p[2]));tm.position.y=y+.48;if(VOX.on){vf('table',tm,dx+(w-1)/2,dz,w);I(null);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);return;}for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
   const candle=(dx,dz)=>{I('Свеча','Воск стекает на стол, пламя дрожит от сквозняка.');part(g,new THREE.MeshLambertMaterial({color:0xe8dcc0}),R.ox+dx+.5,y+.57,R.oz+dz+.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+dx+.5,y+.65,R.oz+dz+.5,.04,.06,.04);I(null);};
   // the way to the door stays clear: nothing stands on the two cells in front of it
   const lane=(x,z)=>R.side==='E'?z===R.exit[1]&&x>=R.exit[0]-2&&x<=R.exit[0]:R.side==='W'?z===R.exit[1]&&x<=R.exit[0]+2&&x>=R.exit[0]:x===R.exit[0]&&z>=R.exit[1]-2;R.lane=lane;
   const doorway=(dx,dz)=>lane(R.ox+dx,R.oz+dz);
-  const stool=(dx,dz)=>{if(doorway(dx,dz)){if(R.side==='E'||R.side==='W')dz+=dz>1?-1:1;else dx+=R.ox+dx-1>R.ox?-1:1;}I('Табурет','Шатается, но держит.');S(dx,dz,.3,.28,.3,lam(T.p[1]),false);I(null);};
+  const stool=(dx,dz)=>{if(doorway(dx,dz)){if(R.side==='E'||R.side==='W')dz+=dz>1?-1:1;else dx+=R.ox+dx-1>R.ox?-1:1;}I('Табурет','Шатается, но держит.');vf('stool',S(dx,dz,.3,.28,.3,lam(T.p[1]),false),dx,dz);I(null);};
   const barrel=(dx,dz,loot)=>{I('Бочка','Пахнет элем и сыростью.',loot);S(dx,dz,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.45,R.oz+dz+.5,.54,.05,.54);I(null);};
-  const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);
-    part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);I(null);};
+  const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');const bm=S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);const bm2=part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);if(VOX.on){bm2.visible=false;vf('bed',bm,dx,dz+.5);}
+    if(!VOX.on){part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);}I(null);};
   const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
   const rug=(dx,dz,w,d)=>{I(null);part(g,rugMat,R.ox+dx+w/2,y+.01,R.oz+dz+d/2,w,.02,d).userData.floor=true;}; // floor decor: taps go through to walking
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
@@ -59,7 +61,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Бочонки с элем','Три бочонка с кранами. Из одного капает прямо на пол.');for(const dx of [3,4,5]){S(dx,1,.55,.55,.5,lam(T.p[1],{color:0x7a5a3a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.4,R.oz+1.5,.6,.05,.55);part(g,M(0xc8a040),R.ox+dx+.5,y+.32,R.oz+1.78,.06,.06,.08);}I(null);
     I('Полка с бутылками','Настойки, вино с юга и что-то мутное без этикетки.');part(g,lam(T.p[2]),R.ox+4,y+1.25,R.oz+1.1,3.2,.06,.3);
       for(let k=0;k<9;k++)part(g,M([0x3a6a3a,0x6a2a24,0x8a7a4a,0x2a4a6a][k%4]),R.ox+2.55+k*.36,y+1.4,R.oz+1.1,.1,.24,.1);I(null);
-    I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');for(let dx=1;dx<=5;dx++){S(dx,3,1,.9,.6,lam(T.p[1]));part(g,lam(T.p[2]),R.ox+dx+.5,y+.95,R.oz+3.5,1.02,.08,.7);}I(null);
+    I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');for(let dx=1;dx<=5;dx++){const cm=S(dx,3,1,.9,.6,lam(T.p[1])),tp=part(g,lam(T.p[2]),R.ox+dx+.5,y+.95,R.oz+3.5,1.02,.08,.7);if(VOX.on){tp.visible=false;vf('counter',cm,dx,3);}}I(null);
     I('Кружки','Глиняные кружки, одна с отбитой ручкой.');for(let k=0;k<5;k++)part(g,M(0x8a6a4a),R.ox+1.4+k*.9,y+1.07,R.oz+3.45,.12,.16,.12);I(null);
     for(const dx of [2,4])seat(dx,4);
     table(8,4);seat(7,4);seat(9,4);seat(8,5);candle(8,4);

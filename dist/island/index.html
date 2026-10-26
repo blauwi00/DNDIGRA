@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.113 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.114 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2766,6 +2766,18 @@ function barrel(){const g=new Grid(10,11,10),c=4.5;for(let y=0;y<10;y++){const r
     const edge=d>r-1.2,hoop=y===1||y===8,top=y===9;g.set(x,y,z,top?(edge?SH.stave[1]:SH.logEnd[1]):edge&&hoop?pickS('hoop',x,y,z):pickS('stave',Math.floor(Math.atan2(z-c,x-c)*3),0,0));}}return g;}
 function crate(){const g=new Grid(8,8,8);g.box(0,0,0,8,8,8,(x,y,z)=>{const e=[x===0||x===7,y===0||y===7,z===0||z===7].filter(Boolean).length;if(e>=2)return SH.crateD[0];
   const fx=(x===0||x===7),fz=(z===0||z===7),fy=(y===0||y===7);if(fx&&y===z||fz&&(y===x)||fy&&(x===z))return SH.crateD[0];return pickS('crate',x>>1,y>>1,z>>1);});return g;}
+// ---------- furniture (16 voxels per cell): a table on four legs, a stool, a bar counter, a bed ----------
+shades('sheet',['#c8bea8','#d8d0bc']);shades('pillow',['#e4dccb']);shades('blanket',['#6a3a2a','#7a4632']);
+const wd=(k,a,b)=>pickS('crate',a>>1,b>>1,k),wdD=SH.crateD[0];
+function table(){const g=new Grid(16,9,14);g.box(0,7,0,16,9,14,(x,y,z)=>y===8&&(z===0||z===13||x===0||x===15)?wdD:z%4===0&&y===8?pickS('stave',x>>2,0,z):wd(1,x,z));
+  for(const [x,z] of [[1,1],[13,1],[1,11],[13,11]])g.box(x,0,z,x+2,7,z+2,wdD);g.box(3,2,2,13,3,3,wdD);g.box(3,2,11,13,3,12,wdD);return g;}
+function stool(){const g=new Grid(8,7,8);for(let z=0;z<8;z++)for(let x=0;x<8;x++)if(Math.hypot(x-3.5,z-3.5)<3.9){g.set(x,6,z,wd(2,x,z));if(Math.hypot(x-3.5,z-3.5)>2.9)g.set(x,5,z,wdD);}
+  for(const [x,z] of [[1,1],[6,1],[1,6],[6,6]])g.box(x,0,z,x+1,6,z+1,wdD);g.box(1,2,1,7,3,2,wdD);return g;}
+function counter(){const g=new Grid(16,15,10);g.box(0,0,1,16,13,9,(x,y,z)=>z===1||z===8?(x%4===0||y<1||y===12?wdD:pickS('stave',x>>2,y>>2,z)):wd(3,x,y));
+  g.box(0,13,0,16,15,10,(x,y,z)=>y===14&&(z===0||z===9)?wdD:wd(4,x,z));for(let x=0;x<16;x++)g.set(x,2,9,SH.hoop[0]);return g;}
+function bed(){const g=new Grid(14,10,28);g.box(0,0,0,14,4,28,(x,y,z)=>x===0||x===13||z===0||z===27?wdD:wd(5,x,z));
+  g.box(0,4,0,14,10,2,(x,y,z)=>y===9||x===0||x===13?wdD:wd(6,x,y));g.box(1,4,2,13,6,27,(x,y,z)=>pickS('sheet',x>>2,y,z>>2));
+  g.box(2,6,2,12,7,6,SH.pillow[0]);g.box(1,5,9,13,7,27,(x,y,z)=>SH.blanket[((x+z)>>2)%3===0?0:1]);return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -2777,7 +2789,7 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
 window.__chars=1;
 // ---------- renderer / scene ----------
 const canvas=document.getElementById('c'),stage=document.getElementById('stage');
@@ -3706,15 +3718,17 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     interact.push({mesh:c,extra:[lid],x:R.ox+dx,z:R.oz+dz,name:label||'Сундук',chest:true,key:R.gen?R.i+':'+dx+':'+dz:null,items:items.map(([id,n])=>({id,n})),
       open(){this.opened=true;const f=hinge.rotation.x;tween(420,k=>hinge.rotation.x=f+(-1.25-f)*k);},close(){const f=hinge.rotation.x;tween(320,k=>hinge.rotation.x=f*(1-k)).then(()=>sfx('lidclose'));},
       use(){this.open();sfx('chest');heroPose('open',900);window.handsGesture&&window.handsGesture('chest');setTimeout(()=>window.handsOpenChest&&window.handsOpenChest(this),350);}});};
-  const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');S(dx,dz,.9*w,.06,.8,lam(T.p[2])).position.y=y+.48;for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
+  // with the voxel look the furniture is built of small voxels; the plain block stays, hidden, to block the cell and take taps
+  const vf=(name,m,dx,dz,sx=1,ry=0)=>{if(!VOX.on)return;m.visible=false;const v=voxProp(name,R.ox+dx+.5,y,R.oz+dz+.5,ry);v.scale.set(sx,1,1);g.add(v);};
+  const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');const tm=S(dx,dz,.9*w,.06,.8,lam(T.p[2]));tm.position.y=y+.48;if(VOX.on){vf('table',tm,dx+(w-1)/2,dz,w);I(null);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);return;}for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
   const candle=(dx,dz)=>{I('Свеча','Воск стекает на стол, пламя дрожит от сквозняка.');part(g,new THREE.MeshLambertMaterial({color:0xe8dcc0}),R.ox+dx+.5,y+.57,R.oz+dz+.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+dx+.5,y+.65,R.oz+dz+.5,.04,.06,.04);I(null);};
   // the way to the door stays clear: nothing stands on the two cells in front of it
   const lane=(x,z)=>R.side==='E'?z===R.exit[1]&&x>=R.exit[0]-2&&x<=R.exit[0]:R.side==='W'?z===R.exit[1]&&x<=R.exit[0]+2&&x>=R.exit[0]:x===R.exit[0]&&z>=R.exit[1]-2;R.lane=lane;
   const doorway=(dx,dz)=>lane(R.ox+dx,R.oz+dz);
-  const stool=(dx,dz)=>{if(doorway(dx,dz)){if(R.side==='E'||R.side==='W')dz+=dz>1?-1:1;else dx+=R.ox+dx-1>R.ox?-1:1;}I('Табурет','Шатается, но держит.');S(dx,dz,.3,.28,.3,lam(T.p[1]),false);I(null);};
+  const stool=(dx,dz)=>{if(doorway(dx,dz)){if(R.side==='E'||R.side==='W')dz+=dz>1?-1:1;else dx+=R.ox+dx-1>R.ox?-1:1;}I('Табурет','Шатается, но держит.');vf('stool',S(dx,dz,.3,.28,.3,lam(T.p[1]),false),dx,dz);I(null);};
   const barrel=(dx,dz,loot)=>{I('Бочка','Пахнет элем и сыростью.',loot);S(dx,dz,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.45,R.oz+dz+.5,.54,.05,.54);I(null);};
-  const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);
-    part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);I(null);};
+  const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');const bm=S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);const bm2=part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);if(VOX.on){bm2.visible=false;vf('bed',bm,dx,dz+.5);}
+    if(!VOX.on){part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);}I(null);};
   const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
   const rug=(dx,dz,w,d)=>{I(null);part(g,rugMat,R.ox+dx+w/2,y+.01,R.oz+dz+d/2,w,.02,d).userData.floor=true;}; // floor decor: taps go through to walking
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
@@ -3727,7 +3741,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Бочонки с элем','Три бочонка с кранами. Из одного капает прямо на пол.');for(const dx of [3,4,5]){S(dx,1,.55,.55,.5,lam(T.p[1],{color:0x7a5a3a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.4,R.oz+1.5,.6,.05,.55);part(g,M(0xc8a040),R.ox+dx+.5,y+.32,R.oz+1.78,.06,.06,.08);}I(null);
     I('Полка с бутылками','Настойки, вино с юга и что-то мутное без этикетки.');part(g,lam(T.p[2]),R.ox+4,y+1.25,R.oz+1.1,3.2,.06,.3);
       for(let k=0;k<9;k++)part(g,M([0x3a6a3a,0x6a2a24,0x8a7a4a,0x2a4a6a][k%4]),R.ox+2.55+k*.36,y+1.4,R.oz+1.1,.1,.24,.1);I(null);
-    I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');for(let dx=1;dx<=5;dx++){S(dx,3,1,.9,.6,lam(T.p[1]));part(g,lam(T.p[2]),R.ox+dx+.5,y+.95,R.oz+3.5,1.02,.08,.7);}I(null);
+    I('Стойка','Брам натирает её до блеска. Пахнет пивом и дымом.');for(let dx=1;dx<=5;dx++){const cm=S(dx,3,1,.9,.6,lam(T.p[1])),tp=part(g,lam(T.p[2]),R.ox+dx+.5,y+.95,R.oz+3.5,1.02,.08,.7);if(VOX.on){tp.visible=false;vf('counter',cm,dx,3);}}I(null);
     I('Кружки','Глиняные кружки, одна с отбитой ручкой.');for(let k=0;k<5;k++)part(g,M(0x8a6a4a),R.ox+1.4+k*.9,y+1.07,R.oz+3.45,.12,.16,.12);I(null);
     for(const dx of [2,4])seat(dx,4);
     table(8,4);seat(7,4);seat(9,4);seat(8,5);candle(8,4);
