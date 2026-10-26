@@ -314,8 +314,9 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       if (!r.quad) bad.push('wolf has no four-legged skeleton'); else { quadPose(r, 1, 1, 0, 0); if (!(r.FL.rotation.x === r.BR.rotation.x && r.FL.rotation.x === -r.FR.rotation.x && r.FL.rotation.x !== 0)) bad.push('wolf legs not in diagonal pairs'); }
       for (const m of ['boar', 'bear']) if (!enemies.some((e) => e.model === m && e.o.userData.rig.quad)) bad.push('no ' + m);
       for (const q of GEN.places.filter((q) => !q.stamp && ['capital', 'village', 'works'].includes(q.type))) if (!TOWN.some((t) => t.place === q)) bad.push('nobody lives in ' + q.n);
-      const t = TOWN.find((x) => !x.qk), seenL = new Set(), n = townLines(t).length; t.said = 0;
-      for (let i = 0; i < n; i++) { townTalk(t, t.npc); const l = document.querySelector('.talk p').textContent; if (seenL.has(l)) bad.push('town line repeats'); seenL.add(l); }
+      // townsfolk talk through their own card (who they are, news, rumours, work); their news never repeats a line
+      const t = TOWN.find((x) => !x.qk), P = PEOPLE[t.npc], L = townLines(t);
+      if (!P || !P.who.length || !P.rumor.length || !P.work().length) bad.push('townsman has no talk card'); if (new Set(L).size !== L.length) bad.push('town line repeats');
       document.querySelector('.talk').hidden = true;
       if (!FACTIONS.kingdom) bad.push('no kingdom standing');
       // trade, work and quests of the big island
@@ -339,7 +340,11 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       for (const R of ROOMS) {
         if (!R.group) buildRoom(R);
         const [ex, ez] = R.exit;
-        for (const z of [ez - 1, ez - 2]) if (!free(ex, z)) bad.push(R.name + ' blocked at ' + z);
+        // the door may be on any side but north, and a guarded room is shut on purpose: two free steps inward from the threshold
+        if (typeof crownLocked === 'function' && crownLocked(R)) continue;
+        const inR = (x, z) => x > R.ox && x < R.ox + R.iw - 1 && z > R.oz && z < R.oz + R.id - 1, N = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const one = N.map(([dx, dz]) => [ex + dx, ez + dz]).filter(([x, z]) => inR(x, z) && free(x, z));
+        if (!one.some(([x, z]) => N.some(([dx, dz]) => inR(x + dx, z + dz) && free(x + dx, z + dz) && !(x + dx === ex && z + dz === ez)))) bad.push(R.name + ' blocked at ' + ex + ',' + ez);
         R.group.traverse((o) => { if (!o.isMesh || o.userData.floor) return; const pp = new THREE.Vector3(); o.getWorldPosition(pp);
           if (Math.floor(pp.x) === ex && (Math.floor(pp.z) === ez - 1 || Math.floor(pp.z) === ez - 2) && pp.y < 1.2 && o.scale.y < 1.5) bad.push(R.name + ': something in the doorway at ' + pp.x.toFixed(1) + ',' + pp.z.toFixed(1)); });
       }
