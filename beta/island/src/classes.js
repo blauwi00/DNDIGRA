@@ -54,7 +54,7 @@ function heroAttacks(){const h=hero.userData.held||{},o=[],H=HERO;
   const add=(id,n,hit,die,k,b,range,kind,hand,extra)=>o.push(Object.assign({id,n,hit,die,k,b,range,kind,hand},extra||{}));
   const melee=(id,hand)=>{const w=wpn(id);add(id,w.n,H.melee+w.hb,w.die,1,H.mb+w.db+(H.mdmg||0),w.reach,'melee',hand);};
   const t=h.two&&WEAPONS[h.two];
-  if(t){if(t.kind==='bow')add(h.two,t.n,H.ranged+t.hb,t.die,1,H.rb+t.db,t.range,'bow','обе руки');
+  if(t){if(t.kind==='bow')add(h.two,t.n,H.ranged+t.hb,t.die,1,H.rb+t.db,t.range,'bow','обе руки',{long:t.long||t.range});
     else{if(t.spark)add(h.two,t.spark[0],H.spell+t.hb,t.spark[1],1,t.spark[3],t.spark[2],'spell',t.n.toLowerCase());melee(h.two,'обе руки');}}
   for(const [side,id] of [['правая',h.R],['левая',h.L]]){const w=wpn(id);if(w&&w.kind!=='shield'&&!w.two)melee(id,side);}
   if(!o.length&&(kindOf(h.L)==='shield'||kindOf(h.R)==='shield'))add(kindOf(h.L)==='shield'?h.L:h.R,'Удар щитом',H.melee-2,4,1,1,1,'melee','левая');

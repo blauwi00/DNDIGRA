@@ -549,7 +549,7 @@ actor('innkeeper',Z.village[0]-3,Z.village[1]+2,{wander:4,spd:1.3,npc:'Мель�
 tint(actor('innkeeper',Z.dock[0]+2,Z.dock[1]+1,{wander:1,spd:1,npc:'Рыбак Олав',talkId:'fisher'}),0x90a8c0);
 const FOE={
   bandit:{name:'Разбойник',hp:11,ac:12,atk:3,dmg:6,dmgB:1,atkName:'Сабля',speed:6,perc:10,dex:1,wis:0,ath:2},
-  goblin:{name:'Гоблин',hp:7,ac:15,atk:4,dmg:6,dmgB:2,atkName:'Короткий лук',range:6,speed:6,perc:9,dex:2,wis:-1,ath:-1,spd:2.6},
+  goblin:{name:'Гоблин',hp:7,ac:15,atk:4,dmg:6,dmgB:2,atkName:'Короткий лук',range:6,long:10,speed:6,perc:9,dex:2,wis:-1,ath:-1,spd:2.6},
   skeleton:{name:'Скелет',hp:13,ac:13,atk:4,dmg:6,dmgB:2,atkName:'Ржавый меч',speed:6,perc:9,dex:2,wis:-1,ath:0},
   boar:{name:'Кабан',hp:11,ac:11,atk:3,dmg:6,dmgK:1,dmgB:1,atkName:'Клыки',speed:8,perc:9,dex:0,wis:-1,ath:3,spd:2.4},
   bear:{name:'Медведь',hp:19,ac:11,atk:4,dmg:4,dmgK:2,dmgB:2,atkName:'Когти',speed:8,perc:13,dex:0,wis:1,ath:4,spd:2.2},
@@ -580,7 +580,7 @@ const adj=(a,x,z)=>Math.abs(a.x-x)+Math.abs(a.z-z)===1;
 // walk next to (or onto) a target cell, then run the action
 function goDo(x,z,onto,fn){if(onto?(H0.x===x&&H0.z===z):adj(H0,x,z)){H0.route=null;fn();return;}
   const p=path(H0.x,H0.z,x,z,H0,!onto,3000);if(p&&p.length){H0.route=p;H0.dest=onto?[x,z]:p[p.length-1];H0.arrive=fn;}else hint.textContent='Не найти дорогу туда.';}
-function tapActor(a){if(a===H0)return heroWheel();if(a.enemy)return enemyWheel(a);if(a.npc)return npcWheel(a);}
+function tapActor(a){if(a===H0)return heroWheel();if(a.ally&&a.down&&a.state!=='grave')return allyWheel(a);if(a.enemy)return enemyWheel(a);if(a.npc)return npcWheel(a);}
 const marker=new THREE.Group();{const ringM=new THREE.MeshBasicMaterial({color:0xf2c14e,transparent:true,opacity:.85,depthWrite:false});
   const ring=new THREE.Mesh(new THREE.RingGeometry(.26,.36,20),ringM);ring.rotation.x=-Math.PI/2;marker.add(ring);
   const dot=new THREE.Mesh(new THREE.CircleGeometry(.08,10),ringM);dot.rotation.x=-Math.PI/2;marker.add(dot);marker.visible=false;marker.renderOrder=3;scene.add(marker);}
@@ -671,6 +671,7 @@ function talk(a){window.talkWho=a;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.fa
     if(a.talkId==='bram'&&s===7){TUT.flags.bram2=1;repAdd('village',1);window.handsGive([['potion',1]],'Награда');
       return say(n,'Крыса удрала? Значит, рука у тебя крепкая. А теперь о главном: по ночам из руин часовни встают мертвецы. Поговори со мной ещё раз, когда будешь готов.');}
     if(a.talkId==='bram')return say(n,s<5?'Заходи, путник! Кружка эля найдётся.':'Крыса в амбаре, через площадь. Не бойся, она больше шумит, чем кусает.');}
+  {const b=a.talkId==='herb'&&ALLIES.find(x=>x.state==='dead'&&x.carried);if(b)return reviveOffer(b);}
   if(a.talkId==='herb'&&Q.herb.state<3)return herbTalk(n);
   if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
     if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
@@ -686,7 +687,7 @@ function talk(a){window.talkWho=a;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.fa
   if(a.talkId==='king')return kingTalk(a,n);
   if(a.talkId==='captain')return captainTalk(a,n);
   if(a.talkId==='pack')return packTalk(a,n);
-  if(a.talkId==='merc')return say(n,'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.');
+  if(a.talkId==='merc')return say(n,COMPANIONS?'Меч у меня острый, а кошель пустой. За '+a.hire+' монет пойду с тобой куда скажешь и буду драться рядом.':'Меч у меня острый, а кошель пустой. Жду, может, купцу охрана понадобится.');
   if(a.talkId==='ally'&&a.model==='wolf')return say(n,['Клык нюхает воздух и тихо рычит в сторону леса.','Клык толкает вас носом в ладонь.','Клык садится рядом и ждёт.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='ally')return say(n,['Я рядом. Если что — зови.','Втроём на одного не лезь, лучше подманивай по одному.','Устал? Отдохни у костра, я посторожу.'][(a.said=(a.said||0)+1)%3]);
   if(a.talkId==='town')return townTalk(a,n);
@@ -712,9 +713,13 @@ function step(a,dt){if(!a.route)return 0;
     const dest=a.dest,p=dest&&path(a.x,a.z,dest[0],dest[1],a,a.arrive&&!(at(dest[0],dest[1])==='E'),3000);a.route=p&&p.length?p:null;if(!a.route)a.arrive=null;return 0;}const tx=nx+.5,tz=nz+.5,dx=tx-a.px,dz=tz-a.pz,dd=Math.hypot(dx,dz);a.face=Math.atan2(dx,dz);
   const s=Math.min(dd,dt*a.spd);if(dd>1e-4){a.px+=dx/dd*s;a.pz+=dz/dd*s;}
   if(dd-s<.05){a.x=nx;a.z=nz;a.px=tx;a.pz=tz;a.route.shift();if(!a.route.length){a.route=null;if(a.arrive){const f=a.arrive;a.arrive=null;f();}}}return 1;}
-// can this enemy see the hero? a cone in front, shorter while sneaking; very close and loud always counts
-function sees(e){if(room||H0.dead)return false;const dx=H0.px-e.px,dz=H0.pz-e.pz,dist=Math.hypot(dx,dz);
-  if(dist>(H0.sneak?3.6*(HERO.sneakK||1):6.5)*(e.model==='bandit'&&repLevel('bandits')===0?1.3:1)*(1-(HERO.night?.5:.25)*nightness()))return false;if(dist<1.6&&!H0.sneak)return true;let ang=Math.atan2(dx,dz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
+// can this enemy see the hero? a cone in front: 5 cells by day, 3.5 at night, less while sneaking; very close and loud always counts
+const sightR=e=>(H0.sneak?3*(HERO.sneakK||1):5)*(e.model==='bandit'&&repLevel('bandits')===0?1.3:1)*(1-(HERO.night?.5:.3)*nightness());
+function inCone(e){let ang=Math.atan2(H0.px-e.px,H0.pz-e.pz)-e.face;ang=Math.atan2(Math.sin(ang),Math.cos(ang));return Math.abs(ang)<1.05;}
+function sees(e){if(room||H0.dead)return false;const dist=Math.hypot(H0.px-e.px,H0.pz-e.pz);
+  if(dist>sightR(e))return false;if(dist<1.6&&!H0.sneak)return true;return inCone(e);}
+// a little farther (up to 8 cells by day) the enemy only grows suspicious and comes to look
+function suspects(e){if(room||H0.dead||H0.sneak)return false;return Math.hypot(H0.px-e.px,H0.pz-e.pz)<=sightR(e)*1.6&&inCone(e);}
 function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e.checked=false;return false;}
   // a goblin slips away once per rest: five seconds unseen and already crouching
   const spotted=()=>{if(RACES[HERO.race]?.slip&&SP.slip){SP.slip=0;e.slipUntil=performance.now()+5000;H0.sneak=true;H0.spd=1.3;floatText('Ускользнул!','#9fe0a0',hero);toast('Гоблин успел скрыться — '+e.name+' вас не заметил. Вы крадётесь.');e.checked=true;return false;}return true;};
@@ -723,8 +728,9 @@ function notices(e){if(e.slipUntil>performance.now())return false;if(!sees(e)){e
 function ai(){const now=performance.now();
   for(const a of actors){if(a===H0||a.dead)continue;if(a.far&&!a.inFight)continue; // far away the island rests
     if(a.enemy){if(a.inFight)continue;
-      if(!a.aware&&!busy&&!a.calm&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)joinFight(a);else startCombat(a);continue;}
+      if(!a.aware&&!busy&&!a.calm&&notices(a)){a.aware=true;sfx('notice');floatText('!','#ff5a4a',a.o);if(CB.on)callIn(a);else startCombat(a);continue;}
       if(CB.on)continue;
+      if(!a.aware&&!busy&&!a.calm&&!a.investigate&&!(a.susT>now)&&suspects(a)){a.susT=now+9000;a.investigate={x:H0.x,z:H0.z,t:0};a.route=null;floatText('?','#9fc3cf',a.o);continue;}
       if(a.investigate){const I=a.investigate;if(!I.t){if(!a.route){const p=path(a.x,a.z,I.x,I.z,a,true,800);if(p&&p.length>0&&Math.hypot(a.x-I.x,a.z-I.z)>1.5)a.route=p;else I.t=now;}}
         else{if(Math.random()<.4)a.face+=(Math.random()-.5)*2;if(now-I.t>7000){a.investigate=null;const p=path(a.x,a.z,a.home[0],a.home[1],a,false,800);a.route=p&&p.length?p:null;}}continue;}
       if(!a.route&&Math.random()<.12)a.face+=(Math.random()-.5)*2.4;} // idle enemies look around, giving chances to slip behind them
@@ -816,6 +822,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
       if(a!==H0&&!a.inFight)smoothPose(a,r,b,dt);}}
   for(const e of enemies){const b=e.bar;b.g.visible=!e.dead&&e.o.visible&&(e.inFight||e.hp<e.max);if(!b.g.visible)continue;
     b.g.position.set(e.o.position.x,e.o.position.y+1.15*(e.scale||1),e.o.position.z);b.g.quaternion.copy(camera.quaternion);const k=Math.max(0,e.hp/e.max);b.fg.scale.x=k;b.fg.position.x=-.28*(1-k);}
+  for(const a of ALLIES)saveMarks(a);
   if(!reduce){torches.forEach(T_=>{T_.f=.85+Math.sin(t*9+T_.ph)*.08+Math.sin(t*23+T_.ph*2)*.05;T_.fl.scale.y=(T_.fl.scale.x>.15?.28:.16)*(.9+T_.f*.2)});
     // each one lives at its own spot in the world and drifts around it; one left far behind settles at a new
     // spot around the hero, out of the way, instead of travelling with the screen
@@ -843,7 +850,7 @@ function menuCam(dt){menuT+=dt;const seg=16,n=MENU_PATH.length,i=Math.floor(menu
 const SAVE='helga-island-beta-1';
 let resetting=false;
 function save(){if(resetting||!HEROSET)return;try{localStorage.setItem(SAVE,JSON.stringify({lay:LAYOUT,x:H0.x,z:H0.z,hp:H0.hp,room:room?room.i:-1,
-  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,objs:OBJS,camp:campaignSave(),packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
+  q:Object.fromEntries(Object.entries(Q).map(([k,q])=>[k,[q.state,q.left]])),rv:Q.raven?Q.raven.step:null,lv:[LV.xp,LV.lv],deals:DEALS,objs:OBJS,camp:campaignSave(),packAngry:PACK_ANGRY?1:0,allies:ALLIES.map(a=>[a.npc,a.hp,a.state||'ok',a.saves||[0,0],a.state==='hurt'?a.hurtTill:a.deadAt??null]),dead:enemies.filter(e=>!e.temp).map(e=>e.dead?1:0),wx:WX.target,fire:chapel.lit?1:0,tut:{step:TUT.step,flags:TUT.flags},seen:seenRLE(),chests:interact.filter(i=>i.chest&&!i.key).map(i=>({o:i.opened?1:0,items:i.items})),looted:looks.filter(l=>!l.key).map(l=>l.taken?1:0),gch:Object.assign(PEND.chests,Object.fromEntries(interact.filter(i=>i.key).map(i=>[i.key,{o:i.opened?1:0,items:i.items}]))),glt:Object.assign(PEND.looted,Object.fromEntries(looks.filter(l=>l.key&&l.taken).map(l=>[l.key,1]))),rocks:[...usedRocks],
   herb:actors.find(a=>a.talkId==='herb').gave||0,eco:ecoSave(),met:V.filter(v=>v.met).map(v=>[v.npc,v.met]),time:worldTime,leg:legendSave(),items:window.handsItems?window.handsItems():null}))}catch(e){}}
 function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch(e){}if(!d)return;
   for(const [k,[st,left]] of Object.entries(d.q||{}))if(Q[k]){Q[k].state=st;Q[k].left=left;}
@@ -855,7 +862,10 @@ function load(){let d;try{d=JSON.parse(localStorage.getItem(SAVE)||'null')}catch
   if(d.rv&&typeof ravenLoad==='function')ravenLoad(d.rv);if(Q.raven&&Q.raven.state===3&&typeof shipArrive==='function'){shipArrive(true);if(Q.ship&&d.q&&d.q.ship)Q.ship.state=d.q.ship[0];}
   dealsLoad(d.deals);objsLoad(d.objs);campaignLoad(d.camp);if(d.packAngry)packAnger();
   if(d.lv){LV.xp=d.lv[0];LV.lv=d.lv[1];if(HERO)H0.max=HERO.hp+lvHP();}
-  for(const [nm,hp] of d.allies||[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);}}
+  // allies are [name, hp, state, saves, day]; old saves have only [name, hp] and load as standing
+  for(const [nm,hp,st,sv,dy] of COMPANIONS?d.allies||[]:[]){const a=actors.find(o=>o.npc===nm);if(a&&!a.ally){a.ally=true;a.wander=0;a.talkId='ally';a.hp=Math.max(1,hp);a.hidden=false;a.o.visible=true;ALLIES.push(a);
+    a.state=['hurt','dead','grave'].includes(st)?st:'ok';a.saves=sv||[0,0];if(st==='down'||st==='stable')a.hp=Math.max(1,Math.ceil(a.max/4));if(a.state==='hurt')a.hurtTill=dy??dayN;
+    if(a.state==='dead'||a.state==='grave'){a.down=true;a.hp=0;a.deadAt=dy??dayN;a.o.rotation.z=1.3;a.sink=.1;if(a.state==='grave'){a.hidden=true;a.o.visible=false;}}}}
   if(d.tut){TUT.step=d.tut.step;TUT.flags=d.tut.flags||{};if(TUT.step===6)spawnRat();}if(d.fire)setChapel(true);if(d.seen)seenLoad(d.seen);
   actors.find(a=>a.talkId==='herb').gave=d.herb;if(typeof d.time==='number')worldTime=d.time;if(d.items&&window.handsLoad)window.handsLoad(d.items);
   H0.hp=Math.max(1,d.hp||H0.max);if(d.room>=0&&ROOMS[d.room]){const R=ROOMS[d.room],c=R.inside||[R.exit[0],R.exit[1]-1];d.x=c[0];d.z=c[1];} // rooms moved and grew: a saved hero indoors wakes by the door

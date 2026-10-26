@@ -48,9 +48,9 @@ WV('staff_bone','staff','Костяной посох',{die:6,hb:1,two:1,spark:['
   pal:{c:'#9aff9a',C:'#3aa85a',b:'#a89a78',B:'#6a5e44'},icon:'bonestaff'});
 WV('quarterstaff','staff','Боевой шест',{die:8,two:1,d:'обе руки, окованный шест, 1к8',m:{top:'caps',shaft:MT.ash},pal:{b:'#9a7448',B:'#6a4a28'},icon:'quarterstaff'});
 // bows
-WV('bow','bow','Лук',{die:8,two:1,range:8,d:'обе руки, 1к8 на 8 клеток',m:{half:.36,bend:.13,c:0x8a5a2e,tip:MT.gold}});
-WV('bow_long','bow','Длинный лук',{die:8,hb:1,two:1,range:10,d:'тисовый, 1к8 на 10 клеток, +1',m:{half:.46,bend:.12,c:0x6a3e1c,tip:MT.bone,wrap:0x3a2416},pal:{w:'#8a5a2e',W:'#5a3418'},icon:'longbow'});
-WV('bow_short','bow','Короткий лук',{die:6,hb:1,two:1,range:7,d:'лёгкий охотничий, 1к6 на 7 клеток, +1',m:{half:.27,bend:.15,c:0xa87a48,tip:MT.leather},pal:{w:'#d0a468',W:'#9a7040'},icon:'shortbow'});
+WV('bow','bow','Лук',{die:8,two:1,range:8,long:12,d:'обе руки, 1к8 на 8 клеток, дальше до 12 с помехой',m:{half:.36,bend:.13,c:0x8a5a2e,tip:MT.gold}});
+WV('bow_long','bow','Длинный лук',{die:8,hb:1,two:1,range:10,long:14,d:'тисовый, 1к8 на 10 клеток (до 14 с помехой), +1',m:{half:.46,bend:.12,c:0x6a3e1c,tip:MT.bone,wrap:0x3a2416},pal:{w:'#8a5a2e',W:'#5a3418'},icon:'longbow'});
+WV('bow_short','bow','Короткий лук',{die:6,hb:1,two:1,range:7,long:10,d:'лёгкий охотничий, 1к6 на 7 клеток (до 10 с помехой), +1',m:{half:.27,bend:.15,c:0xa87a48,tip:MT.leather},pal:{w:'#d0a468',W:'#9a7040'},icon:'shortbow'});
 // shields: armour, not weapons, but held and drawn the same way
 WV('shield','shield','Щит',{ac:2,d:'+2 к защите',m:{shape:'heater',face:MT.blue,rim:MT.gold}});
 WV('shield_round','shield','Круглый щит',{ac:2,d:'дубовые доски и железный обод, +2 к защите',m:{shape:'round',face:0x8a5a2e,rim:MT.iron},icon:'roundshield'});

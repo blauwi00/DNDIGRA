@@ -49,12 +49,12 @@ function enemyWheel(e){const fight=CB.on,items=[];
   const st=count('stone');
   if(fight)items.push({icon:'stone',label:'Отвлечь камнем',sub:st?'камней: '+st:'нет камней',ok:st>0&&man(e,H0)<=6&&!CB.acted,run:()=>doVerb(e,()=>stoneFoe(e))});
   else if(!e.aware)items.push({icon:'stone',label:'Отвлечь камнем',sub:st?'бросить рядом · камней: '+st:'нет камней',ok:st>0,run:()=>{const [x,z]=noiseCellNear(e);if(Math.hypot(x-H0.x,z-H0.z)>9)return toast('Подойдите ближе, чтобы добросить камень.');stoneNoise(x,z);}});
-  items.push({icon:'look',label:'Осмотреть',run:()=>toast(e.name+': здоровье '+Math.max(0,e.hp)+' из '+e.max+', КД '+e.ac+', '+(e.range>1?'стреляет на '+e.range+' клеток':'бьёт вблизи')+(e.aware?'.':'. Вас не видит.'),4000)});
+  items.push({icon:'look',label:'Осмотреть',run:()=>toast(e.name+': здоровье '+Math.max(0,e.hp)+' из '+e.max+', КД '+e.ac+', '+(e.range>1?'стреляет на '+e.range+' клеток'+(e.long>e.range?', дальше до '+e.long+' с помехой':''):'бьёт вблизи')+(e.aware?'.':'. Вас не видит.'),4000)});
   showWheel(e,items,e.name+' · '+Math.max(0,e.hp)+'/'+e.max);}
 function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=man(e,H0)===1;
   const left=(k,n)=>SP[k]?n+' · '+SP[k]+' ост.':'нужен отдых',bonusOk=()=>!CB.on||heroTurn()&&!CB.bonus;
-  for(const a of heroAttacks()){const adv=advantage(H0,e,a).v,inR=a.range>1?man(e,H0)<=a.range:reachable(e);
-    items.push({img:a.id?window.handsIconURL(a.id):null,icon:a.kind==='spell'?'special':'attack',label:a.n,sub:inR?(a.save?'спасбросок':chance(a.hit,e.ac,adv)+'%'+(adv>0?' ▲':adv<0?' ▼':''))+' · '+a.hand:'далеко',ok:inR,
+  for(const a of heroAttacks()){const A=advantage(H0,e,a),adv=A.v,inR=a.range>1?man(e,H0)<=(a.long||a.range):reachable(e);
+    items.push({img:a.id?window.handsIconURL(a.id):null,icon:a.kind==='spell'?'special':'attack',label:a.n,sub:inR?(a.save?'спасбросок':chance(a.hit+A.pen,e.ac,adv)+'%'+(A.far?' · далеко':(adv>0?' ▲':adv<0?' ▼':'')+' · '+a.hand)):'не достать',ok:inR,
       run:()=>doVerb(e,()=>attack(H0,e,a),{adj:a.range===1&&man(e,H0)>1})});
     if(C==='paladin'&&a.kind==='melee'&&a.id)items.push({icon:'special',label:'Кара: '+a.n.toLowerCase(),sub:left('smite','+2к8'),ok:SP.smite>0&&inR,run:()=>doVerb(e,()=>{SP.smite--;return attack(H0,e,Object.assign({},a,{n:'Божественная кара',smite:true}));},{adj:man(e,H0)>1})});}
   if(C==='mage'||C==='sorcerer')items.push({icon:'special',label:'Маг. стрела',sub:left('missiles','без промаха'),ok:SP.missiles>0&&man(e,H0)<=8,run:()=>doVerb(e,()=>magicMissile(e))});
@@ -70,7 +70,7 @@ function attackWheel(e){const C=HERO.cls,R=RACES[HERO.race]||{},items=[],near=ma
 function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.on,run:()=>{a.hold=performance.now()+9000;const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?talk(a):go(n+1));go(0);}},
   {icon:'look',label:'Осмотреть',run:()=>toast(a.npc+(PEOPLE[a.npc]?'. '+PEOPLE[a.npc].role[0].toUpperCase()+PEOPLE[a.npc].role.slice(1)+', '+PEOPLE[a.npc].temper+'.':'. Житель острова.'))}];
   // shopkeepers trade; villagers with side jobs offer paid work
-  if(a.hire&&!a.ally)items.push({icon:'job',label:'Нанять',sub:a.hire+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?hireAlly(a,a.hire):go(n+1));go(0);}});
+  if(COMPANIONS&&a.hire&&!a.ally)items.push({icon:'job',label:'Нанять',sub:a.hire+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?hireAlly(a,a.hire):go(n+1));go(0);}});
   if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
   const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
@@ -94,8 +94,20 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HER
   ab(R.mend,'Живая ткань',SP.mend?(f?'бонус · ':'')+'2к4+2':'нужен отдых',SP.mend>0&&!full&&bOk,()=>bonus(livingMend));
   ab(R.shellUp&&f,'В панцирь',SP.shellUp?'бонус · урон вдвое меньше':'нужен отдых',fightBonus&&SP.shellUp>0&&!CB.shell,()=>bonus(shellUp));
   legendWheel(items,f,ht,bonus,bOk);
+  // leaving a foe's reach draws a blow; a disengage spends the action (a rogue's bonus action) to walk away clean
+  if(f){const rg=C==='rogue';items.push({icon:'back',label:'Отступить',sub:(rg?'бонус':'действие')+' · без ударов',ok:ht&&!H0.diseng&&!(rg?CB.bonus:CB.acted),run:()=>doVerb(null,disengage,{kind:rg?'bonus':'action'})});
+    items.push({icon:'sneak',label:'Бежать',sub:canFlee()?'уйти из боя':'враги близко',ok:ht&&canFlee(),run:runAway});}
   if(f)items.push({icon:'end',label:'Конец хода',ok:ht,run:endHeroTurn});
   showWheel(H0,items,H0.name+' · '+HERO.n);}
+// a companion who is down: bandage, potion or healing spell; a dead one can be carried to the herbalist
+function allyWheel(a){const f=CB.on,ht=heroTurn(),items=[],p=count('potion'),C=HERO.cls,actOk=!f||ht&&!CB.acted,who=a.name||a.npc,adj=()=>man(a,H0)>1;
+  if(a.state==='dead')items.push({icon:'pick',label:'Отнести к травнице',sub:'вернуть за '+REVIVE+' монет',ok:!f&&!room,run:()=>carryBody(a)});
+  else{items.push({icon:'potion',label:'Перевязать',sub:'Медицина +'+medOf()+' · СЛ 10',ok:actOk&&a.state==='down'&&reachable(a),run:()=>doVerb(a,()=>bandage(a),{adj:adj()})});
+    items.push({icon:'potion',label:'Дать зелье',sub:p?'2к4+2 · есть '+p:'нет',ok:p>0&&actOk&&reachable(a),run:()=>doVerb(a,()=>potionAlly(a),{adj:adj()})});
+    if(C==='cleric')items.push({icon:'special',label:'Лечащее слово',sub:SP.word?'бонус · '+SP.word+' ост.':'нужен отдых',ok:SP.word>0&&(!f||ht&&!CB.bonus)&&man(a,H0)<=6,run:()=>doVerb(a,()=>{SP.word--;healAlly(a,d(4)+3+(HERO.heal||0),'Лечащее слово');},{kind:'bonus'})});
+    if(C==='paladin')items.push({icon:'special',label:'Наложение рук',sub:SP.hands?'2к4+4':'нужен отдых',ok:SP.hands>0&&actOk&&reachable(a),run:()=>doVerb(a,()=>{SP.hands=0;healAlly(a,d(4)+d(4)+4+(HERO.heal||0),'Наложение рук');},{adj:adj()})});}
+  items.push({icon:'look',label:'Осмотреть',run:()=>toast(who+': '+({down:'при смерти, спасброски '+a.saves[0]+' из 3, провалы '+a.saves[1]+' из 3.',stable:'без сознания, но дышит ровно. Встанет после боя.',dead:'погиб. Травница Ивва ещё может помочь до конца завтрашнего дня.'})[a.state],4500)});
+  showWheel(a,items,who);}
 const usedRocks=new Set();
 // anything with a description: look closely; some things give an item the first time
 function lookWheel(L,mesh){const p=new THREE.Vector3();mesh.getWorldPosition(p);const x=Math.floor(p.x),z=Math.floor(p.z);

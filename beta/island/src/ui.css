@@ -401,3 +401,5 @@ body.fight .title{display:none}
 @media (max-height:440px){.talk.withface p{min-height:62px!important}.talk.withface .choices{margin-left:-76px}.talk.withface .choices button{min-width:84px}}
 /* on short screens a long dialog may reach up to the task list: the list steps aside while someone talks */
 @media (max-height:440px){body.talking .quest{opacity:0!important;pointer-events:none!important}}
+.order .down{color:#9a9088;text-decoration:line-through;box-shadow:inset 0 0 0 2px #3a302a}
+@media (max-width:760px){.order{left:72px!important;transform:none!important;max-width:calc(100% - 300px)!important;justify-content:flex-start!important}}

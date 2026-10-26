@@ -43,7 +43,7 @@ function packFriend(quiet){for(const w of PACK){w.calm=true;w.aware=false;}PACK_
 function packAnger(){PACK_ANGRY=true;for(const w of PACK){w.calm=false;w.aware=true;}if(SEDOY&&SEDOY.deal)SEDOY.deal.done=true;}
 function packTalk(a,n){const D=a.deal;learn('pack');if(PACK_ANGRY)return say(n,'Уходи. Стая помнит тебя.');
   if(!D.done)return dealWheel(a);
-  const ch=[];if(KLYK&&!KLYK.ally&&!KLYK.dead)ch.push(['Взять Клыка с собой',()=>takeKlyk()]);
+  const ch=[];if(COMPANIONS&&KLYK&&!KLYK.ally&&!KLYK.dead)ch.push(['Взять Клыка с собой',()=>takeKlyk()]);
   say(n,['Лес шумит спокойно. Это хорошо.','Капканов стало меньше. Твоя работа?','Луна скоро полная. В такие ночи я плохо помню, кто я.'][(a.said=(a.said||0)+1)%3],ch);}
 function takeKlyk(){const a=KLYK;a.hidden=false;a.o.visible=true;const [x,z]=nearFree(H0.x+1,H0.z,3);a.x=x;a.z=z;a.px=x+.5;a.pz=z+.5;a.ally=true;ALLIES.push(a);save();toast('Клык идёт с вами.');}
 // attacking a calm wolf of the pack ends the peace

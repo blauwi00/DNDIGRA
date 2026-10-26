@@ -23,7 +23,10 @@ function epilogue(){const q=Q.raven,L=[];
   L.push(PACK_ANGRY?'Стая Седого помнит обиду: по ночам в лесу опасно.':SEDOY&&SEDOY.deal&&SEDOY.deal.done?'Волки Седого не трогают людей, а охотники больше не ставят капканы.':'Седой так и живёт в глухом лесу, сам по себе.');
   L.push({left:'Огонь часовни горит ровно.',broken:'Часовня стоит тёмной: мёртвые больше не встают.',kept:'Сердце часовни у вас, и огонь там едва теплится.',absorbed:'Пламя часовни живёт теперь в вас.'}[ART.fate]||'Часовня в руинах ждёт своего часа.');
   L.push('Для Заводи вы — '+repName('village')+', для королевства — '+repName('kingdom')+'.');return L.join(' ');}
-function journal(){const a=actNow(),A=CAMPAIGN.acts[a],facts=[...KNOWN].map(k=>CAMPAIGN.facts[k]);
+// a companion left dead past the next day is buried; the chronicle keeps his name
+const graveText=k=>k.startsWith('grave:')?k.slice(6)+' погиб в бою. Тело не донесли до травницы вовремя, его похоронили у деревни.':null;
+function mourn(name){const k='grave:'+name;if(KNOWN.has(k))return;KNOWN.add(k);toast('Летопись: новая запись');save();}
+function journal(){const a=actNow(),A=CAMPAIGN.acts[a],facts=[...KNOWN].map(k=>CAMPAIGN.facts[k]||graveText(k)).filter(Boolean);
   const pages=['«'+CAMPAIGN.title+'». Акт '+(a+1)+' · '+A.n+'. '+A.goal+(facts.length?'':' Записей пока нет: расспрашивайте людей.')];
   for(let i=0;i<facts.length;i+=2)pages.push(facts.slice(i,i+2).join(' '));if(a===3)pages.push(epilogue());
   const show=i=>say('Летопись острова',pages[i],i+1<pages.length?[['Дальше',()=>show(i+1)]]:[]);show(0);}
