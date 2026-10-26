@@ -15,7 +15,7 @@ function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   const L={n:name,t:text,loot:[[id,n]],meshes:[],item:true,grp};grp.traverse(m=>{if(m.isMesh){L.meshes.push(m);m.userData.look=L;}});looks.push(L);return L;}
 const LOOK={attic:[T.p[1],0x9a8466,T.p[2],0x6a5440],cellar:[T.stone,0x7a7470,T.wall,0x6a6460],house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70],
   upper:[T.p[1],0xb8a080,T.p[0],0x9a8670],gbarn:[T.dirt,0xc8b090,T.p[1],0x7a6450],temple:[T.stone,0xd8d0c4,T.wall,0xc0b8a8],inn:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],mill:[T.p[1],0xd8d0b8,T.p[0],0x9a8670],
-  tannery:[T.dirt,0x9a8060,T.p[1],0x7a6450],warehouse:[T.p[1],0xb8a080,T.p[1],0x7a6450],barracks:[T.stone,0xa8a098,T.wall,0x9a948c],armory:[T.stone,0x9a948c,T.wall,0x8a8078],treasury:[T.cobble,0xb8a890,T.wall,0x9a948c],chambers:[T.p[3],0xc8a888,T.wall,0xc8b8a0]};
+  tannery:[T.dirt,0x9a8060,T.p[1],0x7a6450],warehouse:[T.p[1],0xb8a080,T.p[1],0x7a6450],barracks:[T.stone,0xa8a098,T.wall,0x9a948c],kitchen:[T.stone,0xa89c8c,T.wall,0x9a8c7c],armory:[T.stone,0x9a948c,T.wall,0x8a8078],treasury:[T.cobble,0xb8a890,T.wall,0x9a948c],chambers:[T.p[3],0xc8a888,T.wall,0xc8b8a0]};
 function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.group=g;const y=R.inPlace?R.y:.3;const lk=LOOK[R.type],floorMat=lam(lk[0],{color:lk[1]}),innerWall=lam(lk[2],{color:lk[3]});
   // a room in its own house: the house gives walls, door and windows, the room only a plank floor
   if(R.inPlace){const fl=part(g,floorMat,R.ox+R.iw/2,y+.02,R.oz+R.id/2,R.iw,.06,R.id);fl.userData.floor=true;pickable.push(fl);}
@@ -129,6 +129,8 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Колонна','Гладкий камень. Наверху вырезаны волны и рыбы — знак острова.');for(let z=4;z<d-2;z+=3)for(const x of[cx-4,cx+3]){S(x,z,.7,2.6,.7,lam(T.wall,{color:0xc0baae}));}I(null);
     I('Знамя королевства','Красное полотно с золотой рыбой.');for(const x of[3,cx-3,cx+3,w-4])if(x!==cx){part(g,M(0x8e2a24),R.ox+x+.5,y+1.2,R.oz+1.08,.8,1.3,.03);part(g,M(0xd8b04a),R.ox+x+.5,y+1.35,R.oz+1.1,.3,.3,.02);}I(null);
     for(const[x0,x1]of[[3,cx-6],[cx+5,w-4]])for(let x=x0;x<=x1;x++){table(x,7);stool(x,6);stool(x,8);}
+    // the keep of the big castle (layout 3): two long feasting tables either side of the carpet, benches beside them
+    if(w>=12&&d>=11)for(const tx of [cx-2,cx+2])for(const tz of [5,6,8]){table(tx,tz);stool(tx+(tx<cx?-1:1),tz);}
     chest(1,d-5,[['potion',2],['sword_long',1],['shield_kite',1]],'Сундук оружейной');chest(w-2,d-5,[['bread',3],['torch',1],['bow_long',1]],'Сундук кладовой');
     itemProp(g,R.ox+4.5,y+.55,R.oz+7.5,'bread',1,'Хлеб','Остался от вчерашнего пира.');
     hearth(2);hearth(w-3);
@@ -141,7 +143,12 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     if(R.type==='gbarn'){I('Сено','Сухое, колючее, пахнет летом.');for(const [dx,dz] of [[1,1],[2,1],[1,2]])at_(dx,dz,(x,z)=>{S(x,z,.95,.7,.95,M(0xc8a858));});
       at_(w-2,1,(x,z)=>{I('Мешки','Зерно нового урожая.');for(let k=0;k<2;k++)part(g,M(0xb8a070),R.ox+x+.3+k*.35,y+.22,R.oz+z+.5,.35,.44,.35);blockCell(R.ox+x,R.oz+z);});
       I('Вилы','Не оружие, но в крайнем случае…');at_(w-2,2,(x,z)=>{const f=part(g,lam(T.bark),R.ox+x+.5,y+.7,R.oz+z+.3,.05,1.4,.05);f.rotation.z=.2;});I(null);
-      at_(1,d-2,(x,z)=>chest(x,z,[['bread',1+(rnd()<.5?1:0)]],'Ларь с зерном'));}
+      at_(1,d-2,(x,z)=>chest(x,z,[['bread',1+(rnd()<.5?1:0)]],'Ларь с зерном'));
+      // the castle's stables: horses in their stalls along the back wall, a plank between each
+      if(R.name==='Конюшня')for(let k=0;k<3;k++)at_(3+k*2,1,(x,z)=>{I('Конь','Королевский конь. Косится на вас и фыркает.');const hc=[0x6a4428,0x2a2220,0xb8a080][k],hm=M(hc),X=R.ox+x+.5,Z=R.oz+z+.55;
+        S(x,z,.36,.01,.9,hm);part(g,hm,X,y+.62,Z,.34,.34,.82);for(const [a,b] of [[-.11,-.3],[.11,-.3],[-.11,.3],[.11,.3]])part(g,M(0x2a1e16),X+a,y+.24,Z+b,.09,.48,.09);
+        part(g,hm,X,y+.9,Z+.42,.2,.36,.2);part(g,hm,X,y+1.02,Z+.6,.16,.18,.3);part(g,M(0x1a1410),X,y+.9,Z-.44,.06,.4,.06);I(null);
+        part(g,lam(T.p[1],{color:0x6a4a30}),R.ox+x+1.02,y+.45,R.oz+z+.6,.06,.9,1);});}
     if(R.type==='temple'){I('Алтарь','Белый камень, на нём свечи и чаша с водой.');S(cx,1,1.4,.8,.7,lam(T.wall,{color:0xe0d8c8}));for(const sg of[-1,1])candle(cx+sg,1);I(null);
       I('Скамья','Гладкая от тех, кто тут сидел.');for(let z=3;z<d-1;z+=2)for(let x=1;x<w-1;x++)if(Math.abs(x-cx)>0&&!doorway(x,z)&&free(R.ox+x,R.oz+z))S(x,z,.9,.35,.4,lam(T.p[2]));I(null);
       at_(w-2,1,(x,z)=>chest(x,z,[['potion',1],['herb',1]],'Ящик для пожертвований'));}
@@ -153,6 +160,10 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
       I('Шкуры','Растянуты на рамах сушиться.');at_(w-2,1,(x,z)=>{part(g,M(0x9a6a40),R.ox+x+.5,y+.8,R.oz+z+.2,.9,1,.04);blockCell(R.ox+x,R.oz+z);});I(null);at_(1,d-2,(x,z)=>chest(x,z,[['herb',1]],'Ящик кожевника'));}
     if(R.type==='warehouse'){I('Ящики','Товар с кораблей: ткань, гвозди, соль.');for(const [dx,dz] of [[1,1],[2,1],[w-2,1],[w-3,1],[1,d-2],[w-2,d-2]])at_(dx,dz,(x,z)=>S(x,z,.85,.7,.85,lam(T.crate)));I(null);
       at_(cx,1,(x,z)=>barrel(x,z,[['torch',1]]));at_(w-2,2,(x,z)=>chest(x,z,[['torch',1],['stone',2]],'Ящик с товаром'));}
+    if(R.type==='kitchen'){I('Очаг с вертелом','Над огнём крутится вертел, в котле булькает похлёбка для стражи.');S(w-2,1,.9,.8,.6,lam(T.wall));part(g,glow(0xff8a3a),R.ox+w-1.5,y+.35,R.oz+1.82,.5,.25,.02);part(g,M(0x2a2a2e),R.ox+w-1.5,y+.95,R.oz+1.6,.4,.3,.4);I(null);
+      I('Медные котлы','Висят на крюках, начищены до блеска.');for(let k=0;k<3;k++)part(g,M(0xb87a40),R.ox+1.4+k*.4,y+1.25,R.oz+1.08,.24,.2,.06);I(null);
+      at_(cx,d-2,(x,z)=>{table(x,z);at_(x,z-1,(a,b)=>stool(a,b));});at_(1,1,(x,z)=>barrel(x,z,[['bread',1]]));
+      I('Мешки','Мука, лук, репа.');at_(w-2,d-2,(x,z)=>S(x,z,.6,.5,.5,M(0xe0d8c0)));I(null);at_(2,1,(x,z)=>chest(x,z,[['bread',2],['herb',1]],'Ларь с припасами'));}
     if(R.type==='barracks'){for(let x=1;x<w-1;x+=2)if(!doorway(x,1)&&!doorway(x,2))bed(x,1);
       I('Стойка с копьями','Копья стражи, наточены.');at_(w-2,d-2,(x,z)=>{S(x,z,.9,1.2,.3,lam(T.bark));for(let k=0;k<3;k++)part(g,M(0xb8bcc4),R.ox+x+.2+k*.3,y+.9,R.oz+z+.5,.05,1.1,.05);});I(null);
       at_(1,d-2,(x,z)=>chest(x,z,[['bread',2],['spear',1]],'Сундук стражи'));}

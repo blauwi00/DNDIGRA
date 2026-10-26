@@ -41,9 +41,10 @@ const vnoise=(x,z,s)=>{const X=Math.floor(x/s),Z=Math.floor(z/s),fx=x/s-X,fz=z/s
   return l(l(hash2(X,Z),hash2(X+1,Z),fx),l(hash2(X,Z+1),hash2(X+1,Z+1),fx),fz)};
 const OLD_D=(x,z)=>((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;
 // settlement layout: a world saved before layout 2 keeps the old grid capital and ring villages (its rooms,
-// chests and people are saved by number); every new world gets the grown towns of settle.js
-const LAYOUT=(()=>{try{const d=JSON.parse(localStorage.getItem('helga-island-beta-1')||'null');if(d)return d.lay===2?2:1;}catch(e){}return 2;})();
-const GEN=IslandGen.make('helga',300,220,{v:LAYOUT,stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
+// chests and people are saved by number); a layout 2 world keeps its towns; every new world gets layout 3:
+// the grown towns of settle.js with a castle at real scale and houses parted into rooms
+const LAYOUT=(()=>{try{const d=JSON.parse(localStorage.getItem('helga-island-beta-1')||'null');if(d)return d.lay>=2?Math.min(3,d.lay):1;}catch(e){}return 3;})();
+const GEN=IslandGen.make('helga',300,220,{v:Math.min(2,LAYOUT),stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
 const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,GB=GEN.B;let H=ROOM_Z+12;
 const inStamp=(x,z)=>x<80&&z<60&&OLD_D(x,z)<1;
 const genCode=(x,z)=>{if(z>=OUT_H)return '~';const i=z*W+x,b=GEN.biome[i];
@@ -94,7 +95,7 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
 {const okCell=(x,z)=>['G','A','B','D'].includes(at(x,z));
  const fits=(hx,hz,hw,hd)=>{for(let z=hz-1;z<=hz+hd;z++)for(let x=hx-1;x<=hx+hw;x++){const c=at(x,z),inside=x>=hx&&x<hx+hw&&z>=hz&&z<hz+hd;if(inside?!['G','A','B'].includes(c):['H','~','R','M','N','W'].includes(c))return false;}return true;};
  const house=(hx,hz,hw,hd,p)=>{for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');GEN_HOUSES.push([hx,hz,hw,hd,p]);};
- if(LAYOUT>=2){SETTLE=Settle.plan({W,OH:OUT_H,at,set,places:GPL,hgt:(x,z)=>GEN.height[z*W+x]});for(const sp of SETTLE.houses)GEN_HOUSES.push(Object.assign([sp.x,sp.z,sp.w,sp.d,sp.p],{spec:sp}));}
+ if(LAYOUT>=2){SETTLE=Settle.plan({v:LAYOUT,W,OH:OUT_H,at,set,places:GPL,hgt:(x,z)=>GEN.height[z*W+x]});for(const sp of SETTLE.houses)GEN_HOUSES.push(Object.assign([sp.x,sp.z,sp.w,sp.d,sp.p],{spec:sp}));}
  for(const p of GPL){const disc=(r,c)=>{for(let z=p.z-r;z<=p.z+r;z++)for(let x=p.x-r;x<=p.x+r;x++)if(Math.hypot(x-p.x,z-p.z)<=r&&okCell(x,z))set(x,z,c);};
    // the capital: cobbled streets every five cells, a market square in the middle, houses filling the blocks
    // the royal castle fills the north of the capital: a walled court 28 x 17 cells with a keep, the market below its gate
@@ -316,7 +317,7 @@ const FLOWERS=[0xd84a5a,0xf0c040,0xe8e0f0,0x8a5ad0,0xf08a3a];
 // a door on the south, east or west wall; barns with wide doors and no windows; a temple with its bell tower,
 // a mill with its wheel on the water, the castle's stone buildings with battlements.
 const WALLS={stone:lam(T.wall,{color:0xc0b8aa}),frame:lam(T.p[0],{color:0xece4d0}),plank:lam(T.p[0],{color:0xc8b8a0}),log:lam(T.bark,{color:0xa08060})},beamDark=lam(T.bark,{color:0x4a3222});
-const TALL={tavern:1.9,forge:1.5,home:1.3,hall:1.8,barn:1.7,herb:1.2,castle:3.1,temple:2.4,barracks:1.7,armory:1.7,treasury:1.6,chambers:1.6,warehouse:1.8,mill:1.6,tannery:1.4,inn:1.5,gbarn:1.7};
+const TALL={tavern:1.9,forge:1.5,home:1.3,hall:1.8,barn:1.7,herb:1.2,castle:3.1,temple:2.4,barracks:1.7,armory:1.7,kitchen:1.6,treasury:1.6,chambers:1.6,warehouse:1.8,mill:1.6,tannery:1.4,inn:1.5,gbarn:1.7};
 function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group(),y=R.y,rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital',hh=hash2(hx*3,hz*5);
   g.userData.house=R.i;const front=[],roofs=[],type=R.type,barn=type==='gbarn'||type==='barn',stoneB=S&&S.castle;
   const B=(m,x,yy,z,sx,sy,sz,list)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,yy,z);o.castShadow=o.receiveShadow=true;g.add(o);if(list)list.push(o);return o;};
@@ -438,14 +439,20 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  instanced(BOX,darkM,tw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+2.75,z+.5),q0,v2.set(.8,.5,.8)));
  // the castle's curtain wall is higher, with round-topped towers at its corners and a gatehouse
  if(P.castle){const c=P.castle,cw=[];for(let z=c.z;z<c.z+c.d;z++)for(let x=c.x;x<c.x+c.w;x++)if(at(x,z)==='W')cw.push([x,z]);
-   instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.8,z+.5),q0,v2.set(1,3.6,1)));
-   instanced(BOX,darkM,cw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+3.85,z+.5),q0,v2.set(.85,.5,.85)));
+   // the big castle (layout 3): walls two cells thick and higher, a walk along their top behind the battlements
+   const thick=c.thick||1,CWH=thick>1?5:3.6,outer=([x,z])=>x===c.x||x===c.x+c.w-1||z===c.z||z===c.z+c.d-1;
+   instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH/2,z+.5),q0,v2.set(1,CWH,1)));
+   instanced(BOX,darkM,cw.filter(c2=>(thick<2||outer(c2))&&(c2[0]+c2[1])%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH+.25,z+.5),q0,v2.set(.85,.5,.85)));
    const tower=(x,z,r,h)=>defer(chunkKey(x,z),()=>{const g=new THREE.Group(),y=gy(Math.floor(x),Math.floor(z));const B=(m,yy,s,hh)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(s,hh,s);o.position.set(x,y+yy,z);o.castShadow=o.receiveShadow=true;g.add(o);};
      B(stoneM,h/2,r,h);B(darkM,h+.2,r+.3,.4);B(roofB,h+.8,r+.2,.8);B(roofB,h+1.5,r*.65,.7);B(roofB,h+2.1,r*.3,.6);scene.add(g);return g;});
-   for(const [x,z] of [[c.x+1,c.z+1],[c.x+c.w-1,c.z+1],[c.x+1,c.z+c.d-1],[c.x+c.w-1,c.z+c.d-1]])tower(x,z,2.4,5.2);
-   for(const gx of [c.gate[0]-.5,c.gate[1]+1.5])tower(gx,c.z+c.d-.5,1.8,4.8);
-   defer(chunkKey(c.gate[0],c.z+c.d),()=>{const g=new THREE.Group(),y=gy(c.gate[0],c.z+c.d-1),mx=c.gate[0]+1.5,z=c.z+c.d-.5;const B=(m,x,yy,zz,a,b,d)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(a,b,d);o.position.set(x,y+yy,zz);o.castShadow=true;g.add(o);};
-     B(stoneM,mx,3.3,z,3.2,1.2,1);B(darkM,mx,2.6,z+.52,2.8,.2,.05);for(const sg of[-1,1]){B(wood,mx+sg*2.4,3.2,z+.6,.08,2.2,.08);B(new THREE.MeshLambertMaterial({color:0x8e2a24}),mx+sg*2.4,3.3,z+.65,.7,1.5,.03);B(new THREE.MeshLambertMaterial({color:0xd8b04a}),mx+sg*2.4,3.5,z+.67,.26,.26,.01);}
+   if(thick<2){for(const [x,z] of [[c.x+1,c.z+1],[c.x+c.w-1,c.z+1],[c.x+1,c.z+c.d-1],[c.x+c.w-1,c.z+c.d-1]])tower(x,z,2.4,5.2);
+     for(const gx of [c.gate[0]-.5,c.gate[1]+1.5])tower(gx,c.z+c.d-.5,1.8,4.8);}
+   else{// great round-topped towers at the corners and halfway along every wall, two tall ones flanking the gate
+     for(const [x,z] of [[c.x+1.5,c.z+1.5],[c.x+c.w-1.5,c.z+1.5],[c.x+1.5,c.z+c.d-1.5],[c.x+c.w-1.5,c.z+c.d-1.5]])tower(x,z,3.6,7.6);
+     for(const [x,z] of [[c.x+1,c.z+c.d/2],[c.x+c.w-1,c.z+c.d/2],[c.x+c.w*.27,c.z+1],[c.x+c.w*.73,c.z+1]])tower(x,z,2.6,6.6);
+     for(const gx of [c.gate[0]-1,c.gate[1]+2])tower(gx,c.z+c.d-1,2.6,7.2);}
+   defer(chunkKey(c.gate[0],c.z+c.d),()=>{const g=new THREE.Group(),y=gy(c.gate[0],c.z+c.d-1),mx=c.gate[0]+1.5,z=c.z+c.d-thick/2,big=thick>1;const B=(m,x,yy,zz,a,b,d)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(a,b,d);o.position.set(x,y+yy,zz);o.castShadow=true;g.add(o);};
+     B(stoneM,mx,big?4.2:3.3,z,3.2,big?1.6:1.2,thick);if(big){B(darkM,mx,5.25,z,3.4,.5,thick+.1);for(let k=0;k<5;k++)B(ironMat,mx-1.2+k*.6,2.95,z+thick/2-.1,.06,1,.06);}B(darkM,mx,2.6,z+thick/2+.02,2.8,.2,.05);for(const sg of[-1,1]){B(wood,mx+sg*(big?2.5:2.4),3.2,z+(big?1.32:thick/2)+.1,.08,2.2,.08);B(new THREE.MeshLambertMaterial({color:0x8e2a24}),mx+sg*(big?2.5:2.4),3.3,z+(big?1.32:thick/2)+.15,.7,1.5,.03);B(new THREE.MeshLambertMaterial({color:0xd8b04a}),mx+sg*(big?2.5:2.4),3.5,z+(big?1.32:thick/2)+.17,.26,.26,.01);}
      scene.add(g);return g;});}
  // gates through the town wall: a tower on each side of the road; through a palisade, two tall posts
  for(const gt of P.gates){const cells=gt.cells,ends=[];for(const [x,z] of cells)for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]])if((at(x+dx,z+dz)==='W'||P.palisade.some(p=>p[0]===x+dx&&p[1]===z+dz))&&!cells.some(c=>c[0]===x+dx&&c[1]===z+dz))ends.push([x+dx,z+dz]);

@@ -55,4 +55,16 @@ console.log('island generator ok · slowest island '+slow+' ms');
      assert.ok(P.wells.some(w=>Math.hypot(w[0]-p.x,w[1]-p.z)<P.ext.get(p))||g.freshD[p.z*W+p.x]<=6,seed+': '+p.n+' has water');
    assert.ok(H.some(h=>h.type==='gbarn')||seed!=='helga',seed+': farms have barns');
    assert.ok(P.fields.length>200,seed+': fields round the settlements');}
- console.log('settlement layout v2 ok');}
+ console.log('settlement layout v2 ok');
+ // ---- layout 3 (new worlds): the castle at real scale beside a 6 x 6 house ----
+ {const g=v2,W=g.W,OH=g.H,B=g.B,grid=[];for(let z=0;z<OH;z++){const r=[];for(let x=0;x<W;x++){const i=z*W+x,b=g.biome[i];
+     r.push(x<80&&z<60&&d(x,z)<1?'G':g.road[i]?(g.river[i]||b===B.LAKE||b===B.SEA?'P':'D'):b===B.SEA?'~':g.river[i]||b===B.LAKE?'R':b===B.BEACH?'A':b===B.MOUNTAIN?'M':b===B.SNOW?'N':b===B.SWAMP?'B':'G');}grid.push(r);}
+  const at=(x,z)=>(grid[z]||[])[x]||'~',P=S.plan({v:3,W,OH,at,set:(x,z,c)=>{if(grid[z]&&grid[z][x]!==undefined)grid[z][x]=c;},places:g.places.filter(p=>!p.stamp),hgt:(x,z)=>g.height[z*W+x]});
+  const c=P.castle,H=P.houses.filter(h=>h.castle);assert.ok(c&&c.w>=32&&c.d>=30,'layout 3: a big castle ('+(c&&[c.w,c.d])+')');assert.equal(c.thick,2,'thick curtain walls');
+  for(const t of ['castle','chambers','treasury','armory','temple','kitchen','barracks','gbarn'])assert.ok(H.some(h=>h.type===t),'layout 3 castle has its '+t);
+  const keep=H.find(h=>h.type==='castle');assert.ok(keep.w>=10&&keep.d>=12&&keep.storeys>=4,'a keep of several storeys');
+  assert.ok(P.wells.some(([x,z])=>x>c.x&&x<c.x+c.w&&z>c.z&&z<c.z+c.d),'a well in the bailey');
+  // every door of the court opens onto a lane at least three cells wide: no one standing in it closes the way
+  for(const h of H){const [dx,dz]=h.side==='S'?[h.x+h.off,h.z+h.d]:h.side==='E'?[h.x+h.w,h.z+h.off]:[h.x-1,h.z+h.off];assert.equal(at(dx,dz),'C',h.name+': the door opens on the court');
+    if(h.side!=='S'){let n=0;for(let k=0;k<4;k++){const x=h.side==='E'?dx+k:dx-k;if(at(x,dz)==='C')n++;else break;}assert.ok(n>=3,h.name+': a wide lane before the door');}}
+  console.log('layout 3 castle ok',c.w+'x'+c.d);}}

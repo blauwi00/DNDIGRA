@@ -16,9 +16,9 @@ const Settle=(()=>{
     if(type==='poorhouse'){o.push(['S',Math.floor(w/2)],['W',2]);if(d>=6)o.push(['E',3]);return o;}
     o.push(['S',Math.floor(w/2)]);if(d>=5){o.push(['E',Math.floor(d/2)],['W',Math.floor(d/2)]);}return o;}
   const NAME={house:'Дом',poorhouse:'Лачуга',gbarn:'Амбар',temple:'Храм',inn:'Таверна',mill:'Мельница',tannery:'Кожевня',warehouse:'Склад',
-    castle:'Королевский замок',barracks:'Казарма',armory:'Оружейная',treasury:'Казна',chambers:'Покои короля'};
+    castle:'Королевский замок',kitchen:'Кухня',barracks:'Казарма',armory:'Оружейная',treasury:'Казна',chambers:'Покои короля'};
 
-  function plan(o){const {W,OH,at,set,places,hgt}=o,K=(x,z)=>z*W+x;
+  function plan(o){const {W,OH,at,set,places,hgt}=o,K=(x,z)=>z*W+x,V=o.v||2; // V: layout version (3: the big castle, new worlds)
     const out={houses:[],castle:null,fences:[],palisade:[],walls:[],gates:[],wells:[],gardens:[],fields:[],graves:[],stalls:[],props:[],piers:[],ext:new Map(),heart:new Map()};
     const inb=(x,z)=>x>1&&z>1&&x<W-2&&z<OH-2;
     const res=new Uint8Array(W*OH); // 1 kept clear (square, green, lane), 2 yard, 3 thing standing (well, stall, grave, fence)
@@ -26,7 +26,7 @@ const Settle=(()=>{
     const okC=(x,z)=>inb(x,z)&&['G','A','B','D','C'].includes(at(x,z));
     const bld=(x,z)=>inb(x,z)&&['G','A','B'].includes(at(x,z))&&!res[K(x,z)];
     const towns=places.filter(p=>['capital','village','works'].includes(p.type));
-    const EXT=p=>p.type==='capital'?p.r+14:p.type==='works'?p.r+7:p.poorWhy?p.r+6:p.r+11+Math.min(3,p.wealth||0);
+    const EXT=p=>p.type==='capital'?p.r+(V>=3?24:14):p.type==='works'?p.r+7:p.poorWhy?p.r+6:p.r+11+Math.min(3,p.wealth||0);
     // ground of a settlement: cells nearer (in its own measure) to it than to any other settlement, clear of wild places
     const own=new Int16Array(W*OH).fill(-1);
     towns.forEach((p,i)=>{const E=EXT(p);out.ext.set(p,E);for(let z=p.z-E;z<=p.z+E;z++)for(let x=p.x-E;x<=p.x+E;x++){if(!inb(x,z))continue;const d=Math.hypot(x-p.x,z-p.z);if(d>E)continue;
@@ -117,24 +117,44 @@ const Settle=(()=>{
     // ---------------- the capital ----------------
     function capital(p,rnd){const E=out.ext.get(p);
       // 1. the castle on the highest ground near the middle; its gate looks south at the market
-      const CW=24,CD=18;let best=null;
-      for(const loose of [0,1]){if(best)break;const R0=loose?20:15,ZA=loose?18:12,ZB=loose?10:6;
-      for(let cz=p.z-ZA;cz<=p.z+ZB;cz++)for(let cx=p.x-R0;cx<=p.x+R0;cx++){const x0=cx-12,z0=cz-9;let ok=true,hs=0;
+      // Layout 3 (new worlds): a castle at the scale of a real one beside a 6 x 6 house: 40 x 32 cells inside thick walls.
+      // Where the land will not hold it, the next size down is tried; layout 2 keeps its old 24 x 18 court.
+      let CW=24,CD=18,best=null;
+      for(const [cw,cd] of V>=3?[[40,30],[38,30],[36,30],[34,30],[32,30],[24,18]]:[[24,18]]){if(best)break;CW=cw;CD=cd;const big=V>=3?Math.floor((cw-24)/2):0;
+      for(const loose of [0,1]){if(best)break;const R0=(loose?20:15)+big,ZA=(loose?18:12)+big,ZB=(loose?10:6)+big;
+      for(let cz=p.z-ZA;cz<=p.z+ZB;cz++)for(let cx=p.x-R0;cx<=p.x+R0;cx++){const x0=cx-Math.floor(CW/2),z0=cz-Math.floor(CD/2);let ok=true,hs=0;
         for(let z=z0;z<z0+CD+8&&ok;z++)for(let x=x0;x<x0+CW;x++){if(z<z0+CD){if(!okC(x,z)||!loose&&!mine(p,x,z)||loose&&own[K(x,z)]>=0&&!mine(p,x,z)){ok=false;break;}hs+=hgt(x,z);}else if(!loose&&Math.abs(x-cx)<5&&!(okC(x,z)||at(x,z)==='R')){ok=false;break;}}
-        if(!ok)continue;let room=0;for(let z=z0+CD;z<z0+CD+15;z++)for(let x=x0-5;x<x0+CW+5;x++)if(okC(x,z)&&mine(p,x,z))room++;const s=hs/(CW*CD)*12+room*.06-Math.hypot(cx-p.x,cz-(p.z-5))*.12;if(!best||s>best.s)best={x0,z0,s};}}
+        if(!ok)continue;let room=0;for(let z=z0+CD;z<z0+CD+15;z++)for(let x=x0-5;x<x0+CW+5;x++)if(okC(x,z)&&mine(p,x,z))room++;const s=hs/(CW*CD)*12+room*.06-Math.hypot(cx-p.x,cz-(p.z-5))*.12;if(!best||s>best.s)best={x0,z0,s};}}}
       let cast=null;
-      if(best){const {x0,z0}=best,x1=x0+CW-1,z1=z0+CD-1,gc=x0+12;cast={x:x0,z:z0,w:CW,d:CD,gate:[gc-1,gc+1],p};out.castle=cast;
-        for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const edge=x===x0||x===x1||z===z0||z===z1;set(x,z,edge&&!(z===z1&&x>=gc-1&&x<=gc+1)?'W':'C');res[K(x,z)]=1;}
+      if(best){const {x0,z0}=best,x1=x0+CW-1,z1=z0+CD-1,gc=x0+Math.floor(CW/2);cast={x:x0,z:z0,w:CW,d:CD,gate:[gc-1,gc+1],p,thick:CW>=32?2:1};out.castle=cast;
+        const th=cast.thick;
+        for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const edge=x<x0+th||x>x1-th||z<z0+th||z>z1-th;set(x,z,edge&&!(z>z1-th&&x>=gc-1&&x<=gc+1)?'W':'C');res[K(x,z)]=1;}
         // the buildings of the court: the keep with the throne hall, the king's rooms, the treasury, barracks, armory
         const B=(type,dx,dz,w,d,side,off,extra)=>{for(let z=z0+dz;z<z0+dz+d;z++)for(let x=x0+dx;x<x0+dx+w;x++){set(x,z,'G');res[K(x,z)]=0;}
           const s=put(p,Object.assign({type,x:x0+dx,z:z0+dz,w,d,side,off,wall:'stone',roof:'slate',alongX:true,castle:true},extra||{}));
           const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;return s;};
+        if(CW>=32){// the big castle: the keep of four storeys at the back of the inner ward, the king's rooms and the treasury
+          // at its sides; the chapel, the armory, the kitchens, the barracks and the stables round the bailey; a well in it.
+          // Every lane between buildings is at least three cells wide, so no one standing in it closes the way.
+          const kw=CW>=40?14:CW>=34?12:10,kd=12,kx=Math.floor((CW-kw)/2),e=CW-3; // e: the last inner column
+          B('castle',kx,3,kw,kd,'S',Math.floor(kw/2),{storeys:4,name:'Донжон: тронный зал'});
+          const sw=kx-7>=5?6:5;B('chambers',3,3,sw,6,'E',2,{storeys:2,guard:4,name:'Покои короля'});
+          B('treasury',e-5,3,6,5,'W',2,{guard:99,name:'Казна'});
+          B('armory',e-5,10,6,6,'W',3,{guard:3,name:'Оружейная'});
+          B('temple',3,kd+1,7,6,'E',3,{name:'Часовня замка'});
+          const by=CD-9;// the bailey's south row
+          B('kitchen',e-5,17,6,5,'W',2,{name:'Замковая кухня'});
+          B('barracks',3,by,9,6,'E',3,{guard:2,name:'Казарма'});
+          B('gbarn',e-9,CD-7,10,5,'W',2,{wall:'stone',roof:'slate',name:'Конюшня'});
+          const wx_=x0+kx-2,wz_=z0+by-2;if(at(wx_,wz_)==='C'){out.wells.push([wx_,wz_]);res[K(wx_,wz_)]=3;}
+          for(const dx of [e-12,e-11])if(at(x0+dx,z0+CD-5)==='C'){out.props.push({k:'trough',x:x0+dx,z:z0+CD-5});res[K(x0+dx,z0+CD-5)]=3;}}
+        else{
         B('castle',7,1,10,8,'S',5,{storeys:3,name:'Тронный зал'});
         B('chambers',1,1,5,5,'E',2,{storeys:2,guard:4,name:'Покои короля'});
         B('treasury',18,1,5,5,'W',2,{guard:99,name:'Казна'});
         B('barracks',1,11,7,5,'E',2,{guard:2,name:'Казарма'});
         B('armory',18,11,5,5,'W',2,{guard:3,name:'Оружейная'});
-        for(const [dx,dz] of [[10,14],[14,14]])out.props.push({k:'trough',x:x0+dx,z:z0+dz}),res[K(x0+dx,z0+dz)]=3;
+        for(const [dx,dz] of [[10,14],[14,14]])out.props.push({k:'trough',x:x0+dx,z:z0+dz}),res[K(x0+dx,z0+dz)]=3;}
         // the market square under the gate, a little crooked, a well in its middle
         const mz0=z1+1,mz1=z1+6;for(let z=mz0;z<=mz1;z++)for(let x=gc-4;x<=gc+4;x++){const corner=(x===gc-4||x===gc+4)&&(z===mz0||z===mz1);if(corner&&rnd()<.7)continue;if(okC(x,z)&&mine(p,x,z)){set(x,z,'C');res[K(x,z)]=1;}}
         p.heart={x:gc,z:mz0+3};well(gc,mz0+4);
@@ -143,7 +163,7 @@ const Settle=(()=>{
       const hx=p.heart.x,hz=p.heart.z;out.heart.set(p,p.heart);
       const inCastle=(x,z)=>cast&&x>=cast.x&&x<cast.x+cast.w&&z>=cast.z&&z<cast.z+cast.d;
       // 2. the wall: round the market and the castle, bent by the ground, a cell inside the capital's own land
-      const ph=rnd()*6,Rw=a=>27+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,wx=hx,wz=cast?cast.z+Math.floor(cast.d/2):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
+      const ph=rnd()*6,Rw=a=>(cast&&cast.w>=32?27+Math.max(cast.w,cast.d)/2-12:27)+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,wx=hx,wz=cast?cast.z+Math.floor(cast.d/2):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
       const mask=new Uint8Array(W*OH);for(let z=wz-E-4;z<=wz+E+4;z++)for(let x=wx-E-4;x<=wx+E+4;x++){if(!inb(x,z))continue;const c=at(x,z);if(c==='~'||c==='M'||c==='N')continue;
         if(inCastle(x,z)||wd(x,z)<=0&&mine(p,x,z)&&!(cast&&z<cast.z+2))mask[K(x,z)]=1;}
       const inWall=(x,z)=>inb(x,z)&&mask[K(x,z)]===1;
