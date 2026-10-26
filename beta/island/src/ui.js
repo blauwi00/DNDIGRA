@@ -158,9 +158,14 @@ const heroBoxes=s=>s&&s.game&&window.Characters?raceDecorate(s.race,Characters.b
 function rebuildHero(look,s){const m=buildModel(heroBoxes(s||{look}));raceScale(s&&s.race,hero);const held=hero.userData.held;
   hero.clear();[...m.children].forEach(c=>hero.add(c));Object.assign(hero.userData,m.userData,{held});}
 let HEROSET=null;try{HEROSET=JSON.parse(localStorage.getItem('helga-hero')||'null')}catch(e){}
-function heroFace(s){const c=document.getElementById('hpFace');if(!c||!window.Characters)return;const g=c.getContext('2d');g.clearRect(0,0,40,40);
-  const p=s.game?Characters.portrait('hero',s.game,{view:'face',width:40,height:40,pixel:2}):null;if(p){g.imageSmoothingEnabled=false;g.drawImage(p,0,0);}c.hidden=!p;}
-function applyHero(s){heroFace(s);HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp+(typeof lvHP==='function'?lvHP():0);if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);setHP();}
+// the hero's face by the health bar: the game's portrait for a hero brought from the game, otherwise the island model itself
+function heroFace(s){const c=document.getElementById('hpFace');if(!c)return;const g=c.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,40,40);
+  let p=s&&s.game&&window.Characters?Characters.portrait('hero',s.game,{view:'face',width:40,height:40,pixel:2}):null;
+  if(p)g.drawImage(p,0,0);
+  else{H0.pfc=null;let fr=null;try{fr=pfFrame(H0,'neutral',20);}catch(e){fr=null;}
+    if(fr){const t=document.createElement('canvas');t.width=t.height=20;pfDraw(t,fr,'neutral',0,false);g.drawImage(t,0,0,40,40);p=t;}}
+  c.hidden=!p;}
+function applyHero(s){HEROSET=s;HERO=applyRace(Object.assign({cls:CLASSES[s.cls]?s.cls:'fighter'},CLASSES[s.cls]||CLASSES.fighter),s.race||'human');H0.name=s.name;H0.max=HERO.hp+(typeof lvHP==='function'?lvHP():0);if(H0.hp>H0.max||s.fresh)H0.hp=H0.max;rebuildHero(s.look,s);heroFace(s);setHP();}
 
 // ---------- menus ----------
 let paused=true;
@@ -247,3 +252,70 @@ document.getElementById('mapIn').onclick=()=>{sfx('click');mapZoom(1.6);};docume
  const up=e=>{MV.pts.delete(e.pointerId);MV.pinch=null;};win.addEventListener('pointerup',up);win.addEventListener('pointercancel',up);}
 document.getElementById('pMap').onclick=()=>openMap();
 document.getElementById('pJournal').onclick=()=>{screen(null);journal();};
+// ---------- speaker portraits ----------
+// The real model of whoever speaks, rendered head and shoulders into a tiny canvas (a strict pixel grid, shown at
+// whole multiples). Each mood is one rendered frame with its own head tilt, cached per speaker; the mouth, blinks
+// and brows are drawn on that grid while the line types. Things that are not people get no portrait.
+const PF={r:null,s:null,cam:null,fail:false,timer:0};
+const PF_N=32;
+function pfInit(){if(PF.r||PF.fail)return !!PF.r;
+  try{const r=new THREE.WebGLRenderer({antialias:false,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(1);r.setSize(PF_N,PF_N);
+    const s=new THREE.Scene();s.add(new THREE.HemisphereLight(0xdfe8ff,0x3a2a1a,.75));const k=new THREE.DirectionalLight(0xffe2b8,.7);k.position.set(1.4,2.4,3);s.add(k);
+    PF.r=r;PF.s=s;PF.cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,20);}catch(e){PF.fail=true;}return !!PF.r;}
+// head tilt per mood: [nod forward, roll to the side]
+const PF_POSE={neutral:[0,0],smile:[-.04,.05],shout:[-.12,0],angry:[.08,0],doubt:[0,.16],sad:[.18,-.06]};
+function pfMood(text){const t=String(text).trim(),end=t.slice(-1);
+  if(/…|\.\.\.$/.test(t.slice(-3)))return 'sad';if(end==='?')return 'doubt';
+  if(end==='!')return /прочь|вон|убир|не подходи|убью|назад/i.test(t)?'angry':'shout';
+  if(/спасибо|добро пожаловать|рад|держи|заслужил|молодец|вот это дело/i.test(t))return 'smile';return 'neutral';}
+function pfSpeaker(who){const w=window.talkWho;if(w&&w.npc===who&&w.o)return w;
+  return actors.find(a=>a!==H0&&!a.dead&&a.o&&(a.npc===who||(a.boss&&a.name===who)))||null;}
+// one frame: the model placed alone at the origin, a little turned, the camera on its head and shoulders
+function pfFrame(a,mood,n=PF_N){const c=a.pfc||(a.pfc={}),key=mood+n;if(c[key])return c[key];if(!pfInit())return null;
+  const o=a.o,rig=o.userData.rig,head=rig&&rig.head,body=o.userData.body,par=o.parent,vis=o.visible;
+  const pos=o.position.clone(),rot=o.rotation.clone(),hr=head?head.rotation.clone():null,br=body?body.rotation.clone():null,bp=body?body.position.clone():null;
+  const S=o.scale.y||1,P=PF_POSE[mood]||PF_POSE.neutral,quad=!!(rig&&rig.quad);
+  o.position.set(0,0,0);o.rotation.set(0,quad?.9:.3,0);o.visible=true;
+  if(body){body.rotation.set(0,0,0);body.position.y=0;}
+  if(head&&!quad)head.rotation.set(P[0],0,P[1]);
+  PF.s.add(o);o.updateMatrixWorld(true);
+  const cy=(quad?.45:.84)*S,h=(quad?.5:.44)*S;
+  PF.cam.left=-h;PF.cam.right=h;PF.cam.top=h;PF.cam.bottom=-h;PF.cam.position.set(0,cy+.4,6);PF.cam.lookAt(0,cy,0);PF.cam.updateProjectionMatrix();PF.cam.updateMatrixWorld(true);
+  PF.r.setSize(n,n);PF.r.render(PF.s,PF.cam);
+  // where the eyes and the mouth land on the grid: points on the face, carried by the head
+  const pt=(x,y,z)=>{const v=head?head.localToWorld(new THREE.Vector3(x,y-.77,z)):o.localToWorld(new THREE.Vector3(x,y,z));v.project(PF.cam);return [Math.round((v.x+1)/2*n-.5),Math.round((1-v.y)/2*n-.5)];};
+  const face=!quad&&head?{eL:pt(-.1,.89,.24),eR:pt(.1,.89,.24),m:pt(0,.81,.24),ck:pt(-.03,.85,.24)}:null;
+  PF.s.remove(o);if(par)par.add(o);o.position.copy(pos);o.rotation.copy(rot);o.visible=vis;
+  if(head)head.rotation.copy(hr);
+  if(body){body.rotation.copy(br);body.position.copy(bp);}
+  const cv=document.createElement('canvas');cv.width=cv.height=n;const g=cv.getContext('2d');g.drawImage(PF.r.domElement,0,0);
+  if(face){const d=g.getImageData(Math.max(0,face.ck[0]),Math.max(0,face.ck[1]),1,1).data;face.skin='rgb('+d[0]+','+d[1]+','+d[2]+')';}
+  c[key]={cv,face};return c[key];}
+// draws a frame with the moving parts: mouth open or shut, eyes open or closed, brows for the mood
+function pfDraw(cvs,fr,mood,mouth,blink){const g=cvs.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,cvs.width,cvs.height);g.drawImage(fr.cv,0,0);const f=fr.face;if(!f)return;
+  const dark='#2a1410',px=(x,y,w=1,h=1,c=dark)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
+  if(blink)for(const e of [f.eL,f.eR]){px(e[0]-1,e[1]-2,3,4,f.skin);px(e[0]-1,e[1]+1,3,1,'#4a2a1e');}
+  const [mx,my]=f.m;
+  if(mouth)px(mx-1,my,3,mood==='shout'||mood==='angry'||mouth>1?2:1,'#3a1010');
+  else if(mood==='smile'){px(mx-1,my,3,1);px(mx-2,my-1);px(mx+2,my-1);}
+  else if(mood==='sad'){px(mx-1,my,3,1);px(mx-2,my+1);px(mx+2,my+1);}
+  else px(mx-1,my,3,1);
+  const bc='#1d120c',bl=f.eL,br=f.eR;
+  if(mood==='angry'){px(bl[0]-1,bl[1]-3,1,1,bc);px(bl[0],bl[1]-2,1,1,bc);px(br[0]+1,br[1]-3,1,1,bc);px(br[0],br[1]-2,1,1,bc);}
+  else if(mood==='sad'){px(bl[0]-1,bl[1]-2,1,1,bc);px(bl[0],bl[1]-3,1,1,bc);px(br[0]+1,br[1]-2,1,1,bc);px(br[0],br[1]-3,1,1,bc);}
+  else if(mood==='doubt'){px(bl[0]-1,bl[1]-2,2,1,bc);px(br[0],br[1]-4,2,1,bc);}
+  else if(mood==='shout'){px(bl[0]-1,bl[1]-3,2,1,bc);px(br[0],br[1]-3,2,1,bc);}}
+// the portrait beside a line: talking while letters still appear, a blink now and then
+function talkPortrait(who,text,typing){clearInterval(PF.timer);const a=pfSpeaker(who),mood=pfMood(text);let fr=null;
+  try{fr=a?pfFrame(a,mood):null;}catch(e){fr=null;}
+  talkEl.classList.toggle('withface',!!fr);if(!fr)return;
+  const cvs=document.createElement('canvas');cvs.className='talk-face';cvs.width=cvs.height=PF_N;cvs.setAttribute('aria-hidden','true');cvs.dataset.mood=mood;talkEl.prepend(cvs);
+  let t=0,blinkAt=8+Math.random()*20|0;
+  const step=()=>{if(talkEl.hidden||!cvs.isConnected){clearInterval(PF.timer);return;}t++;
+    const mouth=typing()&&!reduceM?[1,2,0,1,0,2][t%6]:0,blink=t>=blinkAt&&t<blinkAt+2;
+    if(t>=blinkAt+2)blinkAt=t+20+Math.random()*30|0;
+    pfDraw(cvs,fr,mood,mouth,blink);};
+  pfDraw(cvs,fr,mood,0,false);PF.timer=setInterval(step,110);}
+window.talkPortrait=talkPortrait;
+// the body knows when a dialog is open, so panels that would sit under a tall dialog can step aside
+new MutationObserver(()=>document.body.classList.toggle('talking',!talkEl.hidden)).observe(talkEl,{attributes:true,attributeFilter:['hidden']});

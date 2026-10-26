@@ -359,7 +359,7 @@ body.inmenu .gold,body.cinematic .gold{opacity:0}
 .menubtn svg,.hc-icon svg,.st-x svg,.mmb svg{display:block}
 /* the dialog sits between the palms and their item badges */
 .talk{box-sizing:border-box!important;width:min(460px,calc(100% - 420px))!important;min-width:0!important;left:50%!important;transform:translateX(-50%)!important}
-@media (max-height:440px){.talk{width:min(440px,calc(100% - 300px))!important}}
+@media (max-height:440px){.talk{width:min(440px,calc(100% - 312px))!important}}
 /* while the hands or a chest are open, the minimap and gold step aside so nothing overlaps */
 body.invopen .mini,body.invopen .gold,body.invopen #minimap{opacity:0!important;pointer-events:none!important}
 .hc-trait{display:block}.hc-trait small{display:inline-block;min-width:86px;margin-right:6px;color:#a8987a;font-size:11px;letter-spacing:1px;text-transform:uppercase}.hc-trait b{color:#f2c14e;font-weight:700}
@@ -391,3 +391,13 @@ body.fight .title{display:none}
 .en-text{margin:0 0 10px;line-height:1.45;font-size:14px}.en-stats{margin:0 0 8px;color:#c8b890;font-size:13px}.en-next{margin:0 0 14px;color:#9ab0c8;font-size:13px}
 .en-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.en-row button{min-height:40px;padding:0 16px;border-radius:10px;border:1px solid #b8913a;background:#2a2016;color:#f0e6d0;font:inherit}
 .en-row button.primary{background:#b8913a;color:#1c1610}
+/* the speaker's pixel portrait sits inside the dialog, left of the text, at whole multiples of its pixel grid */
+.talk.withface{padding-left:122px!important;min-height:124px}
+.talk .talk-face{position:absolute;left:14px;top:14px;width:96px;height:96px;image-rendering:pixelated;background:#0e0a07;box-shadow:0 0 0 2px #b8923e,0 0 0 4px #18120d}
+@media (max-height:440px){.talk.withface{padding-left:88px!important;min-height:90px}.talk .talk-face{left:12px;top:13px;width:64px;height:64px}}
+@media (max-height:440px) and (max-width:700px){.talk{width:calc(100% - 364px)!important}}
+/* the answers run under the portrait across the whole dialog, so long lists of choices stay short */
+.talk.withface p{min-height:92px!important}.talk.withface .choices{margin-left:-108px}
+@media (max-height:440px){.talk.withface p{min-height:62px!important}.talk.withface .choices{margin-left:-76px}.talk.withface .choices button{min-width:84px}}
+/* on short screens a long dialog may reach up to the task list: the list steps aside while someone talks */
+@media (max-height:440px){body.talking .quest{opacity:0!important;pointer-events:none!important}}

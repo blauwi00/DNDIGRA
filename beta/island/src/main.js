@@ -644,7 +644,8 @@ function say(who,text,choices=[]){clearInterval(typeT);talkEl.hidden=false;talkE
   const row=document.createElement('div');row.className='choices';for(const [label,fn] of [...choices,[choices.length?'Не сейчас':'Дальше',null]]){const b=document.createElement('button');b.textContent=label;b.onclick=ev=>{ev.stopPropagation();talkEl.hidden=true;clearInterval(typeT);fn&&fn();};row.append(b);}
   talkEl.append(row);let i=0;const all=()=>{clearInterval(typeT);chars.forEach(s=>s.classList.add('on'));row.classList.add('on');};
   if(reduceM)all();else if(window.TEXT_DELAY===0)all();else typeT=setInterval(()=>{for(let k=0;k<2&&i<chars.length;k++)chars[i++].classList.add('on');if(i>=chars.length)all();},window.TEXT_DELAY||22);
-  talkEl.onclick=()=>{if(i<chars.length){i=chars.length;all();}};}
+  talkEl.onclick=()=>{if(i<chars.length){i=chars.length;all();}};
+  talkPortrait(who,text,()=>i<chars.length);}
 talkEl.addEventListener('pointerdown',e=>e.stopPropagation());
 let questFocus=null;
 const Q={fire:{state:0,left:1,title:'Разжечь огонь часовни в руинах'},dead:{state:0,need:'Скелет',left:3,title:'Упокоить мертвецов в руинах и на кладбище'},band:{state:0,need:'Разбойник',left:2,title:'Прогнать разбойников из леса'},wolf:{state:0,need:'Волк',left:2,title:'Убить волков, что режут сети'}};
