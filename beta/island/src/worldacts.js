@@ -26,8 +26,8 @@ function chestUse(it){if(it.open)return;
   const ch=[['Вскрыть замок · '+chance(pick,13,0)+'%',async()=>{const r=await roll20('Взлом',pick,13);rollDone(2000);if(r.ok)return chestOpen(it);it.tries=(it.tries||0)+1;say(it.name,'Отмычка срывается. '+(it.tries<2?'Можно попробовать ещё раз.':'Замок заклинило — теперь только силой.'));}],
     ['Выбить крышку · '+chance(brk,15,0)+'%',async()=>{const r=await roll20('Атлетика',brk,15);rollDone(2000);campNoise(it);if(r.ok)return chestOpen(it);say(it.name,'Крышка трещит, но держится. Грохот слышно на весь лес.');}]];
   if(it.tries>=2)ch.shift();say(it.name,'Окованный сундук разбойников с тяжёлым замком.',ch);}
-function chestOpen(it){it.open=true;OBJS[it.key]=1;sfx('chest');const loot=[['potion',1],[['dagger_curved','sword_scimitar','bow_short'][Math.floor(hash2(it.x,it.z)*3)],1]];
-  window.handsGive&&window.handsGive(loot,'Сундук разбойников');addGold(15+Math.floor(hash2(it.z,it.x)*20),'Сундук разбойников');it.lid.rotation.x=-1.2;}
+function chestOpen(it){it.open=true;OBJS[it.key]=1;sfx('chest');const wv=hash2(it.x,it.z),loot=[['bread',2],['torch',1]];if(wv<.25)loot.push([['dagger_curved','sword_scimitar','bow_short'][Math.floor(wv*12)],1]);
+  window.handsGive&&window.handsGive(loot,'Сундук разбойников');addGold(8+Math.floor(hash2(it.z,it.x)*12),'Сундук разбойников');it.lid.rotation.x=-1.2;}
 function campNoise(it){const near=enemies.filter(e=>!e.dead&&!e.dormant&&!e.calm&&Math.hypot(e.x-it.x,e.z-it.z)<=9);if(near.length&&!CB.on){for(const e of near)e.aware=true;startCombat(near[0]);}}
 // every robbers' camp of the big island gets a barrel by its fire and a locked chest
 for(const p of GPL.filter(p=>p.type==='bandits')){

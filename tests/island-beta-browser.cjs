@@ -200,12 +200,15 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       REP.village = 9; if (repName('village') !== 'герой' || !(repPriceK() < 1)) bad.push('hero prices');
       REP.village = 0; ART.fate = null; ART.powers = []; artifactPick('left'); if (repName('village') !== 'знакомый') bad.push('left ' + REP.village);
       REP.village = 0; ART.fate = null; artifactPick('absorbed'); if (!ART.powers.includes('flamestep') || uniqueCount() !== 1) bad.push('absorb');
-      ART.powers = ['a', 'b', 'c']; ART.fate = null; artifactChoice(); const labels = [...document.querySelectorAll('.talk button')].map((b) => b.textContent);
+      const rv0 = Q.raven && Q.raven.state; if (Q.raven) Q.raven.state = 0; ART.fate = null; ART.powers = []; artifactChoice();
+      if ([...document.querySelectorAll('.talk button')].some((b) => b.textContent === 'Забрать себе') || ART.fate) bad.push('heart awake before the Raven ' + (Q.raven && Q.raven.state) + ' ' + ART.fate + ' ' + document.querySelector('.talk').textContent.slice(0, 80));
+      if (Q.raven) Q.raven.state = 3;
+      ART.powers = ['a', 'b', 'c']; ART.fate = null; artifactChoice(); if (Q.raven) Q.raven.state = rv0; const labels = [...document.querySelectorAll('.talk button')].map((b) => b.textContent);
       if (labels.includes('Поглотить') || labels.includes('Забрать себе') || !labels.includes('Разбить')) bad.push('limit ' + labels);
       Object.assign(REP, r0); ART.fate = a0.fate; ART.powers = a0.powers; document.querySelector('.talk').hidden = true;
       return bad;
     });
-    assert.deepEqual(legend, []);
+    assert.deepEqual(legend, [], JSON.stringify(legend));
 
     step('kits: every class and kit has attacks');
     const kits = await p.evaluate(() => {
@@ -217,6 +220,25 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       return bad;
     });
     assert.deepEqual(kits, []);
+
+    step('balance: a pauper start, foes grow with level and the wilds, settlements defend themselves');
+    const bal = await p.evaluate(() => {
+      const bad = [];
+      for (const c of CLASS_ORDER) for (const k of CLASSES[c].kits) for (const id of [k.L, k.R, ...(k.bag || [])]) if (id && rarityOf(id) !== 'common') bad.push('kit ' + c + ' ' + id);
+      if (GOLD_START > 5) bad.push('gold ' + GOLD_START);
+      if (dangerAt(Z.village[0], Z.village[1]) !== 0) bad.push('home not safe');
+      const lv0 = LV.lv, w = enemies.find((e) => e.model === 'wolf' && !e.dead && !e.inFight);
+      if (w) {
+        const was = {h: w.home, inF: w.inFight}; w.home = [Z.village[0] + 10, Z.village[1]]; LV.lv = 1; w.tier = null; scaleFoe(w); const m1 = w.max, x1 = xpOf(w);
+        LV.lv = 4; scaleFoe(w); if (!(w.max > m1 && xpOf(w) > x1 && w.name === 'Лютый волк' && w.kind === 'Волк')) bad.push('scaling ' + m1 + ' ' + w.max + ' ' + w.name);
+        w.home = [250, 200]; LV.lv = 1; scaleFoe(w); if (!(w.tier >= 2)) bad.push('far tier ' + w.tier);
+        w.home = was.h; LV.lv = lv0; w.tier = null; scaleFoe(w);
+      } else bad.push('no wolf');
+      for (const s of SETTLE_SPOTS.filter((s) => s.place)) for (const p of GPL.filter((p) => ['bandits', 'wolves', 'boars', 'bear'].includes(p.type))) if (Math.hypot(p.x - s.x, p.z - s.z) < s.r + 14) bad.push('lair near ' + s.n);
+      const folk = townsfolkAt(SETTLE_SPOTS[0]); if (!folk.some((a) => isGuard(a))) bad.push('no guard in Заводь');
+      return bad;
+    });
+    assert.deepEqual(bal, []);
 
     step('villagers: no line repeats inside a talk');
     const talks = await p.evaluate(async () => {

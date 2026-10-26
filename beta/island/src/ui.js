@@ -133,13 +133,13 @@ function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.
     {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',house:'Обычный дом. Внутри кто-то гремит посудой.',poorhouse:'Покосившаяся лачуга. Дверь не запирается.',castle:'Ворота открыты днём. Стража провожает взглядом.',herb:'Пахнет мятой и чем-то горьким.',gbarn:'Широкие ворота, внутри сено.',temple:'Колокол на башне молчит.',inn:'Из двери тянет пивом.',mill:'Колесо шлёпает по воде.',tannery:'Воняет так, что глаза слезятся.',warehouse:'Двери на засове. Товар с кораблей.',barracks:'Тут живёт стража.',armory:'Оружие стражи. Без спроса не войдёшь.',treasury:'Казна. Туда пускают только казначея.',chambers:'Покои короля. Стража стоит у двери.'})[R.type]||'Дом.',4000)}],R.name);}
 // chapel brazier: look at it, and relight it with a torch in hand
 {const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,
-  action:()=>chapel.lit?(ART.fate?null:{icon:'special',label:'Сердце огня',sub:'решить его судьбу',ok:!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,artifactChoice)}):{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
+  action:()=>chapel.lit?(ART.fate?null:{icon:'special',label:'Сердце огня',sub:heartAwake()?'решить его судьбу':'спит под углями',ok:!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,artifactChoice)}):{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
   looks.push(L);ms.forEach(m=>m.userData.look=L);}
 function hasTorch(){const h=hero.userData.held||{};return h.L==='torch'||h.R==='torch';}
 async function lightChapel(){if(chapel.lit)return;heroPose('open',900);await wait(500);sfx('spell');setChapel(true);shake=.25;
   banner('Огонь часовни горит');note('Жаровня часовни','Пламя вспыхивает белым, потом золотым. Над руинами разносится тихий звон — будто колокол, которого здесь давно нет.');
   if(Q.fire.state===1){Q.fire.state=2;questUI();}else if(Q.fire.state===0)Q.fire.state=2;
-  setTimeout(artifactChoice,1600);}
+  if(heartAwake())setTimeout(artifactChoice,1600);}
 for(const [ms,n,t,loot] of OUT){const L={n,t,loot,meshes:ms};looks.push(L);ms.forEach(m=>m.userData.look=L);}
 // the tutorial stones lie in the open: nothing tall within two cells, so they are seen from every side
 {const tall=new Set([...treeCells,...bushCells].map(([x,z])=>x+','+z)),clear=(x,z)=>{for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){const k=(x+dx)+','+(z+dz);if(tall.has(k)||(Math.abs(dx)+Math.abs(dz)<=2&&solid.has(k)))return false;}return free(x,z);};
@@ -222,7 +222,7 @@ function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
   if(q===Q.raven&&q.state===1){if(q.step==='ask'){const o=q.oldA,R=o.where==='home'&&o.houseRoom;return R&&room!==R?{x:R.door[0],z:R.door[1],label:o.npc,inRoom:R}:{x:o.x,z:o.z,label:o.npc};}
     if(q.step==='feather')return {x:q.fcamp.x,z:q.fcamp.z,label:'Лагерь разбойников'};if(q.step==='stone')return {x:q.stone[0],z:q.stone[1],label:'Камень с вороном'};}
   if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
-  const foes=enemies.filter(e=>!e.dead&&e.name===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
+  const foes=enemies.filter(e=>!e.dead&&(e.kind||e.name)===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');
 function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=true;return;}
   let tx=T.x,tz=T.z;if(room&&T.z<OUT_H){tx=room.exit[0];tz=room.exit[1];}

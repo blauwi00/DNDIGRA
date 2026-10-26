@@ -24,7 +24,8 @@ function repKill(e){if(e.model!=='bandit')return;const seen=enemies.some(o=>o!==
 // ---------- the chapel heart ----------
 const ART={fate:null,powers:[]};const UNIQUE_MAX=3;
 const uniqueCount=()=>(window.handsCount&&window.handsCount('heart')?1:0)+ART.powers.length;
-function artifactChoice(){if(ART.fate)return;const room=uniqueCount()<UNIQUE_MAX;
+const heartAwake=()=>!!(Q.raven&&Q.raven.state===3);
+function artifactChoice(){if(ART.fate)return;if(!heartAwake())return say('Жаровня часовни','Под углями лежит что-то тёмное, вроде камня. Оно холодное и не поддаётся: ни взять, ни сдвинуть. Может, позже что-то изменится.');const room=uniqueCount()<UNIQUE_MAX;
   const ch=[['Оставить в жаровне',()=>artifactPick('left')],['Разбить',()=>artifactPick('broken')]];
   if(room)ch.push(['Забрать себе',()=>artifactPick('kept')],['Поглотить',()=>artifactPick('absorbed')]);
   say('Пламенное сердце','В глубине жаровни бьётся сгусток огня — сердце часовни. Оно тёплое, как живое, и будто ждёт решения.'+(room?'':' Вы уже несёте три особые силы: больше не унести.'),ch);}

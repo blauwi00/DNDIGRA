@@ -74,7 +74,7 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex
-  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);if(CB.might&&opt.kind==='melee'){CB.might=false;extra.push([1,8,'сила великана']);}if(wr&&wr.vs&&def.name===wr.vs[0])extra.push([1,wr.vs[1],'упокоение']);if(wr&&wr.plus)extra.push([1,wr.plus,'руны']);}
+  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);if(CB.might&&opt.kind==='melee'){CB.might=false;extra.push([1,8,'сила великана']);}if(wr&&wr.vs&&(def.kind||def.name)===wr.vs[0])extra.push([1,wr.vs[1],'упокоение']);if(wr&&wr.plus)extra.push([1,wr.plus,'руны']);}
   if(isHero&&CB.rage&&opt.kind==='melee')opt=Object.assign({},opt,{b:opt.b+2});
   let dmg=0;if(res.ok)dmg=await rollDamage(opt,res.crit,extra);
   if(dmg)await knock(def,att,dmg,isHero?'#ffd27a':'#ff7d6e');else{sfx('miss');floatText('Промах','#cfc6b4',def.o);}if(back)await back();
@@ -87,14 +87,14 @@ function hurt(def,dmg,att,kind){if(CB.on&&dmg>0)CB.hitRound=CB.round;if(def===H0
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
     H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
     setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0,'fire');},450);}
-    if(H0.hp<=0)knockOut();}else if(def.ally){def.hp-=dmg;if(def.hp<=0)allyDown(def);}else{def.hp-=dmg;if(def.hp<=0)kill(def);else morale(def);}}
+    if(H0.hp<=0)knockOut();}else if(def.ally){def.hp-=dmg;if(def.hp<=0)allyDown(def);}else if(def.defender){def.hp-=dmg;if(def.hp<=0)defenderFall(def);}else{def.hp-=dmg;if(def.hp<=0)kill(def);else morale(def);}}
 // cantrips that call for a saving throw: no attack roll, the target resists
 async function saveSpell(def,opt){const ab={wis:def.wis||0,dex:def.dex||0,str:def.ath||0}[opt.save]||0,dc=8+HERO.spell;
   const res=await roll20(def.name+': спасбросок ('+({wis:'Мудрость',dex:'Ловкость',str:'Сила'})[opt.save]+') · '+opt.n,ab,dc);await projectile(H0,def,'spell');
   if(!res.ok){const dmg=await rollDamage(opt,false,[]);await knock(def,H0,dmg,'#ffd27a');if(opt.effect==='distract'){def.distracted=true;floatText('Сбит с толку','#9fc3cf',def.o);}def.aware=true;hurt(def,dmg,H0);}
   else{floatText('Устоял','#cfc6b4',def.o);def.aware=true;}rollDone();}
 function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+(typeof LV!=='undefined'&&LV.lv>1?' '+LV.lv+' ур.':'')+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
-function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);gainXP(xpOf(e));if(e.boss&&CB.on)setTimeout(()=>liveFoes().forEach(flee),700);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
+function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);if(e.home&&typeof lairDrop==='function')lairDrop(e);gainXP(xpOf(e));if(e.boss&&CB.on)setTimeout(()=>liveFoes().forEach(flee),700);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
   floatText(e.name+' повержен','#f2c14e',e.o);groupMorale();}
 
 // ---------- tricks ----------
@@ -162,7 +162,7 @@ const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+
 
 // ---------- turns ----------
 const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
-async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;if(typeof onFightStart==='function')onFightStart(trigger);CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
+async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;if(typeof scaleNear==='function')scaleNear(trigger.x,trigger.z,12);if(typeof onFightStart==='function')onFightStart(trigger);CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
   const mates=ALLIES.filter(a=>!a.down&&a.state!=='hurt'&&man(a,H0)<=12);for(const a of mates){a.route=null;a.inFight=true;}
   // encounter budget: about 50 experience of foes per hero level and 25 per companion start the fight; the rest of the group comes later, after a shout
   const near=enemies.filter(e=>e!==trigger&&!e.dead&&!e.inFight&&!e.calm&&e.o.visible&&Math.hypot(e.x-trigger.x,e.z-trigger.z)<=8).sort((a,b)=>man(a,trigger)-man(b,trigger));
@@ -180,12 +180,12 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
   if(!heroFirst){await wait(1100);nextTurn();}}
 // a foe who sees the fight shouts first and joins a round later, so a crowd never appears out of nowhere
 function shout(e){if(e.dead)return;sfx('notice');floatText('Сюда!','#ff9a4a',e.o);}
-function callIn(e){if(CB.order.includes(e)||CB.pending.some(p=>p.e===e))return;e.inFight=true;e.aware=true;e.route=null;CB.pending.push({e,r:CB.round+1});shout(e);toast(e.name+' заметил бой и зовёт своих.');}
+function callIn(e){if(CB.order.includes(e)||CB.pending.some(p=>p.e===e))return;if(typeof scaleFoe==='function')scaleFoe(e);e.inFight=true;e.aware=true;e.route=null;CB.pending.push({e,r:CB.round+1});shout(e);toast(e.name+' заметил бой и зовёт своих.');}
 function joinPending(all){CB.pending=(CB.pending||[]).filter(p=>{if(p.e.dead)return false;if(all||p.r<=CB.round){joinFight(p.e);return false;}return true;});}
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
 function liveFoes(){return CB.order.filter(a=>a.enemy&&!a.dead);}
-function endCombat(text){CB.pending=[];H0.diseng=false;CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
+function endCombat(text){if(typeof defendersReset==='function')defendersReset();CB.pending=[];H0.diseng=false;CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
   for(const e of enemies){e.inFight=false;e.shot=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}
   // after the fight: one still dying rolls its saves out, a stable one gets up with a quarter of its health
   for(const a of ALLIES){a.inFight=false;if(a.state==='down')resolveSaves(a);if(a.state==='stable')raiseAlly(a,Math.ceil(a.max/4),' приходит в себя');}if(text){banner(text);toast(text);}}
@@ -198,6 +198,7 @@ async function nextTurn(){if(!CB.on||H0.dead)return;if(!foesLeft())return victor
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}
+  if(a.defender){if(a.down)return nextTurn();await allyTurn(a);if(H0.dead||!CB.on)return;if(!foesLeft())return victory();await wait(300);return nextTurn();}
   if(a.ally){if(a.state==='down'){await deathSave(a);return nextTurn();}if(a.down)return nextTurn();await allyTurn(a);if(H0.dead||!CB.on)return;if(!foesLeft())return victory();await wait(300);return nextTurn();}
   await enemyTurn(a);if(H0.dead||!CB.on)return;await wait(350);nextTurn();}
 function afterHeroAct(){if(!CB.on)return;if(!foesLeft())return victory();renderOrder();if(CB.move>0)showMoves();
@@ -265,7 +266,7 @@ function knockOut(){H0.dead=true;H0.route=null;endCombat();toast('Вы теря�
 // may break and run (a fallen chief makes his men run), and every foe overcome gives experience.
 // owner 2026-10-26: companions are put away for a later update (docs/ISLAND_ROADMAP.md); their rules stay, nobody joins
 const COMPANIONS=false,ALLIES=[];
-const foeTargets=()=>[H0,...ALLIES.filter(a=>!a.down&&CB.order.includes(a))];
+const foeTargets=()=>[H0,...ALLIES.filter(a=>!a.down&&CB.order.includes(a)),...CB.order.filter(a=>a.defender&&!a.down)];
 const nearestOf=(e,list)=>list.reduce((b,a)=>!b||man(e,a)<man(e,b)?a:b,null);
 async function allyTurn(a){const t=nearestOf(a,liveFoes());if(!t)return;if(man(a,H0)>3){camFocus=a;await wait(400);}
   try{if(man(a,t)>1){const p=path(a.x,a.z,t.x,t.z,a,true,2000);if(p&&p.length)await cwalk(a,p.slice(0,a.speed||6));if(gone(a))return;}
@@ -315,7 +316,7 @@ function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight
 function groupMorale(){if(!CB.on||CB.broke)return;const all=CB.order.filter(a=>a.enemy);if(all.length<2||all.filter(a=>a.dead).length*2<all.length)return;CB.broke=true;
   for(const e of liveFoes()){if(e.boss||e.temp)continue;if(d(20)+(e.wis||0)<(e.model==='goblin'?13:10))setTimeout(()=>flee(e),600);}}
 const XPV={bandit:25,goblin:50,skeleton:50,wolf:50,boar:50,bear:100};
-const xpOf=e=>e.temp?0:e.boss?450:XPV[e.model]||25;
+const xpOf=e=>e.temp?0:Math.round((e.boss?450:XPV[e.model]||25)*(e.xpK||1));
 const LV={xp:0,lv:1};const LV_AT=[0,300,900,2700,6500];
 const lvHP=()=>(LV.lv-1)*Math.max(4,Math.round(HERO.hp*.3));
 function gainXP(n){if(!n)return;LV.xp+=n;setTimeout(()=>floatText('+'+n+' опыта','#bfe0ff',hero),300);

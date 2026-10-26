@@ -14,11 +14,14 @@ Taken from D&D 5e, trimmed for a small island.
 | Единственный | only from an artifact the hero kept | the only one in the universe, a very strong ability; never for sale |
 
 Rare and legendary items prefer a rule to a number. Price is the weapon price × 3 (rare) or × 6 (legendary).
-On the island: Клык вожака (wolves), Щит дозора Заводи (bandits), Булава упокоения (dead), Рунный клинок (prologue end, legendary).
+On the island (balance pass 2026-10-26, the hero starts as a pauper with common gear only and 5 gold):
+Клык вожака (last wolf of a far lair, danger 2+), Щит дозора Заводи (last bandit of a far camp), Булава упокоения
+(capital trader, dear), Рунный клинок (the Raven, legendary). Заводь quests pay coin, food and at most one potion.
 
 ## Artifacts
 A story artifact is a state, not a rarity: the player decides its fate, and every outcome changes the world.
-Chapel heart (`legend.js`), offered when the brazier is lit and again from the brazier until decided:
+Chapel heart (`legend.js`): it sleeps under the coals until the Raven arc is finished (`heartAwake`), then it is
+offered from the brazier until decided:
 leave it (Заводь +3), break it (+1), keep it (becomes the unique «Пламенное сердце», Заводь −2: the fire is
 visibly weaker), absorb it (power «Шаг пламени»: once per rest, a step to a random free cell 3–6 away).
 Per docs/DEVELOPMENT_RULES.md, kept or absorbed artifacts may follow the hero into later stories.

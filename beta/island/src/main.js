@@ -655,7 +655,7 @@ function questUI(){if(tutUI())return;
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
-function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===e.name&&q.left>0&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
+function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===(e.kind||e.name)&&q.left>0&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
 function reward(q,items,line,who){q.state=3;gainXP(100);if(q.at)repAdd('kingdom',q.rep||1,'помощь королевству');else repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);const gg=q.gold||QUEST_GOLD[k];if(gg)setTimeout(()=>addGold(gg,'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
@@ -676,13 +676,13 @@ function talk(a){window.talkWho=a;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.fa
   if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
     if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
     if(q.state===1)return say(n,'Жаровня в руинах всё ещё холодная. Факел — в моём ящике с припасами.');
-    if(q.state===2){q.state=3;window.handsGive([['potion',2],['sword_rune',1]],'Награда');questUI();banner('Пролог пройден');repAdd('village',2,'огонь часовни');
-      if(ART.fate==='kept')return say(n,'Огонь горит, но слабее, чем в старые времена… Что ж, мёртвые спят, и это главное. Держи, ты заслужил.');
-      return say(n,'Огонь часовни виден даже отсюда! Хельга снова под защитой. Ты сделал больше, чем мы смели просить. Остров твой дом, путник — заходи, когда захочешь.');}
+    if(q.state===2){q.state=3;window.handsGive([['potion',1]],'Награда');questUI();banner('Пролог пройден');repAdd('village',2,'огонь часовни');
+      if(ART.fate==='kept')return say(n,'Огонь горит, но слабее, чем в старые времена. Что ж, мёртвые спят, и это главное. Держи зелье.');
+      return say(n,'Огонь часовни видно даже отсюда! Спасибо тебе. Денег у нас немного, но зелье возьми. Заходи, когда захочешь.');}
     return say(n,'Огонь горит. Мёртвые спят. Выпей со мной, герой.');}
-  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил — эту булаву освятили ещё в часовне.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2],['mace_saint',1]]);
-  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
-  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
+  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил: зелье и хлеб с моей кухни.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',1],['bread',2]]);
+  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери.','Мельница снова мелет спокойно.',[['bread',3]]);
+  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми рыбы, это от всей пристани.','Море спокойно, рыба идёт.',[['fish',2]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
   if(a.talkId==='captain')return captainTalk(a,n);
@@ -798,7 +798,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();}houseTick();}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();defenseTick();}houseTick();}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;

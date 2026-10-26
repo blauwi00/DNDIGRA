@@ -31,7 +31,7 @@ const JOBS=[
 // ---------- the big island's trade and work, from its settlements ----------
 // Each settlement's first trader opens a shop; prices follow the place's wealth and the crown's standing:
 // the capital is dear but pays well, the poor settlement sells little, dear, and pays little for goods.
-{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Товар хороший, но и стоит недёшево.'},
+{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace','mace_saint'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Товар хороший, но и стоит недёшево.'},
    village:{title:'Деревенский прилавок',sells:['bread','fish','torch','herb'],buys:['fish','herb','bread','stone','flour'],coin:60,k:1,sk:1,line:'Что вырастили — то и продаём.'},
    works:{title:'Склад каменотёсов',sells:['bread','torch','stone'],buys:['bread','fish','potion'],coin:70,k:1,sk:1.1,line:'Хлеб к нам издалека везут, поэтому и дороже.'},
    poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Много не продам, самим мало.'}};
@@ -52,7 +52,7 @@ const JOBS=[
  if(guard){const pts=[[cap.x-5,cap.z],[cap.x,cap.z-5],[cap.x+5,cap.z],[cap.x,cap.z+5]];JOBS.push({id:'gen'+(n++),who:guard.npc,giver:guard.npc,title:'Обойти улицы столицы',kind:'patrol',points:pts,pay:12,
    offer:'Стражников не хватает. Пройдись по улицам вокруг рынка, а я тебе двенадцать монет дам.',done:'Всё спокойно? Держи.'});}}
 const jobPayFor=j=>HERO.trade?Math.round(j.pay*1.5):j.pay;
-const GOLD_START=12,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
+const GOLD_START=5,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
 let gold=GOLD_START,dayN=0,lastT=null;const JOB={};for(const j of JOBS)JOB[j.id]={state:0,day:-1,step:0};
 const goldEl=document.getElementById('gold');
 function goldUI(){goldEl.querySelector('span').textContent=gold;}
