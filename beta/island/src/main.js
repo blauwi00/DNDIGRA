@@ -176,7 +176,7 @@ function defer(key,build){let c=CHUNKS.get(key);if(!c){const[a,b]=key.split(',')
   c.builders.push(build);if(c.on)c.live.push(...[].concat(build()));}
 function chunkOn(c){c.on=true;for(const b of c.builders)c.live.push(...[].concat(b()));}
 function chunkOff(c){c.on=false;for(const o of c.live){scene.remove(o);for(const L of o.userData.lists||[]){const k=L.indexOf(o);if(k>=0)L.splice(k,1);}
-    if(o.isInstancedMesh){o.geometry.dispose();o.dispose&&o.dispose();}}c.live=[];}
+    if(o.isInstancedMesh){o.geometry.dispose();o.dispose&&o.dispose();}if(o.userData.own)for(const gm of o.userData.own)gm.dispose();}c.live=[];}
 let streamAt=null,streamQueue=[];
 function streamTick(all){const fx=focus.x,fz=focus.z,k=Math.floor(fx/4)+','+Math.floor(fz/4);
   if(k!==streamAt){streamAt=k;streamQueue=[];
@@ -312,6 +312,15 @@ function liveHouse(g){houseMeshes.push(g);g.userData.lists=[houseMeshes];return 
 // The roof and the wall facing the camera are tagged, so they can be lifted away while the hero is inside.
 const glassMat=new THREE.MeshLambertMaterial({color:0xa8c8e0,transparent:true,opacity:.28,depthWrite:false}),hFrameMat=lam(T.bark,{color:0x6a4a30});
 const FLOWERS=[0xd84a5a,0xf0c040,0xe8e0f0,0x8a5ad0,0xf08a3a];
+// An old window, drawn on a 32 px grid: a wooden frame, a cross of mullion and transom, and in each quarter small
+// diamond panes of greenish glass held by lead. Its own little hash, so the island's seeded textures stay as they were.
+const WINDOW=(()=>{const c=document.createElement('canvas');c.width=c.height=32;const g=c.getContext('2d'),P=(x,y,col,w=1,h=1)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const hs=(x,y)=>{let h=(x*374761393+y*668265263)>>>0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;};
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++){const r=hs(x,y);P(x,y,y<12&&x+y<26?(r<.5?'#7a98a0':'#6a8a94'):(r<.5?'#4a6670':r<.8?'#55727a':'#3e5a64'));}
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if((x+y)%6===0||(x-y+60)%6===0)P(x,y,'#2a2e30');
+  const wood=['#5a3e26','#664629','#4e3520'];for(let k=0;k<32;k++){for(const t of [0,1,2,29,30,31])P(k,t,wood[(k+t)%3]),P(t,k,wood[(k*7+t)%3]);for(const t of [15,16])P(k,t,wood[(k+t)%3]),P(t,k,wood[(k+t+1)%3]);}
+  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestMipmapLinearFilter;return t;})();
+const winMat=new THREE.MeshLambertMaterial({map:WINDOW,emissive:0x2a1a08,emissiveIntensity:.35}),sillMat=lam(T.bark,{color:0x5a3e26});
 // Layout 2 houses differ by wealth and trade: stone, timber frame (white plaster, dark beams), planks or logs;
 // one storey or two (the upper floor shows outside: a taller house with a second row of windows, reached inside by a stair);
 // a door on the south, east or west wall; barns with wide doors and no windows; a temple with its bell tower,
@@ -330,8 +339,10 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
     if(kind==='wall'){B(wall,x,y+wh1/2,z,sx,wh1,sz,list);return;}
     const lo=kind==='door'?0:.55,hi=kind==='door'?(barn?1.25:1.05):1.1;
     if(lo>0)B(wall,x,y+lo/2,z,sx,lo,sz,list);B(wall,x,y+(hi+wh1)/2,z,sx,wh1-hi,sz,list);
-    if(kind==='win'){const gx=sx>sz,o=B(glassMat,x,y+(lo+hi)/2,z,gx?sx*.9:sz*.3,hi-lo,gx?sz*.3:sz*.9,list);o.castShadow=false;
-      B(hFrameMat,x,y+lo+.02,z,gx?sx:sx+.04,.05,gx?sz+.04:sz,list);B(hFrameMat,x,y+(lo+hi)/2,z,gx?.05:sx+.02,hi-lo,gx?sz+.02:.05,list);}};
+    if(kind==='win')oldWin(x,y+lo,z,sx>sz,hi-lo,list);};
+  // an old window in a wall cell: wall jambs either side of a narrow frame, a sill under it outside and in
+  const oldWin=(x,y0,z,gx,hgt,list)=>{const ww=rich?.62:.5,j=(1-ww)/2;for(const sg of [-1,1])B(wall,gx?x+sg*(ww/2+j/2):x,y0+hgt/2,gx?z:z+sg*(ww/2+j/2),gx?j:T_,hgt,gx?T_:j,list);
+    B(winMat,x,y0+hgt/2,z,gx?ww:T_+.02,hgt,gx?T_+.02:ww,list).castShadow=false;B(sillMat,x,y0-.03,z,gx?ww+.12:T_+.16,.06,gx?T_+.16:ww+.12,list);};
   const sideKind=(j,isDoor)=>isDoor?'door':isWin(j,hd)&&j===Math.floor(hd/2)?'win':'wall';
   for(let i=0;i<hw;i++){const x=hx+i+.5;seg(x,hz+hd-T_/2,1,T_,side==='S'&&hx+i===ex?'door':isWin(i,hw)?'win':'wall',front);seg(x,hz+T_/2,1,T_,isWin(i,hw)?'win':'wall');}
   for(let j=1;j<hd-1;j++){const z=hz+j+.5;seg(hx+T_/2,z,T_,1,sideKind(j,side==='W'&&hz+j===ez));seg(hx+hw-T_/2,z,T_,1,sideKind(j,side==='E'&&hz+j===ez));}
@@ -339,13 +350,20 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   if(st>1){const up=wh-wh1,yc=y+wh1+up/2,ring=[];for(let i=0;i<hw;i++)ring.push([hx+i+.5,hz+hd-T_/2,1,T_,i,hw],[hx+i+.5,hz+T_/2,1,T_,i,hw]);for(let j=1;j<hd-1;j++)ring.push([hx+T_/2,hz+j+.5,T_,1,j,hd],[hx+hw-T_/2,hz+j+.5,T_,1,j,hd]);
     for(const [x,z,sx,sz,i,n] of ring){const win=!blind&&i>0&&i<n-1&&i%2===1;
       if(!win){B(wall,x,yc,z,sx,up,sz,roofs);continue;}
-      for(let k=1;k<st;k++){const y0=y+wh1+(k-1)*1.25;B(wall,x,y0+.2,z,sx,.4,sz,roofs);B(wall,x,y0+1.05,z,sx,.4,sz,roofs);const gx=sx>sz,o=B(glassMat,x,y0+.62,z,gx?sx*.8:sz*.3,.44,gx?sz*.3:sz*.8,roofs);o.castShadow=false;B(hFrameMat,x,y0+.4,z,gx?sx:sx+.04,.05,gx?sz+.04:sz,roofs);}}
+      for(let k=1;k<st;k++){const y0=y+wh1+(k-1)*1.25;B(wall,x,y0+.2,z,sx,.4,sz,roofs);B(wall,x,y0+1.05,z,sx,.4,sz,roofs);oldWin(x,y0+.4,z,sx>sz,.45,roofs);}}
     for(let k=1;k<st;k++){const yb=y+wh1+(k-1)*1.25;for(const [x,z,sx,sz] of [[hx+hw/2,hz+hd-.02,hw,.14],[hx+hw/2,hz+.02,hw,.14],[hx+.02,hz+hd/2,.14,hd],[hx+hw-.02,hz+hd/2,.14,hd]])B(S.wall==='stone'?lam(T.wall,{color:0x8a847a}):beamDark,x,yb,z,sx+.06,.12,sz+.06,roofs);}}
   // timber frame: dark posts and braces over the white plaster
   if(S&&S.wall==='frame'){for(let i=0;i<=hw;i+=2)for(const z of [hz+hd+.005,hz-.005])B(beamDark,hx+Math.min(i,hw-.06)+.03,y+wh/2,z,.08,wh,.03,z>hz?front:null);
     B(beamDark,hx+hw/2,y+wh1*.55,hz+hd+.01,hw,.07,.03,front);}
   for(const[x,z]of[[hx+.1,hz+.1],[hx+hw-.1,hz+.1],[hx+.1,hz+hd-.1],[hx+hw-.1,hz+hd-.1]])B(stoneB?lam(T.wall,{color:0x8a847a}):lam(T.bark),x,y+wh1/2,z,.18,wh1+.02,.18,z>hz+1?front:null);
   B(lam(T.bark),hx+hw/2,y+wh1-.06,hz+hd-.02,hw,.12,.12,front);
+  // the house stands on a plinth of rough stone (a log sill in a poor place), broken only by the doorway
+  if(!stoneB){const pm=poor?lam(T.bark,{color:0x5a4430}):lam(T.wall,{color:rich?0x8a847a:0x7a746c}),ph=rich?.26:.18,o=.05,run=(a0,a1,fixed,alongXs)=>{if(a1-a0<.05)return;
+      if(alongXs)B(pm,(a0+a1)/2,y+ph/2-.02,fixed,a1-a0,ph,T_+o*2);else B(pm,fixed,y+ph/2-.02,(a0+a1)/2,T_+o*2,ph,a1-a0);};
+    const dW=(barn?.95:.64)/2+.12;
+    if(side==='S'){run(hx-o,ex+.5-dW,hz+hd-T_/2,true);run(ex+.5+dW,hx+hw+o,hz+hd-T_/2,true);}else run(hx-o,hx+hw+o,hz+hd-T_/2,true);
+    run(hx-o,hx+hw+o,hz+T_/2,true);
+    for(const [wx,sd] of [[hx+T_/2,'W'],[hx+hw-T_/2,'E']]){if(side===sd){run(hz+T_,ez+.5-dW,wx,false);run(ez+.5+dW,hz+hd-T_,wx,false);}else run(hz+T_,hz+hd-T_,wx,false);}}
   let top=y+wh;const cx=hx+hw/2,cz=hz+hd/2;
   if(stoneB){ // castle buildings: a flat lead roof behind battlements; the keep has turrets at its corners
     B(lam(T.stone,{color:0x5a6478}),cx,y+wh+.06,cz,hw-.1,.12,hd-.1,roofs);
@@ -358,12 +376,24 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   // the roof: two slopes meeting at a ridge, wide enough to hang over the walls on every side
   const kind=S?S.roof:rich?(hh<.5?'tiles':'slate'):poor?(hh<.5?'thatch':'turf'):['shingle','tiles','thatch'][Math.floor(hh*3)],alongX=S?!!S.alongX:hash2(hz,hx)<.5,mat=ROOF[kind]||ROOF.shingle;
   const ov=.35,a=.44,span=alongX?hd:hw,len=(alongX?hw:hd)+ov*2,half=span/2+ov,rise=(span/2)*Math.tan(a);top=y+wh+rise;
-  for(const sg of[-1,1]){const sl=new THREE.Mesh(BOX,mat),L=half/Math.cos(a);sl.scale.set(alongX?len:L,.14,alongX?L:len);
-    const off=half/2,yy=top-(half/2)*Math.tan(a)+.07;sl.position.set(alongX?cx:cx+sg*off,yy,alongX?cz+sg*off:cz);sl.rotation.set(alongX?sg*a:0,0,alongX?0:-sg*a);sl.castShadow=true;g.add(sl);roofs.push(sl);}
-  B(lam(T.bark,{color:0x5a3a24}),cx,top+.1,cz,alongX?len:.22,.14,alongX?.22:len,roofs);
-  // stepped gables close the ends under the slopes
-  {const n=6;for(const sg of[-1,1])for(let k=0;k<n;k++){const wdt=span*(1-(k+.5)/n),hgt=rise/n,yy=y+wh+hgt*(k+.5);
-    if(alongX)B(wall,sg<0?hx+T_/2:hx+hw-T_/2,yy,cz,T_,hgt,wdt,roofs);else B(wall,cx,yy,sg<0?hz+T_/2:hz+hd-T_/2,wdt,hgt,T_,roofs);}}}
+  const RT=kind==='thatch'||kind==='turf'?.3:.2,trim=lam(T.bark,{color:0x4a3220});
+  for(const sg of[-1,1]){const sl=new THREE.Mesh(BOX,mat),L=half/Math.cos(a);sl.scale.set(alongX?len:L,RT,alongX?L:len);
+    const off=half/2,yy=top-(half/2)*Math.tan(a)+RT/2;sl.position.set(alongX?cx:cx+sg*off,yy,alongX?cz+sg*off:cz);sl.rotation.set(alongX?sg*a:0,0,alongX?0:-sg*a);sl.castShadow=true;g.add(sl);roofs.push(sl);
+    // the eaves board along the low edge, and the barge boards up both gable edges
+    const ey=top-half*Math.tan(a)+.02,ed=half-.02;B(trim,alongX?cx:cx+sg*ed,ey,alongX?cz+sg*ed:cz,alongX?len:.07,.16,alongX?.07:len,roofs);
+    for(const e of [-1,1]){const bb=new THREE.Mesh(BOX,trim);bb.scale.set(alongX?.08:L+.04,.22,alongX?L+.04:.08);bb.position.set(alongX?cx+e*(len/2+.02):cx+sg*off,yy+.02,alongX?cz+sg*off:cz+e*(len/2+.02));bb.rotation.copy(sl.rotation);bb.castShadow=true;g.add(bb);roofs.push(bb);}}
+  B(lam(T.bark,{color:0x5a3a24}),cx,top+.16,cz,alongX?len+.08:.3,.2,alongX?.3:len+.08,roofs);
+  // the roof is solid: the space under the slopes is filled out to the gable walls, so no side shows a hollow
+  {const n=5;for(let k=0;k<n;k++){const wdt=span*(1-(k+.5)/n)+.02,hgt=rise/n+.01,yy=y+wh+(rise/n)*(k+.5);
+    if(alongX)B(wall,cx,yy,cz,hw,hgt,wdt,roofs);else B(wall,cx,yy,cz,wdt,hgt,hd,roofs);}}
+  // a small old window up in the gable of a bigger house
+  if(!poor&&span>=6){const gy0=y+wh+rise*.22;if(alongX)for(const sg of [-1,1])B(winMat,sg<0?hx-.01:hx+hw+.01,gy0+.2,cz,.04,.4,.34,roofs);else for(const sg of [-1,1])B(winMat,cx,gy0+.2,sg<0?hz-.01:hz+hd+.01,.34,.4,.04,roofs);}
+  // dormers on the slope facing the street: a little gabled window with its flower box
+  if(!poor&&alongX&&hw>=6&&hash2(hx*7,hz*3)<(rich?.7:.35)){const xs=hw>=9?[cx-hw/4,cx+hw/4]:[cx];
+    for(const dx of xs){const zf=cz+span/4+.15,ys=top-(zf-cz)*Math.tan(a),dh=.62,db=zf-(cz+.25);
+      B(wall,dx,ys+dh/2-.05,zf-db/2,.86,dh+.1,db,roofs);oldWin(dx,ys+.08,zf-.02,true,.4,roofs);
+      for(const sg of [-1,1]){const dr2=new THREE.Mesh(BOX,mat);dr2.scale.set(.62,.12,db+.25);dr2.position.set(dx+sg*.25,ys+dh+.12,zf-db/2+.05);dr2.rotation.set(0,0,-sg*.62);dr2.castShadow=true;g.add(dr2);roofs.push(dr2);}
+      B(lam(T.p[1],{color:0x7a5a3a}),dx,ys+.02,zf+.1,.5,.1,.14,roofs);for(let k=0;k<3;k++)B(new THREE.MeshLambertMaterial({color:FLOWERS[(k+Math.floor(hh*9))%FLOWERS.length]}),dx-.15+k*.15,ys+.1,zf+.1,.08,.08,.08,roofs);}}}
   // the door, on its own wall
   const dw=barn?.95:.64,dhh=barn?1.2:.95,dr=makeDoor(dw,dhh),[dcx,dcz]=side==='S'?[ex+.5,hz+hd-.05]:side==='E'?[hx+hw-.05,ez+.5]:[hx+.05,ez+.5];
   dr.g.position.set(dcx,y,dcz);dr.g.rotation.y=side==='S'?0:side==='E'?Math.PI/2:-Math.PI/2;g.add(dr.g);g.userData.door=dr;
@@ -371,11 +401,19 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   {const [x,z]=out(0,.25);B(lam(T.stone),x,y+.02,z,side==='S'?.8:.4,.04,side==='S'?.4:.8);}
   // outside: window boxes with flowers, pots by the door, a lantern, a bench or a woodpile, bushes at the corners
   const fl=(x,yy,z,i)=>B(new THREE.MeshLambertMaterial({color:FLOWERS[(i+Math.floor(hh*9))%FLOWERS.length]}),x,yy,z,.09,.09,.09);
-  if(!stoneB&&!barn)for(let i=1;i<hw-1;i++)if(isWin(i,hw)){const x=hx+i+.5,z=hz+hd+.12;B(lam(T.p[1],{color:0x7a5a3a}),x,y+.5,z,.8,.14,.2);for(let k=0;k<3;k++){B(new THREE.MeshLambertMaterial({color:0x4a7a3a}),x-.25+k*.25,y+.6,z,.12,.08,.12);fl(x-.25+k*.25,y+.67,z,i+k);}}
+  if(!stoneB&&!barn)for(let i=1;i<hw-1;i++)if(isWin(i,hw)&&hash2(hx+i,hz*7)<(rich?.8:.5)){const x=hx+i+.5,z=hz+hd+.14;B(lam(T.p[1],{color:0x7a5a3a}),x,y+.47,z,.62,.14,.2);for(let k=0;k<3;k++){B(new THREE.MeshLambertMaterial({color:0x4a7a3a}),x-.2+k*.2,y+.57,z,.1,.08,.1);fl(x-.2+k*.2,y+.64,z,i+k);}}
+  // a small wooden balcony on the upper floor of some two-storey houses, on brackets, with a railing
+  if(st>1&&!stoneB&&!blind&&hh>.45){const i=[...Array(hw).keys()].filter(i=>i>0&&i<hw-1&&i%2===1).sort((a,b)=>Math.abs(a-hw/2)-Math.abs(b-hw/2))[0];
+    if(i!=null){const bx=hx+i+.5,bz=hz+hd,by=y+wh1+.02,wd=lam(T.p[1],{color:0x7a5636});B(wd,bx,by,bz+.3,1.5,.08,.6,roofs);
+      for(const sg of [-1,1]){const br=B(beamDark,bx+sg*.6,by-.22,bz+.18,.08,.42,.08,roofs);br.rotation.x=-.6;}
+      for(let k=0;k<6;k++)B(wd,bx-.65+k*.26,by+.24,bz+.56,.05,.42,.05,roofs);B(wd,bx,by+.46,bz+.56,1.5,.06,.08,roofs);for(const sg of [-1,1])B(wd,bx+sg*.72,by+.46,bz+.3,.06,.06,.56,roofs);
+      B(lam(T.p[1],{color:0x7a5a3a}),bx,by+.5,bz+.6,.6,.1,.12,roofs);for(let k=0;k<3;k++)fl(bx-.18+k*.18,by+.58,bz+.6,k+i).userData.r=1;}}
   if(!stoneB&&!barn)for(const sg of[-1,1]){const [x,z]=out(sg*.75,.3);B(lam(T.stone,{color:0xa8603a}),x,y+.12,z,.24,.24,.24);B(new THREE.MeshLambertMaterial({color:0x3e7a3a}),x,y+.32,z,.2,.18,.2);if(!poor)fl(x,y+.45,z,sg+2);}
   if(!poor&&!barn){const [lx,lz]=out((hh<.5?-1:1)*.45,.12);B(lam(T.bark),lx,y+1.15,lz,.06,.06,.06);B(new THREE.MeshBasicMaterial({color:0xffc86a}),lx,y+1.02,lz,.12,.16,.12);B(lam(T.stone,{color:0x2a2a2e}),lx,y+1.12,lz,.15,.04,.15);}
-  if(!stoneB)for(const[x,z]of[[hx-.3,hz+hd-.4],[hx+hw+.3,hz+.6]])if(hash2(x*3,z)<.7&&!(side==='W'&&x<hx&&Math.abs(z-dcz)<1.5)&&!(side==='E'&&x>hx+hw&&Math.abs(z-dcz)<1.5)){const s=.4+hash2(z,x)*.25;B(new THREE.MeshLambertMaterial({color:0x3e6a32}),x,y+s/2,z,s,s,s);if(rich)fl(x,y+s+.04,z,3);}
-  if(rich&&!stoneB&&side==='S'&&!S)for(let i=0;i<hw;i+=2)if(hx+i!==ex&&Math.abs(hx+i-ex)>1){const x=hx+i+.5,z=hz+hd+.55;B(lam(T.dirt,{color:0x5a4030}),x,y+.04,z,.9,.08,.4);fl(x-.2,y+.14,z,i);fl(x+.2,y+.14,z,i+1);}
+  if(!stoneB)for(const[x,z]of[[hx-.2,hz+hd-.4],[hx+hw+.2,hz+.6]])if(hash2(x*3,z)<.7&&!(side==='W'&&x<hx&&Math.abs(z-dcz)<1.5)&&!(side==='E'&&x>hx+hw&&Math.abs(z-dcz)<1.5)){const s=.3+hash2(z,x)*.1;B(new THREE.MeshLambertMaterial({color:0x3e6a32}),x,y+s/2,z,s,s,s);if(rich)fl(x,y+s+.04,z,3);}
+  if(!poor&&!stoneB&&!barn&&side==='S'&&hash2(hz,hx*5)<(rich?.9:.45))for(let i=0;i<hw;i++)if(Math.abs(hx+i-ex)>1){const x=hx+i+.5,z=hz+hd+.2;B(lam(T.dirt,{color:0x5a4030}),x,y+.04,z,1,.08,.26);fl(x-.25,y+.12,z,i);fl(x+.15,y+.12,z,i+1);
+    // a low border of stones round the bed, or a little picket fence in front of it
+    if(hh<.5)B(lam(T.wall,{color:0x9a948a}),x,y+.06,z+.15,1,.1,.06);else for(let k=0;k<3;k++)B(lam(T.p[1],{color:0xb8a080}),x-.33+k*.33,y+.16,z+.15,.05,.3,.05);}
   else if(!poor&&hh>.4&&!stoneB&&side!=='E'){for(let k=0;k<3;k++)B(lam(T.bark,{color:0x8a6a44}),hx+hw+.25,y+.12+k*.2,hz+hd-1.5,.3,.18,1.2);}
   // a chimney on the back slope, smoking
   if(!barn&&!blind&&!stoneB&&type!=='temple'){const alongX=S?!!S.alongX:hash2(hz,hx)<.5,chx=alongX?hx+hw*.72:hx+hw*.3,chz=alongX?hz+hd*.3:hz+hd/2,lo=y+wh-.1,hi=top+.45;B(lam(T.wall,{color:0x8a847a}),chx,(lo+hi)/2,chz,.42,hi-lo,.42,roofs);B(lam(T.wall,{color:0x6a645c}),chx,hi+.05,chz,.5,.1,.5,roofs);g.userData.chimney=new THREE.Vector3(chx,hi+.1,chz);}
@@ -401,8 +439,24 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
     if(type==='hall')for(const sg of [-1,1]){B(lam(T.bark),dcx+sg*1.4,y+1.2,wf+.05,.06,1.2,.06);B(Lm(0x2a4a8a),dcx+sg*1.4,y+1.35,wf+.08,.4,.8,.02);B(Lm(0xd8b04a),dcx+sg*1.4,y+1.4,wf+.095,.14,.14,.01);}
     if(type==='barn')for(let k=0;k<3;k++)B(lam(T.p[1],{color:0xc8b070}),hx+hw-.8,y+.2+k*.36,wf+.2,.7,.34,.36);
     if(type==='herb')for(let k=0;k<4;k++)B(Lm([0x5a8a3a,0x8a6a9a,0xb8a040,0x4a7a4a][k]),hx+1+k*.5,y+wh1-.25,wf+.12,.12,.3,.08);}
-  g.userData.front=front;g.userData.roofs=roofs;scene.add(g);
+  mergeHouse(g,front,roofs);g.userData.front=front;g.userData.roofs=roofs;scene.add(g);
   if(!R.group)buildRoom(R);R.group.visible=true;return liveHouse(g);}
+// A house is drawn from about a hundred boxes; boxes of one look that hide together (the front wall, the roof, the
+// rest) are merged into one mesh, so a street of houses costs a few draw calls each. The door, the mill wheel and
+// anything that moves stay apart. The merged geometry is the house's own and is freed when its chunk goes.
+function mergeHouse(g,front,roofs){const tag=new Map();front.forEach(m=>tag.set(m,'f'));roofs.forEach(m=>tag.set(m,'r'));const groups=new Map();
+  for(const m of g.children){if(!m.isMesh||m.geometry!==BOX)continue;const t=m.material;
+    const k=(t.map?t.map.uuid:'-')+'|'+t.color.getHex()+'|'+(t.emissive?t.emissive.getHex()+':'+t.emissiveIntensity:'')+'|'+t.type+'|'+!!t.transparent+'|'+(tag.get(m)||'')+'|'+m.castShadow;
+    (groups.get(k)||groups.set(k,[]).get(k)).push(m);}
+  const own=[],P=BOX.attributes.position.array,N=BOX.attributes.normal.array,U=BOX.attributes.uv.array,IX=BOX.index.array,nv=P.length/3,v=new THREE.Vector3(),nm=new THREE.Matrix3();
+  for(const ms of groups.values()){if(ms.length<2)continue;
+    const pos=new Float32Array(ms.length*P.length),nor=new Float32Array(ms.length*N.length),uv=new Float32Array(ms.length*U.length),idx=new (ms.length*nv>65535?Uint32Array:Uint16Array)(ms.length*IX.length);
+    ms.forEach((m,j)=>{m.updateMatrix();nm.getNormalMatrix(m.matrix);for(let i=0;i<nv;i++){v.fromArray(P,i*3).applyMatrix4(m.matrix).toArray(pos,(j*nv+i)*3);v.fromArray(N,i*3).applyMatrix3(nm).normalize().toArray(nor,(j*nv+i)*3);}
+      uv.set(U,j*U.length);for(let i=0;i<IX.length;i++)idx[j*IX.length+i]=IX[i]+j*nv;});
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(nor,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.setIndex(new THREE.BufferAttribute(idx,1));geo.computeBoundingSphere();
+    const o=new THREE.Mesh(geo,ms[0].material);o.castShadow=ms[0].castShadow;o.receiveShadow=true;g.add(o);own.push(geo);
+    const t=tag.get(ms[0]),L=t==='f'?front:t==='r'?roofs:null;for(const m of ms){g.remove(m);if(L)L.splice(L.indexOf(m),1);}if(L)L.push(o);}
+  g.userData.own=own;}
 for(const h of GEN_HOUSES)defer(chunkKey(h[0],h[1]),()=>genHouse(h));
 // Заводь's six houses in layout 2: hollow like the rest, each in its own walls and roof, with the signs of its trade outside
 const ZAVOD={tavern:{wall:'frame',roof:'tiles'},forge:{wall:'stone',roof:'slate',alongX:true},home:{wall:'log',roof:'thatch'},hall:{wall:'frame',roof:'slate'},barn:{wall:'plank',roof:'shingle',alongX:true},herb:{wall:'log',roof:'turf'}};

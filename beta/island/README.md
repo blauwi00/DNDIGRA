@@ -27,9 +27,9 @@ Sources (`build.py` glues them into one page; `main.js` has placeholders such as
 |---|---|
 | `main.js` | world grid, generated island layout, houses, walking, camera, frame loop, save |
 | `islandgen.js` | seeded island generator: relief, rivers, roads, places |
-| `settle.js` | layout 2 of the settlements: grown streets, plots with yards, fences and barns, the walled capital with gates, castle, market, temple, port, mill and tannery, fields round every place (pure data; `main.js` draws it). A save made before layout 2 keeps the old grid layout |
+| `settle.js` | layout 2 of the settlements: grown streets, plots with yards, fences and barns, the walled capital with gates, castle, market, temple, port, mill and tannery, fields round every place (pure data; `main.js` draws it). A save made before layout 2 keeps the old grid layout. Layout 3 (every new world): a castle at real scale (thick walls, towers, a four-storey keep, chapel, kitchens, barracks, stables, well) and the capital round it; a layout 2 save keeps its towns |
 | `kingdom.js` | guards at the castle's closed doors; reputation with the kingdom opens them (never the treasury); attacking a guard makes the crown an enemy (saved) |
-| `interiors.js` | rooms of every building, their furniture and loot |
+| `interiors.js` | rooms of every building, their furniture and loot. Every building (Заводь's too, from layout 2) is entered by walking in: its roof and front wall lift away. Only attics, cellars and upper floors are rooms of their own (one map cell holds one floor). In layout 3 a dwelling is parted into rooms by plank walls with doorway gaps; nothing is placed where it would cut off a room, chest or ladder |
 | `combat.js` | turn-based fights, companions, morale, experience and levels |
 | `extras.js` | day and night, rendered sound effects, ambience |
 | `ui.js`, `ui.html`, `ui.css` | wheels, menus, quest pointer, map, layout |

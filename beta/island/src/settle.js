@@ -201,11 +201,11 @@ const Settle=(()=>{
           const side=sd>0?'W':'E',off=Math.floor(td/2);if(fits(p,x,z,tw,td,null,inWall))t={type:'temple',x,z,w:tw,d:td,side,off,wall:'stone',roof:'slate',alongX:false,storeys:2};}
         if(t){put(p,t);for(let k=1;k<=4;k++)for(let j=0;j<td;j+=2){const x=t.side==='W'?t.x+t.w+k:t.x-1-k,z=t.z+j;if(bld(x,z)&&inWall(x,z)&&mine(p,x,z)&&k%2===0){out.graves.push([x,z]);res[K(x,z)]=3;}else if(bld(x,z))res[K(x,z)]=2;}}}
       // 6. plots along the streets: rich near the square, crafts by the gates, small and close by the wall
-      const ring=d=>d<9?0:d<12?1:2;let n=0;
+      const ring=big3?(d=>d<18?0:d<26?1:2):(d=>d<9?0:d<12?1:2);let n=0;
       for(const [sx,sz,dd] of streets(p,hx,hz,rnd,E+14)){if(n>=28)break;if(inCastle(sx,sz)||!inWall(sx,sz))continue;const r=ring(Math.hypot(sx-hx,sz-hz));
         const sizes=[[[6,7],[7,6],[6,6],[5,6]],[[6,6],[5,6],[6,5],[5,5]],[[5,5],[5,6],[6,5]]][r];
         const keep=(x,z)=>inWall(x,z)&&!inCastle(x,z);let s=null;const forShop=n<3;for(let k=0;k<5&&!s;k++){const [w,d]=forShop?[[6,6],[7,6],[6,7]][k%3]:sizes[Math.floor(rnd()*sizes.length)];s=againstStreet(p,sx,sz,'house',w,d,rnd,keep,forShop);}if(!s)continue;
-        s.storeys=r===0||r===1&&rnd()<.3?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);n++;
+        s.storeys=(V>=3?r<2||rnd()<.45:r===0||r===1&&rnd()<.3)?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);n++;
         if(r>0&&rnd()<.6)yard(p,s,rnd,{fence:r===2,garden:4,woodpile:r===2});}
       // the blocks between the streets fill up too: a house wherever it fits, its door to the nearest way (a path is trodden)
       {const cells=[];for(let z=wz-E-4;z<=wz+E+4;z++)for(let x=wx-E-4;x<=wx+E+4;x++)if(inWall(x,z)&&!inCastle(x,z)&&bld(x,z))cells.push([x,z,Math.hypot(x-hx,z-hz)+rnd()*3]);
@@ -214,7 +214,7 @@ const Settle=(()=>{
           if(!fits(p,x,z,w,d,null,(a,b)=>inWall(a,b)&&!inCastle(a,b)))continue;
           const opts=doorOpts('house',w,d).filter(([side,off])=>{const [ddx,ddz]=doorCell({side,off,x,z,w,d});return inWall(ddx,ddz)&&(bld(ddx,ddz)||at(ddx,ddz)==='C'||at(ddx,ddz)==='D')&&res[K(ddx,ddz)]!==3;});
           if(!opts.length)continue;const [side,off]=opts[Math.floor(rnd()*opts.length)];const s={type:'house',x,z,w,d,side,off};
-          s.storeys=r===0||r===1&&rnd()<.3?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;n++;}}
+          s.storeys=(V>=3?r<2||rnd()<.45:r===0||r===1&&rnd()<.3)?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;n++;}}
       // crafts: the smith by a gate, the baker and the store between the gate and the square
       const hs=out.houses.filter(s=>s.p===p&&s.type==='house'&&!s.castle&&(V<3||s.w>=6)&&doorOpts('house',s.w,s.d,true).some(o=>o[0]===s.side&&o[1]===s.off));
       const nearGate=s=>Math.min(...out.gates.map(g=>Math.hypot(g.x-s.x-s.w/2,g.z-s.z-s.d/2)),99);
@@ -270,7 +270,7 @@ const Settle=(()=>{
         if(sp){type=sp[0]==='smith'?'house':sp[0];s=againstStreet(p,sx,sz,type,sp[1],sp[2],rnd,keepIn,sp[0]==='smith');if(!s){special.push(sp);sp=null;type='house';}}
         if(!s){const sizes=[[6,6],[7,6],[5,6],[6,7],[7,7],[5,5],[9,5],[5,7]];for(let k=0;k<5&&!s;k++){const [w,d]=sizes[Math.floor(rnd()*sizes.length)];s=againstStreet(p,sx,sz,'house',w,d,rnd,keepIn);}}
         if(!s)continue;
-        s.storeys=type==='house'&&rich&&rnd()<.35?2:type==='inn'?2:1;variety(s,rnd,rich&&rnd()<.5,(p.wealth||0)<=1);
+        s.storeys=type==='house'&&(rich&&rnd()<.35||V>=3&&(p.wealth||0)>=2&&rnd()<.2)?2:type==='inn'?2:1;variety(s,rnd,rich&&rnd()<.5,(p.wealth||0)<=1);
         if(sp&&sp[0]==='smith'){s.shop='smith';s.name='Кузница';}if(type==='temple'){s.name='Часовня';s.wall='stone';}
         put(p,s);n++;if(type!=='house'||s.shop)continue;
         // an annex under its own roof against the house side (the shape of an Г), or a barn across the yard

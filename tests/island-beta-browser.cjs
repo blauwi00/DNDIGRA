@@ -323,8 +323,11 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
       if (!path(Z.dock[0] + 3, Z.dock[1], cap.x, cap.z + 3, H0, true, 200000) && !path(Z.dock[0] + 3, Z.dock[1], cap.x + 3, cap.z, H0, true, 200000)) bad.push('no way to the capital');
       const near = () => [...CHUNKS.values()].filter((c) => c.on).every((c) => Math.hypot(c.cx - focus.x, c.cz - focus.z) <= UNLOAD_R);
       const go = async (x, z) => { g.H0.x = x; g.H0.z = z; g.H0.px = x + .5; g.H0.pz = z + .5; focus.set(x + .5, 0, z + .5); await frames(90); };
-      await go(cap.x, cap.z + 3);
-      const under = pickable.some((m) => m.userData.cells && m.userData.cells.some(([x, z]) => Math.abs(x - cap.x) < 2 && Math.abs(z - cap.z - 3) < 2));
+      // the open ground nearest the capital's middle (a house may stand on the middle itself)
+      let gx = cap.x, gz = cap.z + 3;
+      for (let r = 0, done = false; r < 12 && !done; r++) for (let dz = -r; dz <= r && !done; dz++) for (let dx = -r; dx <= r && !done; dx++) if (['G', 'D', 'C', 'A', 'B', 'K'].includes(at(cap.x + dx, cap.z + 3 + dz))) { gx = cap.x + dx; gz = cap.z + 3 + dz; done = true; }
+      await go(gx, gz);
+      const under = pickable.some((m) => m.userData.cells && m.userData.cells.some(([x, z]) => Math.abs(x - gx) < 2 && Math.abs(z - gz) < 2));
       if (!under) bad.push('no ground under the hero in the capital');
       if (!near()) bad.push('far chunks stay loaded');
       if (loadedChunks() > 40) bad.push('too many chunks: ' + loadedChunks());
