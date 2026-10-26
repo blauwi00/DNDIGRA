@@ -32,40 +32,59 @@
   const V=WEAPONS[id],P=V&&V.pal?Object.assign({},PAL,V.pal):PAL,shape=ICON[id]||(V&&WICON[V.icon])||ICON[V?Object.keys(WEAPONS).find(k=>WEAPONS[k].kind===V.kind&&ICON[k]):id];
   shape.forEach((row,j)=>[...row].forEach((ch,i)=>{if(P[ch]){x.fillStyle=P[ch];x.fillRect(i,j,1,1);}}));return c;}
 
- // ---------- slots: two hands, a bag of 8 and, when one is open, a chest ----------
+ // ---------- slots: each hand holds one thing and has its own pouch; a chest when one is open ----------
  // Every slot is null or {id,n}. Weapons are unique; consumables stack to their own limit,
- // counting everything the hero carries (hands and bag together).
- const BAG=(()=>{try{const h=JSON.parse(localStorage.getItem('helga-hero'));return h&&h.race==='halfling'?10:8}catch(e){return 8}})(),C={L:[null],R:[null],bag:Array(BAG).fill(null),chest:[]};let chestRef=null,sel=null;
- const st={open:null},pose={L:'grip',R:'grip'};
+ // counting everything the hero carries (both hands and both pouches together).
+ // Only what is in a hand can be used: drunk, eaten, swung or cast with.
+ const POUCH=(()=>{try{const h=JSON.parse(localStorage.getItem('helga-hero'));return h&&h.race==='halfling'?5:4}catch(e){return 4}})(),C={L:[null],R:[null],pL:Array(POUCH).fill(null),pR:Array(POUCH).fill(null),chest:[]};let chestRef=null,sel=null;
+ const st={open:false},pose={L:'grip',R:'grip'},CARRY=['L','R','pL','pR'];
  const wait=ms=>new Promise(r=>setTimeout(r,ms)),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
- const S=k=>C[k];const hand=s=>C[s][0];const isTwo=x=>x&&ITEMS[x.id].two;
- const carried=id=>['L','R','bag'].reduce((t,k)=>t+C[k].reduce((a,x)=>a+(x&&x.id===id?x.n:0),0),0);
+ const S=k=>C[k];const hand=s=>C[s][0];const isTwo=x=>x&&ITEMS[x.id]&&ITEMS[x.id].two;
+ const carried=id=>CARRY.reduce((t,k)=>t+C[k].reduce((a,x)=>a+(x&&x.id===id?x.n:0),0),0);
  const room=id=>ITEMS[id].max-carried(id);
+ const free=k=>C[k].filter(x=>!x).length;
+ // weapons and gear go to the right pouch first, potions and food to the left, the rest where there is more room
+ const FOOD=new Set(['potion','bread','fish','herb']),GEAR=new Set(['sword','dagger','shield','torch','bow','staff','spear','mace','greataxe','warhammer']);
+ const pouchOrder=id=>FOOD.has(id)?['pL','pR']:(GEAR.has(id)||WEAPONS[id]||ITEMS[id].two)?['pR','pL']:free('pL')>=free('pR')?['pL','pR']:['pR','pL'];
  function setPose(s,p){pose[s]=p;document.getElementById('palm'+s).src=FR[p+'-'+s.toLowerCase()];}
  async function animate(s,seq){for(const p of seq){setPose(s,p);if(!reduce)await wait(70);}}
  function sync(){const L=hand('L'),R=hand('R');if(window.equipHero){const two=isTwo(L)?L.id:isTwo(R)?R.id:null;window.equipHero(two?null:L&&L.id,two||(R&&R.id));}
    if(window.onHandsChange)window.onHandsChange();}
  function poseFor(s){const o=s==='L'?'R':'L';return hand(s)||isTwo(hand(o))?'grip':'open';}
- async function settle(){for(const s of ['L','R']){const want=st.open===s?'open':poseFor(s);if(pose[s]!==want)await animate(s,want==='grip'?['half','grip']:['half','open']);}}
+ async function settle(){for(const s of ['L','R']){const want=st.open||chestRef?'open':poseFor(s);if(pose[s]!==want)await animate(s,want==='grip'?['half','grip']:['half','open']);}}
+ const firstEmpty=k=>S(k).findIndex(x=>!x);
+ const pouchWithRoom=(...ks)=>ks.find(k=>firstEmpty(k)>=0)||null;
+ let say2=t=>window.toast?window.toast(t):0;
  // move what is in slot a into slot b (swap, or merge a stack); returns false with a reason when it can't
  function move(ak,ai,bk,bi){if(ak===bk&&ai===bi)return false;const A=S(ak)[ai],B=S(bk)[bi];if(!A)return false;
-   const carry=k=>k!=='chest',snap=JSON.parse(JSON.stringify(C)),undo=t=>{Object.assign(C,snap);if(t)say2(t);return false;};
+   const carry=k=>k!=='chest',snap=JSON.parse(JSON.stringify(C)),undo=t=>{for(const k in snap)C[k]=snap[k];if(t)say2(t);return false;};
    if(B&&B.id===A.id&&ITEMS[A.id].max>1){let k=Math.min(A.n,ITEMS[A.id].max-B.n);if(!carry(ak)&&carry(bk))k=Math.min(k,room(A.id));
      if(k<=0)return undo('Больше не помещается: '+ITEMS[A.id].n+'.');B.n+=k;A.n-=k;if(!A.n)S(ak)[ai]=null;return true;}
    if(!carry(ak)&&carry(bk)){const lim=room(A.id);if(lim<=0)return undo('Больше не унести: '+ITEMS[A.id].n+' (предел '+ITEMS[A.id].max+').');
      if(A.n>lim){if(B)return undo('Сначала освободите ячейку.');S(bk)[bi]={id:A.id,n:lim};A.n-=lim;}else{S(ak)[ai]=B;S(bk)[bi]=A;}}
    else{S(ak)[ai]=B;S(bk)[bi]=A;if(carry(ak)&&!carry(bk)&&B&&carried(B.id)>ITEMS[B.id].max)return undo('Больше не унести: '+ITEMS[B.id].n+'.');}
-   // a two-handed item and something in the other hand can't coexist: the older one goes to the bag
-   for(const s of ['L','R']){const o=s==='L'?'R':'L';if(isTwo(hand(s))&&hand(o)){const out=bk===s?o:s,e=firstEmpty('bag');if(e<0)return undo('Нужно место в сумке.');C.bag[e]=C[out][0];C[out][0]=null;}}
+   // a two-handed item takes both hands: what was in the other hand goes to that hand's pouch, or to the other pouch
+   for(const s of ['L','R']){const o=s==='L'?'R':'L';if(isTwo(hand(s))&&hand(o)){const out=bk===s?o:s,pk=pouchWithRoom('p'+out,'p'+(out==='L'?'R':'L'));
+     if(!pk)return undo('Для двуручного предмета нужно место в мешочке.');C[pk][firstEmpty(pk)]=C[out][0];C[out][0]=null;}}
    return true;}
- const firstEmpty=k=>S(k).findIndex(x=>!x);
- let say2=t=>window.toast?window.toast(t):0;
- function add(id,n){let left=Math.min(n,room(id));const got=left;
-   for(const k of ['bag','L','R'])for(const x of S(k))if(x&&x.id===id&&left>0){const k2=Math.min(left,ITEMS[id].max-x.n);x.n+=k2;left-=k2;}
-   while(left>0){let e=firstEmpty('bag');let k='bag';if(e<0){if(!hand('R')&&!isTwo(hand('L'))&&!ITEMS[id].two){k='R';e=0;}else if(!hand('L')&&!isTwo(hand('R'))&&!ITEMS[id].two){k='L';e=0;}else break;}
-     const k2=Math.min(left,ITEMS[id].max);S(k)[e]={id,n:k2};left-=k2;}
+ // put n of id somewhere: onto its stacks first, then into its pouches, then into an empty hand
+ function place(id,n,limit){let left=limit?Math.min(n,room(id)):n;const got=left,mx=ITEMS[id].max;
+   for(const k of [...pouchOrder(id),'L','R'])for(const x of S(k))if(x&&x.id===id&&left>0){const k2=Math.min(left,mx-x.n);if(k2>0){x.n+=k2;left-=k2;}}
+   const hands=FOOD.has(id)?['L','R']:['R','L'];
+   while(left>0){let k=pouchWithRoom(...pouchOrder(id)),e=k?firstEmpty(k):-1;
+     if(!k)for(const h of hands){const o=h==='L'?'R':'L';if(!hand(h)&&!isTwo(hand(o))&&!(ITEMS[id].two&&hand(o))){k=h;e=0;break;}}
+     if(!k)break;const k2=Math.min(left,mx);S(k)[e]={id,n:k2};left-=k2;}
    return got-left;}
- function take1(id){for(const k of ['bag','L','R'])for(let i=0;i<S(k).length;i++){const x=S(k)[i];if(x&&x.id===id){x.n--;if(!x.n)S(k)[i]=null;return true;}}return false;}
+ const add=(id,n)=>place(id,n,true);
+ // hands are used up first, so a potion is drunk from the hand that holds it
+ function take1(id){for(const k of CARRY)for(let i=0;i<S(k).length;i++){const x=S(k)[i];if(x&&x.id===id){x.n--;if(!x.n)S(k)[i]=null;return true;}}return false;}
+ const heldSide=id=>['L','R'].find(s=>hand(s)&&hand(s).id===id)||null;
+ // take id from a pouch into a hand: the pouch's own hand if free, else the other free hand, else swap with what the own hand holds
+ function toHand(id,want){const had=heldSide(id);if(had&&(!want||want===had))return had;let pk=null,i=-1;
+   for(const k of ['pL','pR']){i=C[k].findIndex(x=>x&&x.id===id);if(i>=0){pk=k;break;}}
+   if(!pk&&had){pk=had;i=0;}if(!pk)return null;
+   const own=pk.length>1?pk.slice(1):pk==='L'?'R':'L',oth=own==='L'?'R':'L',side=want||(!hand(own)&&!isTwo(hand(oth))?own:!hand(oth)&&!isTwo(hand(own))?oth:own);
+   return move(pk,i,side,0)?side:null;}
 
  // ---------- drawing slots ----------
  function slotEl(k,i){const x=S(k)[i],b=document.createElement('button');b.className='slot'+(sel&&sel.k===k&&sel.i===i?' sel':'')+(x?'':' empty');b.dataset.k=k;b.dataset.i=i;
@@ -74,17 +93,17 @@
    const lock=(k==='L'||k==='R')&&!x&&isTwo(hand(k==='L'?'R':'L'));if(lock){b.classList.add('lock');b.append(icon(document.createElement('canvas'),hand(k==='L'?'R':'L').id));}
    b.onpointerdown=e=>dragStart(e,k,i);return b;}
  function describe(k,i,el){const x=S(k)[i];if(!el)return;if(!x){el.textContent='';return;}const r=rarityOf(x.id),rule=ruleOf(x.id);
-   el.textContent=ITEMS[x.id].n+(x.n>1?' ×'+x.n:'')+(r!=='common'?' · '+RARITY[r].n:'')+' — '+ITEMS[x.id].d+(rule?'. '+rule:'');}
- function render(){for(const s of ['L','R']){const o=s==='L'?'R':'L',lock=!hand(s)&&isTwo(hand(o));
-   const palm=document.getElementById('palm'+s),inv=document.getElementById('inv'+s);palm.classList.toggle('open',st.open===s);palm.style.opacity=lock?.8:1;
+   el.textContent=ITEMS[x.id].n+(x.n>1?' ×'+x.n:'')+(r!=='common'?' · '+RARITY[r].n:'')+' — '+ITEMS[x.id].d+(rule?'. '+rule:'')+(k[0]==='p'?'. Лежит в мешочке: чтобы пользоваться, возьмите в руку.':'');}
+ function pouchEl(k){const g=document.createElement('div');g.className='grid pouch';for(let i=0;i<POUCH;i++)g.append(slotEl(k,i));return g;}
+ function render(){const open=st.open&&!chestRef;for(const s of ['L','R']){const o=s==='L'?'R':'L',lock=!hand(s)&&isTwo(hand(o));
+   const palm=document.getElementById('palm'+s),inv=document.getElementById('inv'+s);palm.classList.toggle('open',open||!!chestRef);palm.style.opacity=lock?.8:1;
    const h=hand(s)||(lock?hand(o):null);const hc=document.getElementById('held'+s);icon(hc,h&&h.id);hc.classList.toggle('empty',!h);hc.dataset.n=h&&h.n>1?h.n:'';palm.classList.toggle('holding',!!h);
-   inv.classList.toggle('open',st.open===s);if(st.open!==s)continue;inv.replaceChildren();
-   const hd=document.createElement('h4');hd.innerHTML=(s==='L'?'Левая рука':'Правая рука')+'<small>перетащите или нажмите, чтобы переложить</small>';
+   inv.classList.toggle('open',open);if(!open)continue;inv.replaceChildren();
+   const hd=document.createElement('h4');hd.innerHTML=(s==='L'?'Левая рука':'Правая рука');
    const top=document.createElement('div');top.className='handrow';const hs=slotEl(s,0);hs.classList.add('hand');top.append(hs);
    const lbl=document.createElement('span');lbl.className='hl';lbl.textContent='в руке';top.append(lbl);
-   const g=document.createElement('div');g.className='grid';for(let i=0;i<BAG;i++)g.append(slotEl('bag',i));
-   const nm=document.createElement('div');nm.className='name';if(sel)describe(sel.k,sel.i,nm);else nm.textContent='Сумка: '+C.bag.filter(Boolean).length+' из '+BAG;
-   inv.append(hd,top,g,nm);}
+   const nm=document.createElement('div');nm.className='name';if(sel&&(sel.k===s||sel.k==='p'+s))describe(sel.k,sel.i,nm);else nm.textContent='Мешочек: '+C['p'+s].filter(Boolean).length+' из '+POUCH;
+   inv.append(hd,top,pouchEl('p'+s),nm);}
    renderChest();}
  // ---------- tap or drag to move ----------
  let drag=null;
@@ -99,32 +118,33 @@
    sel=sel?null:(d.has?{k:d.k,i:d.i}:null);render();}
  async function doMove(ak,ai,bk,bi){sel=null;const before=JSON.stringify([hand('L'),hand('R')]);if(move(ak,ai,bk,bi)){window.sfx&&sfx(ak==='chest'&&bk!=='chest'?'pickup':'click');
      if(ak==='chest'||bk==='chest')saveChest();}render();
-   if(JSON.stringify([hand('L'),hand('R')])!==before){sync();for(const s of ['L','R'])if(hand(s)&&st.open!==s)await animate(s,['open','half','grip']);await settle();}}
- async function toggle(s){st.open=st.open===s?null:s;sel=null;render();document.body.classList.toggle('invopen',!!st.open);window.sfx&&sfx('click');
-   if(st.open===s)await animate(s,['half','open']);await settle();}
- for(const s of ['L','R']){const p=document.getElementById('palm'+s);const t=e=>{e.stopPropagation();toggle(s);};p.onclick=t;p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t(e);}};
+   if(JSON.stringify([hand('L'),hand('R')])!==before){sync();await settle();}}
+ // either palm opens both hands together
+ async function toggle(){if(chestRef)return;st.open=!st.open;sel=null;render();document.body.classList.toggle('invopen',st.open);window.sfx&&sfx('click');
+   if(st.open)await Promise.all([animate('L',['half','open']),animate('R',['half','open'])]);await settle();}
+ for(const s of ['L','R']){const p=document.getElementById('palm'+s);const t=e=>{e.stopPropagation();toggle();};p.onclick=t;p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t(e);}};
    document.getElementById('inv'+s).onpointerdown=e=>e.stopPropagation();setPose(s,'grip');}
- document.getElementById('stage').addEventListener('pointerdown',e=>{if(chestRef&&!e.target.closest('.chestui,.inv,.palm')){closeChest();e.stopPropagation();return;}if(st.open&&!e.target.closest('.inv,.palm')){st.open=null;sel=null;render();settle();}},true);
+ document.getElementById('stage').addEventListener('pointerdown',e=>{if(chestRef&&!e.target.closest('.chestui,.inv,.palm')){closeChest();e.stopPropagation();return;}if(st.open&&!e.target.closest('.inv,.palm')){st.open=false;sel=null;document.body.classList.remove('invopen');render();settle();}},true);
 
- // ---------- chest window ----------
+ // ---------- chest window: the chest above, both open hands with their pouches below ----------
  const chEl=document.getElementById('chestui');
  function renderChest(){if(!chestRef){chEl.hidden=true;return;}chEl.hidden=false;chEl.replaceChildren();
    const h=document.createElement('h4');h.textContent=chestRef.name;chEl.append(h);
    const cg=document.createElement('div');cg.className='grid chest';C.chest.forEach((_,i)=>cg.append(slotEl('chest',i)));chEl.append(cg);
-   const h2=document.createElement('h5');h2.textContent='Ваши руки и сумка';chEl.append(h2);
-   const row=document.createElement('div');row.className='carry';const l=slotEl('L',0),r=slotEl('R',0);l.classList.add('hand');r.classList.add('hand');
-   const bg=document.createElement('div');bg.className='grid';for(let i=0;i<BAG;i++)bg.append(slotEl('bag',i));row.append(l,bg,r);chEl.append(row);
-   const nm=document.createElement('div');nm.className='name';if(sel)describe(sel.k,sel.i,nm);else nm.textContent=C.chest.some(Boolean)?'Перетащите или нажмите на предмет, затем на ячейку.':'Сундук пуст.';chEl.append(nm);
+   const row=document.createElement('div');row.className='carry';
+   for(const s of ['L','R']){const side=document.createElement('div');side.className='side '+s.toLowerCase();const t=document.createElement('h5');t.textContent=s==='L'?'Левая рука':'Правая рука';
+     const r=document.createElement('div');r.className='sr';const hs=slotEl(s,0);hs.classList.add('hand');const pg=pouchEl('p'+s);if(s==='L')r.append(hs,pg);else r.append(pg,hs);side.append(t,r);row.append(side);}
+   chEl.append(row);
+   const nm=document.createElement('div');nm.className='name';if(sel)describe(sel.k,sel.i,nm);else nm.textContent=C.chest.some(Boolean)?'Нажмите на предмет, потом на руку или мешочек.':'Сундук пуст.';chEl.append(nm);
    const bt=document.createElement('div');bt.className='btns';const all=document.createElement('button');all.textContent='Взять всё';all.disabled=!C.chest.some(Boolean);
    all.onclick=e=>{e.stopPropagation();takeAll();};const cl=document.createElement('button');cl.textContent='Закрыть';cl.onclick=e=>{e.stopPropagation();closeChest();};bt.append(all,cl);chEl.append(bt);}
  chEl.addEventListener('pointerdown',e=>e.stopPropagation());
  function saveChest(){if(chestRef)chestRef.items=C.chest.map(x=>x&&{id:x.id,n:x.n});}
  function takeAll(){const got=[];C.chest.forEach((x,i)=>{if(!x)return;const k=add(x.id,x.n);if(k){got.push([x.id,k]);x.n-=k;if(!x.n)C.chest[i]=null;}});saveChest();
-   if(got.length){window.sfx&&sfx('pickup');flyIn(got);}if(C.chest.some(Boolean))say2('Не всё поместилось: сумка полна или достигнут предел.');render();sync();settle();}
- async function openChest(ref){chestRef=ref;document.body.classList.add('invopen');C.chest=Array(Math.max(4,ref.items.length)).fill(null).map((_,i)=>ref.items[i]?{...ref.items[i]}:null);sel=null;st.open=null;render();
+   if(got.length){window.sfx&&sfx('pickup');flyIn(got);}if(C.chest.some(Boolean))say2('Не всё поместилось: мешочки полны или больше не унести.');render();sync();settle();}
+ async function openChest(ref){chestRef=ref;st.open=false;document.body.classList.add('invopen');C.chest=Array(Math.max(4,ref.items.length)).fill(null).map((_,i)=>ref.items[i]?{...ref.items[i]}:null);sel=null;render();
    document.body.classList.add('chest-open');for(const s of ['L','R'])animate(s,['half','open']);}
- function closeChest(){saveChest();if(chestRef&&chestRef.close)chestRef.close();chestRef=null;sel=null;document.body.classList.remove('chest-open');document.body.classList.toggle('invopen',!!st.open);render();settle();}
-
+ function closeChest(){saveChest();if(chestRef&&chestRef.close)chestRef.close();chestRef=null;sel=null;document.body.classList.remove('chest-open');document.body.classList.toggle('invopen',st.open);render();settle();}
  // ---------- "you got" card that flies into the hand ----------
  function flyIn(list,title='Получено'){const card=document.createElement('div');card.className='gotcard';const h=document.createElement('b');h.textContent=title;card.append(h);
    for(const [id,n] of list){const r=document.createElement('div');r.append(icon(document.createElement('canvas'),id));const t=document.createElement('span');t.textContent=ITEMS[id].n+(n>1?' ×'+n:'');r.append(t);card.append(r);}
@@ -139,14 +159,28 @@
    if(type==='chest'){pl.classList.add('reach');pr.classList.add('reach');await Promise.all([animate('L',['half','open']),animate('R',['half','open'])]);await wait(400);pl.classList.remove('reach');pr.classList.remove('reach');}}
 
  // ---------- API for the game ----------
- window.handsAdd=(id,n,quiet)=>{const k=add(id,n);render();sync();settle();if(k&&!quiet){window.sfx&&sfx('pickup');flyIn([[id,k]]);}if(k<n)say2(k?'Взято '+k+', больше не унести.':'Больше не унести: '+ITEMS[id].n+'.');return k;};
- window.handsGive=(list,title)=>{const got=[];for(const [id,n] of list){const k=add(id,n);if(k)got.push([id,k]);}render();sync();settle();if(got.length){window.sfx&&sfx('pickup');flyIn(got,title);}return got;};
- window.handsConsume=id=>{const ok=take1(id);render();sync();settle();return ok;};
+ const fresh=()=>{render();sync();settle();};
+ window.handsAdd=(id,n,quiet)=>{const k=add(id,n);fresh();if(k&&!quiet){window.sfx&&sfx('pickup');flyIn([[id,k]]);}if(k<n)say2(k?'Взято '+k+', больше не унести.':'Больше не унести: '+ITEMS[id].n+'.');return k;};
+ window.handsGive=(list,title)=>{const got=[];for(const [id,n] of list){const k=add(id,n);if(k)got.push([id,k]);}fresh();if(got.length){window.sfx&&sfx('pickup');flyIn(got,title);}return got;};
+ window.handsConsume=id=>{const ok=take1(id);fresh();return ok;};
  window.handsCount=id=>carried(id);
+ // which hand holds id ('L', 'R' or null), how many it holds, and taking id from a pouch into a hand
+ window.handsHeld=id=>heldSide(id);
+ window.handsHeldCount=id=>{const s=heldSide(id);return s?hand(s).n:0;};
+ window.handsToHand=(id,side)=>{const s=toHand(id,side);fresh();if(s&&window.sfx)sfx('click');return s;};
  window.handsIsOpen=()=>!!st.open;
  window.handsIconURL=id=>icon(document.createElement('canvas'),id).toDataURL();
- window.handsItems=()=>({L:hand('L'),R:hand('R'),bag:C.bag.map(x=>x&&{...x})});
- window.handsLoad=d=>{if(d.bag){C.L[0]=d.L;C.R[0]=d.R;C.bag=d.bag.slice(0,BAG).concat(Array(BAG).fill(null)).slice(0,BAG);}
-   else{C.L[0]=d.L?{id:d.L,n:1}:null;C.R[0]=d.R?{id:d.R,n:1}:null;C.bag=Array(BAG).fill(null);for(const id of ['potion','bread','stone'])if(d[id])add(id,d[id]);}render();sync();settle();};
+ const cp=k=>C[k].map(x=>x&&{...x});
+ window.handsItems=()=>({L:hand('L')&&{...hand('L')},R:hand('R')&&{...hand('R')},pL:cp('pL'),pR:cp('pR'),bag:cp('pL').concat(cp('pR'))});
+ const fit=a=>(a||[]).slice(0,POUCH).concat(Array(POUCH).fill(null)).slice(0,POUCH).map(x=>x&&ITEMS[x.id]?{id:x.id,n:x.n}:null);
+ const one=v=>!v?null:typeof v==='string'?{id:v,n:1}:ITEMS[v.id]?{id:v.id,n:v.n||1}:null;
+ // a new save keeps each pouch; an old save with one shared bag is split: weapons right, potions and food left, the rest where there is room
+ window.handsLoad=d=>{C.L[0]=one(d.L);C.R[0]=one(d.R);
+   if(d.pL||d.pR){C.pL=fit(d.pL);C.pR=fit(d.pR);}
+   else{C.pL=Array(POUCH).fill(null);C.pR=Array(POUCH).fill(null);
+     if(d.bag){for(const x of d.bag)if(x&&ITEMS[x.id])place(x.id,x.n,false);}
+     else{for(const id of ['potion','bread','stone'])if(d[id])add(id,d[id]);}}
+   for(const s of ['L','R']){const o=s==='L'?'R':'L';if(isTwo(C[s][0])&&C[o][0]){const x=C[o][0];C[o][0]=null;place(x.id,x.n,false);}}
+   fresh();};
  window.handsOpenChest=openChest;window.handsGesture=gesture;window.handsFly=flyIn;window.handsItemName=id=>ITEMS[id].n;
  render();addEventListener('resize',()=>render());})();

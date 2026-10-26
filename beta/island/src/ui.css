@@ -66,7 +66,8 @@
 @keyframes chestIn{from{transform:translate(-50%,-30%) scale(.7);opacity:0}}
 .chestui h4{margin:0 0 8px;color:#f2c14e;font-size:15px;text-shadow:2px 2px 0 #000}.chestui h5{margin:10px 0 6px;font-size:11px;color:#a8987a;font-weight:400}
 .chestui .grid{display:grid;grid-template-columns:repeat(4,44px);gap:6px}.chestui .grid.chest{grid-template-columns:repeat(6,44px)}
-.chestui .carry{display:flex;align-items:center;gap:8px}
+.chestui .carry{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.chestui .side h5{margin:10px 0 6px}.chestui .side.r h5{text-align:right}.chestui .sr{display:flex;align-items:center;gap:6px}
+.chestui .grid.pouch{grid-template-columns:repeat(2,44px)}.inv .grid.pouch{grid-template-columns:repeat(4,44px)}
 .chestui .name{margin-top:8px;font-size:12px;color:#d8c8a6;min-height:1.2em;max-width:420px}
 .chestui .btns{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
 .chestui .btns button{font:inherit;font-size:13px;color:#f0e2c2;background:#3a2a1a;border:0;padding:8px 14px;min-height:38px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
@@ -88,7 +89,7 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 @keyframes catch{0%{scale:1}40%{scale:1.18}100%{scale:1}}
 .palm.catch{animation:catch .4s ease}
 .held{transition:transform .2s,opacity .2s}
-@media (max-height:440px){.slot{width:34px;height:34px}.slot.hand{width:40px;height:40px}.slot canvas{width:22px;height:22px}.chestui .grid{grid-template-columns:repeat(4,34px);gap:4px}.chestui .grid.chest{grid-template-columns:repeat(6,34px)}
+@media (max-height:440px){.slot{width:34px;height:34px}.slot.hand{width:40px;height:40px}.slot canvas{width:22px;height:22px}.chestui .grid{grid-template-columns:repeat(4,34px);gap:4px}.chestui .grid.chest{grid-template-columns:repeat(6,34px)}.chestui .grid.pouch{grid-template-columns:repeat(2,34px)}.chestui .side h5{margin:4px 0 3px}
   .chestui{padding:8px 10px}.chestui h5{margin:6px 0 4px}.gotcard{top:18%}}
 @media (prefers-reduced-motion:reduce){.palm.holding{animation:none}.gotcard,.gotcard.show{transition:opacity .2s}}
 

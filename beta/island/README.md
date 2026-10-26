@@ -9,7 +9,7 @@ the hand-made district Заводь in the north-west (dock, village, forest, ru
 a capital with the king's castle, villages rich and poor, a quarry, bandit
 camps, wild beasts; a room inside every building; townsfolk who work by day and
 sleep at home; shops; a main story told step by step (Raven); two-hand
-inventory with a bag; hero editor with peoples and classes; real-time exploring
+inventory (each hand with its own pouch); hero editor with peoples and classes; real-time exploring
 with turn-based D&D-style fights (initiative, advantage, sneaking, companions,
 morale, levels); reputation; day/night; rendered sound; local save.
 
@@ -34,7 +34,7 @@ Sources (`build.py` glues them into one page; `main.js` has placeholders such as
 | `extras.js` | day and night, rendered sound effects, ambience |
 | `ui.js`, `ui.html`, `ui.css` | wheels, menus, quest pointer, map, layout |
 | `editor.js` | hero editor |
-| `hands.js` | two hands, bag, chests, item icons |
+| `hands.js` | two hands, a pouch for each hand, chests, item icons |
 | `villagers.js` | Заводь's villagers and their looks |
 | `town.js` | townsfolk of the big island, the king's court, shops, homes at night, their talk |
 | `story.js` | the big island's errands and the main story (Raven) |
@@ -51,6 +51,16 @@ Sources (`build.py` glues them into one page; `main.js` has placeholders such as
 Not tested on a physical iPhone; checked in desktop Chromium (software GL).
 
 Fonts (Cormorant Garamond, PT Sans; SIL Open Font License) are inlined from `src/fonts.css` so text renders offline. The game's `dist/characters.js` is inlined too; rebuild the island after it changes.
+
+## Rule: each hand has its own pouch
+Each hand holds one thing and has its own pouch (4 slots, a halfling 5). The
+player decides what goes where: tap an item and then a slot, or drag it.
+Tapping either palm opens both hands; opening a chest opens both hands inside
+the chest window. Only what is in a hand can be used: a potion in a pouch must
+first be taken into a hand («Взять в руку», a bonus action in a fight), and
+attacks and staff sparks come only from held weapons. A two-handed item fills
+both hands. Old saves with one shared bag are split on load: weapons to the
+right pouch, potions and food to the left, the rest where there is room.
 
 ## Rule: a character has exactly two hands
 

@@ -74,13 +74,17 @@ function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.o
   if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
   const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
-function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2+(HERO.heal||0):d(4)+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
+// a potion or bread is used only from a hand; one in a pouch has to be taken first
+const inHand=id=>window.handsHeld?!!window.handsHeld(id):true,nm2=id=>id==='potion'?'зелье':'хлеб';
+function takeInHand(id){const s=window.handsToHand&&window.handsToHand(id);toast(s?'Вы берёте '+nm2(id)+' в '+(s==='L'?'левую':'правую')+' руку.':'Не получается взять '+nm2(id)+' в руку.');return !!s;}
+function heal(id){if(!inHand(id)){toast('Сначала возьмите '+nm2(id)+' в руку.');return false;}heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2+(HERO.heal||0):d(4)+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
   toast((id==='potion'?'Зелье лечения: 2к4 + 2 = ':'Хлеб: 1к4 = ')+v);window.handsConsume&&window.handsConsume(id);}
 function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HERO.race]||{};
   if(!f)items.push(H0.sneak?{icon:'stand',label:'Выпрямиться',run:()=>{H0.sneak=false;H0.spd=2.4;}}:{icon:'sneak',label:'Красться',sub:'Скрытность +'+HERO.stealth,run:()=>{H0.sneak=true;H0.spd=1.3;toast('Вы крадётесь: враги замечают только спереди и вблизи.');}});
   const p=count('potion'),b=count('bread'),full=H0.hp>=H0.max,bonus=(fn)=>f?doVerb(null,fn,{kind:'bonus'}):fn(),bOk=!f||ht&&!CB.bonus,fightBonus=f&&ht&&!CB.bonus;
-  items.push({icon:'potion',label:'Зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · есть '+p:'нет',ok:p>0&&!full&&bOk,run:()=>bonus(()=>heal('potion'))});
-  if(!f)items.push({icon:'bread',label:'Хлеб',sub:b?'1к4 · есть '+b:'нет',ok:b>0&&!full,run:()=>heal('bread')});
+  if(p&&!inHand('potion'))items.push({icon:'potion',label:'Взять в руку',sub:(f?'бонус · ':'')+'зелье из мешочка',ok:bOk,run:()=>bonus(()=>takeInHand('potion'))});
+  else items.push({icon:'potion',label:'Выпить зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · в руке '+window.handsHeldCount('potion'):'нет зелья',ok:p>0&&!full&&bOk,run:()=>bonus(()=>heal('potion'))});
+  if(!f)items.push(b&&!inHand('bread')?{icon:'bread',label:'Взять хлеб',sub:'в руку',run:()=>takeInHand('bread')}:{icon:'bread',label:'Съесть хлеб',sub:b?'1к4 · в руке '+window.handsHeldCount('bread'):'нет хлеба',ok:b>0&&!full,run:()=>heal('bread')});
   const ab=(cond,label,sub,ok,run)=>cond&&items.push({icon:'special',label,sub,ok,run});
   ab(C==='fighter','Второе дыхание',SP.wind?'1к10+2':'нужен отдых',SP.wind>0&&!full&&bOk,()=>bonus(secondWind));
   ab(C==='cleric','Лечащее слово',SP.word?'1к4+3 · '+SP.word+' ост.':'нужен отдых',SP.word>0&&!full&&bOk,()=>bonus(healingWord));
@@ -103,7 +107,7 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HER
 function allyWheel(a){const f=CB.on,ht=heroTurn(),items=[],p=count('potion'),C=HERO.cls,actOk=!f||ht&&!CB.acted,who=a.name||a.npc,adj=()=>man(a,H0)>1;
   if(a.state==='dead')items.push({icon:'pick',label:'Отнести к травнице',sub:'вернуть за '+REVIVE+' монет',ok:!f&&!room,run:()=>carryBody(a)});
   else{items.push({icon:'potion',label:'Перевязать',sub:'Медицина +'+medOf()+' · СЛ 10',ok:actOk&&a.state==='down'&&reachable(a),run:()=>doVerb(a,()=>bandage(a),{adj:adj()})});
-    items.push({icon:'potion',label:'Дать зелье',sub:p?'2к4+2 · есть '+p:'нет',ok:p>0&&actOk&&reachable(a),run:()=>doVerb(a,()=>potionAlly(a),{adj:adj()})});
+    items.push({icon:'potion',label:'Дать зелье',sub:!p?'нет':inHand('potion')?'2к4+2 · в руке':'сначала возьмите в руку',ok:p>0&&inHand('potion')&&actOk&&reachable(a),run:()=>doVerb(a,()=>potionAlly(a),{adj:adj()})});
     if(C==='cleric')items.push({icon:'special',label:'Лечащее слово',sub:SP.word?'бонус · '+SP.word+' ост.':'нужен отдых',ok:SP.word>0&&(!f||ht&&!CB.bonus)&&man(a,H0)<=6,run:()=>doVerb(a,()=>{SP.word--;healAlly(a,d(4)+3+(HERO.heal||0),'Лечащее слово');},{kind:'bonus'})});
     if(C==='paladin')items.push({icon:'special',label:'Наложение рук',sub:SP.hands?'2к4+4':'нужен отдых',ok:SP.hands>0&&actOk&&reachable(a),run:()=>doVerb(a,()=>{SP.hands=0;healAlly(a,d(4)+d(4)+4+(HERO.heal||0),'Наложение рук');},{adj:adj()})});}
   items.push({icon:'look',label:'Осмотреть',run:()=>toast(who+': '+({down:'при смерти, спасброски '+a.saves[0]+' из 3, провалы '+a.saves[1]+' из 3.',stable:'без сознания, но дышит ровно. Встанет после боя.',dead:'погиб. Травница Ивва ещё может помочь до конца завтрашнего дня.'})[a.state],4500)});

@@ -9,7 +9,7 @@ const stonesLook=()=>looks.find(l=>l.n==='Гладкие камни');
 const TSTEPS=[
   {t:'Сойдите с причала',h:'Нажмите на доски впереди: герой пойдёт туда. Золотое кольцо — куда он идёт.',target:()=>({x:10,z:31,label:'Сюда'}),done:()=>H0.x>=9},
   {t:'Поговорите с рыбаком Олавом',h:'Нажмите на Олава — вокруг него появится колесо. Выберите «Говорить».',target:()=>whoT('fisher'),done:()=>TUT.flags.olav},
-  {t:'Загляните в свои руки',h:'Ладони внизу — ваши руки и сумка. Нажмите на правую ладонь.',coach:'#palmR',done:()=>window.handsIsOpen&&window.handsIsOpen()},
+  {t:'Загляните в свои руки',h:'Ладони внизу — ваши руки, у каждой свой мешочек. Нажмите на ладонь, и откроются обе. Пить и бить можно только тем, что в руке.',coach:'#palmR',done:()=>window.handsIsOpen&&window.handsIsOpen()},
   {t:'Подберите камни',h:'Красная стрелка показывает камни у причала. Подойдут и любые другие: у дороги или в ящике. Нажмите на них и выберите «Взять». Камнем можно отвлечь врага.',target:()=>{const L=stonesLook();return L&&!L.taken?{x:Math.floor(L.grp.position.x),z:Math.floor(L.grp.position.z),label:'Камни'}:null;},done:()=>{const L=stonesLook(),n=window.handsCount?window.handsCount('stone'):0;if(TUT.stone0==null)TUT.stone0=n;
     // any stones count: the ones on the shore, a crate, a rock by the road; a full pouch counts too
     return !L||L.taken||n>TUT.stone0||n>=5;}},

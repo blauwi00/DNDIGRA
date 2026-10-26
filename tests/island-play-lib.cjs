@@ -21,7 +21,7 @@ const HELPERS = () => {
   // the text of the open dialog, and a click on the button whose label starts with the given words
   PT.text = () => { const t = document.getElementById('talk'); return t.hidden ? '' : t.querySelector('p').textContent; };
   PT.choose = async (label) => { for (let i = 0; i < 20; i++) { const t = document.getElementById('talk'); if (!t.hidden) { t.click(); const b = [...t.querySelectorAll('.choices button')].find((x) => x.textContent.startsWith(label)); if (b) { b.click(); await sleep(400); return true; } } await sleep(150); } return false; };
-  PT.heal = () => { if (H0.hp < H0.max * .45) { if (window.handsCount('potion') > 0 && !CB.on) { heal('potion'); PT.note('drank a potion'); } else if (H0.hp < H0.max * .3) { H0.hp = H0.max; setHP(); PT.note('healed by the test (no potion)'); } } };
+  PT.heal = () => { if (H0.hp < H0.max * .45) { if (window.handsCount('potion') > 0 && !CB.on) { window.handsToHand('potion'); heal('potion'); PT.note('drank a potion'); } else if (H0.hp < H0.max * .3) { H0.hp = H0.max; setHP(); PT.note('healed by the test (no potion)'); } } };
   // a fight to the end through the combat wheel
   PT.fight = async (limit = 240) => {
     for (let i = 0; i < limit && CB.on; i++) {
@@ -69,7 +69,7 @@ const HELPERS = () => {
     return 'ok'; };
   PT.who = (id) => actors.find((a) => a.talkId === id || a.npc === id);
   PT.give = (id, n) => { window.handsGive([[id, n]], 'Тест'); };
-  PT.hold = (id) => { const s = window.handsItems(); const bag = s.bag.map((x) => x && x.id === id ? (x.n > 1 ? {id, n: x.n - 1} : null) : x); window.handsLoad({L: s.L, R: {id, n: 1}, bag}); window.equipHero && window.equipHero(s.L && s.L.id, id); };
+  PT.hold = (id) => { if (!window.handsCount(id)) PT.give(id, 1); window.handsToHand(id, 'R'); };
 };
 
 const STEPS = [
