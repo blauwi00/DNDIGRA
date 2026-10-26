@@ -556,17 +556,18 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  else instanced(BOX,wood,fen,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.35,z+.5),q0,v2.set(.12,.7,.12)));
  if(!VOX.on)for(const yy of [.3,.58])instanced(BOX,woodL,fen,([x,z,d],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+yy,z+.5),q0,v2.set(d==='x'?1:.06,.07,d==='x'?.06:1)),false);
  // wells: a stone ring, two posts, a little roof and a bucket; troughs in the castle court
- const wl=[...P.wells,...P.props.filter(p=>p.k==='trough').map(p=>[p.x,p.z,'t'])];
+ const wl=[...(VOX.on?[]:P.wells),...P.props.filter(p=>p.k==='trough').map(p=>[p.x,p.z,'t'])];
  instanced(BOX,stoneM,wl,([x,z,t],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+(t?.2:.3),z+.5),q0,v2.set(t?.9:.86,t?.4:.6,t?.5:.86)));
  instanced(BOX,lam(T.water),wl,([x,z,t],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+(t?.41:.61),z+.5),q0,v2.set(t?.75:.6,.02,t?.35:.6)),false);
  const wells=P.wells;
- for(const sg of [-1,1])instanced(BOX,wood,wells,([x,z],i,m)=>m.compose(v1.set(x+.5+sg*.38,gy(x,z)+.85,z+.5),q0,v2.set(.08,1.1,.08)));
- instanced(BOX,ROOF.shingle,wells,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.45,z+.5),q0,v2.set(1.1,.12,.9)));
- instanced(BOX,lam(T.p[1],{color:0x6a4a2a}),wells,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.0,z+.5),q0,v2.set(.18,.2,.18)),false);
+ if(!VOX.on)for(const sg of [-1,1])instanced(BOX,wood,wells,([x,z],i,m)=>m.compose(v1.set(x+.5+sg*.38,gy(x,z)+.85,z+.5),q0,v2.set(.08,1.1,.08)));
+ if(!VOX.on)instanced(BOX,ROOF.shingle,wells,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.45,z+.5),q0,v2.set(1.1,.12,.9)));
+ if(!VOX.on)instanced(BOX,lam(T.p[1],{color:0x6a4a2a}),wells,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.0,z+.5),q0,v2.set(.18,.2,.18)),false);
  // market stalls: a counter under a striped awning
- instanced(BOX,lam(T.p[1],{color:0x8a6a44}),P.stalls,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.4,z+.5),q0,v2.set(.95,.8,.6)));
- for(const [k,c] of [[0,0xb8503a],[1,0xe8dcc0]])instanced(BOX,new THREE.MeshLambertMaterial({color:c}),P.stalls,([x,z],i,m)=>m.compose(v1.set(x+.5+(k-.5)*.3,gy(x,z)+1.35,z+.5),q0,v2.set(.3,.08,1)),false);
- instanced(BOX,new THREE.MeshLambertMaterial({color:0xc89048}),P.stalls,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.84,z+.5),q0,v2.set(.6,.08,.3)),false);
+ if(VOX.on){voxInstanced(P.stalls,()=>VOX.asset('stall',()=>VOX.stall(),1/16),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),q0,v2.set(1,1,1)));voxInstanced(P.wells,()=>VOX.asset('well',()=>VOX.well(),1/16),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),q0,v2.set(1,1,1)));}
+ if(!VOX.on)instanced(BOX,lam(T.p[1],{color:0x8a6a44}),P.stalls,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.4,z+.5),q0,v2.set(.95,.8,.6)));
+ if(!VOX.on)for(const [k,c] of [[0,0xb8503a],[1,0xe8dcc0]])instanced(BOX,new THREE.MeshLambertMaterial({color:c}),P.stalls,([x,z],i,m)=>m.compose(v1.set(x+.5+(k-.5)*.3,gy(x,z)+1.35,z+.5),q0,v2.set(.3,.08,1)),false);
+ if(!VOX.on)instanced(BOX,new THREE.MeshLambertMaterial({color:0xc89048}),P.stalls,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.84,z+.5),q0,v2.set(.6,.08,.3)),false);
  // graves behind the temple
  instanced(BOX,lam(T.stone,{color:0x9a968c}),P.graves,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.25,z+.4),qY((hash2(x,z)-.5)*.3),v2.set(.45,.5,.12)));
  // gardens and fields: rows of crops on tilled soil; the fields ripen in three colours, strip by strip

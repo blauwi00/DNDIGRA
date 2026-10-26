@@ -181,6 +181,17 @@ function counter(){const g=new Grid(16,15,10);g.box(0,0,1,16,13,9,(x,y,z)=>z===1
 function bed(){const g=new Grid(14,10,28);g.box(0,0,0,14,4,28,(x,y,z)=>x===0||x===13||z===0||z===27?wdD:wd(5,x,z));
   g.box(0,4,0,14,10,2,(x,y,z)=>y===9||x===0||x===13?wdD:wd(6,x,y));g.box(1,4,2,13,6,27,(x,y,z)=>pickS('sheet',x>>2,y,z>>2));
   g.box(2,6,2,12,7,6,SH.pillow[0]);g.box(1,5,9,13,7,27,(x,y,z)=>SH.blanket[((x+z)>>2)%3===0?0:1]);return g;}
+// ---------- a market stall under a striped awning, a well with a little roof (16 voxels per cell) ----------
+shades('awnR',['#9a3a2c','#8e3428']);shades('awnW',['#d8ccb0','#ccc0a4']);shades('goods',['#a83a2a','#c89a3a','#6a8a3a','#b8783a']);shades('water',['#1e3440','#24404c']);
+function stall(){const g=new Grid(16,24,12);g.box(1,0,3,15,10,10,(x,y,z)=>z===3||z===9?(x%3===0||y===9?wdD:pickS('stave',x>>1,y>>2,1)):wd(7,x,y));
+  for(let x=2;x<14;x+=2)for(let z=4;z<9;z+=2)if(hs(x,z,3)<.8)g.box(x,10,z,x+2,10+(hs(z,x,5)<.5?2:1),z+2,pickS('goods',x>>1,z>>1,2));
+  for(const [x,z] of [[1,2],[14,2],[1,10],[14,10]])g.box(x,0,z,x+1,z===2?20:17,z+1,wdD);
+  for(let z=0;z<12;z++){const y=20-Math.round(z*.3);for(let x=0;x<16;x++)g.set(x,y,z,(x>>1)%2?pickS('awnW',x,z,1):pickS('awnR',x,z,1));}
+  for(let x=0;x<16;x++)if(x%2===0)g.set(x,16,11,(x>>1)%2?SH.awnW[0]:SH.awnR[0]);return g;}
+function well(){const g=new Grid(16,26,16);for(let z=0;z<16;z++)for(let x=0;x<16;x++){const d=Math.hypot(x-7.5,z-7.5);
+    if(d<7.6&&d>=5.4)for(let y=0;y<8;y++)g.set(x,y,z,y%3===2?SH.mortar[0]:pickS('stone',(x+(y%6<3?0:2))>>2,y,z>>2));else if(d<5.4)g.set(x,5,z,pickS('water',x>>2,0,z>>2));}
+  for(const x of [1,14])g.box(x,8,7,x+1,22,9,wdD);g.box(1,18,7,15,19,9,pickS('stave',0,0,0));g.box(7,12,7,9,15,9,SH.hoop[0]);for(let y=15;y<18;y++)g.set(8,y,8,SH.hoop[1]);
+  for(let z=0;z<16;z++){const y=25-Math.round(Math.abs(z-7.5)*.55);for(let x=0;x<16;x++)g.set(x,y,z,pickS('shingle',x>>2,y,z>>1));}return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -192,4 +203,4 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
