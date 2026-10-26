@@ -179,7 +179,9 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
       const th=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xe0e0e0,transparent:true,opacity:.5}));th.scale.set(.008,1,.008);sp.add(th);sp.position.set(bx,y+1.2,bz);g.add(sp);
       sp.traverse(m=>{if(m.isMesh&&INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}});SPIDERS.push({sp,th,y0:y+1.2,ph:rnd()*6});}I(null);}
   // in the house itself: the ladder to the attic against the back wall, the hatch to the cellar in the floor
-  if(R.inPlace){const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
+  if(R.inPlace){const inn=new Set(),q=[R.inside||[R.exit[0],R.exit[1]-1]];inn.add(q[0][0]+','+q[0][1]); // cells one can walk to from the door
+    while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(x+a)+','+(z+b);if(inn.has(k)||x+a<=R.ox||z+b<=R.oz||x+a>=R.ox+R.iw-1||z+b>=R.oz+R.id-1||!free(x+a,z+b))continue;inn.add(k);q.push([x+a,z+b]);}}
+    const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&inn.has((R.ox+dx)+','+(R.oz+dz))&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
     if(R.attic){for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
     if(R.cellar){outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
   if(R.gen){looks.slice(lk0).forEach((L,j)=>L.key=R.i+'#'+j);roomState(R);}}
@@ -216,7 +218,7 @@ const houseOf=R=>houseMeshes.find(g=>g.userData.house===R.i);
 function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&(x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<r.oz+r.id-1||x===r.exit[0]&&z===r.exit[1]))||null;}
 function houseShow(R,on){const g=houseOf(R);if(!g)return;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
 function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),cur=room&&room.inPlace?room:null;
-  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const near=Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1);
+  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const shut=Rg.guard&&typeof crownLocked==='function'&&crownLocked(Rg);const near=!shut&&(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1));
     if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
   if(R===cur)return;if(cur)houseShow(cur,true);room=R;
   if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);

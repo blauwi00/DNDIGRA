@@ -37,6 +37,17 @@ const Settle=(()=>{
     function path(a,goal,ok,maxN=6000){const prev=new Map([[K(a[0],a[1]),-1]]),q=[a];
       for(let h=0;h<q.length&&prev.size<maxN;h++){const [x,z]=q[h];if(goal(x,z)){const p=[];for(let k=K(x,z);k>=0;k=prev.get(k))p.push([k%W,(k/W)|0]);return p.reverse();}
         for(const [dx,dz] of N4){const nx=x+dx,nz=z+dz,k=K(nx,nz);if(prev.has(k)||!ok(nx,nz))continue;prev.set(k,K(x,z));q.push([nx,nz]);}}return null;}
+    // a street that bends: the cheapest way where every cell costs a little more or less by a smooth noise, so a
+    // street swings round soft ground instead of running in a straight staircase
+    const hsh=(x,z)=>{let h=(x*374761393+z*668265263)>>>0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;};
+    const vn=(x,z,sc)=>{const X=Math.floor(x/sc),Z=Math.floor(z/sc),fx=x/sc-X,fz=z/sc-Z,l=(a,b,t)=>a+(b-a)*t*t*(3-2*t);return l(l(hsh(X,Z),hsh(X+1,Z),fx),l(hsh(X,Z+1),hsh(X+1,Z+1),fx),fz);};
+    function wpath(a,goal,ok,maxN=12000){const g=new Map([[K(a[0],a[1]),0]]),prev=new Map([[K(a[0],a[1]),-1]]),hp=[[0,a[0],a[1]]],done=new Set();
+      const push=e=>{hp.push(e);let i=hp.length-1;while(i){const p=(i-1)>>1;if(hp[p][0]<=hp[i][0])break;[hp[p],hp[i]]=[hp[i],hp[p]];i=p;}};
+      const pop=()=>{const t=hp[0],l=hp.pop();if(hp.length){hp[0]=l;let i=0;for(;;){const L=2*i+1,R=L+1;let m=i;if(L<hp.length&&hp[L][0]<hp[m][0])m=L;if(R<hp.length&&hp[R][0]<hp[m][0])m=R;if(m===i)break;[hp[m],hp[i]]=[hp[i],hp[m]];i=m;}}return t;};
+      while(hp.length&&done.size<maxN){const [d,x,z]=pop(),k=K(x,z);if(done.has(k))continue;done.add(k);
+        if(goal(x,z)){const p=[];for(let c=k;c>=0;c=prev.get(c))p.push([c%W,(c/W)|0]);return p.reverse();}
+        for(const [dx,dz] of N4){const nx=x+dx,nz=z+dz,nk=K(nx,nz);if(done.has(nk)||!ok(nx,nz))continue;const nd=d+1+vn(nx,nz,6)*4+vn(nx+50,nz,2.5)*1.5;if(nd<(g.get(nk)??1e9)){g.set(nk,nd);prev.set(nk,k);push([nd,nx,nz]);}}}
+      return null;}
     const pave=(x,z,c)=>{if(okC(x,z)&&at(x,z)!=='C'&&!(c==='D'&&at(x,z)==='C'))set(x,z,c);};
     // a winding lane from a point: walks on with a slow turn and stops at the edge of its ground
     function lane(p,x,z,ang,len,c,rnd,keep){const pts=[];let fx=x+.5,fz=z+.5;for(let s=0;s<len;s++){ang+=(rnd()-.5)*.55;fx+=Math.cos(ang);fz+=Math.sin(ang);
@@ -54,7 +65,10 @@ const Settle=(()=>{
     const doorCell=s=>s.side==='S'?[s.x+s.off,s.z+s.d]:s.side==='E'?[s.x+s.w,s.z+s.off]:[s.x-1,s.z+s.off];
     // a house set against a street cell: the door opens onto the street; orientation by which side the street is on
     function againstStreet(p,sx,sz,type,w,d,rnd,keep,shop){const opts=doorOpts(type,w,d,shop),tries=[];
-      for(const [side,off] of opts){if(side==='S')tries.push({side,off,x:sx-off,z:sz-d});if(side==='E')tries.push({side,off,x:sx-w,z:sz-off});if(side==='W')tries.push({side,off,x:sx+1,z:sz-off});
+      // houses do not stand in a ruler line: each sits back from the street by its own little yard (0 to 2 cells)
+      const sb=Math.floor(rnd()*3);
+      for(const b of sb?[sb,0]:[0])for(const [side,off] of opts){if(side==='S')tries.push({side,off,x:sx-off,z:sz-d-b});if(side==='E')tries.push({side,off,x:sx-w-b,z:sz-off});if(side==='W')tries.push({side,off,x:sx+1+b,z:sz-off});}
+      for(const [side,off] of opts){
         if(side==='E')tries.push({side,off,x:sx-w,z:sz+1});if(side==='W')tries.push({side,off,x:sx+1,z:sz+1});}
       for(let i=tries.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[tries[i],tries[j]]=[tries[j],tries[i]];}
       for(const t of tries)if(fits(p,t.x,t.z,w,d,null,keep))return Object.assign(t,{w,d,type});return null;}
@@ -131,12 +145,12 @@ const Settle=(()=>{
       // 2. the wall: round the market and the castle, bent by the ground, a cell inside the capital's own land
       const ph=rnd()*6,Rw=a=>27+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,wx=hx,wz=cast?cast.z+Math.floor(cast.d/2):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
       const mask=new Uint8Array(W*OH);for(let z=wz-E-4;z<=wz+E+4;z++)for(let x=wx-E-4;x<=wx+E+4;x++){if(!inb(x,z))continue;const c=at(x,z);if(c==='~'||c==='M'||c==='N')continue;
-        if(inCastle(x,z)||wd(x,z)<=0&&mine(p,x,z))mask[K(x,z)]=1;}
+        if(inCastle(x,z)||wd(x,z)<=0&&mine(p,x,z)&&!(cast&&z<cast.z+2))mask[K(x,z)]=1;}
       const inWall=(x,z)=>inb(x,z)&&mask[K(x,z)]===1;
       // 3. roads that come in from outside are led on to the market; the port road too, with a pier
       const port=p.port;
       if(port){let shore=null,bd=1e9;for(let z=port.z-4;z<=port.z+4;z++)for(let x=port.x-4;x<=port.x+4;x++)if(okC(x,z)&&N4.some(([a,b])=>at(x+a,z+b)==='~')){const d=Math.hypot(x-port.x,z-port.z);if(d<bd){bd=d;shore=[x,z];}}
-        if(shore&&Math.hypot(shore[0]-hx,shore[1]-hz)<E+16){const pth=path(shore,(x,z)=>x===hx&&z===hz||inWall(x,z)&&at(x,z)==='C'&&res[K(x,z)]===1,(x,z)=>inb(x,z)&&(okC(x,z)||at(x,z)==='K')&&!inCastle(x,z)&&res[K(x,z)]!==3,20000);
+        if(shore&&Math.hypot(shore[0]-hx,shore[1]-hz)<E+16){const pth=wpath(shore,(x,z)=>x===hx&&z===hz||inWall(x,z)&&at(x,z)==='C'&&res[K(x,z)]===1,(x,z)=>inb(x,z)&&(okC(x,z)||at(x,z)==='K')&&!inCastle(x,z)&&res[K(x,z)]!==3,20000);
           if(pth)for(const [x,z] of pth)pave(x,z,'D');
           // planks out over the water
           const dir=N4.find(([a,b])=>at(shore[0]+a,shore[1]+b)==='~');if(dir){for(let k=1;k<=6;k++){const x=shore[0]+dir[0]*k,z=shore[1]+dir[1]*k;if(at(x,z)!=='~')break;set(x,z,'P');out.piers.push([x,z]);}}
@@ -151,7 +165,7 @@ const Settle=(()=>{
         const horiz=!inWall(Math.round(cx),Math.round(cz)-1)||!inWall(Math.round(cx),Math.round(cz)+1);out.gates.push({x:cx,z:cz,cells:grp,ns:horiz});}
       // every gate leads by a cobbled street to the market (the old road as it was, bent by the ground)
       const streetsTo=[];for(const g of out.gates){const s=g.cells[0];
-        const pth=path(s,(x,z)=>at(x,z)==='C'&&res[K(x,z)]===1&&!inCastle(x,z)&&(x!==s[0]||z!==s[1]),(x,z)=>inWall(x,z)&&(okC(x,z))&&!inCastle(x,z)&&res[K(x,z)]!==3&&at(x,z)!=='W',8000);
+        const pth=wpath(s,(x,z)=>at(x,z)==='C'&&res[K(x,z)]===1&&!inCastle(x,z)&&(x!==s[0]||z!==s[1]),(x,z)=>inWall(x,z)&&(okC(x,z))&&!inCastle(x,z)&&res[K(x,z)]!==3&&at(x,z)!=='W',8000);
         if(pth){for(const [x,z] of pth){pave(x,z,'C');res[K(x,z)]=res[K(x,z)]||1;}streetsTo.push({g,pth});
 }}
       // inside the wall every old dirt road is paved
@@ -219,7 +233,7 @@ const Settle=(()=>{
       if(green){for(let z=hz-3;z<=hz+3;z++)for(let x=hx-4;x<=hx+4;x++)if(Math.hypot(x-hx,(z-hz)*1.3)<=3.6&&mine(p,x,z)&&inb(x,z))res[K(x,z)]=1;
         // a lane rings the green so every house on it has a way round
         for(let a=0;a<48;a++){const x=Math.round(hx+Math.cos(a/48*Math.PI*2)*4.6),z=Math.round(hz+Math.sin(a/48*Math.PI*2)*3.6);if(okC(x,z)&&mine(p,x,z)&&!res[K(x,z)]){pave(x,z,'D');res[K(x,z)]=1;}}}
-      const wx=green?hx:hx+1,wz=green?hz:hz+1;if(okC(wx,wz)&&at(wx,wz)!=='D')well(wx,wz);else{const c=[[hx+2,hz],[hx-2,hz],[hx,hz+2]].find(([x,z])=>okC(x,z)&&at(x,z)!=='D');if(c)well(...c);}
+      const wx=green?hx:hx+1,wz=green?hz:hz+1;if(okC(wx,wz)&&at(wx,wz)!=='D')well(wx,wz);else{let c=null;for(let r=1;r<6&&!c;r++)for(let dz=-r;dz<=r&&!c;dz++)for(let dx=-r;dx<=r;dx++)if(okC(hx+dx,hz+dz)&&at(hx+dx,hz+dz)!=='D'&&!res[K(hx+dx,hz+dz)]&&N4.some(([a,b])=>walk(at(hx+dx+a,hz+dz+b))&&at(hx+dx+a,hz+dz+b)!=='K')){c=[hx+dx,hz+dz];break;}if(c)well(...c);}
       // one or two lanes off the heart, where there is room
       const nl=arms>=3?1:2;for(let i=0;i<nl;i++)lane(p,hx,hz,rnd()*Math.PI*2,E-2,'D',rnd,(x,z)=>Math.hypot(x-hx,z-hz)<E-1.5);
       // a rich village keeps a sharpened-log palisade round its yards, with gates where the roads go through

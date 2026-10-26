@@ -21,7 +21,7 @@ const IslandGen=(()=>{
   const B={SEA:0,BEACH:1,MEADOW:2,FIELD:3,FOREST:4,SWAMP:5,HILLS:6,MOUNTAIN:7,SNOW:8,LAKE:9};
   const BIOME_N=['море','берег','луг','пашня','лес','болото','холмы','горы','снега','озеро'];
 
-  function generate(seed='helga',W=300,H=220,opt={}){const ST=opt.stamp||null;
+  function generate(seed='helga',W=300,H=220,opt={}){opt=opt||{};const ST=opt.stamp||null,V2=(opt.v||VERSION)>=2;
     const s0=hashStr(seed),rnd=mulberry(s0),nH=noise2(s0^1),nM=noise2(s0^2),nW=noise2(s0^3);
     const N=W*H,I=(x,z)=>z*W+x,inb=(x,z)=>x>=0&&z>=0&&x<W&&z<H;
     const height=new Float32Array(N),moist=new Float32Array(N),biome=new Uint8Array(N);
@@ -64,7 +64,21 @@ const IslandGen=(()=>{
           const lx=c%W,lz=(c/W)|0;for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++)if(dx*dx+dz*dz<=5&&inb(lx+dx,lz+dz)&&!(ST&&lx+dx<ST.w&&lz+dz<ST.h))lake[I(lx+dx,lz+dz)]=1;
           height[nb]=height[c]-.0005;}
         c=nb;}
-      if(path.length>12)for(const p of path)if(!ST||(p%W)>=ST.w||((p/W)|0)>=ST.h)river[p]=1;}
+      const keep=p=>!ST||(p%W)>=ST.w||((p/W)|0)>=ST.h;
+      // version 2: the river swings from side to side as it runs down (bends grow away from the source and
+      // calm near the mouth), and it widens where the land lets it; version 1 keeps its straight run
+      if(path.length>12){if(!V2){for(const p of path)if(keep(p))river[p]=1;}else{for(const p of meander(path))if(keep(p))river[p]=1;}}}
+    function meander(path){const P=path.map(c=>[c%W,(c/W)|0]),n=P.length,out=new Set(),ph=rnd()*6,step=4,pts=[];
+      for(let i=0;i<n;i+=step){const a=P[Math.max(0,i-6)],b=P[Math.min(n-1,i+6)];let tx=b[0]-a[0],tz=b[1]-a[1];const l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;
+        const amp=(2+nM(P[i][0]*.05,P[i][1]*.05,2)*3.5)*Math.min(1,i/14,(n-1-i)/10),o=Math.sin(i*.17+ph)*amp+Math.sin(i*.07+ph*2)*amp*.5;
+        pts.push([Math.round(P[i][0]-tz*o),Math.round(P[i][1]+tx*o)]);}
+      pts.push(P[n-1]);
+      const mark=(x,z)=>{if(x>0&&z>0&&x<W-1&&z<H-1)out.add(I(x,z));};
+      for(let k=1;k<pts.length;k++){let [x,z]=pts[k-1];const [ex,ez]=pts[k];
+        while(x!==ex||z!==ez){if(Math.abs(ex-x)>=Math.abs(ez-z)&&x!==ex)x+=Math.sign(ex-x);else z+=Math.sign(ez-z);mark(x,z);
+          // wider reaches: a second cell beside the first where the land is low and wet
+          if(nW(x*.09+11,z*.09,2)>.56){if(Math.abs(ex-pts[k-1][0])>Math.abs(ez-pts[k-1][1]))mark(x,z+1);else mark(x+1,z);}}}
+      return out;}
 
     // ---- biomes ----
     for(let i=0;i<N;i++){const h=height[i],m=moist[i],x=i%W,z=(i/W)|0,cold=1-z/H*.4;let b;
@@ -91,7 +105,7 @@ const IslandGen=(()=>{
     const home=ST?add('village','Заводь',{x:ST.cx,z:ST.cz},ST.r,0,'рыбный промысел у удобного берега; деревня, с которой всё начинается',{home:1,stamp:1}):null;
     // capital: a river mouth or a sheltered coast with fertile land around; a port on its shore
     const cap=best((x,z)=>{const i=I(x,z);return around(x,z,20,fert)*3+(freshD[i]>=0&&freshD[i]<8?1.5:freshD[i]>=0&&freshD[i]<=10?0:-1e9)+(seaD[i]<30&&seaD[i]>18?2:-1)-Math.abs(height[i]-.15)*2;},18,6,4,true);
-    if(!cap)return null;
+    if(!cap){if(opt.dbg)opt.dbg("nocap",river.reduce((a,b)=>a+b,0));return null;}
     const capital=add('capital','Столица королевства',cap,18,6,'устье реки у моря, плодородные поля вокруг',{wealth:4,districts:['дворец','рынок','ремесленники','порт','храм','жилые кварталы','бедный квартал']});
     // the port: nearest sea cell to the capital
     let port=null;{let bd=1e9;for(let z=0;z<H;z++)for(let x=0;x<W;x++){const i=I(x,z);if(land(i)||seaD[i]!==0)continue;let coast=false;for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]])if(inb(x+dx,z+dz)&&land(I(x+dx,z+dz)))coast=true;if(!coast)continue;const d=Math.hypot(x-cap.x,z-cap.z);if(d<bd){bd=d;port={x,z};}}}
@@ -102,7 +116,7 @@ const IslandGen=(()=>{
     // a small binary heap keeps path search fast on a large island
     function heap(){const a=[];return{push(f,k){a.push([f,k]);let i=a.length-1;while(i){const p=(i-1)>>1;if(a[p][0]<=a[i][0])break;[a[p],a[i]]=[a[i],a[p]];i=p;}},
       pop(){const top=a[0],last=a.pop();if(a.length){a[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<a.length&&a[l][0]<a[m][0])m=l;if(r<a.length&&a[r][0]<a[m][0])m=r;if(m===i)break;[a[m],a[i]]=[a[i],a[m]];i=m;}}return top;},get size(){return a.length;}};}
-    const stepCost=i=>{if(!land(i)||lake[i])return 1e9;const bm=biome[i];let c=road[i]?.3:1;if(river[i])c+=8;if(bm===B.SWAMP)c+=3;if(bm===B.FOREST)c+=.6;if(bm===B.HILLS)c+=1.5;if(bm===B.MOUNTAIN)c+=12;if(bm===B.SNOW)c+=40;return c;};
+    const stepCost=i=>{if(!land(i)||lake[i])return 1e9;const bm=biome[i];let c=road[i]?.3:1;if(river[i])c+=8;if(bm===B.SWAMP)c+=3;if(bm===B.FOREST)c+=.6;if(bm===B.HILLS)c+=1.5;if(bm===B.MOUNTAIN)c+=12;if(bm===B.SNOW)c+=40;if(V2)c+=nW((i%W)*.11+5,((i/W)|0)*.11,2)*1.6;return c;};
     function route(a,b){const g=new Float64Array(N).fill(1e9),from=new Int32Array(N).fill(-1),done=new Uint8Array(N),h=heap(),s=I(a.x,a.z),goal=I(b.x,b.z);g[s]=0;h.push(0,s);
       while(h.size){const c=h.pop()[1];if(done[c])continue;done[c]=1;if(c===goal)break;const x=c%W,z=(c/W)|0;
         for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!inb(nx,nz))continue;const k=I(nx,nz),st=stepCost(k);if(st>=1e9)continue;
@@ -134,7 +148,7 @@ const IslandGen=(()=>{
         return (d>=6&&d<=16?3:-4)+(safe?2:-6)+(biome[i]===B.FOREST||biome[i]===B.HILLS?1.5:0)+(freshD[i]>=0&&freshD[i]<16?1:-1e9)+rnd()*.3;},3,20,3);
       if(c)add('bandits','Лагерь разбойников',c,3,20,'рядом с торговой дорогой, вне патрулей');}
     // ---- wild land: a deep forest for wolves, hills for boars, the mountains for a bear ----
-    const wild=(type,n,bio,r,why)=>{const w=best((x,z)=>{const i=I(x,z);return around(x,z,r,k=>bio.includes(biome[k])?1:0)*4+Math.min(3,(rd[i]<0?30:rd[i])/8)+rnd()*.3;},r,4,4);if(w)add(type,n,w,r,4,why);};
+    const wild=(type,n,bio,r,why)=>{const w=best((x,z)=>{const i=I(x,z);if(V2&&around(x,z,2,k=>biome[k]===B.MOUNTAIN||biome[k]===B.SNOW?1:0)>0)return -1e9;return around(x,z,r,k=>bio.includes(biome[k])?1:0)*4+Math.min(3,(rd[i]<0?30:rd[i])/8)+rnd()*.3;},r,4,4);if(w)add(type,n,w,r,4,why);};
     wild('wolves','Логово волков',[B.FOREST],6,'глухой лес вдали от дорог');
     wild('boars','Кабаньи холмы',[B.HILLS,B.FOREST],5,'дубравы на холмах');
     wild('bear','Берлога',[B.MOUNTAIN,B.HILLS],4,'скалы у горного леса');

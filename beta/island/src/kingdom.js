@@ -22,5 +22,5 @@ function crownTick(){for(const g of CROWN_GUARDS){const R=g.post,k=R.exit[0]+','
 setInterval(crownTick,400);setTimeout(crownTick,0);
 // raising a hand against a guard of the crown turns the crown against the hero
 {const was=onFightStart;onFightStart=function(t){was(t);if(t&&t.crownGuard)crownAnger('напали на стражу');};}
-// the capital's shops are closed to an enemy of the crown (side jobs are given in Заводь only)
+// the capital's shops are closed to an enemy of the crown (its jobs close in economy.js)
 {const shop=openShop;openShop=function(a){if(REP.crown&&a.place&&a.place.type==='capital')return say(a.npc,'Не продам. Уходи, пока стражу не позвал.');return shop(a);};}

@@ -28,9 +28,10 @@ console.log('island generator ok · slowest island '+slow+' ms');
  const opt={stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>d(x,z)<1,near:(x,z)=>(x>40||z>45)&&d(x,z)<2.4}};
  const hash=g=>{const h=createHash('sha1');for(const k of ['biome','road','river','lake','bridge'])h.update(Buffer.from(g[k]));h.update(Buffer.from(g.height.buffer));h.update(JSON.stringify(g.places.map(p=>[p.type,p.n,p.x,p.z,p.r,p.wealth])));return h.digest('hex');};
  const v1=G.make('helga',300,220,Object.assign({v:1},opt)),v2=G.make('helga',300,220,opt);
- assert.equal(G.VERSION,2,'new worlds use version 2');assert.equal(v1.v,1);assert.equal(v2.v,2);
+ assert.equal(G.VERSION,2,'new worlds use version 2');assert.equal(v1.v,1);assert.equal(v2.v,2);assert.deepEqual(G.check(v2),[],'version 2 island passes the logic check');
  assert.equal(hash(v1),'a2b810cb15be5eabe6e45c1cdd0abe63afac9d30','version 1 island unchanged');
- assert.equal(hash(v2),hash(v1),'version 2 keeps the same land; only settlements differ');
+ assert.notEqual(hash(v2),hash(v1),'version 2 rivers meander and roads bend: a new world differs, a saved one does not');
+ {let bends=0;for(let z=1;z<v2.H-1;z++)for(let x=1;x<v2.W-1;x++){const i=z*v2.W+x;if(v2.river[i]&&(v2.river[i+1]||v2.river[i-1])&&(v2.river[i+v2.W]||v2.river[i-v2.W]))bends++;}assert.ok(bends>40,'version 2 rivers bend ('+bends+' corners)');}
  // ---- version 2 settlements (settle.js), on a grid built the way main.js builds it ----
  const S=createRequire(import.meta.url)('../beta/island/src/settle.js');
  for(const seed of ['helga','seed-3','seed-7']){const g=seed==='helga'?v2:G.make(seed);const W=g.W,OH=g.H,B=g.B,stampD=seed==='helga'?d:()=>9;

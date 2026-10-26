@@ -84,7 +84,8 @@ document.getElementById('shopClose').onclick=()=>{sfx('click');closeShop();};
 
 // ---------- jobs ----------
 const giverOf=j=>actors.find(a=>a.npc===j.giver);
-const jobsOf=a=>JOBS.filter(j=>j.giver===a.npc);
+// an enemy of the crown gets no work in the capital (kingdom.js)
+const jobsOf=a=>typeof REP!=='undefined'&&REP.crown&&a.place&&a.place.type==='capital'?[]:JOBS.filter(j=>j.giver===a.npc);
 const jobOpen=j=>JOB[j.id].state===0&&JOB[j.id].day<dayN+1&&JOB[j.id].day!==dayN&&(!j.evening||nightness()>.2);
 const spotOf=j=>{const s=SPOTS[j.spot];const [x,z]=Array.isArray(s[0])?s[0]:s;return nearFree(x+1,z,2);};
 function jobOffer(a){const j=jobsOf(a).find(j=>JOB[j.id].state>0)||jobsOf(a)[0];if(!j)return say(a.npc,'Работы для тебя нет.');const st=JOB[j.id];
