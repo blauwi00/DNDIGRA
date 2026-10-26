@@ -570,7 +570,7 @@ for(const a of actors){a.px=a.x+.5;a.pz=a.z+.5;}
 
 // ---------- walking ----------
 // outside a fight the hero slips past friendly folk, so a crowd can never shut him in; enemies always block
-const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z&&!(self===H0&&!CB.on&&!a.enemy));
+const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z&&!(self===H0&&!CB.on&&(!a.enemy||a.calm)));
 function path(sx,sz,tx,tz,self,adjacent=false,limit=900){const key=(x,z)=>x+','+z,prev=new Map([[key(sx,sz),null]]),q=[[sx,sz]];let end=null;
   while(q.length&&prev.size<limit){const[x,z]=q.shift();if(adjacent?Math.abs(x-tx)+Math.abs(z-tz)===1:(x===tx&&z===tz)){end=[x,z];break;}
     for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!free(nx,nz)||occupied(nx,nz,self)||prev.has(key(nx,nz)))continue;prev.set(key(nx,nz),[x,z]);q.push([nx,nz])}}
@@ -610,7 +610,7 @@ canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())ret
   if(CB.on){if(heroTurn())heroMove(tx,tz);else hint.textContent='Сейчас ход противника.';return;}
   groundTap=performance.now();
   ripple(hits.point,!free(tx,tz));if(!free(tx,tz)){hint.textContent='Туда не пройти.';return;}
-  if(at(tx,tz)==='E'){goDo(tx,tz,true,leaveRoom);return;}
+  if(at(tx,tz)==='E'&&!inPlaceAt(tx,tz)){goDo(tx,tz,true,leaveRoom);return;}
   const p=path(H0.x,H0.z,tx,tz,H0,false,3000);if(p&&p.length){H0.route=p;H0.dest=[tx,tz];}else hint.textContent='Не найти дорогу туда.';});
 // hold to walk: keep a finger on the ground and the hero follows it; a tap still walks to the spot.
 // Holding only steers when the press began on open ground (not on a person, door or chest).

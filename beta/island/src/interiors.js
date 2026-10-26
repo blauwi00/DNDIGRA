@@ -191,12 +191,20 @@ function subWay(g,S,y,x,z,back){const up=S.type==='attic'||S.type==='upper',ms=[
   const wood=lam(T.bark,{color:0x7a5a38});
   if(up!==back){for(const sg of[-1,1])add(wood,x+.5+sg*.22,y+.85,z+.3,.07,1.7,.07);for(let k=0;k<6;k++)add(wood,x+.5,y+.2+k*.27,z+.3,.48,.05,.06);}
   else{add(lam(T.p[1],{color:0x5a3e26}),x+.5,y+.03,z+.5,.8,.05,.8);add(lam(T.stone,{color:0x3a3a40}),x+.5,y+.07,z+.7,.16,.03,.05);}
-  blockCell(x,z);
+  blockCell(x,z);if(!back)S.ladder=[x,z];
   interact.push({mesh:ms[0],extra:ms.slice(1),x,z,name:back?(up?'Лестница вниз':'Лестница наверх'):(up?(S.type==='upper'?'Лестница наверх':'Лестница на чердак'):'Люк в подвал'),use(){subGo(S,back,x,z);}});}
 async function subGo(S,back,x,z){if(busy||CB.on)return;busy=true;sfx('creak');
-  if(!back){const P=S.parent;houseShow(P,true);SEE.inKeep=0;room=null;await teleport(S.exit[0],S.exit[1]-1,Math.PI);setRoom(S);S.home=[x,z];}
-  else{const P=S.parent,[hx,hz]=S.home||[P.exit[0],P.exit[1]-1];setRoom(null);const [nx,nz]=nearFree(hx,hz+1,2);await teleport(nx,nz,0);}
-  busy=false;}
+  try{if(!back){const P=S.parent;houseShow(P,true);SEE.inKeep=0;room=null;const [ax,az]=roomCell(S,[S.exit[0],S.exit[1]-1]);await teleport(ax,az,Math.PI);setRoom(S);S.home=[x,z];}
+  else{const P=S.parent;setRoom(null);const [nx,nz]=backCell(P,S.home);await teleport(nx,nz,0);}}
+  finally{busy=false;}}
+// the cells of a room one can walk to from its threshold, never through its walls
+function roomReach(R){const st=R.inside||[R.exit[0],R.exit[1]-1],seen=new Set([st[0]+','+st[1]]),q=[st];
+  while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+a,nz=z+b,k=nx+','+nz;if(seen.has(k)||nx<=R.ox||nz<=R.oz||nx>=R.ox+R.iw-1||nz>=R.oz+R.id-1||!free(nx,nz))continue;seen.add(k);q.push([nx,nz]);}}return seen;}
+// a free cell of the room near a wanted one, from which the way out is open
+function roomCell(R,want){const rs=roomReach(R);let best=null,bd=1e9;for(const k of rs){const [x,z]=k.split(',').map(Number);if(!free(x,z)||occupied(x,z))continue;const d=Math.abs(x-want[0])+Math.abs(z-want[1]);if(d<bd){bd=d;best=[x,z];}}
+  return best||R.inside||[R.exit[0],R.exit[1]-1];}
+// back down a ladder (or up from a cellar): beside the ladder in the house, on a cell that leads to the door
+function backCell(P,home){return roomCell(P,home?[home[0],home[1]+1]:(P.inside||[P.exit[0],P.exit[1]-1]));}
 // a generated room's chests and items remember their state by key, whenever the room gets built
 const PEND={chests:{},looted:{}};
 function roomState(R){for(const it of interact)if(it.key&&it.key.startsWith(R.i+':')&&PEND.chests[it.key]){const c=PEND.chests[it.key];it.items=c.items;if(c.o)it.open();}
@@ -208,17 +216,24 @@ async function teleport(x,z,face){closeWheel();fadeEl.classList.add('on');await 
 // doors swing: the outer one opens with a creak, then the inner one shuts behind you
 // a house far away may not be built right now: its door is then a stand-in
 const outDoor=R=>houseMeshes.find(g=>g.userData.house===R.i)?.userData.door||{pivot:{rotation:{y:0}}};
-async function enterRoom(R){if(busy||CB.on)return;busy=true;rest();H0.face=Math.PI;sfx('door');heroPose('open',600);await swing(outDoor(R),true);await wait(150);
-  await teleport(R.exit[0],R.exit[1]-1,Math.PI);setRoom(R);R.inDoor.pivot.rotation.y=1.45;swing(R.inDoor,false,380).then(()=>sfx('doorclose'));swing(outDoor(R),false,10);busy=false;}
-async function leaveRoom(){if(!room||busy)return;const R=room;busy=true;H0.face=0;sfx('door');heroPose('open',600);await swing(R.inDoor,true);await wait(150);
-  await teleport(R.door[0],R.door[1],0);setRoom(null);outDoor(R).pivot.rotation.y=1.45;swing(outDoor(R),false,380).then(()=>sfx('doorclose'));swing(R.inDoor,false,10);busy=false;}
+async function enterRoom(R){if(busy||CB.on)return;if(R.inPlace){goDo(...(R.inside||[R.exit[0],R.exit[1]-1]),true,()=>{});return;}
+  busy=true;try{rest();H0.face=Math.PI;sfx('door');heroPose('open',600);await swing(outDoor(R),true);await wait(150);
+  const [ix,iz]=roomCell(R,[R.exit[0],R.exit[1]-1]);await teleport(ix,iz,Math.PI);setRoom(R);if(R.inDoor){R.inDoor.pivot.rotation.y=1.45;swing(R.inDoor,false,380).then(()=>sfx('doorclose'));}swing(outDoor(R),false,10);}
+  finally{busy=false;}}
+// out of a room: a house in the world is simply walked out of; a room of its own puts the hero before its door,
+// or on the nearest free cell if someone or something stands there
+async function leaveRoom(){if(!room||busy)return;const R=room;
+  if(R.inPlace){const [x,z]=free(...R.door)?R.door:nearFree(R.door[0],R.door[1],3);goDo(x,z,true,()=>{});return;}
+  busy=true;try{H0.face=0;sfx('door');heroPose('open',600);if(R.inDoor)await swing(R.inDoor,true);await wait(150);
+  const [x,z]=free(...R.door)&&!occupied(...R.door)?R.door:nearFree(R.door[0],R.door[1]+1,4);await teleport(x,z,0);setRoom(null);outDoor(R).pivot.rotation.y=1.45;swing(outDoor(R),false,380).then(()=>sfx('doorclose'));if(R.inDoor)swing(R.inDoor,false,10);}
+  finally{busy=false;}}
 // a house that stands in the world is entered by walking in: its roof and the wall facing the camera lift away,
 // the room is lit and the street outside goes dark and grey, so the room comes first
 const houseOf=R=>houseMeshes.find(g=>g.userData.house===R.i);
 function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&(x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<r.oz+r.id-1||x===r.exit[0]&&z===r.exit[1]))||null;}
 function houseShow(R,on){const g=houseOf(R);if(!g)return;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
 function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),cur=room&&room.inPlace?room:null;
-  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const shut=Rg.guard&&typeof crownLocked==='function'&&crownLocked(Rg);const near=!shut&&(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1));
+  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const shut=Rg.guard&&typeof crownLocked==='function'&&crownLocked(Rg)&&R!==Rg;const near=!shut&&(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1));
     if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
   if(R===cur)return;if(cur)houseShow(cur,true);room=R;
   if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);

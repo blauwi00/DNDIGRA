@@ -17,8 +17,9 @@ function crownRefuse(R){const g=crownGuardOf(R);
 function crownAnger(why){if(REP.crown)return;REP.crown=1;REP.kingdom=Math.min(REP.kingdom,-9);
   toast('Королевство: теперь вы — враг ('+why+'). За вашу голову назначена награда.',4000);for(const g of CROWN_GUARDS)if(!g.dead){g.calm=false;g.wander=4;}}
 // a locked door: its threshold inside is shut while its guard stands and does not let the hero in
-function crownTick(){for(const g of CROWN_GUARDS){const R=g.post,k=R.exit[0]+','+R.exit[1];
-  if(crownLocked(R))solid.add(k);else solid.delete(k);if(REP.crown&&!g.dead&&g.calm){g.calm=false;g.wander=4;}}}
+// A hero already inside (or in the doorway) is never shut in: the threshold stays open for the way out.
+function crownTick(){for(const g of CROWN_GUARDS){const R=g.post,k=R.exit[0]+','+R.exit[1],within=H0.x===R.exit[0]&&H0.z===R.exit[1]||inPlaceAt(H0.x,H0.z)===R;
+  if(crownLocked(R)&&!within)solid.add(k);else solid.delete(k);if(REP.crown&&!g.dead&&g.calm){g.calm=false;g.wander=4;}}}
 setInterval(crownTick,400);setTimeout(crownTick,0);
 // raising a hand against a guard of the crown turns the crown against the hero
 {const was=onFightStart;onFightStart=function(t){was(t);if(t&&t.crownGuard)crownAnger('напали на стражу');};}
