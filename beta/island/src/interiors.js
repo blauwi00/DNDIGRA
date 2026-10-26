@@ -13,7 +13,9 @@ function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   grp.add(heldGroup(id));
   grp.scale.setScalar(1.3);grp.position.set(x,y,z);if(lie!=null)grp.rotation.set(0,lie,Math.PI/2);parent.add(grp);
   const L={n:name,t:text,loot:[[id,n]],meshes:[],item:true,grp};grp.traverse(m=>{if(m.isMesh){L.meshes.push(m);m.userData.look=L;}});looks.push(L);return L;}
-const LOOK={attic:[T.p[1],0x9a8466,T.p[2],0x6a5440],cellar:[T.stone,0x7a7470,T.wall,0x6a6460],house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70]};
+const LOOK={attic:[T.p[1],0x9a8466,T.p[2],0x6a5440],cellar:[T.stone,0x7a7470,T.wall,0x6a6460],house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70],
+  upper:[T.p[1],0xb8a080,T.p[0],0x9a8670],gbarn:[T.dirt,0xc8b090,T.p[1],0x7a6450],temple:[T.stone,0xd8d0c4,T.wall,0xc0b8a8],inn:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],mill:[T.p[1],0xd8d0b8,T.p[0],0x9a8670],
+  tannery:[T.dirt,0x9a8060,T.p[1],0x7a6450],warehouse:[T.p[1],0xb8a080,T.p[1],0x7a6450],barracks:[T.stone,0xa8a098,T.wall,0x9a948c],armory:[T.stone,0x9a948c,T.wall,0x8a8078],treasury:[T.cobble,0xb8a890,T.wall,0x9a948c],chambers:[T.p[3],0xc8a888,T.wall,0xc8b8a0]};
 function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.group=g;const y=R.inPlace?R.y:.3;const lk=LOOK[R.type],floorMat=lam(lk[0],{color:lk[1]}),innerWall=lam(lk[2],{color:lk[3]});
   // a room in its own house: the house gives walls, door and windows, the room only a plank floor
   if(R.inPlace){const fl=part(g,floorMat,R.ox+R.iw/2,y+.02,R.oz+R.id/2,R.iw,.06,R.id);fl.userData.floor=true;pickable.push(fl);}
@@ -39,8 +41,9 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');S(dx,dz,.9*w,.06,.8,lam(T.p[2])).position.y=y+.48;for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
   const candle=(dx,dz)=>{I('Свеча','Воск стекает на стол, пламя дрожит от сквозняка.');part(g,new THREE.MeshLambertMaterial({color:0xe8dcc0}),R.ox+dx+.5,y+.57,R.oz+dz+.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+dx+.5,y+.65,R.oz+dz+.5,.04,.06,.04);I(null);};
   // the way to the door stays clear: nothing stands on the two cells in front of it
-  const doorway=(dx,dz)=>R.ox+dx===R.exit[0]&&R.oz+dz>=R.exit[1]-2;
-  const stool=(dx,dz)=>{if(doorway(dx,dz))dx+=R.ox+dx-1>R.ox?-1:1;I('Табурет','Шатается, но держит.');S(dx,dz,.3,.28,.3,lam(T.p[1]),false);I(null);};
+  const lane=(x,z)=>R.side==='E'?z===R.exit[1]&&x>=R.exit[0]-2&&x<=R.exit[0]:R.side==='W'?z===R.exit[1]&&x<=R.exit[0]+2&&x>=R.exit[0]:x===R.exit[0]&&z>=R.exit[1]-2;R.lane=lane;
+  const doorway=(dx,dz)=>lane(R.ox+dx,R.oz+dz);
+  const stool=(dx,dz)=>{if(doorway(dx,dz)){if(R.side==='E'||R.side==='W')dz+=dz>1?-1:1;else dx+=R.ox+dx-1>R.ox?-1:1;}I('Табурет','Шатается, но держит.');S(dx,dz,.3,.28,.3,lam(T.p[1]),false);I(null);};
   const barrel=(dx,dz,loot)=>{I('Бочка','Пахнет элем и сыростью.',loot);S(dx,dz,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.45,R.oz+dz+.5,.54,.05,.54);I(null);};
   const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);
     part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);I(null);};
@@ -130,6 +133,36 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     itemProp(g,R.ox+4.5,y+.55,R.oz+7.5,'bread',1,'Хлеб','Остался от вчерашнего пира.');
     hearth(2);hearth(w-3);
     I('Жаровня','Угли горят ровно, без дыма.');for(const[x,z]of[[1,d-3],[w-2,d-3]]){S(x,z,.5,.6,.5,M(0x3a3a3e));part(g,glow(0xff9a3a),R.ox+x+.5,y+.66,R.oz+z+.5,.36,.12,.36);}I(null);}
+  // layout 2 buildings: barns, the temple, the port tavern, the mill, the tannery, the warehouse and the castle's rooms.
+  // Each thing is put on the nearest free cell that is not on the way in from the door.
+  const spot=(dx,dz)=>{for(let r=0;r<3;r++)for(let a=-r;a<=r;a++)for(const [ox,oz] of [[a,-r],[a,r],[-r,a],[r,a]]){const x=dx+ox,z=dz+oz;if(x<1||z<1||x>R.iw-2||z>R.id-2)continue;if(doorway(x,z)||!free(R.ox+x,R.oz+z))continue;return [x,z];}return null;};
+  const at_=(dx,dz,f)=>{const c=spot(dx,dz);if(c)f(c[0],c[1]);};
+  if(R.spec||R.type==='upper'){const w=R.iw,d=R.id,cx=Math.floor(w/2);
+    if(R.type==='gbarn'){I('Сено','Сухое, колючее, пахнет летом.');for(const [dx,dz] of [[1,1],[2,1],[1,2]])at_(dx,dz,(x,z)=>{S(x,z,.95,.7,.95,M(0xc8a858));});
+      at_(w-2,1,(x,z)=>{I('Мешки','Зерно нового урожая.');for(let k=0;k<2;k++)part(g,M(0xb8a070),R.ox+x+.3+k*.35,y+.22,R.oz+z+.5,.35,.44,.35);blockCell(R.ox+x,R.oz+z);});
+      I('Вилы','Не оружие, но в крайнем случае…');at_(w-2,2,(x,z)=>{const f=part(g,lam(T.bark),R.ox+x+.5,y+.7,R.oz+z+.3,.05,1.4,.05);f.rotation.z=.2;});I(null);
+      at_(1,d-2,(x,z)=>chest(x,z,[['bread',1+(rnd()<.5?1:0)]],'Ларь с зерном'));}
+    if(R.type==='temple'){I('Алтарь','Белый камень, на нём свечи и чаша с водой.');S(cx,1,1.4,.8,.7,lam(T.wall,{color:0xe0d8c8}));for(const sg of[-1,1])candle(cx+sg,1);I(null);
+      I('Скамья','Гладкая от тех, кто тут сидел.');for(let z=3;z<d-1;z+=2)for(let x=1;x<w-1;x++)if(Math.abs(x-cx)>0&&!doorway(x,z)&&free(R.ox+x,R.oz+z))S(x,z,.9,.35,.4,lam(T.p[2]));I(null);
+      at_(w-2,1,(x,z)=>chest(x,z,[['potion',1],['herb',1]],'Ящик для пожертвований'));}
+    if(R.type==='inn'){I('Стойка','Тут наливают. Пахнет пивом и дымом.');for(let x=1;x<=3;x++)if(!doorway(x,2))S(x,2,1,.9,.6,lam(T.p[1]));I(null);hearth(w-2);
+      table(cx,d-3);at_(cx-1,d-3,(x,z)=>stool(x,z));at_(cx+1,d-3,(x,z)=>stool(x,z));at_(1,d-2,(x,z)=>barrel(x,z,[['bread',1]]));at_(w-2,3,(x,z)=>chest(x,z,[['bread',2],['torch',1]],'Ящик трактирщика'));}
+    if(R.type==='mill'){I('Жернов','Тяжёлый камень, весь в муке.');at_(cx,2,(x,z)=>{S(x,z,1,.35,1,lam(T.stone,{color:0xa8a49c}));part(g,lam(T.stone,{color:0x8a867e}),R.ox+x+.5,y+.45,R.oz+z+.5,.6,.15,.6);});
+      I('Мешки с мукой','Белая пыль на всём.');at_(1,1,(x,z)=>S(x,z,.6,.5,.5,M(0xe0d8c0)));at_(w-2,1,(x,z)=>S(x,z,.6,.5,.5,M(0xe0d8c0)));I(null);at_(1,d-2,(x,z)=>chest(x,z,[['bread',2]],'Ларь мельника'));}
+    if(R.type==='tannery'){I('Чан','Вонючая жижа. Кожи мокнут тут неделями.');for(const [dx,dz] of [[1,1],[3,1]])at_(dx,dz,(x,z)=>{S(x,z,.8,.6,.8,lam(T.p[1],{color:0x6a4a30}));part(g,M(0x5a4a2a),R.ox+x+.5,y+.61,R.oz+z+.5,.7,.02,.7);});
+      I('Шкуры','Растянуты на рамах сушиться.');at_(w-2,1,(x,z)=>{part(g,M(0x9a6a40),R.ox+x+.5,y+.8,R.oz+z+.2,.9,1,.04);blockCell(R.ox+x,R.oz+z);});I(null);at_(1,d-2,(x,z)=>chest(x,z,[['herb',1]],'Ящик кожевника'));}
+    if(R.type==='warehouse'){I('Ящики','Товар с кораблей: ткань, гвозди, соль.');for(const [dx,dz] of [[1,1],[2,1],[w-2,1],[w-3,1],[1,d-2],[w-2,d-2]])at_(dx,dz,(x,z)=>S(x,z,.85,.7,.85,lam(T.crate)));I(null);
+      at_(cx,1,(x,z)=>barrel(x,z,[['torch',1]]));at_(w-2,2,(x,z)=>chest(x,z,[['torch',1],['stone',2]],'Ящик с товаром'));}
+    if(R.type==='barracks'){for(let x=1;x<w-1;x+=2)if(!doorway(x,1)&&!doorway(x,2))bed(x,1);
+      I('Стойка с копьями','Копья стражи, наточены.');at_(w-2,d-2,(x,z)=>{S(x,z,.9,1.2,.3,lam(T.bark));for(let k=0;k<3;k++)part(g,M(0xb8bcc4),R.ox+x+.2+k*.3,y+.9,R.oz+z+.5,.05,1.1,.05);});I(null);
+      at_(1,d-2,(x,z)=>chest(x,z,[['bread',2],['spear',1]],'Сундук стражи'));}
+    if(R.type==='armory'){I('Стойка с оружием','Мечи, топоры и щиты королевской стражи.');for(const [dx,dz] of [[1,1],[2,1],[3,1]])at_(dx,dz,(x,z)=>{S(x,z,.9,1.2,.3,lam(T.bark));for(let k=0;k<3;k++)part(g,M(0xb8bcc4),R.ox+x+.2+k*.3,y+.9,R.oz+z+.5,.06,1,.04);});I(null);
+      at_(1,d-2,(x,z)=>chest(x,z,[['sword_long',1],['shield_kite',1]],'Сундук оружейной'));at_(w-2,d-2,(x,z)=>chest(x,z,[['bow_long',1],['potion',1]],'Ящик с доспехами'));}
+    if(R.type==='treasury'){I('Казна','Окованные сундуки. Ключи у казначея.');for(const [dx,dz] of [[1,1],[w-2,1]])at_(dx,dz,(x,z)=>chest(x,z,[['potion',2],['sword_rapier',1]],'Сундук казны'));
+      at_(cx,d-2,(x,z)=>chest(x,z,[['shield_kite',1],['dagger_curved',1]],'Ларец казны'));I(null);}
+    if(R.type==='chambers'){I('Ложе короля','Широкая кровать под красным пологом.');bed(1,1);part(g,M(0x8e2a24),R.ox+1.5,y+1.4,R.oz+2,.9,.06,2);I(null);rug(1,3,w-3,d-4);
+      at_(w-2,1,(x,z)=>chest(x,z,[['potion',1],['dagger',1]],'Сундук короля'));at_(w-2,d-2,(x,z)=>candle(x,z));}
+    if(R.type==='upper'){bed(1,1);at_(w-2,2,(x,z)=>chest(x,z,rnd()<.5?[['bread',1],['torch',1]]:[['herb',1]],'Сундук'));table(cx,d-3);candle(cx,d-3);rug(2,2,Math.max(1,w-4),Math.max(1,d-5));}}
   // the attic: the roof's slopes inside, hay, old chests and crates; the cellar: barrels, jars, a damp floor.
   // Both have cobwebs in the corners and a spider on its thread.
   if(R.type==='attic'||R.type==='cellar'){const w=R.iw,d=R.id,att=R.type==='attic';
@@ -146,18 +179,18 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
       const th=new THREE.Mesh(BOX,new THREE.MeshBasicMaterial({color:0xe0e0e0,transparent:true,opacity:.5}));th.scale.set(.008,1,.008);sp.add(th);sp.position.set(bx,y+1.2,bz);g.add(sp);
       sp.traverse(m=>{if(m.isMesh&&INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}});SPIDERS.push({sp,th,y0:y+1.2,ph:rnd()*6});}I(null);}
   // in the house itself: the ladder to the attic against the back wall, the hatch to the cellar in the floor
-  if(R.inPlace){const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
+  if(R.inPlace){const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
     if(R.attic){for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
     if(R.cellar){outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
   if(R.gen){looks.slice(lk0).forEach((L,j)=>L.key=R.i+'#'+j);roomState(R);}}
 const SPIDERS=[];function spiderTick(t){for(const s of SPIDERS){if(!s.sp.parent||!s.sp.parent.visible)continue;const k=(Math.sin(t*.5+s.ph)+1)/2;s.sp.position.y=s.y0-k*.5;s.th.position.y=.5+k*.25;s.th.scale.y=.4+k*.5;}}
 // a ladder up or a hatch down; in the attic or cellar the same way leads back into the house
-function subWay(g,S,y,x,z,back){const up=S.type==='attic',ms=[];const add=(m,px,py,pz,sx,sy,sz)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(px,py,pz);o.castShadow=true;g.add(o);ms.push(o);return o;};
+function subWay(g,S,y,x,z,back){const up=S.type==='attic'||S.type==='upper',ms=[];const add=(m,px,py,pz,sx,sy,sz)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(px,py,pz);o.castShadow=true;g.add(o);ms.push(o);return o;};
   const wood=lam(T.bark,{color:0x7a5a38});
   if(up!==back){for(const sg of[-1,1])add(wood,x+.5+sg*.22,y+.85,z+.3,.07,1.7,.07);for(let k=0;k<6;k++)add(wood,x+.5,y+.2+k*.27,z+.3,.48,.05,.06);}
   else{add(lam(T.p[1],{color:0x5a3e26}),x+.5,y+.03,z+.5,.8,.05,.8);add(lam(T.stone,{color:0x3a3a40}),x+.5,y+.07,z+.7,.16,.03,.05);}
   blockCell(x,z);
-  interact.push({mesh:ms[0],extra:ms.slice(1),x,z,name:back?(up?'Лестница вниз':'Лестница наверх'):(up?'Лестница на чердак':'Люк в подвал'),use(){subGo(S,back,x,z);}});}
+  interact.push({mesh:ms[0],extra:ms.slice(1),x,z,name:back?(up?'Лестница вниз':'Лестница наверх'):(up?(S.type==='upper'?'Лестница наверх':'Лестница на чердак'):'Люк в подвал'),use(){subGo(S,back,x,z);}});}
 async function subGo(S,back,x,z){if(busy||CB.on)return;busy=true;sfx('creak');
   if(!back){const P=S.parent;houseShow(P,true);SEE.inKeep=0;room=null;await teleport(S.exit[0],S.exit[1]-1,Math.PI);setRoom(S);S.home=[x,z];}
   else{const P=S.parent,[hx,hz]=S.home||[P.exit[0],P.exit[1]-1];setRoom(null);const [nx,nz]=nearFree(hx,hz+1,2);await teleport(nx,nz,0);}
@@ -180,7 +213,7 @@ async function leaveRoom(){if(!room||busy)return;const R=room;busy=true;H0.face=
 // a house that stands in the world is entered by walking in: its roof and the wall facing the camera lift away,
 // the room is lit and the street outside goes dark and grey, so the room comes first
 const houseOf=R=>houseMeshes.find(g=>g.userData.house===R.i);
-function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<=r.oz+r.id-1)||null;}
+function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&(x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<r.oz+r.id-1||x===r.exit[0]&&z===r.exit[1]))||null;}
 function houseShow(R,on){const g=houseOf(R);if(!g)return;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
 function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),cur=room&&room.inPlace?room:null;
   for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const near=Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1);

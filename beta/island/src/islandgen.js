@@ -5,7 +5,9 @@
 // wild and dangerous land -> camps and ruins -> zone check -> logic check of every place.
 // Pure and deterministic: the same seed always gives the same island. No DOM, no THREE.
 const IslandGen=(()=>{
-  const VERSION=1;
+  // version 2 (2026-10-26): the same land, roads and places as version 1; settlements inside them are laid out
+  // by settle.js (grown streets, plots, walls). A world saved under version 1 keeps the old grid layout.
+  const VERSION=2;
   // ---- seeded randomness ----
   const hashStr=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
   const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
@@ -170,7 +172,7 @@ const IslandGen=(()=>{
     return bad;}
   // a place that fails its logic is rebuilt: the island is laid out again from a derived seed,
   // a bounded number of times, so the same seed still always gives the same island
-  function make(seed='helga',W,H,opt){let last=null;for(let k=0;k<12;k++){const g=generate(k?seed+'#'+k:seed,W,H,opt);if(!g)continue;g.seed=String(seed);g.attempt=k;last=g;if(!check(g).length)return g;}return last;}
+  function make(seed='helga',W,H,opt){let last=null;const v=opt&&opt.v||VERSION;for(let k=0;k<12;k++){const g=generate(k?seed+'#'+k:seed,W,H,opt);if(!g)continue;g.seed=String(seed);g.attempt=k;g.v=v;last=g;if(!check(g).length)return g;}if(last)last.v=v;return last;}
   // the island seen from above: biomes, rivers, roads, bridges, zones and names (any 2D canvas context)
   const BIOME_C=['#173a52','#d8c48a','#7aa04a','#c8b45a','#3f6a2e','#55603a','#8a8a5a','#7a7268','#eef2f4','#2f6a8a'];
   const ICON_C={capital:'#ffd36b',village:'#f2e0b0',works:'#c8b8a0',bandits:'#e0453b',wolves:'#9aa0ab',boars:'#a8784a',bear:'#6a4426',ruins:'#b8a8d8'};

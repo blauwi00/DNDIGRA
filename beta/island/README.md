@@ -27,6 +27,8 @@ Sources (`build.py` glues them into one page; `main.js` has placeholders such as
 |---|---|
 | `main.js` | world grid, generated island layout, houses, walking, camera, frame loop, save |
 | `islandgen.js` | seeded island generator: relief, rivers, roads, places |
+| `settle.js` | layout 2 of the settlements: grown streets, plots with yards, fences and barns, the walled capital with gates, castle, market, temple, port, mill and tannery, fields round every place (pure data; `main.js` draws it). A save made before layout 2 keeps the old grid layout |
+| `kingdom.js` | guards at the castle's closed doors; reputation with the kingdom opens them (never the treasury); attacking a guard makes the crown an enemy (saved) |
 | `interiors.js` | rooms of every building, their furniture and loot |
 | `combat.js` | turn-based fights, companions, morale, experience and levels |
 | `extras.js` | day and night, rendered sound effects, ambience |

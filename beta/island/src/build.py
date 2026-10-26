@@ -1,6 +1,6 @@
 import re,os
 OUT=os.environ.get('OUT','..')  # where island.html goes; the local-three preview is only written for scratch testing
-head=open('head.html').read();stage=open('stage.html').read();models=open('models.js').read();tex=open('tex.js').read()+open('weapons.js').read()+open('islandgen.js').read()+open('beasts.js').read();rig=open('rig.js').read();hands=open('hands.js').read();main=open('main.js').read()
+head=open('head.html').read();stage=open('stage.html').read();models=open('models.js').read();tex=open('tex.js').read()+open('weapons.js').read()+open('islandgen.js').read()+open('settle.js').read()+open('beasts.js').read();rig=open('rig.js').read();hands=open('hands.js').read();main=open('main.js').read()
 head=head.replace('<title>Эталонный кусок острова</title>','<title>Остров Хельги</title>')
 head=head.replace('</style>','''.zone{position:absolute;left:50%;top:16%;transform:translateX(-50%);font-family:var(--display);font-size:clamp(20px,3.4vw,30px);color:#f3e2bd;text-shadow:0 2px 8px #000;opacity:0;pointer-events:none}
 .zone.show{animation:zone 2.6s ease}
@@ -46,7 +46,7 @@ except Exception:n=0
 VERSION='0.%d · %s'%(n,datetime.date.today().strftime('%d.%m.%Y'))
 stage=stage.replace('<canvas id="c"></canvas>','<canvas id="c"></canvas>'+open('ui.html').read().replace('{VERSION}',VERSION),1)
 rig=rig.replace("window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;","window.equipHero=(L,R)=>{const two=TWO.has(L)?L:TWO.has(R)?R:null;hero.userData.held={L:two?null:L,R:two?null:R,two};")
-main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read().replace('{RACES}',open('races.js').read()).replace('{CLASSES}',open('classes.js').read())).replace('{UI}',open('ui.js').read()).replace('{EDITOR}',open('editor.js').read()).replace('{LIFE}','\n'.join(open(f).read() for f in ['villagers.js','town.js','story.js','social.js','worldacts.js','campaign.js','life.js','people.js','folk.js','ending.js'])).replace('{INTRO}',open('intro.js').read()+'\n'+open('settings.js').read()+'\n'+open('economy.js').read()+'\n'+open('legend.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
+main=main.replace('{INTERIORS}',open('interiors.js').read()).replace('{EXTRAS}',open('extras.js').read()).replace('{COMBAT}',open('combat.js').read().replace('{RACES}',open('races.js').read()).replace('{CLASSES}',open('classes.js').read())).replace('{UI}',open('ui.js').read()).replace('{EDITOR}',open('editor.js').read()).replace('{LIFE}','\n'.join(open(f).read() for f in ['villagers.js','town.js','story.js','social.js','worldacts.js','campaign.js','life.js','people.js','folk.js','ending.js','kingdom.js'])).replace('{INTRO}',open('intro.js').read()+'\n'+open('settings.js').read()+'\n'+open('economy.js').read()+'\n'+open('legend.js').read()).replace('{RIG}',rig).replace("setHeld(hero,'L','shield');setHeld(hero,'R','sword');","setHeld(hero,'L','shield');setHeld(hero,'R','sword');hero.userData.held={L:'shield',R:'sword'};",1)
 chars=open('../../../dist/characters.js').read()
 main='window.__chars=1;\n'+main
 # fonts are inlined (SIL Open Font License) so text looks right offline and in the app

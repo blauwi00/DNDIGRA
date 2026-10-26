@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 
-const root = path.resolve(__dirname, '..', 'site', 'island');
+const root = process.env.ISLAND_SITE ? path.resolve(process.env.ISLAND_SITE) : path.resolve(__dirname, '..', 'site', 'island');
 const server = http.createServer((req, res) => {
   const file = path.join(root, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!file.startsWith(root) || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }

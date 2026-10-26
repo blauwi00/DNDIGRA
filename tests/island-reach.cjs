@@ -8,7 +8,7 @@ const http = require('node:http');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
-const root = path.resolve(__dirname, '..', 'site', 'island');
+const root = process.env.ISLAND_SITE ? path.resolve(process.env.ISLAND_SITE) : path.resolve(__dirname, '..', 'site', 'island');
 const server = http.createServer((req, res) => {
   const file = path.join(root, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!file.startsWith(root) || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }
@@ -27,15 +27,21 @@ const server = http.createServer((req, res) => {
     await p.goto('http://127.0.0.1:' + server.address().port + '/');
     await p.waitForFunction(() => typeof ROOMS !== 'undefined' && typeof free === 'function', null, {timeout: 120000});
     const bad = await p.evaluate(() => {
-      for (const R of ROOMS) if (!R.group) buildRoom(R); // every room furnished, so its furniture blocks its cells
+      for (const R of ROOMS) if (!R.group) buildRoom(R);
+      // a room behind a crown guard is shut until the hero is known well enough (or the guard is dead): its door
+      // must be reachable, and inside it everything must be reachable from its threshold once it opens
+      if (typeof crownTick === 'function') crownTick();
+      const locked = (R) => typeof crownLocked === 'function' && crownLocked(R);
+      for (const R of ROOMS) if (locked(R)) solid.delete(R.exit[0] + ',' + R.exit[1]); // every room furnished, so its furniture blocks its cells
       const reach = (sx, sz) => { const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
         while (q.length) { const [x, z] = q.pop(); for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (x + dx) + ',' + (z + dz); if (seen.has(k) || !free(x + dx, z + dz)) continue; seen.add(k); q.push([x + dx, z + dz]); } }
         return seen; };
       const near = (S, x, z) => S.has(x + ',' + z) || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => S.has((x + dx) + ',' + (z + dz)));
       const out = [], world = reach(H0.x, H0.z), inRoom = (x, z) => ROOMS.find((R) => !R.inPlace && x >= R.ox && x < R.ox + R.iw && z >= R.oz && z < R.oz + R.id);
-      const roomSets = new Map();const setOf = (R) => roomSets.get(R) || roomSets.set(R, reach(R.exit[0], R.exit[1] - 1)).get(R);
+      const roomSets = new Map();const inside = (R) => R.inside || [R.exit[0], R.exit[1] - 1];
+      const setOf = (R) => roomSets.get(R) || roomSets.set(R, reach(...inside(R))).get(R);
       const check = (x, z, what) => { const R = inRoom(x, z); if (!near(R ? setOf(R) : world, x, z)) out.push(what + ' at ' + x + ',' + z + (R ? ' in ' + R.name : '')); };
-      for (const R of ROOMS) { if (R.sub) continue; check(...R.door, 'door of ' + R.name); if (R.inPlace) check(R.exit[0], R.exit[1] - 1, 'inside ' + R.name); }
+      for (const R of ROOMS) { if (R.sub) continue; check(...R.door, 'door of ' + R.name); if (R.inPlace) check(...inside(R), 'inside ' + R.name); }
       for (const a of actors) if (a !== H0 && a.npc && !a.hidden && !a.dead) check(a.x, a.z, a.npc);
       for (const it of interact) check(it.x, it.z, it.name || 'thing');
       for (const q of Object.values(Q)) if (q.at && q.state < 3) check(Math.round(q.at.x), Math.round(q.at.z), 'quest place ' + q.title);

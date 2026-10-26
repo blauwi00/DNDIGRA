@@ -8,7 +8,7 @@ const http = require('node:http');
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 
-const root = path.resolve(__dirname, '..', 'site', 'island');
+const root = process.env.ISLAND_SITE ? path.resolve(process.env.ISLAND_SITE) : path.resolve(__dirname, '..', 'site', 'island');
 const types = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.txt': 'text/plain', '.md': 'text/plain'};
 const server = http.createServer((req, res) => {
   const file = path.join(root, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
