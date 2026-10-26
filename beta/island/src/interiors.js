@@ -108,6 +108,71 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     if(R.shop==='store'){I('Ящики с товаром','Факелы, верёвки, гвозди, свечи.');S(1,1,.8,.6,.6,lam(T.crate));S(w-2,1,.8,.6,.6,lam(T.crate));S(w-2,d-2,.7,.5,.6,lam(T.crate));
       I('Бочка','Солёная рыба.');S(1,d-2,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));I(null);}
     I('Свеча','Огарок в глиняной плошке.');part(g,M(0xe8dcc0),R.ox+1.5,y+.75,R.oz+2.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+1.5,y+.83,R.oz+2.5,.04,.06,.04);I(null);}
+  // Layout 3: a dwelling is parted into rooms by plank walls, each with a doorway gap. The hall with the hearth and
+  // the table is where the outer door opens; behind the walls a bedroom, and in bigger houses a pantry and a second
+  // bedroom (a rich house up to four rooms, a hut one or two). Nothing is put where it would cut a room off: every
+  // wall and every piece of furniture is tried first, and kept only if every free cell can still be walked to.
+  else if((R.type==='house'||R.type==='poorhouse')&&R.inPlace&&typeof LAYOUT!=='undefined'&&LAYOUT>=3){const w=R.iw,d=R.id,poor=R.type==='poorhouse',rich=!poor&&(R.wealth>=3||R.spec&&R.spec.ring===0);
+    const K2=(x,z)=>x+','+z,ins=[R.inside[0]-R.ox,R.inside[1]-R.oz],keep=new Set(),acc=[],N4_=[[1,0],[-1,0],[0,1],[0,-1]];R.keepRel=keep;// acc: furniture that must stay reachable
+    const fr=(x,z)=>x>=1&&z>=1&&x<=w-2&&z<=d-2&&free(R.ox+x,R.oz+z);
+    const whole=()=>{let n=0;for(let z=1;z<=d-2;z++)for(let x=1;x<=w-2;x++)if(fr(x,z))n++;const S0=new Set([K2(...ins)]),q=[ins];
+      while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=K2(x+a,z+b);if(S0.has(k)||!fr(x+a,z+b))continue;S0.add(k);q.push([x+a,z+b]);}}return S0.size===n;};
+    const tryBlock=cells=>{const ks=cells.map(([x,z])=>(R.ox+x)+','+(R.oz+z));if(cells.some(([x,z])=>!fr(x,z)||keep.has(K2(x,z))||doorway(x,z)||x===ins[0]&&z===ins[1]))return false;
+      ks.forEach(k=>solid.add(k));if(whole()&&acc.every(cs=>cs.some(([a,b])=>N4_.some(([p,q])=>fr(a+p,b+q)))))return true;ks.forEach(k=>solid.delete(k));return false;};
+    const plank=lam(T.p[1],{color:rich?0xb8a488:0x8a7258}),beam=lam(T.bark,{color:0x5a3e28}),wh=1.25;
+    const wallMesh=(x,z,vert)=>{part(g,plank,R.ox+x+.5,y+wh/2,R.oz+z+.5,vert?.24:1,wh,vert?1:.24);part(g,beam,R.ox+x+.5,y+wh+.04,R.oz+z+.5,vert?.3:1.02,.08,vert?1.02:.3);};
+    const lintel=(x,z,vert)=>{part(g,beam,R.ox+x+.5,y+1.1,R.oz+z+.5,vert?.3:1.02,.12,vert?1.02:.3);part(g,plank,R.ox+x+.5,y+(1.16+wh)/2+.02,R.oz+z+.5,vert?.24:1,wh-1.16,vert?1:.24);};
+    // one wall across a room: vertical at column c or horizontal at row r, over the room's span, with a gap
+    const split=(rm,vert)=>{const lo=vert?rm.x0:rm.z0,hi=vert?rm.x1:rm.z1,cands=[];for(let p=lo+1;p<=hi-1;p++)cands.push(p);
+      // a narrow room of one cell (an alcove for a box bed, a closet) only when nothing wider fits
+      const sc=p=>Math.abs(p-(lo+hi)/2)+(Math.min(p-lo,hi-p)<2?3:0);cands.sort((a,b)=>sc(a)-sc(b));
+      for(const p of cands){const A0=vert?{x0:rm.x0,x1:p-1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:rm.z0,z1:p-1},B0=vert?{x0:p+1,x1:rm.x1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:p+1,z1:rm.z1},H0_=has(A0,ins)?A0:has(B0,ins)?B0:null;
+        if(H0_&&(H0_.x1-H0_.x0<1||H0_.z1-H0_.z0<1))continue;const line=[];for(let t=vert?rm.z0:rm.x0;t<=(vert?rm.z1:rm.x1);t++)line.push(vert?[p,t]:[t,p]);
+        const gaps=line.slice(1,-1).length?line.slice(1,-1):line;gaps.sort((a,b)=>(vert?Math.abs(a[1]-ins[1]):Math.abs(a[0]-ins[0]))-(vert?Math.abs(b[1]-ins[1]):Math.abs(b[0]-ins[0])));
+        for(const gp of gaps){const wall=line.filter(c=>c!==gp);if(!fr(...gp)||doorway(...gp))continue;if(!tryBlock(wall))continue;
+          wall.forEach(([x,z])=>wallMesh(x,z,vert));lintel(gp[0],gp[1],vert);keep.add(K2(...gp));for(const [a,b] of vert?[[1,0],[-1,0]]:[[0,1],[0,-1]])keep.add(K2(gp[0]+a,gp[1]+b));
+          const A=vert?{x0:rm.x0,x1:p-1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:rm.z0,z1:p-1},B2=vert?{x0:p+1,x1:rm.x1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:p+1,z1:rm.z1};return [A,B2];}}
+      return null;};
+    const has=(rm,[x,z])=>x>=rm.x0&&x<=rm.x1&&z>=rm.z0&&z<=rm.z1,area=rm=>(rm.x1-rm.x0+1)*(rm.z1-rm.z0+1);
+    let rooms=[{x0:1,x1:w-2,z0:1,z1:d-2}];const want=poor?(area(rooms[0])>=9?1:0):rich?3:area(rooms[0])>=20?2:1;
+    for(let n=0;n<want;n++){// split the biggest room that can be split; the hall keeps the outer door
+      const order=rooms.slice().sort((a,b)=>area(b)-area(a));let done=false;
+      for(const rm of order){const W_=rm.x1-rm.x0+1,D_=rm.z1-rm.z0+1;for(const vert of W_>=D_?[true,false]:[false,true]){if((vert?W_:D_)<3)continue;const r2=split(rm,vert);if(r2){rooms.splice(rooms.indexOf(rm),1,...r2);done=true;break;}}if(done)break;}
+      if(!done)break;}
+    R.parts=rooms.length;const hall=rooms.find(rm=>has(rm,ins)),others=rooms.filter(rm=>rm!==hall).sort((a,b)=>area(b)-area(a));
+    const cellsOf=rm=>{const L=[];for(let z=rm.z0;z<=rm.z1;z++)for(let x=rm.x0;x<=rm.x1;x++)L.push([x,z]);return L;};
+    // furniture goes on the best cell of a room where it cuts nothing off; `two` also takes the cell south of it
+    const place=(rm,score,fn,two,solidIt=true)=>{for(const [x,z] of cellsOf(rm).sort((a,b)=>score(a)-score(b))){const cs=two?[[x,z],[x,z+1]]:[[x,z]];if(two&&!has(rm,[x,z+1]))continue;
+        if(solidIt?!tryBlock(cs):cs.some(c=>!fr(...c)||keep.has(K2(...c))||doorway(...c)))continue;
+        // whatever stands there must still be reached: a free cell beside it
+        if(solidIt&&!cs.some(([a,b])=>[[1,0],[-1,0],[0,1],[0,-1]].some(([p,q])=>fr(a+p,b+q)))){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));continue;}if(solidIt){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));acc.push(cs);}fn(x,z);return [x,z];}return null;};
+    const wallSide=rm=>([x,z])=>Math.min(z-rm.z0,rm.z1-z,x-rm.x0,rm.x1-x)+(z===1?-.5:0),far=([x,z])=>-(Math.abs(x-ins[0])+Math.abs(z-ins[1]));
+    // a hearth anywhere along a wall, its fire lit
+    const fire=(x,z)=>{I(poor?'Очаг':'Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(x,z,.9,poor?.3:.7,.6,lam(T.wall,{color:poor?0x6a6058:0x8a8278}));if(!poor)part(g,lam(T.wall,{color:0x6a6058}),R.ox+x+.5,y+1.15,R.oz+z+.5,.6,.9,.36);torch(R.ox+x,R.oz+z,true);I(null);};
+    const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff']),1]);}
+    else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword']),1]);if(rich&&rnd()<.3)box.push([pick(['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar']),1]);}
+    // the hall: hearth on a wall far from the door, the table with stools, a barrel by the door, a shelf
+    place(hall,c=>wallSide(hall)(c)*3+far(c)*.2,fire);
+    const t=place(hall,([x,z])=>Math.abs(x-(hall.x0+hall.x1)/2)+Math.abs(z-(hall.z0+hall.z1)/2)+(fr(x,z+1)?0:2),(x,z)=>{table(x,z);candle(x,z);});
+    if(t){for(const [a,b] of [[0,1],[-1,0],[1,0]])if(has(hall,[t[0]+a,t[1]+b])&&fr(t[0]+a,t[1]+b)&&!doorway(t[0]+a,t[1]+b)&&!keep.has(K2(t[0]+a,t[1]+b))){stool(t[0]+a,t[1]+b);if(poor||!rich)break;}}
+    if(!poor)place(hall,c=>wallSide(hall)(c)*2-far(c)*.3,(x,z)=>barrel(x,z,[['bread',1]]));
+    if(!poor&&hall.z0===1)shelf(Math.max(hall.x0,1),Math.max(1,Math.min(3,hall.x1-hall.x0)),rich?'Книги в кожаных переплётах и подсвечник.':'Горшки, миски и моток бечёвки.');
+    if(rich)rug(hall.x0+1,hall.z0+1,Math.max(1,hall.x1-hall.x0-1),Math.max(1,hall.z1-hall.z0-1));
+    // the bedroom(s): a bed along a wall, the chest beside it; in a hut, straw on the floor
+    const bedroom=(rm,main)=>{if(poor){I('Подстилка','Охапка соломы и латаное одеяло.');place(rm,wallSide(rm),(x,z)=>part(g,M(0xb8a060),R.ox+x+.5,y+.06,R.oz+z+.5,.9,.1,.9),false,false);I(null);}
+      else place(rm,c=>wallSide(rm)(c)*2+(c[1]===rm.z0?-1:0),(x,z)=>bed(x,z),true);
+      if(main&&box.length)place(rm,wallSide(rm),(x,z)=>chest(x,z,box,poor?'Старый ящик':rich?'Окованный сундук':'Сундук'));
+      if(rich&&main){I('Картина','Корабль под парусами на закате. Подписано: «Б.».');part(g,M(0x6a4a2a),R.ox+(rm.x0+rm.x1)/2+.5,y+1.2,R.oz+rm.z0+.1,.9,.6,.04);I(null);}};
+    const pantry=rm=>{I('Мешки','Мука, крупа, сушёный горох.');place(rm,wallSide(rm),(x,z)=>S(x,z,.6,.5,.5,M(0xe0d8c0)));I(null);place(rm,wallSide(rm),(x,z)=>barrel(x,z,[['bread',1]]));
+      I('Полка с банками','Варенье, грибы, мутные настойки.');place(rm,wallSide(rm),(x,z)=>{S(x,z,.9,1.1,.3,lam(T.bark));for(let i=0;i<3;i++)part(g,M([0xc85a3a,0x8a6a2a,0x6a9a5a][i]),R.ox+x+.25+i*.25,y+.95,R.oz+z+.5,.14,.18,.14);});I(null);};
+    if(!others.length){// one room: the bed in its far corner
+      if(poor){I('Подстилка','Охапка соломы и латаное одеяло.');place(hall,c=>wallSide(hall)(c)+far(c)*.3,(x,z)=>part(g,M(0xb8a060),R.ox+x+.5,y+.06,R.oz+z+.5,.9,.1,.9),false,false);I(null);if(box.length)place(hall,c=>wallSide(hall)(c)+far(c)*.2,(x,z)=>chest(x,z,box,'Старый ящик'));}
+      else{place(hall,c=>wallSide(hall)(c)+far(c)*.4,(x,z)=>bed(x,z),true);if(box.length)place(hall,c=>wallSide(hall)(c)+far(c)*.2,(x,z)=>chest(x,z,box,rich?'Окованный сундук':'Сундук'));}}
+    others.forEach((rm,i)=>{if(i===0)bedroom(rm,true);else if(i===1&&!poor)pantry(rm);else bedroom(rm,false);});
+    if(!poor&&rnd()<.4&&t)itemProp(g,R.ox+t[0]+.5,y+.55,R.oz+t[1]+.5,'bread',1,'Хлеб','Краюха на столе, ещё мягкая.');
+    // the ladder to the attic and the hatch to the cellar: kept free now, so they always find their place
+    const res2=()=>{for(const rm of [hall,...others]){const c=place(rm,c2=>wallSide(rm)(c2)*2-far(c2)*.2,(x,z)=>{keep.add(K2(x,z));keep.add(K2(x,z+1));},true);if(c){acc.pop();return c;}}return null;};
+    if(R.attic){const c=res2();if(c)R.ladderAt=c;}if(R.cellar){const c=res2();if(c)R.hatchAt=c;}}
   else if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
     const common=['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword'],fine=['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar'];
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(common),1]);}
@@ -192,9 +257,14 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   // in the house itself: the ladder to the attic against the back wall, the hatch to the cellar in the floor
   if(R.inPlace){const inn=new Set(),q=[R.inside||[R.exit[0],R.exit[1]-1]];inn.add(q[0][0]+','+q[0][1]); // cells one can walk to from the door
     while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(x+a)+','+(z+b);if(inn.has(k)||x+a<=R.ox||z+b<=R.oz||x+a>=R.ox+R.iw-1||z+b>=R.oz+R.id-1||!free(x+a,z+b))continue;inn.add(k);q.push([x+a,z+b]);}}
-    const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&inn.has((R.ox+dx)+','+(R.oz+dz))&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
-    if(R.attic){for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
-    if(R.cellar){outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
+    const free_=(dx,dz)=>!(R.keepRel&&R.keepRel.has(dx+','+dz))&&free(R.ox+dx,R.oz+dz)&&inn.has((R.ox+dx)+','+(R.oz+dz))&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
+    // a ladder or hatch may not cut off a part of the room, nor the last free side of a chest or a ladder
+    const mine_=it=>it.x>=R.ox&&it.x<R.ox+R.iw&&it.z>=R.oz&&it.z<R.oz+R.id;
+    const cut=(dx,dz)=>{const k=(R.ox+dx)+','+(R.oz+dz);solid.add(k);const rs=roomReach(R),n=rs.size;solid.delete(k);
+      return n<inn.size-1||interact.some(it=>mine_(it)&&!(it.x===R.ox+dx&&it.z===R.oz+dz)&&![[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>rs.has((it.x+a)+','+(it.z+b))));};
+    const free2=(dx,dz)=>free_(dx,dz)&&!cut(dx,dz);
+    if(R.attic){if(R.ladderAt){R.keepRel.delete(R.ladderAt.join(','));subWay(g,R.attic,y,R.ox+R.ladderAt[0],R.oz+R.ladderAt[1],false);}else for(let dx=1;dx<R.iw-1;dx++)if(free2(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
+    if(R.cellar){if(R.hatchAt){R.keepRel.delete(R.hatchAt.join(','));subWay(g,R.cellar,y,R.ox+R.hatchAt[0],R.oz+R.hatchAt[1],false);}else outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free2(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
   if(R.gen){looks.slice(lk0).forEach((L,j)=>L.key=R.i+'#'+j);roomState(R);}}
 const SPIDERS=[];function spiderTick(t){for(const s of SPIDERS){if(!s.sp.parent||!s.sp.parent.visible)continue;const k=(Math.sin(t*.5+s.ph)+1)/2;s.sp.position.y=s.y0-k*.5;s.th.position.y=.5+k*.25;s.th.scale.y=.4+k*.5;}}
 // a ladder up or a hatch down; in the attic or cellar the same way leads back into the house

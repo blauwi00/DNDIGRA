@@ -81,6 +81,10 @@ const server = http.createServer((req, res) => {
       for (const R of ROOMS.filter((r) => r.guard && r.inPlace)) { const [x, z] = R.inside; H0.x = x; H0.z = z; crownTick();
         if (solid.has(R.exit[0] + ',' + R.exit[1])) out.push('guard shuts the hero in ' + R.name); }
       H0.x = was[0]; H0.z = was[1]; crownTick();
+      // layout 3: a dwelling is not one room (a hut of 3 x 3 cells inside may be), and its doorway gaps and ladders stand free
+      if (LAYOUT >= 3) for (const R of ROOMS.filter((r) => r.inPlace && !r.shop && (r.type === 'house' || r.type === 'poorhouse'))) {
+        if ((R.iw - 2) * (R.id - 2) >= 12 && !(R.parts >= 2)) out.push('one room only: ' + R.name + ' at ' + R.ox + ',' + R.oz);
+        for (const k of R.keepRel || []) { const [x, z] = k.split(',').map(Number); if (x >= 1 && z >= 1 && x <= R.iw - 2 && z <= R.id - 2 && !free(R.ox + x, R.oz + z) && !interact.some((it) => it.x === R.ox + x && it.z === R.oz + z && /Лестница|Люк/.test(it.name))) out.push('doorway blocked in ' + R.name + ' at ' + (R.ox + x) + ',' + (R.oz + z)); } }
       // a calm guard standing in a narrow lane never walls the hero in: the hero steps past him
       for (const g of (typeof CROWN_GUARDS !== 'undefined' ? CROWN_GUARDS : [])) if (g.calm && occupied(g.x, g.z, H0)) out.push('calm guard blocks the way at ' + g.x + ',' + g.z);
       // walking out through the doorway of a house in the world, and down from an attic, end with the game free
