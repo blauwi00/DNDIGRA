@@ -79,3 +79,6 @@ Nothing here is implemented yet; it is the plan to discuss and schedule.
   `claude/affectionate-ritchie-sbvta3` on every push (see `netlify.toml`).
   A phone may show the old page until the tab is fully closed.
 - Private Claude artifact for the owner; the repository is private.
+
+## Спутники — отложено (решение владельца 2026-10-26)
+Спутники (наёмник Сигвальд, стая Седого в бою) пока спрятаны: без сюжетного повода и разновидностей они ломают баланс боя одного героя. Код боя со спутником (кружки спасбросков, перевязка, оживление у травницы, похороны) сохранён, но выключен. Позже — отдельное обновление: разные спутники (человек или другой народ, волк, медведь), каждого получают через свою историю (спас, приручил, заслужил доверие), у каждого свои слабости. Бой сейчас рассчитан на одного героя.
