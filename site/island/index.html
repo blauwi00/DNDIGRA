@@ -171,7 +171,8 @@ button[aria-pressed="true"]{background:#3a2c1a;border-color:var(--ember);color:#
 @keyframes chestIn{from{transform:translate(-50%,-30%) scale(.7);opacity:0}}
 .chestui h4{margin:0 0 8px;color:#f2c14e;font-size:15px;text-shadow:2px 2px 0 #000}.chestui h5{margin:10px 0 6px;font-size:11px;color:#a8987a;font-weight:400}
 .chestui .grid{display:grid;grid-template-columns:repeat(4,44px);gap:6px}.chestui .grid.chest{grid-template-columns:repeat(6,44px)}
-.chestui .carry{display:flex;align-items:center;gap:8px}
+.chestui .carry{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.chestui .side h5{margin:10px 0 6px}.chestui .side.r h5{text-align:right}.chestui .sr{display:flex;align-items:center;gap:6px}
+.chestui .grid.pouch{grid-template-columns:repeat(2,44px)}.inv .grid.pouch{grid-template-columns:repeat(4,44px)}
 .chestui .name{margin-top:8px;font-size:12px;color:#d8c8a6;min-height:1.2em;max-width:420px}
 .chestui .btns{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
 .chestui .btns button{font:inherit;font-size:13px;color:#f0e2c2;background:#3a2a1a;border:0;padding:8px 14px;min-height:38px;box-shadow:inset 0 0 0 2px #b8923e;cursor:pointer}
@@ -193,7 +194,7 @@ body.chest-open .palm{transform:translateY(-26px)!important}
 @keyframes catch{0%{scale:1}40%{scale:1.18}100%{scale:1}}
 .palm.catch{animation:catch .4s ease}
 .held{transition:transform .2s,opacity .2s}
-@media (max-height:440px){.slot{width:34px;height:34px}.slot.hand{width:40px;height:40px}.slot canvas{width:22px;height:22px}.chestui .grid{grid-template-columns:repeat(4,34px);gap:4px}.chestui .grid.chest{grid-template-columns:repeat(6,34px)}
+@media (max-height:440px){.slot{width:34px;height:34px}.slot.hand{width:40px;height:40px}.slot canvas{width:22px;height:22px}.chestui .grid{grid-template-columns:repeat(4,34px);gap:4px}.chestui .grid.chest{grid-template-columns:repeat(6,34px)}.chestui .grid.pouch{grid-template-columns:repeat(2,34px)}.chestui .side h5{margin:4px 0 3px}
   .chestui{padding:8px 10px}.chestui h5{margin:6px 0 4px}.gotcard{top:18%}}
 @media (prefers-reduced-motion:reduce){.palm.holding{animation:none}.gotcard,.gotcard.show{transition:opacity .2s}}
 
@@ -543,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.96 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.100 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3424,8 +3425,8 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Корыто','Вода для закалки. На дне блестит что-то… просто окалина.');S(1,4,.7,.42,.9,M(0x4a3a2a));part(g,glow(0x3a5a7a),R.ox+1.5,y+.43,R.oz+4.5,.6,.02,.8); // quench trough
     I('Уголь','Чёрная куча, пачкает пальцы.');S(6,1,.8,.3,.6,M(0x1a1a1c));I(null);
     I('Стойка с мечами','Горан не продаёт их: «Сначала докажи, что достоин».');['sword_long','sword_scimitar','sword_rapier','morningstar','halberd'].forEach((w,i)=>{const it=heldGroup(w);it.scale.setScalar(1.25);it.position.set(R.ox+5.15+i*.36,y+.4,R.oz+1.08);g.add(it);});part(g,lam(T.p[2]),R.ox+6,y+.32,R.oz+1.1,1.9,.06,.14);
-    part(g,lam(T.p[2]),R.ox+6.1,y+1.45,R.oz+1.1,1.8,.06,.12);I(null);chest(7,4,[['sword_short',1],['axe_hand',1],['potion',1]],'Сундук кузнеца');}
-  if(R.type==='home'){hearth(5);bed(1,2);table(3,4);stool(2,4);candle(3,4);barrel(6,4);chest(6,3,[['bread',1],['stone',2],['trident',1]],'Сундук рыбака');
+    part(g,lam(T.p[2]),R.ox+6.1,y+1.45,R.oz+1.1,1.8,.06,.12);I(null);chest(7,4,[['torch',1],['stone',3]],'Сундук кузнеца');}
+  if(R.type==='home'){hearth(5);bed(1,2);table(3,4);stool(2,4);candle(3,4);barrel(6,4);chest(6,3,[['bread',1],['stone',2],['fish',1]],'Сундук рыбака');
     I('Сеть','Старая сеть, вся в узлах и чешуе.');
     for(let i=0;i<6;i++)part(g,M(0x3a3a30),R.ox+1.2+i*.3,y+1.1,R.oz+1.08,.03,.9,.02);for(let j=0;j<4;j++)part(g,M(0x3a3a30),R.ox+1.95,y+.75+j*.22,R.oz+1.08,1.6,.03,.02); // net
     I('Вяленая рыба','Солёная и жёсткая. Вы отламываете кусок в дорогу.',[['bread',1]]);    for(let i=0;i<3;i++){part(g,M(0x9ab0b8),R.ox+3.1+i*.3,y+1.15,R.oz+1.12,.08,.26,.05);}part(g,lam(T.bark),R.ox+3.4,y+1.32,R.oz+1.12,.9,.04,.04); // drying fish
@@ -3435,13 +3436,13 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Кресло старосты','Высокая спинка, резные рыбы на подлокотниках.');S(2,3,.5,.32,.5,lam(T.p[1]));part(g,lam(T.p[1]),R.ox+2.3,y+.75,R.oz+3.5,.08,.8,.5); // the elder's chair
     I('Знамя острова','Золотая рыба на алом поле — герб Хельги.');    part(g,M(0x8a2a24),R.ox+4.5,y+1.15,R.oz+1.07,.9,1.1,.03);part(g,M(0xd0a94a),R.ox+4.5,y+1.2,R.oz+1.09,.3,.3,.02);part(g,lam(T.bark),R.ox+4.5,y+1.72,R.oz+1.1,1.1,.05,.05); // banner
     I('Книжный шкаф','Летопись острова: «В год, когда погас огонь часовни, мёртвые поднялись из земли…»');S(1,1,.9,1.5,.4,lam(T.p[2]));for(let j=0;j<3;j++)for(let i=0;i<5;i++)part(g,M([0x7a4a2a,0x4a5a8a,0x8a3a2a,0x5a6a3a][(i+j)%4]),R.ox+1.15+i*.17,y+.35+j*.45,R.oz+1.3,.12,.3,.2);
-    I(null);chest(7,4,[['potion',1],['bread',2],['shield_kite',1]],'Сундук старосты');itemProp(g,R.ox+4.5,y+.55,R.oz+3.5,'potion',1,'Зелье лечения','Стоит на карте острова, как пресс-папье.');}
+    I(null);chest(7,4,[['bread',2],['torch',1]],'Сундук старосты');itemProp(g,R.ox+4.5,y+.55,R.oz+3.5,'potion',1,'Зелье лечения','Стоит на карте острова, как пресс-папье.');}
   if(R.type==='barn'){torch(R.ox+5,R.oz+5);I('Сено','Мягкое и колючее. Пахнет летом.');for(const [dx,dz,h] of [[1,1,.8],[2,1,.6],[1,2,.5]]){S(dx,dz,.95,h,.95,M(0xc8a858));part(g,M(0xd8b868),R.ox+dx+.5,y+h+.04,R.oz+dz+.5,.7,.08,.7);}
     I('Телега','Одно колесо скрипит.');S(4,3,1,.3,.8,lam(T.p[1]));for(const sx of [-1,1])part(g,M(0x4a3020),R.ox+4.5+sx*.52,y+.25,R.oz+3.5,.06,.5,.5); // cart
     I('Вилы','Острые. Не оружие, но в крайнем случае…');const f=part(g,lam(T.bark),R.ox+5.7,y+.75,R.oz+1.3,.05,1.4,.05);f.rotation.z=.2;I('Мешки','Мука с мельницы Тодора.');
     for(let i=0;i<3;i++)S(5-i%2,2+(i>1?0:0),.4,.45,.4,M(0xb8a070),false).position.set(R.ox+4.6+i*.35,y+.22,R.oz+1.6);blockCell(R.ox+4,R.oz+1);blockCell(R.ox+5,R.oz+1);
-    I(null);chest(1,4,[['bread',3],['stone',2],['quarterstaff',1]],'Ларь с зерном');itemProp(g,R.ox+4.5,y+.4,R.oz+3.5,'bread',1,'Хлеб','Кто-то забыл обед на телеге.');}
-  if(R.type==='herb'){hearth(4);bed(1,3);table(4,3);candle(4,3);chest(5,2,[['potion',2]],'Шкатулка травницы');
+    I(null);chest(1,4,[['bread',3],['stone',2]],'Ларь с зерном');itemProp(g,R.ox+4.5,y+.4,R.oz+3.5,'bread',1,'Хлеб','Кто-то забыл обед на телеге.');}
+  if(R.type==='herb'){hearth(4);bed(1,3);table(4,3);candle(4,3);chest(5,2,[['potion',1],['herb',1]],'Шкатулка травницы');
     I('Котёл','Зелье булькает зелёным. Лучше не трогать.');
     S(2,2,.6,.4,.6,M(0x1e1e22));part(g,glow(0x5adf7a),R.ox+2.5,y+.41,R.oz+2.5,.5,.02,.5); // cauldron
     I('Пучки трав','Мята, полынь, болотный зверобой.');    for(let i=0;i<7;i++)part(g,M([0x5a8a4a,0x7a9a3a,0x8a6a9a][i%3]),R.ox+1.3+i*.55,y+1.55,R.oz+1.1,.12,.28,.06);part(g,lam(T.bark),R.ox+3,y+1.72,R.oz+1.1,4,.04,.04);
@@ -3463,7 +3464,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   else if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
     const common=['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword'],fine=['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar'];
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(common),1]);}
-    else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(common),1]);if(rich&&rnd()<.3)box.push([pick(fine),1]);}
+    else{box.push([pick(['bread','torch','herb','stone']),1+Math.floor(rnd()*2)]);if(rnd()<.15)box.push(['potion',1]);if(rnd()<(rich?.12:.06))box.push([pick(common),1]);if(rich&&rnd()<.06)box.push([pick(fine),1]);}
     if(box.length)chest(w-2,poor?2:3,box,poor?'Старый ящик':rich?'Окованный сундук':'Сундук');
     if(!poor&&rnd()<.4)itemProp(g,R.ox+2.5,y+.55,R.oz+d-1.5,'bread',1,'Хлеб','Краюха на столе, ещё мягкая.');
     if(poor){I('Подстилка','Охапка соломы и латаное одеяло.');part(g,M(0xb8a060),R.ox+1.5,y+.06,R.oz+2,.9,.1,1.6);I('Очаг','Сложен из камней прямо на полу. Дымит.');S(w-2,1,.7,.25,.7,lam(T.wall,{color:0x6a6058}));part(g,glow(0xff8a3a),R.ox+w-1.5,y+.3,R.oz+1.5,.3,.1,.3);
@@ -3765,43 +3766,43 @@ setInterval(()=>{if(typeof H0==='undefined'||paused||CB.on||H0.dead)return;if(RA
 // cantrips that are always available, and its once-or-twice-per-rest abilities.
 const CLASSES={
   fighter:{n:'Воин',role:'тактик с оружием',hp:20,ac:13,speed:6,melee:5,mb:3,ranged:3,rb:1,spell:1,stealth:1,athletics:5,dex:1,
-    kits:[{n:'Меч и щит',L:'shield',R:'sword'},{n:'Длинный меч',L:'shield_round',R:'sword_long'},{n:'Копьё',L:null,R:'spear'},{n:'Двуручный молот',L:'warhammer',R:null},{n:'Алебарда',L:'halberd',R:null}],look:{g:'fighter',p:{}},
+    kits:[{n:'Меч',L:null,R:'sword'},{n:'Копьё',L:null,R:'spear'},{n:'Топорик и щит',L:'shield_round',R:'axe_hand'}],look:{g:'fighter',p:{}},
     about:'Мастер оружия. Второе дыхание: бонусом лечит 1к10 + 2 раз до отдыха. Толчком сбивает врагов с ног.'},
   barbarian:{n:'Варвар',role:'ярость и мощь',hp:24,ac:13,speed:6,melee:5,mb:3,ranged:2,rb:1,spell:0,stealth:0,athletics:6,dex:1,
-    kits:[{n:'Секира',L:'greataxe',R:null},{n:'Двуликая секира',L:'greataxe_double',R:null},{n:'Топорик и щит',L:'shield_round',R:'axe_hand'}],look:{g:'fighter',p:{outfit:'leather',cape:'none',marks:['warpaint'],headgear:'none'}},
+    kits:[{n:'Секира',L:'greataxe',R:null},{n:'Топорик',L:null,R:'axe_hand'}],look:{g:'fighter',p:{outfit:'leather',cape:'none',marks:['warpaint'],headgear:'none'}},
     about:'Ярость (бонус, 2 раза до отдыха): +2 к урону вблизи и вдвое меньше урона до конца боя.'},
   bard:{n:'Бард',role:'слово и песня',hp:16,ac:13,speed:6,melee:4,mb:2,ranged:4,rb:2,spell:5,stealth:3,athletics:1,dex:2,
-    kits:[{n:'Рапира',L:null,R:'sword_rapier'},{n:'Кинжал',L:null,R:'dagger'}],look:{g:'rogue',p:{outfit:'vest',cape:'short',accessories:['earring'],headgear:'cap'}},
+    kits:[{n:'Кинжал',L:null,R:'dagger'},{n:'Топорик',L:null,R:'axe_hand'}],look:{g:'rogue',p:{outfit:'vest',cape:'short',accessories:['earring'],headgear:'cap'}},
     cantrips:[{n:'Насмешка',die:6,range:6,save:'wis',effect:'distract'}],
     about:'Язвительная насмешка ранит словом и сбивает врага. Вдохновение (бонус, 2 раза): следующая атака с преимуществом.'},
   cleric:{n:'Жрец',role:'вера и свет',hp:18,ac:14,speed:6,melee:4,mb:2,ranged:2,rb:0,spell:4,stealth:0,athletics:3,dex:0,
-    kits:[{n:'Булава и щит',L:'shield',R:'mace'},{n:'Моргенштерн',L:'shield_round',R:'morningstar'}],look:{g:'cleric',p:{}},cantrips:[{n:'Священное пламя',die:8,range:6,save:'dex'}],
+    kits:[{n:'Булава',L:null,R:'mace'},{n:'Булава и щит',L:'shield',R:'mace'}],look:{g:'cleric',p:{}},cantrips:[{n:'Священное пламя',die:8,range:6,save:'dex'}],
     about:'Священное пламя бьёт без броска атаки. Лечащее слово (бонус, 2 раза): 1к4 + 3.'},
   druid:{n:'Друид',role:'сила природы',hp:16,ac:12,speed:6,melee:3,mb:1,ranged:2,rb:0,spell:5,stealth:2,athletics:1,dex:1,
-    kits:[{n:'Посох друида',L:'staff_druid',R:null},{n:'Боевой шест',L:'quarterstaff',R:null}],look:{g:'wizard',p:{outfit:'mantle',cloth:'#2d4f2c',headgear:'circlet',gem:'#4fd08a'}},
+    kits:[{n:'Посох',L:'staff',R:null},{n:'Боевой шест',L:'quarterstaff',R:null}],look:{g:'wizard',p:{outfit:'mantle',cloth:'#2d4f2c',headgear:'circlet',gem:'#4fd08a'}},
     about:'Посох бросает Искру. Опутывание (раз до отдыха): лозы валят врага, по нему бьют с преимуществом.'},
   monk:{n:'Монах',role:'кулак и дух',hp:16,ac:15,speed:7,melee:5,mb:3,ranged:3,rb:1,spell:1,stealth:4,athletics:4,dex:3,unarmed:6,
     kits:[{n:'Голые руки',L:null,R:null},{n:'Боевой шест',L:'quarterstaff',R:null}],look:{g:'cleric',p:{outfit:'monk',hairStyle:'bald',accessories:['bracers']}},
     about:'Боевые искусства: удар рукой 1к6. Шквал ударов (бонус, 2 раза): ещё один удар. Быстрее всех на ногу.'},
   paladin:{n:'Паладин',role:'клятва и кара',hp:20,ac:14,speed:6,melee:5,mb:3,ranged:2,rb:0,spell:3,stealth:0,athletics:4,dex:0,
-    kits:[{n:'Длинный меч и щит',L:'shield_kite',R:'sword_long'},{n:'Молот',L:'warhammer',R:null}],look:{g:'fighter',p:{outfit:'knight',cape:'long',capeColor:'#e6dcc4',trim:'#d0a94a'}},
+    kits:[{n:'Меч',L:null,R:'sword'},{n:'Булава и щит',L:'shield',R:'mace'}],look:{g:'fighter',p:{outfit:'knight',cape:'long',capeColor:'#e6dcc4',trim:'#d0a94a'}},
     about:'Божественная кара (2 раза): удар с +2к8 света. Наложение рук (раз до отдыха): лечит 2к4 + 4.'},
   ranger:{n:'Следопыт',role:'след и лук',hp:18,ac:14,speed:6,melee:4,mb:2,ranged:5,rb:3,spell:1,stealth:5,athletics:3,dex:3,
-    kits:[{n:'Длинный лук',L:'bow_long',R:null,bag:['sword_short']},{n:'Лук',L:'bow',R:null,bag:['dagger']},{n:'Два клинка',L:'dagger',R:'sword_short',bag:['bow_short']}],look:{g:'rogue',p:{outfit:'leathers',headgear:'hood',cape:'short',cloth:'#3f6b3b'}},
+    kits:[{n:'Лук',L:'bow',R:null,bag:['dagger']},{n:'Топорик и кинжал',L:'dagger',R:'axe_hand'}],look:{g:'rogue',p:{outfit:'leathers',headgear:'hood',cape:'short',cloth:'#3f6b3b'}},
     about:'Меткий стрелок. Метка охотника (бонус, на бой): +1к6 к урону по отмеченной цели.'},
   rogue:{n:'Плут',role:'тень и клинок',hp:16,ac:14,speed:6,melee:5,mb:3,ranged:5,rb:3,spell:1,stealth:7,athletics:2,dex:3,
-    kits:[{n:'Кинжал и лук',L:null,R:'dagger_curved',bag:['bow_short']},{n:'Ятаган',L:'dagger',R:'sword_scimitar'}],look:{g:'rogue',p:{}},
+    kits:[{n:'Кинжал',L:null,R:'dagger'},{n:'Топорик',L:null,R:'axe_hand'}],look:{g:'rogue',p:{}},
     about:'Скрытая атака: +2к6 урона при преимуществе. Рывок: бонусом ещё 6 клеток.'},
   sorcerer:{n:'Чародей',role:'магия в крови',hp:14,ac:12,speed:6,melee:2,mb:0,ranged:2,rb:0,spell:5,stealth:2,athletics:0,dex:2,
-    kits:[{n:'Посох углей',L:'staff_ember',R:null},{n:'Кинжал',L:null,R:'dagger'}],look:{g:'wizard',p:{outfit:'scholar',cloth:'#b0452f',cloth2:'#6a2330',gem:'#e0475a',eyes:'sparkle'}},
+    kits:[{n:'Посох',L:'staff',R:null},{n:'Кинжал',L:null,R:'dagger'}],look:{g:'wizard',p:{outfit:'scholar',cloth:'#b0452f',cloth2:'#6a2330',gem:'#e0475a',eyes:'sparkle'}},
     cantrips:[{n:'Огненный снаряд',die:10,range:8}],
     about:'Огненный снаряд на 8 клеток. Волшебная стрела (2 раза): три снаряда без промаха.'},
   warlock:{n:'Колдун',role:'договор с силой',hp:16,ac:12,speed:6,melee:3,mb:1,ranged:2,rb:0,spell:5,stealth:3,athletics:1,dex:2,
-    kits:[{n:'Костяной кинжал',L:null,R:'dagger_bone'},{n:'Костяной посох',L:'staff_bone',R:null}],look:{g:'wizard',p:{outfit:'robe',cloth:'#2a2a30',gem:'#a86bf0',headgear:'hood',eye:'#6a3fa0'}},
+    kits:[{n:'Посох',L:'staff',R:null},{n:'Кинжал',L:null,R:'dagger'}],look:{g:'wizard',p:{outfit:'robe',cloth:'#2a2a30',gem:'#a86bf0',headgear:'hood',eye:'#6a3fa0'}},
     cantrips:[{n:'Мистический заряд',die:10,range:8}],
     about:'Мистический заряд на 8 клеток. Порча (бонус, на бой): +1к6 к урону по проклятой цели.'},
   mage:{n:'Волшебник',role:'книга и посох',hp:14,ac:12,speed:6,melee:2,mb:0,ranged:2,rb:0,spell:5,stealth:2,athletics:0,dex:2,
-    kits:[{n:'Посох',L:'staff',R:null},{n:'Лунный посох',L:'staff_moon',R:null}],look:{g:'wizard',p:{}},
+    kits:[{n:'Посох',L:'staff',R:null},{n:'Боевой шест',L:'quarterstaff',R:null}],look:{g:'wizard',p:{}},
     about:'Искра из посоха на 6 клеток. Магическая стрела (2 раза до отдыха): три снаряда без промаха.'}};
 const CLASS_ORDER=['fighter','barbarian','paladin','monk','ranger','rogue','bard','cleric','druid','sorcerer','warlock','mage'];
 for(const k in CLASSES)CLASSES[k].start=[CLASSES[k].kits[0].L,CLASSES[k].kits[0].R];
@@ -3885,7 +3886,7 @@ async function attack(att,def,opt){if(def.dead)return;CB.hitRound=CB.round;att.f
   // rogue: sneak attack once per turn when attacking with advantage
   const sneak=isHero&&HERO.cls==='rogue'&&adv.v>0&&!CB.sneakUsed&&opt.kind!=='spell'?2:0;if(sneak&&res.ok)CB.sneakUsed=true;
   // class riders: rage, smite, hunter's mark and hex
-  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);if(CB.might&&opt.kind==='melee'){CB.might=false;extra.push([1,8,'сила великана']);}if(wr&&wr.vs&&def.name===wr.vs[0])extra.push([1,wr.vs[1],'упокоение']);if(wr&&wr.plus)extra.push([1,wr.plus,'руны']);}
+  const extra=[];if(isHero&&res.ok){if(sneak)extra.push([2,6,'скрытая']);if(opt.smite)extra.push([2,8,'кара']);if(CB.mark===def)extra.push([1,6,CB.markName]);if(CB.might&&opt.kind==='melee'){CB.might=false;extra.push([1,8,'сила великана']);}if(wr&&wr.vs&&(def.kind||def.name)===wr.vs[0])extra.push([1,wr.vs[1],'упокоение']);if(wr&&wr.plus)extra.push([1,wr.plus,'руны']);}
   if(isHero&&CB.rage&&opt.kind==='melee')opt=Object.assign({},opt,{b:opt.b+2});
   let dmg=0;if(res.ok)dmg=await rollDamage(opt,res.crit,extra);
   if(dmg)await knock(def,att,dmg,isHero?'#ffd27a':'#ff7d6e');else{sfx('miss');floatText('Промах','#cfc6b4',def.o);}if(back)await back();
@@ -3898,14 +3899,14 @@ function hurt(def,dmg,att,kind){if(CB.on&&dmg>0)CB.hitRound=CB.round;if(def===H0
     if(R.stone&&SP.stone&&dmg>=5){SP.stone=0;const r=d(12)+2;dmg=Math.max(0,dmg-r);floatText('Каменная стойкость −'+r,'#c8c8d0',hero);}
     H0.hp-=dmg;if(H0.hp<=0&&R.relentless&&SP.relentless){SP.relentless=0;H0.hp=1;floatText('Неукротимость!','#ff9a6a',hero);}
     setHP();if(R.rebuke&&SP.rebuke&&att&&att!==H0&&!att.dead){SP.rebuke=0;const f=d(6)+d(6);setTimeout(()=>{floatText('Адский огонь -'+f,'#ff7a3a',att.o);sfx('spell');hurt(att,f,H0,'fire');},450);}
-    if(H0.hp<=0)knockOut();}else if(def.ally){def.hp-=dmg;if(def.hp<=0)allyDown(def);}else{def.hp-=dmg;if(def.hp<=0)kill(def);else morale(def);}}
+    if(H0.hp<=0)knockOut();}else if(def.ally){def.hp-=dmg;if(def.hp<=0)allyDown(def);}else if(def.defender){def.hp-=dmg;if(def.hp<=0)defenderFall(def);}else{def.hp-=dmg;if(def.hp<=0)kill(def);else morale(def);}}
 // cantrips that call for a saving throw: no attack roll, the target resists
 async function saveSpell(def,opt){const ab={wis:def.wis||0,dex:def.dex||0,str:def.ath||0}[opt.save]||0,dc=8+HERO.spell;
   const res=await roll20(def.name+': спасбросок ('+({wis:'Мудрость',dex:'Ловкость',str:'Сила'})[opt.save]+') · '+opt.n,ab,dc);await projectile(H0,def,'spell');
   if(!res.ok){const dmg=await rollDamage(opt,false,[]);await knock(def,H0,dmg,'#ffd27a');if(opt.effect==='distract'){def.distracted=true;floatText('Сбит с толку','#9fc3cf',def.o);}def.aware=true;hurt(def,dmg,H0);}
   else{floatText('Устоял','#cfc6b4',def.o);def.aware=true;}rollDone();}
 function setHP(){hpf.style.width=Math.max(0,H0.hp/H0.max*100)+'%';hpl.textContent=H0.name+' · '+HERO.n+(typeof LV!=='undefined'&&LV.lv>1?' '+LV.lv+' ур.':'')+' · '+Math.max(0,H0.hp)+' / '+H0.max;}
-function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);gainXP(xpOf(e));if(e.boss&&CB.on)setTimeout(()=>liveFoes().forEach(flee),700);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
+function kill(e){sfx('death');e.dead=true;e.route=null;questKill(e);if(e.home&&typeof lairDrop==='function')lairDrop(e);gainXP(xpOf(e));if(e.boss&&CB.on)setTimeout(()=>liveFoes().forEach(flee),700);tween(600,k=>{e.o.rotation.z=k*1.4;e.sink=k*.12});setTimeout(()=>{e.o.visible=false},1800);
   floatText(e.name+' повержен','#f2c14e',e.o);groupMorale();}
 
 // ---------- tricks ----------
@@ -3973,7 +3974,7 @@ const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+
 
 // ---------- turns ----------
 const heroTurn=()=>CB.on&&CB.order[CB.i]===H0;
-async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;if(typeof onFightStart==='function')onFightStart(trigger);CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
+async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.dead)return;if(typeof scaleNear==='function')scaleNear(trigger.x,trigger.z,12);if(typeof onFightStart==='function')onFightStart(trigger);CB.on=true;H0.route=null;H0.arrive=null;H0.sneak=false;H0.spd=2.4;closeWheel();
   const mates=ALLIES.filter(a=>!a.down&&a.state!=='hurt'&&man(a,H0)<=12);for(const a of mates){a.route=null;a.inFight=true;}
   // encounter budget: about 50 experience of foes per hero level and 25 per companion start the fight; the rest of the group comes later, after a shout
   const near=enemies.filter(e=>e!==trigger&&!e.dead&&!e.inFight&&!e.calm&&e.o.visible&&Math.hypot(e.x-trigger.x,e.z-trigger.z)<=8).sort((a,b)=>man(a,trigger)-man(b,trigger));
@@ -3991,12 +3992,12 @@ async function startCombat(trigger,surprise=false,heroFirst=false){if(CB.on||H0.
   if(!heroFirst){await wait(1100);nextTurn();}}
 // a foe who sees the fight shouts first and joins a round later, so a crowd never appears out of nowhere
 function shout(e){if(e.dead)return;sfx('notice');floatText('Сюда!','#ff9a4a',e.o);}
-function callIn(e){if(CB.order.includes(e)||CB.pending.some(p=>p.e===e))return;e.inFight=true;e.aware=true;e.route=null;CB.pending.push({e,r:CB.round+1});shout(e);toast(e.name+' заметил бой и зовёт своих.');}
+function callIn(e){if(CB.order.includes(e)||CB.pending.some(p=>p.e===e))return;if(typeof scaleFoe==='function')scaleFoe(e);e.inFight=true;e.aware=true;e.route=null;CB.pending.push({e,r:CB.round+1});shout(e);toast(e.name+' заметил бой и зовёт своих.');}
 function joinPending(all){CB.pending=(CB.pending||[]).filter(p=>{if(p.e.dead)return false;if(all||p.r<=CB.round){joinFight(p.e);return false;}return true;});}
 function joinFight(e){if(CB.order.includes(e))return;e.inFight=true;e.aware=true;e.route=null;CB.order.push(e);floatText('!','#ff5a4a',e.o);renderOrder();}
 function banner(t){const z=document.getElementById('zone');z.textContent=t;z.classList.remove('show');void z.offsetWidth;z.classList.add('show');}
 function liveFoes(){return CB.order.filter(a=>a.enemy&&!a.dead);}
-function endCombat(text){CB.pending=[];H0.diseng=false;CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
+function endCombat(text){if(typeof defendersReset==='function')defendersReset();CB.pending=[];H0.diseng=false;CB.fangUsed=false;CB.blockUsed=false;CB.rage=false;CB.might=false;CB.mark=null;CB.shell=false;CB.boost=null;CB.on=false;document.body.classList.remove('fight');CB.order=[];clearMoves();closeWheel();renderOrder();
   for(const e of enemies){e.inFight=false;e.shot=false;e.surprised=false;e.distracted=false;if(e.prone){e.prone=false;e.lean=0;}}
   // after the fight: one still dying rolls its saves out, a stable one gets up with a quarter of its health
   for(const a of ALLIES){a.inFight=false;if(a.state==='down')resolveSaves(a);if(a.state==='stable')raiseAlly(a,Math.ceil(a.max/4),' приходит в себя');}if(text){banner(text);toast(text);}}
@@ -4009,6 +4010,7 @@ async function nextTurn(){if(!CB.on||H0.dead)return;if(!foesLeft())return victor
   if(a===H0){CB.move=HERO.speed;CB.acted=false;CB.bonus=false;CB.sneakUsed=false;renderOrder();showMoves();return;}
   renderOrder();clearMoves();await wait(450);
   if(a.surprised){a.surprised=false;floatText('Застигнут врасплох','#9fc3cf',a.o);await wait(900);return nextTurn();}
+  if(a.defender){if(a.down)return nextTurn();await allyTurn(a);if(H0.dead||!CB.on)return;if(!foesLeft())return victory();await wait(300);return nextTurn();}
   if(a.ally){if(a.state==='down'){await deathSave(a);return nextTurn();}if(a.down)return nextTurn();await allyTurn(a);if(H0.dead||!CB.on)return;if(!foesLeft())return victory();await wait(300);return nextTurn();}
   await enemyTurn(a);if(H0.dead||!CB.on)return;await wait(350);nextTurn();}
 function afterHeroAct(){if(!CB.on)return;if(!foesLeft())return victory();renderOrder();if(CB.move>0)showMoves();
@@ -4076,7 +4078,7 @@ function knockOut(){H0.dead=true;H0.route=null;endCombat();toast('Вы теря�
 // may break and run (a fallen chief makes his men run), and every foe overcome gives experience.
 // owner 2026-10-26: companions are put away for a later update (docs/ISLAND_ROADMAP.md); their rules stay, nobody joins
 const COMPANIONS=false,ALLIES=[];
-const foeTargets=()=>[H0,...ALLIES.filter(a=>!a.down&&CB.order.includes(a))];
+const foeTargets=()=>[H0,...ALLIES.filter(a=>!a.down&&CB.order.includes(a)),...CB.order.filter(a=>a.defender&&!a.down)];
 const nearestOf=(e,list)=>list.reduce((b,a)=>!b||man(e,a)<man(e,b)?a:b,null);
 async function allyTurn(a){const t=nearestOf(a,liveFoes());if(!t)return;if(man(a,H0)>3){camFocus=a;await wait(400);}
   try{if(man(a,t)>1){const p=path(a.x,a.z,t.x,t.z,a,true,2000);if(p&&p.length)await cwalk(a,p.slice(0,a.speed||6));if(gone(a))return;}
@@ -4126,7 +4128,7 @@ function flee(e){if(e.dead)return;e.fled=true;e.dead=true;e.route=null;e.inFight
 function groupMorale(){if(!CB.on||CB.broke)return;const all=CB.order.filter(a=>a.enemy);if(all.length<2||all.filter(a=>a.dead).length*2<all.length)return;CB.broke=true;
   for(const e of liveFoes()){if(e.boss||e.temp)continue;if(d(20)+(e.wis||0)<(e.model==='goblin'?13:10))setTimeout(()=>flee(e),600);}}
 const XPV={bandit:25,goblin:50,skeleton:50,wolf:50,boar:50,bear:100};
-const xpOf=e=>e.temp?0:e.boss?450:XPV[e.model]||25;
+const xpOf=e=>e.temp?0:Math.round((e.boss?450:XPV[e.model]||25)*(e.xpK||1));
 const LV={xp:0,lv:1};const LV_AT=[0,300,900,2700,6500];
 const lvHP=()=>(LV.lv-1)*Math.max(4,Math.round(HERO.hp*.3));
 function gainXP(n){if(!n)return;LV.xp+=n;setTimeout(()=>floatText('+'+n+' опыта','#bfe0ff',hero),300);
@@ -4166,7 +4168,7 @@ function questUI(){if(tutUI())return;
   // folded: one line with the first task and how many there are; tap opens the list
   questEl.innerHTML='<div class="qhead'+(qFolded()?' fold':'')+'" role="button" tabindex="0" aria-expanded="'+!qFolded()+'">Задания · '+act.length+CHEV+'</div>'+(qFolded()?rows.slice(0,1).join('').replace('<div class="','<div class="one '):rows.join(''));
   const h=questEl.querySelector('.qhead');if(h)h.onclick=qToggle;}
-function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===e.name&&q.left>0&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
+function questKill(e){repKill(e);for(const q of Object.values(Q))if(q.need===(e.kind||e.name)&&q.left>0&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)){q.left--;if(q.left===0&&q.state===1)q.state=2;}questUI();}
 function reward(q,items,line,who){q.state=3;gainXP(100);if(q.at)repAdd('kingdom',q.rep||1,'помощь королевству');else repAdd('village',2,'помощь деревне');{const k=Object.keys(Q).find(k=>Q[k]===q);const gg=q.gold||QUEST_GOLD[k];if(gg)setTimeout(()=>addGold(gg,'Награда'),600);}window.handsGive&&window.handsGive(items,'Награда');questUI();say(who,line+' Получено: '+items.map(([id,n])=>window.handsItemName(id).toLowerCase()+' ×'+n).join(', ')+'.');}
 function offer(q,who,ask,ok,done,items){if(q.state===3)return say(who,done);
   if(q.state===2)return reward(q,items,ok,who);if(q.state===1)return say(who,'Ну что? '+q.title+' — ещё '+q.left+'.');
@@ -4187,13 +4189,13 @@ function talk(a){window.talkWho=a;a.face=Math.atan2(H0.px-a.px,H0.pz-a.pz);H0.fa
   if(a.talkId==='bram'&&Q.dead.state===3){const q=Q.fire;
     if(q.state===0)return say(n,'Мертвецы упокоены, но пока огонь часовни холоден, они вернутся. В моём ящике есть факел — возьми его в руку и разожги жаровню в руинах.',[['Разожгу',()=>{q.state=1;questFocus=q;questUI();}]]);
     if(q.state===1)return say(n,'Жаровня в руинах всё ещё холодная. Факел — в моём ящике с припасами.');
-    if(q.state===2){q.state=3;window.handsGive([['potion',2],['sword_rune',1]],'Награда');questUI();banner('Пролог пройден');repAdd('village',2,'огонь часовни');
-      if(ART.fate==='kept')return say(n,'Огонь горит, но слабее, чем в старые времена… Что ж, мёртвые спят, и это главное. Держи, ты заслужил.');
-      return say(n,'Огонь часовни виден даже отсюда! Хельга снова под защитой. Ты сделал больше, чем мы смели просить. Остров твой дом, путник — заходи, когда захочешь.');}
+    if(q.state===2){q.state=3;window.handsGive([['potion',1]],'Награда');questUI();banner('Пролог пройден');repAdd('village',2,'огонь часовни');
+      if(ART.fate==='kept')return say(n,'Огонь горит, но слабее, чем в старые времена. Что ж, мёртвые спят, и это главное. Держи зелье.');
+      return say(n,'Огонь часовни видно даже отсюда! Спасибо тебе. Денег у нас немного, но зелье возьми. Заходи, когда захочешь.');}
     return say(n,'Огонь горит. Мёртвые спят. Выпей со мной, герой.');}
-  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил — эту булаву освятили ещё в часовне.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',2],['mace_saint',1]]);
-  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери. И щит возьми — с ним ещё мой дед ходил в дозор.','Мельница снова мелет спокойно.',[['bread',3],['shield_watch',1]]);
-  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми, это от всей пристани. А из клыка вожака я вырезал тебе нож.','Море спокойно, рыба идёт.',[['potion',1],['dagger_fang',1]]);
+  if(a.talkId==='bram')return offer(Q.dead,n,'С тех пор как в часовне погас огонь, мёртвые встают из земли. Трое бродят в руинах и у кладбища. Упокой их — и зелья мои твои.','Тихо стало по ночам. Держи, заслужил: зелье и хлеб с моей кухни.','Пей, грейся. Мёртвые больше не тревожат.',[['potion',1],['bread',2]]);
+  if(a.talkId==='miller')return offer(Q.band,n,'Разбойники в лесном лагере отбирают у меня муку. Двое их. Прогони — хлеба не пожалею.','Вот это дело! Хлеб свежий, бери.','Мельница снова мелет спокойно.',[['bread',3]]);
+  if(a.talkId==='fisher')return offer(Q.wolf,n,'Волки из Тёмного леса спускаются к берегу и рвут сети. Двое самых наглых. Поможешь?','Сети целы! Возьми рыбы, это от всей пристани.','Море спокойно, рыба идёт.',[['fish',2]]);
   if(a.talkId==='villager')return personTalk(a,n);
   if(a.talkId==='king')return kingTalk(a,n);
   if(a.talkId==='captain')return captainTalk(a,n);
@@ -4309,7 +4311,7 @@ function frame(now){const dt=Math.min(.12,(now-last)/1000);last=now;const t=now/
   ambTick(dt,room?99:(seaDist[H0.z]||[])[H0.x]??99);
   if(!room)smokeTick(dt,t);
   {const r=H0.route,d=r&&r.length?r[r.length-1]:null;marker.visible=!!d;if(d){marker.position.set(d[0]+.5,groundAt(d[0],d[1])+.03,d[1]+.5);marker.scale.setScalar(1+Math.sin(now/180)*.12);}}
-  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();}houseTick();}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
+  if(!paused){aiT+=dt;if(aiT>.45){aiT=0;ai();markSeen();lifeTick();lifeTick();townTick();allyTick();defenseTick();}houseTick();}else if(inMenuBg()){aiT+=dt;if(aiT>.45){aiT=0;lifeTick();lifeTick();}}pointerTick();placeWheel();
   for(const a of actors){if(a.dead&&a!==H0)continue;
     // actors far from the camera are not drawn or moved; they wake as the hero comes near
     const far=a!==H0&&!a.inFight&&(Math.abs(a.px-focus.x)>44||Math.abs(a.pz-focus.z)>44);if(far!==!!a.far){a.far=far;a.o.visible=!far&&!a.hidden;}if(far)continue;
@@ -4611,13 +4613,17 @@ function npcWheel(a){const items=[{icon:'talk',label:'Говорить',ok:!CB.o
   if(SHOPS[a.npc])items.push({icon:'trade',label:'Торговать',sub:'золото: '+gold,ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?openShop(a):go(n+1));go(0);}});
   const js=jobsOf(a);if(js.length){const st=JOB[js[0].id];items.push({icon:'job',label:'Работа',sub:st.state===2?'за платой':st.state===1?'в процессе':st.day===dayN?'завтра':'+'+js[0].pay+' золота',ok:!CB.on,run:()=>{const go=n=>goDo(a.x,a.z,false,()=>adj(H0,a.x,a.z)||n>2?jobOffer(a):go(n+1));go(0);}});}
   showWheel(a,items,a.npc);}
-function heal(id){heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2+(HERO.heal||0):d(4)+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
+// a potion or bread is used only from a hand; one in a pouch has to be taken first
+const inHand=id=>window.handsHeld?!!window.handsHeld(id):true,nm2=id=>id==='potion'?'зелье':'хлеб';
+function takeInHand(id){const s=window.handsToHand&&window.handsToHand(id);toast(s?'Вы берёте '+nm2(id)+' в '+(s==='L'?'левую':'правую')+' руку.':'Не получается взять '+nm2(id)+' в руку.');return !!s;}
+function heal(id){if(!inHand(id)){toast('Сначала возьмите '+nm2(id)+' в руку.');return false;}heroPose('drink',900);const v=id==='potion'?d(4)+d(4)+2+(HERO.heal||0):d(4)+(HERO.heal||0);sfx('heal');H0.hp=Math.min(H0.max,H0.hp+v);setHP();floatText('+'+v,'#7fe08a',hero);
   toast((id==='potion'?'Зелье лечения: 2к4 + 2 = ':'Хлеб: 1к4 = ')+v);window.handsConsume&&window.handsConsume(id);}
 function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HERO.race]||{};
   if(!f)items.push(H0.sneak?{icon:'stand',label:'Выпрямиться',run:()=>{H0.sneak=false;H0.spd=2.4;}}:{icon:'sneak',label:'Красться',sub:'Скрытность +'+HERO.stealth,run:()=>{H0.sneak=true;H0.spd=1.3;toast('Вы крадётесь: враги замечают только спереди и вблизи.');}});
   const p=count('potion'),b=count('bread'),full=H0.hp>=H0.max,bonus=(fn)=>f?doVerb(null,fn,{kind:'bonus'}):fn(),bOk=!f||ht&&!CB.bonus,fightBonus=f&&ht&&!CB.bonus;
-  items.push({icon:'potion',label:'Зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · есть '+p:'нет',ok:p>0&&!full&&bOk,run:()=>bonus(()=>heal('potion'))});
-  if(!f)items.push({icon:'bread',label:'Хлеб',sub:b?'1к4 · есть '+b:'нет',ok:b>0&&!full,run:()=>heal('bread')});
+  if(p&&!inHand('potion'))items.push({icon:'potion',label:'Взять в руку',sub:(f?'бонус · ':'')+'зелье из мешочка',ok:bOk,run:()=>bonus(()=>takeInHand('potion'))});
+  else items.push({icon:'potion',label:'Выпить зелье',sub:p?(f?'бонус · ':'')+'2к4+2 · в руке '+window.handsHeldCount('potion'):'нет зелья',ok:p>0&&!full&&bOk,run:()=>bonus(()=>heal('potion'))});
+  if(!f)items.push(b&&!inHand('bread')?{icon:'bread',label:'Взять хлеб',sub:'в руку',run:()=>takeInHand('bread')}:{icon:'bread',label:'Съесть хлеб',sub:b?'1к4 · в руке '+window.handsHeldCount('bread'):'нет хлеба',ok:b>0&&!full,run:()=>heal('bread')});
   const ab=(cond,label,sub,ok,run)=>cond&&items.push({icon:'special',label,sub,ok,run});
   ab(C==='fighter','Второе дыхание',SP.wind?'1к10+2':'нужен отдых',SP.wind>0&&!full&&bOk,()=>bonus(secondWind));
   ab(C==='cleric','Лечащее слово',SP.word?'1к4+3 · '+SP.word+' ост.':'нужен отдых',SP.word>0&&!full&&bOk,()=>bonus(healingWord));
@@ -4640,7 +4646,7 @@ function heroWheel(){const f=CB.on,ht=heroTurn(),items=[],C=HERO.cls,R=RACES[HER
 function allyWheel(a){const f=CB.on,ht=heroTurn(),items=[],p=count('potion'),C=HERO.cls,actOk=!f||ht&&!CB.acted,who=a.name||a.npc,adj=()=>man(a,H0)>1;
   if(a.state==='dead')items.push({icon:'pick',label:'Отнести к травнице',sub:'вернуть за '+REVIVE+' монет',ok:!f&&!room,run:()=>carryBody(a)});
   else{items.push({icon:'potion',label:'Перевязать',sub:'Медицина +'+medOf()+' · СЛ 10',ok:actOk&&a.state==='down'&&reachable(a),run:()=>doVerb(a,()=>bandage(a),{adj:adj()})});
-    items.push({icon:'potion',label:'Дать зелье',sub:p?'2к4+2 · есть '+p:'нет',ok:p>0&&actOk&&reachable(a),run:()=>doVerb(a,()=>potionAlly(a),{adj:adj()})});
+    items.push({icon:'potion',label:'Дать зелье',sub:!p?'нет':inHand('potion')?'2к4+2 · в руке':'сначала возьмите в руку',ok:p>0&&inHand('potion')&&actOk&&reachable(a),run:()=>doVerb(a,()=>potionAlly(a),{adj:adj()})});
     if(C==='cleric')items.push({icon:'special',label:'Лечащее слово',sub:SP.word?'бонус · '+SP.word+' ост.':'нужен отдых',ok:SP.word>0&&(!f||ht&&!CB.bonus)&&man(a,H0)<=6,run:()=>doVerb(a,()=>{SP.word--;healAlly(a,d(4)+3+(HERO.heal||0),'Лечащее слово');},{kind:'bonus'})});
     if(C==='paladin')items.push({icon:'special',label:'Наложение рук',sub:SP.hands?'2к4+4':'нужен отдых',ok:SP.hands>0&&actOk&&reachable(a),run:()=>doVerb(a,()=>{SP.hands=0;healAlly(a,d(4)+d(4)+4+(HERO.heal||0),'Наложение рук');},{adj:adj()})});}
   items.push({icon:'look',label:'Осмотреть',run:()=>toast(who+': '+({down:'при смерти, спасброски '+a.saves[0]+' из 3, провалы '+a.saves[1]+' из 3.',stable:'без сознания, но дышит ровно. Встанет после боя.',dead:'погиб. Травница Ивва ещё может помочь до конца завтрашнего дня.'})[a.state],4500)});
@@ -4666,13 +4672,13 @@ function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.
     {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',house:'Обычный дом. Внутри кто-то гремит посудой.',poorhouse:'Покосившаяся лачуга. Дверь не запирается.',castle:'Ворота открыты днём. Стража провожает взглядом.',herb:'Пахнет мятой и чем-то горьким.',gbarn:'Широкие ворота, внутри сено.',temple:'Колокол на башне молчит.',inn:'Из двери тянет пивом.',mill:'Колесо шлёпает по воде.',tannery:'Воняет так, что глаза слезятся.',warehouse:'Двери на засове. Товар с кораблей.',barracks:'Тут живёт стража.',armory:'Оружие стражи. Без спроса не войдёшь.',treasury:'Казна. Туда пускают только казначея.',chambers:'Покои короля. Стража стоит у двери.'})[R.type]||'Дом.',4000)}],R.name);}
 // chapel brazier: look at it, and relight it with a torch in hand
 {const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,
-  action:()=>chapel.lit?(ART.fate?null:{icon:'special',label:'Сердце огня',sub:'решить его судьбу',ok:!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,artifactChoice)}):{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
+  action:()=>chapel.lit?(ART.fate?null:{icon:'special',label:'Сердце огня',sub:heartAwake()?'решить его судьбу':'спит под углями',ok:!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,artifactChoice)}):{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
   looks.push(L);ms.forEach(m=>m.userData.look=L);}
 function hasTorch(){const h=hero.userData.held||{};return h.L==='torch'||h.R==='torch';}
 async function lightChapel(){if(chapel.lit)return;heroPose('open',900);await wait(500);sfx('spell');setChapel(true);shake=.25;
   banner('Огонь часовни горит');note('Жаровня часовни','Пламя вспыхивает белым, потом золотым. Над руинами разносится тихий звон — будто колокол, которого здесь давно нет.');
   if(Q.fire.state===1){Q.fire.state=2;questUI();}else if(Q.fire.state===0)Q.fire.state=2;
-  setTimeout(artifactChoice,1600);}
+  if(heartAwake())setTimeout(artifactChoice,1600);}
 for(const [ms,n,t,loot] of OUT){const L={n,t,loot,meshes:ms};looks.push(L);ms.forEach(m=>m.userData.look=L);}
 // the tutorial stones lie in the open: nothing tall within two cells, so they are seen from every side
 {const tall=new Set([...treeCells,...bushCells].map(([x,z])=>x+','+z)),clear=(x,z)=>{for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){const k=(x+dx)+','+(z+dz);if(tall.has(k)||(Math.abs(dx)+Math.abs(dz)<=2&&solid.has(k)))return false;}return free(x,z);};
@@ -4755,7 +4761,7 @@ function questTarget(){const tt=tutTarget();if(tt||tutOn())return tt;
   if(q===Q.raven&&q.state===1){if(q.step==='ask'){const o=q.oldA,R=o.where==='home'&&o.houseRoom;return R&&room!==R?{x:R.door[0],z:R.door[1],label:o.npc,inRoom:R}:{x:o.x,z:o.z,label:o.npc};}
     if(q.step==='feather')return {x:q.fcamp.x,z:q.fcamp.z,label:'Лагерь разбойников'};if(q.step==='stone')return {x:q.stone[0],z:q.stone[1],label:'Камень с вороном'};}
   if(q===Q.herb){if(window.handsCount('herb')>=3)return whoT('herb');const m=looks.filter(l=>l.item&&l.loot[0][0]==='herb'&&!l.taken).sort((a,b)=>Math.hypot(a.grp.position.x-H0.px,a.grp.position.z-H0.pz)-Math.hypot(b.grp.position.x-H0.px,b.grp.position.z-H0.pz))[0];return m?{x:Math.floor(m.grp.position.x),z:Math.floor(m.grp.position.z),label:'Мята'}:null;}
-  const foes=enemies.filter(e=>!e.dead&&e.name===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
+  const foes=enemies.filter(e=>!e.dead&&(e.kind||e.name)===q.need&&(!q.at||Math.hypot(e.home[0]-q.at.x,e.home[1]-q.at.z)<14)).sort((a,b)=>man(a,H0)-man(b,H0));return foes[0]?{x:foes[0].x,z:foes[0].z,label:q.need}:null;}
 const ptrEl=document.getElementById('qptr');
 function pointerTick(){const T=questTarget();if(!T||CB.on||paused){ptrEl.hidden=true;return;}
   let tx=T.x,tz=T.z;if(room&&T.z<OUT_H){tx=room.exit[0];tz=room.exit[1];}
@@ -5225,7 +5231,7 @@ async function ravenPlead(){const q=Q.raven;const res=await roll20('Убежде
   for(const e of GANG){e.dead=true;e.dormant=false;e.o.visible=false;}q.state=2;q.spared=true;gainXP(450);questUI();save();
   say('Атаман Ворон','Рагнар долго молчит. Потом бросает меч на камни. «Ладно. Пойду к королю сам. Но скажи ему про тот посёлок. Пусть хоть раз посмотрит, как там живут». Его люди расходятся в темноту.');}
 function ravenWake(){for(const e of GANG)if(e.dormant){e.dormant=false;e.dead=false;e.hp=e.max;e.o.visible=true;e.aware=false;}}
-function ravenEnd(n){const q=Q.raven;q.state=3;questUI();actCheck();setTimeout(()=>{if(talkEl.hidden)journalEnd();},9000);repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');setTimeout(()=>addGold(q.gold,'Награда короля'),600);
+function ravenEnd(n){const q=Q.raven;q.state=3;questUI();actCheck();setTimeout(()=>{if(talkEl.hidden)journalEnd();},9000);repAdd('kingdom',q.rep,'атаман Ворон повержен');repAdd('village',2,'на дорогах спокойно');if(chapel.lit&&!ART.fate)setTimeout(()=>toast('Говорят, в жаровне часовни что-то проснулось.',4500),12000);setTimeout(()=>addGold(q.gold,'Награда короля'),600);
   gainXP(300);window.handsGive&&window.handsGive([['sword_rune',1],['potion',3]],'Награда');
   for(const e of enemies)if(!e.dead&&e.model==='bandit'&&!e.boss){e.dead=true;e.o.visible=false;}
   if(q.spared)return say(n,'Рагнар пришёл сам. Стоял тут, где ты стоишь, и рассказывал про тот посёлок. Я отменил налог. А Рагнара отправлю на дальний маяк — это лучше, чем петля. Ты сделал больше, чем просто победил. Возьми меч с рунами. Получено: рунный меч, зелье лечения ×3.');
@@ -5325,8 +5331,8 @@ function chestUse(it){if(it.open)return;
   const ch=[['Вскрыть замок · '+chance(pick,13,0)+'%',async()=>{const r=await roll20('Взлом',pick,13);rollDone(2000);if(r.ok)return chestOpen(it);it.tries=(it.tries||0)+1;say(it.name,'Отмычка срывается. '+(it.tries<2?'Можно попробовать ещё раз.':'Замок заклинило — теперь только силой.'));}],
     ['Выбить крышку · '+chance(brk,15,0)+'%',async()=>{const r=await roll20('Атлетика',brk,15);rollDone(2000);campNoise(it);if(r.ok)return chestOpen(it);say(it.name,'Крышка трещит, но держится. Грохот слышно на весь лес.');}]];
   if(it.tries>=2)ch.shift();say(it.name,'Окованный сундук разбойников с тяжёлым замком.',ch);}
-function chestOpen(it){it.open=true;OBJS[it.key]=1;sfx('chest');const loot=[['potion',1],[['dagger_curved','sword_scimitar','bow_short'][Math.floor(hash2(it.x,it.z)*3)],1]];
-  window.handsGive&&window.handsGive(loot,'Сундук разбойников');addGold(15+Math.floor(hash2(it.z,it.x)*20),'Сундук разбойников');it.lid.rotation.x=-1.2;}
+function chestOpen(it){it.open=true;OBJS[it.key]=1;sfx('chest');const wv=hash2(it.x,it.z),loot=[['bread',2],['torch',1]];if(wv<.25)loot.push([['dagger_curved','sword_scimitar','bow_short'][Math.floor(wv*12)],1]);
+  window.handsGive&&window.handsGive(loot,'Сундук разбойников');addGold(8+Math.floor(hash2(it.z,it.x)*12),'Сундук разбойников');it.lid.rotation.x=-1.2;}
 function campNoise(it){const near=enemies.filter(e=>!e.dead&&!e.dormant&&!e.calm&&Math.hypot(e.x-it.x,e.z-it.z)<=9);if(near.length&&!CB.on){for(const e of near)e.aware=true;startCombat(near[0]);}}
 // every robbers' camp of the big island gets a barrel by its fire and a locked chest
 for(const p of GPL.filter(p=>p.type==='bandits')){
@@ -5764,6 +5770,56 @@ setInterval(crownTick,400);setTimeout(crownTick,0);
 // the capital's shops are closed to an enemy of the crown (its jobs close in economy.js)
 {const shop=openShop;openShop=function(a){if(REP.crown&&a.place&&a.place.type==='capital')return say(a.npc,'Не продам. Уходи, пока стражу не позвал.');return shop(a);};}
 
+// ---------- foes grow with the hero and with the wilds; settlements defend themselves ----------
+// A foe's tier is the area's danger (how far from Заводь and the pier, and whether a road is near)
+// plus the hero's level. Each tier adds health, aim, armour and damage; from tier 2 the foe is a
+// tougher kind (a wolf becomes a dire wolf). Bosses stand one tier above. Experience grows with the
+// tier, so the encounter budget in startCombat still keeps crowds in check.
+const FOE_TIER=[{hp:1,atk:0,ac:0,dmg:0,xp:1},{hp:1.3,atk:1,ac:0,dmg:0,xp:1.25},{hp:1.6,atk:1,ac:1,dmg:1,xp:1.5},{hp:2,atk:2,ac:1,dmg:2,xp:2},{hp:2.4,atk:3,ac:2,dmg:2,xp:2.5}];
+const FOE_VET={bandit:'Бывалый разбойник',wolf:'Лютый волк',goblin:'Гоблин-вожак',skeleton:'Старый скелет',boar:'Матёрый кабан',bear:'Пещерный медведь'};
+function roadNear(x,z,r){for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const X=x+dx,Z2=z+dz;if(X<0||Z2<0||X>=W||Z2>=OUT_H)continue;if(GEN.road[Z2*W+X])return true;}return false;}
+function dangerAt(x,z){const dh=Math.min(Math.hypot(x-Z.village[0],z-Z.village[1]),Math.hypot(x-Z.dock[0],z-Z.dock[1]));
+  const base=dh<45?0:dh<90?1:dh<140?2:3;return Math.min(4,base+(base>0&&!roadNear(Math.round(x),Math.round(z),4)?1:0));}
+function foeTier(e){const h=e.home||[e.x,e.z],t=dangerAt(h[0],h[1])+Math.round((LV.lv-1)*.75);return Math.max(0,Math.min(e.boss?2:4,e.boss?t+1:t));}
+function scaleFoe(e){if(!e||e.dead||e.inFight||e.temp||!FOE[e.model]||(typeof CROWN_GUARDS!=='undefined'&&CROWN_GUARDS.includes(e)))return;
+  if(!e.base)e.base={max:e.max,ac:e.ac,atk:e.atk,dmgB:e.dmgB||0,name:e.name};const t=foeTier(e);if(e.tier===t)return;
+  const T=FOE_TIER[t],B0=e.base,frac=e.max?Math.max(0,e.hp)/e.max:1;e.tier=t;e.kind=B0.name;
+  e.max=Math.round(B0.max*T.hp);e.hp=Math.max(1,Math.round(frac*e.max));e.ac=B0.ac+T.ac;e.atk=B0.atk+T.atk;e.dmgB=B0.dmgB+T.dmg;e.xpK=T.xp;
+  e.name=t>=2&&!e.boss&&FOE_VET[e.model]?FOE_VET[e.model]:B0.name;}
+function scaleNear(x,z,r){for(const e of enemies)if(!e.dead&&!e.inFight&&Math.hypot(e.x-x,e.z-z)<=r)scaleFoe(e);}
+
+// a lair far from home keeps one rare thing: the dire pack leader's fang, the stolen watch shield
+function lairDrop(e){if(typeof OBJS==='undefined'||dangerAt(e.home[0],e.home[1])<2)return;
+  const kin=enemies.filter(o=>o!==e&&!o.dead&&o.model===e.model&&Math.hypot(o.home[0]-e.home[0],o.home[1]-e.home[1])<=8);if(kin.length)return;
+  const drop=e.model==='wolf'?['drop_fang','dagger_fang','У вожака стаи крепкий клык. Из такого выйдет хороший нож.']:e.model==='bandit'?['drop_watch','shield_watch','В лагере лежит старый щит дозора Заводи. Разбойники когда-то отняли его.']:null;
+  if(!drop||OBJS[drop[0]])return;OBJS[drop[0]]=1;setTimeout(()=>{window.handsGive&&window.handsGive([[drop[1],1]],'Добыча');toast(drop[2],4500);},900);}
+
+// ---------- settlements ----------
+const SETTLE_SPOTS=[{n:'Заводь',x:Z.village[0],z:Z.village[1],r:12,gate:'у ворот'},{n:'причал',x:Z.dock[0],z:Z.dock[1],r:6,gate:'у причала'},
+  ...GEN.places.filter(p=>!p.stamp&&['capital','village','works'].includes(p.type)).map(p=>({n:p.n,x:p.x,z:p.z,r:p.r+2,place:p,gate:'у ворот'}))];
+const ABLE=/Стражник|Пахарь|Пастух|Бондарь|Каменотёс|Десятник|Пасечник|Батрак|Торфяник|лесоруб|Кузнец|Мельник/;
+const isGuard=a=>/Стражник/.test(a.npc||'')||a.role==='patrol';
+function settleNear(x,z,pad){return SETTLE_SPOTS.find(s=>Math.hypot(x-s.x,z-s.z)<=s.r+pad);}
+function townsfolkAt(s){return actors.filter(a=>a.npc&&!a.enemy&&!a.ally&&!a.dead&&!a.hidden&&!a.far&&a!==H0&&a.talkId!=='king'&&Math.hypot(a.x-s.x,a.z-s.z)<=s.r+10);}
+const DEFENDERS=[];
+function defenderJoin(a){if(CB.order.includes(a))return;const g=isGuard(a);
+  Object.assign(a,{defender:true,inFight:true,route:null,keepName:a.name,name:a.name||a.npc,hp:g?16:10,max:g?16:10,ac:g?15:11,atk:g?4:2,dmg:g?8:6,dmgB:g?2:0,atkName:g?'Копьё':'Удар',speed:6});
+  DEFENDERS.push(a);CB.order.push(a);floatText(g?'К оружию!':'Бей его!','#9fe0ff',a.o);renderOrder();}
+function defenderFall(a){a.down=true;a.hp=0;a.route=null;floatText(a.name+' ранен','#ff9a6a',a.o);tween(500,k=>{a.o.rotation.z=k*1.3;a.sink=k*.1});renderOrder();}
+function defendersReset(){for(const a of DEFENDERS.splice(0)){if(a.down){a.down=false;standUp(a);}a.defender=false;a.inFight=false;a.name=a.keepName;delete a.keepName;}}
+function fleeFrom(a,e){const dx=Math.sign(a.x-e.x)||1,dz=Math.sign(a.z-e.z)||1;for(let k=8;k>=3;k--){const tx=a.x+dx*k,tz=a.z+dz*k;if(!free(tx,tz))continue;const p=path(a.x,a.z,tx,tz,a,false,400);if(p&&p.length){a.route=p;a.hold=performance.now()+9000;floatText('Спасайся!','#ffd27a',a.o);return;}}}
+function alarm(e,s){const now=performance.now();if(e.alarmT>now)return;e.alarmT=now+20000;const who=e.kind||e.name;
+  toast(who+' '+s.gate+'!',3000);const folk=townsfolkAt(s),able=folk.filter(a=>isGuard(a)||ABLE.test(a.npc||'')||a.tool==='axe'||a.tool==='halberd').sort((a,b)=>man(a,e)-man(b,e)).slice(0,3);
+  for(const a of folk)if(!able.includes(a))fleeFrom(a,e);
+  if(CB.on&&CB.order.includes(e)){for(const a of able)defenderJoin(a);if(able.length)toast((isGuard(able[0])?'Стража':'Люди')+' '+(s.n==='причал'?'с причала':'из деревни')+' бегут на помощь.',3000);return;}
+  // outside a fight the folk drive it off with sticks and spears, and it runs back to its lair
+  if(able.length){const hit=d(6)+1;e.hp=Math.max(1,e.hp-hit);floatText('-'+hit,'#ffd27a',e.o);toast(able[0].npc+' гонит прочь: '+who.toLowerCase()+' убегает.',3000);}
+  e.aware=false;e.investigate=null;const p=path(e.x,e.z,e.home[0],e.home[1],e,false,1500);e.route=p&&p.length?p:null;}
+let defI=0;
+function defenseTick(){defI++;if(defI%8===0)for(const e of enemies)if(!e.dead&&!e.inFight&&!e.far)scaleFoe(e);
+  for(const e of enemies){if(e.dead||e.hidden||!e.o.visible||(typeof CROWN_GUARDS!=='undefined'&&CROWN_GUARDS.includes(e))||e.temp)continue;
+    if(!e.inFight&&!e.aware&&!e.investigate)continue;const s=settleNear(e.x,e.z,4);if(s)alarm(e,s);}}
+
 // ---------- arrival, tutorial, first easy tasks, minimap ----------
 // A new game opens at dawn on the pier: a short cinematic, then a guided path that
 // teaches walking, the action wheel, the hands, picking things up, following the
@@ -5775,7 +5831,7 @@ const stonesLook=()=>looks.find(l=>l.n==='Гладкие камни');
 const TSTEPS=[
   {t:'Сойдите с причала',h:'Нажмите на доски впереди: герой пойдёт туда. Золотое кольцо — куда он идёт.',target:()=>({x:10,z:31,label:'Сюда'}),done:()=>H0.x>=9},
   {t:'Поговорите с рыбаком Олавом',h:'Нажмите на Олава — вокруг него появится колесо. Выберите «Говорить».',target:()=>whoT('fisher'),done:()=>TUT.flags.olav},
-  {t:'Загляните в свои руки',h:'Ладони внизу — ваши руки и сумка. Нажмите на правую ладонь.',coach:'#palmR',done:()=>window.handsIsOpen&&window.handsIsOpen()},
+  {t:'Загляните в свои руки',h:'Ладони внизу — ваши руки, у каждой свой мешочек. Нажмите на ладонь, и откроются обе. Пить и бить можно только тем, что в руке.',coach:'#palmR',done:()=>window.handsIsOpen&&window.handsIsOpen()},
   {t:'Подберите камни',h:'Красная стрелка показывает камни у причала. Подойдут и любые другие: у дороги или в ящике. Нажмите на них и выберите «Взять». Камнем можно отвлечь врага.',target:()=>{const L=stonesLook();return L&&!L.taken?{x:Math.floor(L.grp.position.x),z:Math.floor(L.grp.position.z),label:'Камни'}:null;},done:()=>{const L=stonesLook(),n=window.handsCount?window.handsCount('stone'):0;if(TUT.stone0==null)TUT.stone0=n;
     // any stones count: the ones on the shore, a crate, a rock by the road; a full pouch counts too
     return !L||L.taken||n>TUT.stone0||n>=5;}},
@@ -5916,7 +5972,7 @@ const JOBS=[
 // ---------- the big island's trade and work, from its settlements ----------
 // Each settlement's first trader opens a shop; prices follow the place's wealth and the crown's standing:
 // the capital is dear but pays well, the poor settlement sells little, dear, and pays little for goods.
-{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Товар хороший, но и стоит недёшево.'},
+{const shopFor={capital:{title:'Лавка столичного купца',sells:['bread','potion','torch','sword_long','bow_long','shield_kite','spear','mace','mace_saint'],buys:'weapons',coin:260,k:1.15,sk:1.1,line:'Товар хороший, но и стоит недёшево.'},
    village:{title:'Деревенский прилавок',sells:['bread','fish','torch','herb'],buys:['fish','herb','bread','stone','flour'],coin:60,k:1,sk:1,line:'Что вырастили — то и продаём.'},
    works:{title:'Склад каменотёсов',sells:['bread','torch','stone'],buys:['bread','fish','potion'],coin:70,k:1,sk:1.1,line:'Хлеб к нам издалека везут, поэтому и дороже.'},
    poor:{title:'Чем богаты',sells:['herb','fish'],buys:['bread','potion','fish'],coin:25,k:1.3,sk:.7,line:'Много не продам, самим мало.'}};
@@ -5937,7 +5993,7 @@ const JOBS=[
  if(guard){const pts=[[cap.x-5,cap.z],[cap.x,cap.z-5],[cap.x+5,cap.z],[cap.x,cap.z+5]];JOBS.push({id:'gen'+(n++),who:guard.npc,giver:guard.npc,title:'Обойти улицы столицы',kind:'patrol',points:pts,pay:12,
    offer:'Стражников не хватает. Пройдись по улицам вокруг рынка, а я тебе двенадцать монет дам.',done:'Всё спокойно? Держи.'});}}
 const jobPayFor=j=>HERO.trade?Math.round(j.pay*1.5):j.pay;
-const GOLD_START=12,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
+const GOLD_START=5,QUEST_GOLD={wolf:20,band:25,dead:30,fire:35,herb:8};
 let gold=GOLD_START,dayN=0,lastT=null;const JOB={};for(const j of JOBS)JOB[j.id]={state:0,day:-1,step:0};
 const goldEl=document.getElementById('gold');
 function goldUI(){goldEl.querySelector('span').textContent=gold;}
@@ -6037,7 +6093,8 @@ function repKill(e){if(e.model!=='bandit')return;const seen=enemies.some(o=>o!==
 // ---------- the chapel heart ----------
 const ART={fate:null,powers:[]};const UNIQUE_MAX=3;
 const uniqueCount=()=>(window.handsCount&&window.handsCount('heart')?1:0)+ART.powers.length;
-function artifactChoice(){if(ART.fate)return;const room=uniqueCount()<UNIQUE_MAX;
+const heartAwake=()=>!!(Q.raven&&Q.raven.state===3);
+function artifactChoice(){if(ART.fate)return;if(!heartAwake())return say('Жаровня часовни','Под углями лежит что-то тёмное, вроде камня. Оно холодное и не поддаётся: ни взять, ни сдвинуть. Может, позже что-то изменится.');const room=uniqueCount()<UNIQUE_MAX;
   const ch=[['Оставить в жаровне',()=>artifactPick('left')],['Разбить',()=>artifactPick('broken')]];
   if(room)ch.push(['Забрать себе',()=>artifactPick('kept')],['Поглотить',()=>artifactPick('absorbed')]);
   say('Пламенное сердце','В глубине жаровни бьётся сгусток огня — сердце часовни. Оно тёплое, как живое, и будто ждёт решения.'+(room?'':' Вы уже несёте три особые силы: больше не унести.'),ch);}
@@ -6107,40 +6164,59 @@ window.__game={snd:{audio,REC,take:zTake,sfx,stepSound},V,critters,WX,phaseNow,l
   const V=WEAPONS[id],P=V&&V.pal?Object.assign({},PAL,V.pal):PAL,shape=ICON[id]||(V&&WICON[V.icon])||ICON[V?Object.keys(WEAPONS).find(k=>WEAPONS[k].kind===V.kind&&ICON[k]):id];
   shape.forEach((row,j)=>[...row].forEach((ch,i)=>{if(P[ch]){x.fillStyle=P[ch];x.fillRect(i,j,1,1);}}));return c;}
 
- // ---------- slots: two hands, a bag of 8 and, when one is open, a chest ----------
+ // ---------- slots: each hand holds one thing and has its own pouch; a chest when one is open ----------
  // Every slot is null or {id,n}. Weapons are unique; consumables stack to their own limit,
- // counting everything the hero carries (hands and bag together).
- const BAG=(()=>{try{const h=JSON.parse(localStorage.getItem('helga-hero'));return h&&h.race==='halfling'?10:8}catch(e){return 8}})(),C={L:[null],R:[null],bag:Array(BAG).fill(null),chest:[]};let chestRef=null,sel=null;
- const st={open:null},pose={L:'grip',R:'grip'};
+ // counting everything the hero carries (both hands and both pouches together).
+ // Only what is in a hand can be used: drunk, eaten, swung or cast with.
+ const POUCH=(()=>{try{const h=JSON.parse(localStorage.getItem('helga-hero'));return h&&h.race==='halfling'?5:4}catch(e){return 4}})(),C={L:[null],R:[null],pL:Array(POUCH).fill(null),pR:Array(POUCH).fill(null),chest:[]};let chestRef=null,sel=null;
+ const st={open:false},pose={L:'grip',R:'grip'},CARRY=['L','R','pL','pR'];
  const wait=ms=>new Promise(r=>setTimeout(r,ms)),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
- const S=k=>C[k];const hand=s=>C[s][0];const isTwo=x=>x&&ITEMS[x.id].two;
- const carried=id=>['L','R','bag'].reduce((t,k)=>t+C[k].reduce((a,x)=>a+(x&&x.id===id?x.n:0),0),0);
+ const S=k=>C[k];const hand=s=>C[s][0];const isTwo=x=>x&&ITEMS[x.id]&&ITEMS[x.id].two;
+ const carried=id=>CARRY.reduce((t,k)=>t+C[k].reduce((a,x)=>a+(x&&x.id===id?x.n:0),0),0);
  const room=id=>ITEMS[id].max-carried(id);
+ const free=k=>C[k].filter(x=>!x).length;
+ // weapons and gear go to the right pouch first, potions and food to the left, the rest where there is more room
+ const FOOD=new Set(['potion','bread','fish','herb']),GEAR=new Set(['sword','dagger','shield','torch','bow','staff','spear','mace','greataxe','warhammer']);
+ const pouchOrder=id=>FOOD.has(id)?['pL','pR']:(GEAR.has(id)||WEAPONS[id]||ITEMS[id].two)?['pR','pL']:free('pL')>=free('pR')?['pL','pR']:['pR','pL'];
  function setPose(s,p){pose[s]=p;document.getElementById('palm'+s).src=FR[p+'-'+s.toLowerCase()];}
  async function animate(s,seq){for(const p of seq){setPose(s,p);if(!reduce)await wait(70);}}
  function sync(){const L=hand('L'),R=hand('R');if(window.equipHero){const two=isTwo(L)?L.id:isTwo(R)?R.id:null;window.equipHero(two?null:L&&L.id,two||(R&&R.id));}
    if(window.onHandsChange)window.onHandsChange();}
  function poseFor(s){const o=s==='L'?'R':'L';return hand(s)||isTwo(hand(o))?'grip':'open';}
- async function settle(){for(const s of ['L','R']){const want=st.open===s?'open':poseFor(s);if(pose[s]!==want)await animate(s,want==='grip'?['half','grip']:['half','open']);}}
+ async function settle(){for(const s of ['L','R']){const want=st.open||chestRef?'open':poseFor(s);if(pose[s]!==want)await animate(s,want==='grip'?['half','grip']:['half','open']);}}
+ const firstEmpty=k=>S(k).findIndex(x=>!x);
+ const pouchWithRoom=(...ks)=>ks.find(k=>firstEmpty(k)>=0)||null;
+ let say2=t=>window.toast?window.toast(t):0;
  // move what is in slot a into slot b (swap, or merge a stack); returns false with a reason when it can't
  function move(ak,ai,bk,bi){if(ak===bk&&ai===bi)return false;const A=S(ak)[ai],B=S(bk)[bi];if(!A)return false;
-   const carry=k=>k!=='chest',snap=JSON.parse(JSON.stringify(C)),undo=t=>{Object.assign(C,snap);if(t)say2(t);return false;};
+   const carry=k=>k!=='chest',snap=JSON.parse(JSON.stringify(C)),undo=t=>{for(const k in snap)C[k]=snap[k];if(t)say2(t);return false;};
    if(B&&B.id===A.id&&ITEMS[A.id].max>1){let k=Math.min(A.n,ITEMS[A.id].max-B.n);if(!carry(ak)&&carry(bk))k=Math.min(k,room(A.id));
      if(k<=0)return undo('Больше не помещается: '+ITEMS[A.id].n+'.');B.n+=k;A.n-=k;if(!A.n)S(ak)[ai]=null;return true;}
    if(!carry(ak)&&carry(bk)){const lim=room(A.id);if(lim<=0)return undo('Больше не унести: '+ITEMS[A.id].n+' (предел '+ITEMS[A.id].max+').');
      if(A.n>lim){if(B)return undo('Сначала освободите ячейку.');S(bk)[bi]={id:A.id,n:lim};A.n-=lim;}else{S(ak)[ai]=B;S(bk)[bi]=A;}}
    else{S(ak)[ai]=B;S(bk)[bi]=A;if(carry(ak)&&!carry(bk)&&B&&carried(B.id)>ITEMS[B.id].max)return undo('Больше не унести: '+ITEMS[B.id].n+'.');}
-   // a two-handed item and something in the other hand can't coexist: the older one goes to the bag
-   for(const s of ['L','R']){const o=s==='L'?'R':'L';if(isTwo(hand(s))&&hand(o)){const out=bk===s?o:s,e=firstEmpty('bag');if(e<0)return undo('Нужно место в сумке.');C.bag[e]=C[out][0];C[out][0]=null;}}
+   // a two-handed item takes both hands: what was in the other hand goes to that hand's pouch, or to the other pouch
+   for(const s of ['L','R']){const o=s==='L'?'R':'L';if(isTwo(hand(s))&&hand(o)){const out=bk===s?o:s,pk=pouchWithRoom('p'+out,'p'+(out==='L'?'R':'L'));
+     if(!pk)return undo('Для двуручного предмета нужно место в мешочке.');C[pk][firstEmpty(pk)]=C[out][0];C[out][0]=null;}}
    return true;}
- const firstEmpty=k=>S(k).findIndex(x=>!x);
- let say2=t=>window.toast?window.toast(t):0;
- function add(id,n){let left=Math.min(n,room(id));const got=left;
-   for(const k of ['bag','L','R'])for(const x of S(k))if(x&&x.id===id&&left>0){const k2=Math.min(left,ITEMS[id].max-x.n);x.n+=k2;left-=k2;}
-   while(left>0){let e=firstEmpty('bag');let k='bag';if(e<0){if(!hand('R')&&!isTwo(hand('L'))&&!ITEMS[id].two){k='R';e=0;}else if(!hand('L')&&!isTwo(hand('R'))&&!ITEMS[id].two){k='L';e=0;}else break;}
-     const k2=Math.min(left,ITEMS[id].max);S(k)[e]={id,n:k2};left-=k2;}
+ // put n of id somewhere: onto its stacks first, then into its pouches, then into an empty hand
+ function place(id,n,limit){let left=limit?Math.min(n,room(id)):n;const got=left,mx=ITEMS[id].max;
+   for(const k of [...pouchOrder(id),'L','R'])for(const x of S(k))if(x&&x.id===id&&left>0){const k2=Math.min(left,mx-x.n);if(k2>0){x.n+=k2;left-=k2;}}
+   const hands=FOOD.has(id)?['L','R']:['R','L'];
+   while(left>0){let k=pouchWithRoom(...pouchOrder(id)),e=k?firstEmpty(k):-1;
+     if(!k)for(const h of hands){const o=h==='L'?'R':'L';if(!hand(h)&&!isTwo(hand(o))&&!(ITEMS[id].two&&hand(o))){k=h;e=0;break;}}
+     if(!k)break;const k2=Math.min(left,mx);S(k)[e]={id,n:k2};left-=k2;}
    return got-left;}
- function take1(id){for(const k of ['bag','L','R'])for(let i=0;i<S(k).length;i++){const x=S(k)[i];if(x&&x.id===id){x.n--;if(!x.n)S(k)[i]=null;return true;}}return false;}
+ const add=(id,n)=>place(id,n,true);
+ // hands are used up first, so a potion is drunk from the hand that holds it
+ function take1(id){for(const k of CARRY)for(let i=0;i<S(k).length;i++){const x=S(k)[i];if(x&&x.id===id){x.n--;if(!x.n)S(k)[i]=null;return true;}}return false;}
+ const heldSide=id=>['L','R'].find(s=>hand(s)&&hand(s).id===id)||null;
+ // take id from a pouch into a hand: the pouch's own hand if free, else the other free hand, else swap with what the own hand holds
+ function toHand(id,want){const had=heldSide(id);if(had&&(!want||want===had))return had;let pk=null,i=-1;
+   for(const k of ['pL','pR']){i=C[k].findIndex(x=>x&&x.id===id);if(i>=0){pk=k;break;}}
+   if(!pk&&had){pk=had;i=0;}if(!pk)return null;
+   const own=pk.length>1?pk.slice(1):pk==='L'?'R':'L',oth=own==='L'?'R':'L',side=want||(!hand(own)&&!isTwo(hand(oth))?own:!hand(oth)&&!isTwo(hand(own))?oth:own);
+   return move(pk,i,side,0)?side:null;}
 
  // ---------- drawing slots ----------
  function slotEl(k,i){const x=S(k)[i],b=document.createElement('button');b.className='slot'+(sel&&sel.k===k&&sel.i===i?' sel':'')+(x?'':' empty');b.dataset.k=k;b.dataset.i=i;
@@ -6149,17 +6225,17 @@ window.__game={snd:{audio,REC,take:zTake,sfx,stepSound},V,critters,WX,phaseNow,l
    const lock=(k==='L'||k==='R')&&!x&&isTwo(hand(k==='L'?'R':'L'));if(lock){b.classList.add('lock');b.append(icon(document.createElement('canvas'),hand(k==='L'?'R':'L').id));}
    b.onpointerdown=e=>dragStart(e,k,i);return b;}
  function describe(k,i,el){const x=S(k)[i];if(!el)return;if(!x){el.textContent='';return;}const r=rarityOf(x.id),rule=ruleOf(x.id);
-   el.textContent=ITEMS[x.id].n+(x.n>1?' ×'+x.n:'')+(r!=='common'?' · '+RARITY[r].n:'')+' — '+ITEMS[x.id].d+(rule?'. '+rule:'');}
- function render(){for(const s of ['L','R']){const o=s==='L'?'R':'L',lock=!hand(s)&&isTwo(hand(o));
-   const palm=document.getElementById('palm'+s),inv=document.getElementById('inv'+s);palm.classList.toggle('open',st.open===s);palm.style.opacity=lock?.8:1;
+   el.textContent=ITEMS[x.id].n+(x.n>1?' ×'+x.n:'')+(r!=='common'?' · '+RARITY[r].n:'')+' — '+ITEMS[x.id].d+(rule?'. '+rule:'')+(k[0]==='p'?'. Лежит в мешочке: чтобы пользоваться, возьмите в руку.':'');}
+ function pouchEl(k){const g=document.createElement('div');g.className='grid pouch';for(let i=0;i<POUCH;i++)g.append(slotEl(k,i));return g;}
+ function render(){const open=st.open&&!chestRef;for(const s of ['L','R']){const o=s==='L'?'R':'L',lock=!hand(s)&&isTwo(hand(o));
+   const palm=document.getElementById('palm'+s),inv=document.getElementById('inv'+s);palm.classList.toggle('open',open||!!chestRef);palm.style.opacity=lock?.8:1;
    const h=hand(s)||(lock?hand(o):null);const hc=document.getElementById('held'+s);icon(hc,h&&h.id);hc.classList.toggle('empty',!h);hc.dataset.n=h&&h.n>1?h.n:'';palm.classList.toggle('holding',!!h);
-   inv.classList.toggle('open',st.open===s);if(st.open!==s)continue;inv.replaceChildren();
-   const hd=document.createElement('h4');hd.innerHTML=(s==='L'?'Левая рука':'Правая рука')+'<small>перетащите или нажмите, чтобы переложить</small>';
+   inv.classList.toggle('open',open);if(!open)continue;inv.replaceChildren();
+   const hd=document.createElement('h4');hd.innerHTML=(s==='L'?'Левая рука':'Правая рука');
    const top=document.createElement('div');top.className='handrow';const hs=slotEl(s,0);hs.classList.add('hand');top.append(hs);
    const lbl=document.createElement('span');lbl.className='hl';lbl.textContent='в руке';top.append(lbl);
-   const g=document.createElement('div');g.className='grid';for(let i=0;i<BAG;i++)g.append(slotEl('bag',i));
-   const nm=document.createElement('div');nm.className='name';if(sel)describe(sel.k,sel.i,nm);else nm.textContent='Сумка: '+C.bag.filter(Boolean).length+' из '+BAG;
-   inv.append(hd,top,g,nm);}
+   const nm=document.createElement('div');nm.className='name';if(sel&&(sel.k===s||sel.k==='p'+s))describe(sel.k,sel.i,nm);else nm.textContent='Мешочек: '+C['p'+s].filter(Boolean).length+' из '+POUCH;
+   inv.append(hd,top,pouchEl('p'+s),nm);}
    renderChest();}
  // ---------- tap or drag to move ----------
  let drag=null;
@@ -6174,32 +6250,33 @@ window.__game={snd:{audio,REC,take:zTake,sfx,stepSound},V,critters,WX,phaseNow,l
    sel=sel?null:(d.has?{k:d.k,i:d.i}:null);render();}
  async function doMove(ak,ai,bk,bi){sel=null;const before=JSON.stringify([hand('L'),hand('R')]);if(move(ak,ai,bk,bi)){window.sfx&&sfx(ak==='chest'&&bk!=='chest'?'pickup':'click');
      if(ak==='chest'||bk==='chest')saveChest();}render();
-   if(JSON.stringify([hand('L'),hand('R')])!==before){sync();for(const s of ['L','R'])if(hand(s)&&st.open!==s)await animate(s,['open','half','grip']);await settle();}}
- async function toggle(s){st.open=st.open===s?null:s;sel=null;render();document.body.classList.toggle('invopen',!!st.open);window.sfx&&sfx('click');
-   if(st.open===s)await animate(s,['half','open']);await settle();}
- for(const s of ['L','R']){const p=document.getElementById('palm'+s);const t=e=>{e.stopPropagation();toggle(s);};p.onclick=t;p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t(e);}};
+   if(JSON.stringify([hand('L'),hand('R')])!==before){sync();await settle();}}
+ // either palm opens both hands together
+ async function toggle(){if(chestRef)return;st.open=!st.open;sel=null;render();document.body.classList.toggle('invopen',st.open);window.sfx&&sfx('click');
+   if(st.open)await Promise.all([animate('L',['half','open']),animate('R',['half','open'])]);await settle();}
+ for(const s of ['L','R']){const p=document.getElementById('palm'+s);const t=e=>{e.stopPropagation();toggle();};p.onclick=t;p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t(e);}};
    document.getElementById('inv'+s).onpointerdown=e=>e.stopPropagation();setPose(s,'grip');}
- document.getElementById('stage').addEventListener('pointerdown',e=>{if(chestRef&&!e.target.closest('.chestui,.inv,.palm')){closeChest();e.stopPropagation();return;}if(st.open&&!e.target.closest('.inv,.palm')){st.open=null;sel=null;render();settle();}},true);
+ document.getElementById('stage').addEventListener('pointerdown',e=>{if(chestRef&&!e.target.closest('.chestui,.inv,.palm')){closeChest();e.stopPropagation();return;}if(st.open&&!e.target.closest('.inv,.palm')){st.open=false;sel=null;document.body.classList.remove('invopen');render();settle();}},true);
 
- // ---------- chest window ----------
+ // ---------- chest window: the chest above, both open hands with their pouches below ----------
  const chEl=document.getElementById('chestui');
  function renderChest(){if(!chestRef){chEl.hidden=true;return;}chEl.hidden=false;chEl.replaceChildren();
    const h=document.createElement('h4');h.textContent=chestRef.name;chEl.append(h);
    const cg=document.createElement('div');cg.className='grid chest';C.chest.forEach((_,i)=>cg.append(slotEl('chest',i)));chEl.append(cg);
-   const h2=document.createElement('h5');h2.textContent='Ваши руки и сумка';chEl.append(h2);
-   const row=document.createElement('div');row.className='carry';const l=slotEl('L',0),r=slotEl('R',0);l.classList.add('hand');r.classList.add('hand');
-   const bg=document.createElement('div');bg.className='grid';for(let i=0;i<BAG;i++)bg.append(slotEl('bag',i));row.append(l,bg,r);chEl.append(row);
-   const nm=document.createElement('div');nm.className='name';if(sel)describe(sel.k,sel.i,nm);else nm.textContent=C.chest.some(Boolean)?'Перетащите или нажмите на предмет, затем на ячейку.':'Сундук пуст.';chEl.append(nm);
+   const row=document.createElement('div');row.className='carry';
+   for(const s of ['L','R']){const side=document.createElement('div');side.className='side '+s.toLowerCase();const t=document.createElement('h5');t.textContent=s==='L'?'Левая рука':'Правая рука';
+     const r=document.createElement('div');r.className='sr';const hs=slotEl(s,0);hs.classList.add('hand');const pg=pouchEl('p'+s);if(s==='L')r.append(hs,pg);else r.append(pg,hs);side.append(t,r);row.append(side);}
+   chEl.append(row);
+   const nm=document.createElement('div');nm.className='name';if(sel)describe(sel.k,sel.i,nm);else nm.textContent=C.chest.some(Boolean)?'Нажмите на предмет, потом на руку или мешочек.':'Сундук пуст.';chEl.append(nm);
    const bt=document.createElement('div');bt.className='btns';const all=document.createElement('button');all.textContent='Взять всё';all.disabled=!C.chest.some(Boolean);
    all.onclick=e=>{e.stopPropagation();takeAll();};const cl=document.createElement('button');cl.textContent='Закрыть';cl.onclick=e=>{e.stopPropagation();closeChest();};bt.append(all,cl);chEl.append(bt);}
  chEl.addEventListener('pointerdown',e=>e.stopPropagation());
  function saveChest(){if(chestRef)chestRef.items=C.chest.map(x=>x&&{id:x.id,n:x.n});}
  function takeAll(){const got=[];C.chest.forEach((x,i)=>{if(!x)return;const k=add(x.id,x.n);if(k){got.push([x.id,k]);x.n-=k;if(!x.n)C.chest[i]=null;}});saveChest();
-   if(got.length){window.sfx&&sfx('pickup');flyIn(got);}if(C.chest.some(Boolean))say2('Не всё поместилось: сумка полна или достигнут предел.');render();sync();settle();}
- async function openChest(ref){chestRef=ref;document.body.classList.add('invopen');C.chest=Array(Math.max(4,ref.items.length)).fill(null).map((_,i)=>ref.items[i]?{...ref.items[i]}:null);sel=null;st.open=null;render();
+   if(got.length){window.sfx&&sfx('pickup');flyIn(got);}if(C.chest.some(Boolean))say2('Не всё поместилось: мешочки полны или больше не унести.');render();sync();settle();}
+ async function openChest(ref){chestRef=ref;st.open=false;document.body.classList.add('invopen');C.chest=Array(Math.max(4,ref.items.length)).fill(null).map((_,i)=>ref.items[i]?{...ref.items[i]}:null);sel=null;render();
    document.body.classList.add('chest-open');for(const s of ['L','R'])animate(s,['half','open']);}
- function closeChest(){saveChest();if(chestRef&&chestRef.close)chestRef.close();chestRef=null;sel=null;document.body.classList.remove('chest-open');document.body.classList.toggle('invopen',!!st.open);render();settle();}
-
+ function closeChest(){saveChest();if(chestRef&&chestRef.close)chestRef.close();chestRef=null;sel=null;document.body.classList.remove('chest-open');document.body.classList.toggle('invopen',st.open);render();settle();}
  // ---------- "you got" card that flies into the hand ----------
  function flyIn(list,title='Получено'){const card=document.createElement('div');card.className='gotcard';const h=document.createElement('b');h.textContent=title;card.append(h);
    for(const [id,n] of list){const r=document.createElement('div');r.append(icon(document.createElement('canvas'),id));const t=document.createElement('span');t.textContent=ITEMS[id].n+(n>1?' ×'+n:'');r.append(t);card.append(r);}
@@ -6214,15 +6291,29 @@ window.__game={snd:{audio,REC,take:zTake,sfx,stepSound},V,critters,WX,phaseNow,l
    if(type==='chest'){pl.classList.add('reach');pr.classList.add('reach');await Promise.all([animate('L',['half','open']),animate('R',['half','open'])]);await wait(400);pl.classList.remove('reach');pr.classList.remove('reach');}}
 
  // ---------- API for the game ----------
- window.handsAdd=(id,n,quiet)=>{const k=add(id,n);render();sync();settle();if(k&&!quiet){window.sfx&&sfx('pickup');flyIn([[id,k]]);}if(k<n)say2(k?'Взято '+k+', больше не унести.':'Больше не унести: '+ITEMS[id].n+'.');return k;};
- window.handsGive=(list,title)=>{const got=[];for(const [id,n] of list){const k=add(id,n);if(k)got.push([id,k]);}render();sync();settle();if(got.length){window.sfx&&sfx('pickup');flyIn(got,title);}return got;};
- window.handsConsume=id=>{const ok=take1(id);render();sync();settle();return ok;};
+ const fresh=()=>{render();sync();settle();};
+ window.handsAdd=(id,n,quiet)=>{const k=add(id,n);fresh();if(k&&!quiet){window.sfx&&sfx('pickup');flyIn([[id,k]]);}if(k<n)say2(k?'Взято '+k+', больше не унести.':'Больше не унести: '+ITEMS[id].n+'.');return k;};
+ window.handsGive=(list,title)=>{const got=[];for(const [id,n] of list){const k=add(id,n);if(k)got.push([id,k]);}fresh();if(got.length){window.sfx&&sfx('pickup');flyIn(got,title);}return got;};
+ window.handsConsume=id=>{const ok=take1(id);fresh();return ok;};
  window.handsCount=id=>carried(id);
+ // which hand holds id ('L', 'R' or null), how many it holds, and taking id from a pouch into a hand
+ window.handsHeld=id=>heldSide(id);
+ window.handsHeldCount=id=>{const s=heldSide(id);return s?hand(s).n:0;};
+ window.handsToHand=(id,side)=>{const s=toHand(id,side);fresh();if(s&&window.sfx)sfx('click');return s;};
  window.handsIsOpen=()=>!!st.open;
  window.handsIconURL=id=>icon(document.createElement('canvas'),id).toDataURL();
- window.handsItems=()=>({L:hand('L'),R:hand('R'),bag:C.bag.map(x=>x&&{...x})});
- window.handsLoad=d=>{if(d.bag){C.L[0]=d.L;C.R[0]=d.R;C.bag=d.bag.slice(0,BAG).concat(Array(BAG).fill(null)).slice(0,BAG);}
-   else{C.L[0]=d.L?{id:d.L,n:1}:null;C.R[0]=d.R?{id:d.R,n:1}:null;C.bag=Array(BAG).fill(null);for(const id of ['potion','bread','stone'])if(d[id])add(id,d[id]);}render();sync();settle();};
+ const cp=k=>C[k].map(x=>x&&{...x});
+ window.handsItems=()=>({L:hand('L')&&{...hand('L')},R:hand('R')&&{...hand('R')},pL:cp('pL'),pR:cp('pR'),bag:cp('pL').concat(cp('pR'))});
+ const fit=a=>(a||[]).slice(0,POUCH).concat(Array(POUCH).fill(null)).slice(0,POUCH).map(x=>x&&ITEMS[x.id]?{id:x.id,n:x.n}:null);
+ const one=v=>!v?null:typeof v==='string'?{id:v,n:1}:ITEMS[v.id]?{id:v.id,n:v.n||1}:null;
+ // a new save keeps each pouch; an old save with one shared bag is split: weapons right, potions and food left, the rest where there is room
+ window.handsLoad=d=>{C.L[0]=one(d.L);C.R[0]=one(d.R);
+   if(d.pL||d.pR){C.pL=fit(d.pL);C.pR=fit(d.pR);}
+   else{C.pL=Array(POUCH).fill(null);C.pR=Array(POUCH).fill(null);
+     if(d.bag){for(const x of d.bag)if(x&&ITEMS[x.id])place(x.id,x.n,false);}
+     else{for(const id of ['potion','bread','stone'])if(d[id])add(id,d[id]);}}
+   for(const s of ['L','R']){const o=s==='L'?'R':'L';if(isTwo(C[s][0])&&C[o][0]){const x=C[o][0];C[o][0]=null;place(x.id,x.n,false);}}
+   fresh();};
  window.handsOpenChest=openChest;window.handsGesture=gesture;window.handsFly=flyIn;window.handsItemName=id=>ITEMS[id].n;
  render();addEventListener('resize',()=>render());})();
 
