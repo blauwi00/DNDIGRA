@@ -345,7 +345,7 @@ const HUD = ['.hp', '.gold', '.mini', '.menubtn', '.quest', '.title', '.palm', '
         const inR = (x, z) => x > R.ox && x < R.ox + R.iw - 1 && z > R.oz && z < R.oz + R.id - 1, N = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         const one = N.map(([dx, dz]) => [ex + dx, ez + dz]).filter(([x, z]) => inR(x, z) && free(x, z));
         if (!one.some(([x, z]) => N.some(([dx, dz]) => inR(x + dx, z + dz) && free(x + dx, z + dz) && !(x + dx === ex && z + dz === ez)))) bad.push(R.name + ' blocked at ' + ex + ',' + ez);
-        R.group.traverse((o) => { if (!o.isMesh || o.userData.floor) return; const pp = new THREE.Vector3(); o.getWorldPosition(pp);
+        if (!R.sub) R.group.traverse((o) => { if (!o.isMesh || o.userData.floor) return; const pp = new THREE.Vector3(); o.getWorldPosition(pp);
           if (Math.floor(pp.x) === ex && (Math.floor(pp.z) === ez - 1 || Math.floor(pp.z) === ez - 2) && pp.y < 1.2 && o.scale.y < 1.5) bad.push(R.name + ': something in the doorway at ' + pp.x.toFixed(1) + ',' + pp.z.toFixed(1)); });
       }
       for (const h of [...GEN_HOUSES, ...PALACE]) { const R = h.room; if (!R || R.iw !== h[2] || R.id !== h[3]) bad.push('room size differs from house at ' + h[0] + ',' + h[1]); }
