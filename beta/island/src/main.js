@@ -248,9 +248,11 @@ const WIND={value:0};
 function sway(mat,amp,topOnly){const base=THREE.Material.prototype.onBeforeCompile;mat.onBeforeCompile=function(sh){base.call(this,sh);sh.uniforms.uWind=WIND;sh.vertexShader='uniform float uWind;\n'+sh.vertexShader.replace('#include <begin_vertex>',
   '#include <begin_vertex>\n#ifdef USE_INSTANCING\nvec4 wp=instanceMatrix*vec4(0.,0.,0.,1.);\n#else\nvec4 wp=vec4(0.);\n#endif\nfloat k='+(topOnly?'max(0.,position.y+.5)':'1.')+';\ntransformed.x+=sin(uWind*1.7+wp.x*.7+wp.z*.4)*'+amp+'*k;\ntransformed.z+=cos(uWind*1.3+wp.z*.6)*'+amp+'*.6*k;');};mat.customProgramCacheKey=()=>'sway'+amp+topOnly;return mat;}
 const leafA=sway(lam(T.leaves),.05,1),leafB=sway(lam(T.leaves,{color:0xb8c9a0}),.06,1),pine=sway(lam(T.leaves,{color:0x8aa080}),.07,1);
+// a voxel crown is wider than its cell: next to a wall a tree grows smaller so its leaves never pass through the house
+function wallDist(x,z){for(let r=1;r<3;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===r&&at(x+dx,z+dz)==='X')return r;return 9;}
 if(VOX.on){const treeMat=sway(new THREE.MeshLambertMaterial({vertexColors:true}),.012,1);treeMat.userData.vox=1;
   voxInstanced(treeCells,([x,z])=>{const pine=hash2(x*5,z*3)<.35||GEN.biome[z*W+x]===GB.HILLS,v=Math.floor(hash2(z*3,x*7)*3);return VOX.asset((pine?'pine':'tree')+v,()=>VOX.tree(v,pine),1/VOX.N);},
-    ([x,z],i,m)=>{const s=(.9+hash2(x,z)*.6)*(hash2(x*5,z*3)<.35||GEN.biome[z*W+x]===GB.HILLS?.62:.8);m.compose(v1.set(x+.5,groundAt(x,z),z+.5),qY(hash2(z,x)*6.28),v2.set(s,s,s));},treeMat);}
+    ([x,z],i,m)=>{let s=(.9+hash2(x,z)*.6)*(hash2(x*5,z*3)<.35||GEN.biome[z*W+x]===GB.HILLS?.62:.8);const wd=wallDist(x,z);if(wd<3)s=Math.min(s,Math.max(.32,(wd-.55)/1.4));m.compose(v1.set(x+.5,groundAt(x,z),z+.5),qY(hash2(z,x)*6.28),v2.set(s,s,s));},treeMat);}
 else{instanced(BOX,lam(T.bark),treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5,groundAt(x,z)+.45*s,z+.5),q0,v2.set(.22*s,.9*s,.22*s))});
 for(const [k,mat,y,sz] of [[0,leafA,1.05,.95],[1,leafB,1.45,.7],[2,pine,1.78,.42]])
   instanced(BOX,mat,treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5+(k-1)*.05,groundAt(x,z)+y*s,z+.5),qY(hash2(z,x)*3),v2.set(sz*s,sz*.8*s,sz*s))});}
@@ -614,7 +616,7 @@ const OUT=[];
 
 // ---------- lights: moon + a few warm points ----------
 const hemi=new THREE.HemisphereLight(0x6a7fa0,0x2a2018,.75);scene.add(hemi);
-const moon=new THREE.DirectionalLight(0x9fb4d8,.6);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);Object.assign(moon.shadow.camera,{left:-11,right:11,top:11,bottom:-11});scene.add(moon,moon.target);
+const moon=new THREE.DirectionalLight(0x9fb4d8,.6);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);moon.shadow.bias=-.0008;moon.shadow.normalBias=.035;Object.assign(moon.shadow.camera,{left:-11,right:11,top:11,bottom:-11});scene.add(moon,moon.target);
 scene.fog=new THREE.FogExp2(0x0d1418,.05);scene.background=new THREE.Color(0x0d1418);
 const torches=[];
 function torch(x,z,fire=false){blockCell(x,z);const g=new THREE.Group(),y=groundAt(x,z);

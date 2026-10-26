@@ -10,7 +10,7 @@ const PAL=[[0,0,0]],SH={};
 function shades(name,hexes){SH[name]=hexes.map(h=>{const c=new THREE.Color(h);PAL.push([c.r,c.g,c.b]);return PAL.length-1;});return SH[name];}
 shades('log',['#6a5038','#5c4430','#735840']);shades('logD',['#3a2a1c','#33251a']);shades('logEnd',['#8a7050','#6a5238']);
 shades('plank',['#6e5a44','#625040','#77624a','#5a4838']);shades('gap',['#2a2018']);
-shades('plaster',['#b4aa96','#aca290','#bab09c']);shades('beam',['#3a281a','#33231a']);
+shades('plaster',['#9c9382','#948b7a','#a29886']);shades('inner',['#3a2b20','#33261c','#403024']);shades('beam',['#3a281a','#33231a']);
 shades('stone',['#6e6c66','#64625c','#787670','#5e5c58']);shades('mortar',['#3a3834']);shades('plinth',['#56544e','#4c4a46','#5e5c56']);
 shades('tiles',['#8a3e2c','#7c3626','#94462f']);shades('tileD',['#4a2018']);
 shades('slate',['#4e5666','#465060','#56606e']);shades('slateD',['#2a2e38']);
@@ -75,7 +75,7 @@ function mesh(g,size,opt={}){const t0=performance.now(),X=g.X,Y=g.Y,Z=g.Z,dims=[
   geo.setIndex(pos.length/3>65535?new THREE.Uint32BufferAttribute(idx,1):new THREE.Uint16BufferAttribute(idx,1));geo.computeBoundingSphere();geo.computeBoundingBox();
   const ms=performance.now()-t0;ST.meshMs+=ms;ST.quads+=quads;ST.naive+=naive;
   geo.userData.vox={voxels:g.count(),naive,naiveTris:naive*2,quads,tris:quads*2,ms};return geo;}
-const MAT=new THREE.MeshLambertMaterial({vertexColors:true}),GLASS=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x5a3410,emissiveIntensity:.8});
+const MAT=new THREE.MeshLambertMaterial({vertexColors:true}),GLASS=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x5a3410,emissiveIntensity:.45});
 MAT.userData.vox=GLASS.userData.vox=1;
 // ---------- the dwelling ----------
 // Local voxel space: N voxels per cell, P voxels of padding round the walls for eaves and sills; x along the
@@ -89,7 +89,8 @@ function house(o){const W=o.w*N,D=o.d*N,H1=Math.round(o.wh1*N),st=o.st||1,Hw=H1+
   const clear=(lx,ly,lz)=>{for(const k in G)G[k].set(lx+P,ly,lz+P,0);};
   // faces: a = voxel along the wall from its left end seen from outside, t = depth (0 outer layer, 1 inner, -1/-2 standing out)
   const FACES={S:{len:W,m:(a,t)=>[a,D-1-t]},N:{len:W,m:(a,t)=>[W-1-a,t]},W:{len:D,m:(a,t)=>[t,a]},E:{len:D,m:(a,t)=>[W-1-t,D-1-a]}};
-  const wallCol=(f,a,y,t)=>{const hh=hs(a,y,f.charCodeAt(0));
+  // the inner layer of every wall is dark planking, so a room is lit by its fire and lamps, not by bright plaster
+  const wallCol=(f,a,y,t)=>{const hh=hs(a,y,f.charCodeAt(0));if(t===1&&wk!=='stone')return pickS('inner',a>>1,y>>3,12);
     if(wk==='log'){const r=y>>1;return y%2===0?pickS('logD',a>>2,r,1):hh<.08?pickS('logD',a,y,2):pickS('log',a>>3,r,f.charCodeAt(0));}
     if(wk==='plank'){const b=a>>1;return y===0||y===H1-1?SH.gap[0]:pickS('plank',b,y>>3,3);}
     if(wk==='frame'){const pa=a%16,mid=Math.round(H1*.55);if(pa<2||y<=1||y>=H1-1||y>=Hw-1||y===mid||(y>=H1&&(y-H1)%10===0))return pickS('beam',a,y,4);

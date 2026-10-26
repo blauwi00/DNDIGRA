@@ -27,9 +27,9 @@ let s = seed * 7919 + 13; const rnd = () => (s = (s * 16807) % 2147483647) / 214
   p.on('pageerror', (e) => note('error', e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !/favicon|ERR_|net::/.test(m.text())) note('console', m.text()); });
   const cls = pick(['fighter', 'barbarian', 'rogue', 'mage', 'cleric', 'ranger', 'bard', 'paladin', 'druid', 'monk', 'warlock', 'sorcerer']);
-  await p.addInitScript(([c, sd]) => { localStorage.clear(); window.NOPV = 1; window.TEXT_DELAY = 0;
+  await p.addInitScript(([c, sd, vx]) => { localStorage.clear(); if (vx) localStorage.setItem('helga-vox', '1'); window.NOPV = 1; window.TEXT_DELAY = 0;
     localStorage.setItem('helga-hero', JSON.stringify({name: 'Бот' + sd, cls: c, race: 'human', kit: 0, look: {skin: 'e9bf90', hair: '493024', cloth: '284d6c', style: 'messy'}}));
-    sessionStorage.setItem('helga-start', 'new'); }, [cls, seed]);
+    sessionStorage.setItem('helga-start', 'new'); }, [cls, seed, process.env.VOX === '1']);
   await p.goto('http://127.0.0.1:' + server.address().port + '/');
   await p.waitForFunction(() => typeof H0 !== 'undefined' && typeof ROOMS !== 'undefined', null, {timeout: 180000});
   await p.waitForTimeout(4000);
