@@ -4,7 +4,7 @@
 // merges coplanar faces of one colour and one corner shading into big quads (greedy meshing) and bakes
 // ambient occlusion into vertex colours. LOD: the same grid downsampled 2x is meshed for far away.
 const VOX=(()=>{
-const on=(()=>{try{const q=new URLSearchParams(location.search).get('vox');if(q==='1'||q==='0')localStorage.setItem('helga-vox',q);return localStorage.getItem('helga-vox')==='1';}catch(e){return false;}})();
+const on=(()=>{try{const q=new URLSearchParams(location.search).get('vox');if(q==='1'||q==='0')localStorage.setItem('helga-vox',q);return localStorage.getItem('helga-vox')!=='0';}catch(e){return true;}})();
 // ---- palette: one list of colours for every voxel model; a material is a few shades of one colour ----
 const PAL=[[0,0,0]],SH={};
 function shades(name,hexes){SH[name]=hexes.map(h=>{const c=new THREE.Color(h);PAL.push([c.r,c.g,c.b]);return PAL.length-1;});return SH[name];}

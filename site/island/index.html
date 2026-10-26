@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.112 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.113 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2600,7 +2600,7 @@ if(typeof module!=='undefined')module.exports=Settle;
 // merges coplanar faces of one colour and one corner shading into big quads (greedy meshing) and bakes
 // ambient occlusion into vertex colours. LOD: the same grid downsampled 2x is meshed for far away.
 const VOX=(()=>{
-const on=(()=>{try{const q=new URLSearchParams(location.search).get('vox');if(q==='1'||q==='0')localStorage.setItem('helga-vox',q);return localStorage.getItem('helga-vox')==='1';}catch(e){return false;}})();
+const on=(()=>{try{const q=new URLSearchParams(location.search).get('vox');if(q==='1'||q==='0')localStorage.setItem('helga-vox',q);return localStorage.getItem('helga-vox')!=='0';}catch(e){return true;}})();
 // ---- palette: one list of colours for every voxel model; a material is a few shades of one colour ----
 const PAL=[[0,0,0]],SH={};
 function shades(name,hexes){SH[name]=hexes.map(h=>{const c=new THREE.Color(h);PAL.push([c.r,c.g,c.b]);return PAL.length-1;});return SH[name];}
