@@ -163,7 +163,7 @@ const Settle=(()=>{
       const hx=p.heart.x,hz=p.heart.z;out.heart.set(p,p.heart);
       const inCastle=(x,z)=>cast&&x>=cast.x&&x<cast.x+cast.w&&z>=cast.z&&z<cast.z+cast.d;
       // 2. the wall: round the market and the castle, bent by the ground, a cell inside the capital's own land
-      const ph=rnd()*6,Rw=a=>(cast&&cast.w>=32?27+Math.max(cast.w,cast.d)/2-12:27)+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,wx=hx,wz=cast?cast.z+Math.floor(cast.d/2):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
+      const ph=rnd()*6,Rw=a=>(cast&&cast.w>=32?27+Math.max(cast.w,cast.d)/2-8:27)+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,big3=cast&&cast.w>=32,wx=big3?Math.round((hx+p.x)/2):hx,wz=cast?cast.z+Math.floor(cast.d/2)+(big3?4:0):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
       const mask=new Uint8Array(W*OH);for(let z=wz-E-4;z<=wz+E+4;z++)for(let x=wx-E-4;x<=wx+E+4;x++){if(!inb(x,z))continue;const c=at(x,z);if(c==='~'||c==='M'||c==='N')continue;
         if(inCastle(x,z)||wd(x,z)<=0&&mine(p,x,z)&&!(cast&&z<cast.z+2))mask[K(x,z)]=1;}
       const inWall=(x,z)=>inb(x,z)&&mask[K(x,z)]===1;
@@ -216,7 +216,7 @@ const Settle=(()=>{
           if(!opts.length)continue;const [side,off]=opts[Math.floor(rnd()*opts.length)];const s={type:'house',x,z,w,d,side,off};
           s.storeys=r===0||r===1&&rnd()<.3?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;n++;}}
       // crafts: the smith by a gate, the baker and the store between the gate and the square
-      const hs=out.houses.filter(s=>s.p===p&&s.type==='house'&&!s.castle&&doorOpts('house',s.w,s.d,true).some(o=>o[0]===s.side&&o[1]===s.off));
+      const hs=out.houses.filter(s=>s.p===p&&s.type==='house'&&!s.castle&&(V<3||s.w>=6)&&doorOpts('house',s.w,s.d,true).some(o=>o[0]===s.side&&o[1]===s.off));
       const nearGate=s=>Math.min(...out.gates.map(g=>Math.hypot(g.x-s.x-s.w/2,g.z-s.z-s.d/2)),99);
       hs.sort((a,b)=>nearGate(a)-nearGate(b));const pick=hs.shift();if(pick){pick.shop='smith';pick.name='Кузница';pick.storeys=1;}
       hs.sort((a,b)=>Math.hypot(a.x-hx,a.z-hz)-Math.hypot(b.x-hx,b.z-hz));for(const k of ['baker','store']){const s=hs.shift();if(s){s.shop=k;s.name=k==='baker'?'Пекарня':'Лавка';s.storeys=1;}}
