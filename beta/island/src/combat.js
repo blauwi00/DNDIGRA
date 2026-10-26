@@ -145,7 +145,8 @@ function dash(){CB.move+=6;floatText('Рывок','#9fe0ff',hero);showMoves();}
 async function approach(e){const p=path(H0.x,H0.z,e.x,e.z,H0,true,3000);if(!p)return false;if(!p.length)return true;
   if(CB.on){if(p.length>CB.move)return false;CB.move-=p.length;}
   await walk(H0,p);return man(H0,e)===1;}
-function walk(a,route){a.route=route.slice();a.dest=route[route.length-1];return new Promise(res=>{const t=setInterval(()=>{if(!a.route||a.dead){clearInterval(t);res();}},40)});}
+// a walk that cannot finish (the way blocked by someone) gives up instead of holding the fight forever
+function walk(a,route){a.route=route.slice();a.dest=route[route.length-1];const t0=performance.now(),lim=route.length*1200+2500;return new Promise(res=>{const t=setInterval(()=>{if(!a.route||a.dead||performance.now()-t0>lim){if(a.route){a.route=null;a.px=a.x+.5;a.pz=a.z+.5;}clearInterval(t);res();}},40)});}
 // kind: 'action' spends the action, 'bonus' the bonus action; adj: walk next to the target first
 async function doVerb(e,run,{adj=false,kind='action'}={}){if(busy)return;
   if(CB.on&&!heroTurn())return toast('Сейчас ход противника.');
@@ -154,7 +155,7 @@ async function doVerb(e,run,{adj=false,kind='action'}={}){if(busy)return;
   busy=true;clearMoves();
   if(adj&&!(await approach(e))){busy=false;toast('Не дойти до цели.');if(CB.on)showMoves();return;}
   if(!CB.on&&e&&e.enemy)await startCombat(e,!e.aware,true);
-  await run();if(CB.on){if(kind==='action')CB.acted=true;if(kind==='bonus')CB.bonus=true;}busy=false;afterHeroAct();}
+  try{await run();}catch(err){console.error(err);}finally{if(CB.on){if(kind==='action')CB.acted=true;if(kind==='bonus')CB.bonus=true;}busy=false;}afterHeroAct();}
 const reachable=e=>man(e,H0)===1||(CB.on?moveCells().some(c=>Math.abs(c[0]-e.x)+Math.abs(c[1]-e.z)===1):true);
 
 // ---------- turns ----------
