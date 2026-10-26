@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.100 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.107 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2270,9 +2270,9 @@ const Settle=(()=>{
     if(type==='poorhouse'){o.push(['S',Math.floor(w/2)],['W',2]);if(d>=6)o.push(['E',3]);return o;}
     o.push(['S',Math.floor(w/2)]);if(d>=5){o.push(['E',Math.floor(d/2)],['W',Math.floor(d/2)]);}return o;}
   const NAME={house:'Дом',poorhouse:'Лачуга',gbarn:'Амбар',temple:'Храм',inn:'Таверна',mill:'Мельница',tannery:'Кожевня',warehouse:'Склад',
-    castle:'Королевский замок',barracks:'Казарма',armory:'Оружейная',treasury:'Казна',chambers:'Покои короля'};
+    castle:'Королевский замок',kitchen:'Кухня',barracks:'Казарма',armory:'Оружейная',treasury:'Казна',chambers:'Покои короля'};
 
-  function plan(o){const {W,OH,at,set,places,hgt}=o,K=(x,z)=>z*W+x;
+  function plan(o){const {W,OH,at,set,places,hgt}=o,K=(x,z)=>z*W+x,V=o.v||2; // V: layout version (3: the big castle, new worlds)
     const out={houses:[],castle:null,fences:[],palisade:[],walls:[],gates:[],wells:[],gardens:[],fields:[],graves:[],stalls:[],props:[],piers:[],ext:new Map(),heart:new Map()};
     const inb=(x,z)=>x>1&&z>1&&x<W-2&&z<OH-2;
     const res=new Uint8Array(W*OH); // 1 kept clear (square, green, lane), 2 yard, 3 thing standing (well, stall, grave, fence)
@@ -2280,7 +2280,7 @@ const Settle=(()=>{
     const okC=(x,z)=>inb(x,z)&&['G','A','B','D','C'].includes(at(x,z));
     const bld=(x,z)=>inb(x,z)&&['G','A','B'].includes(at(x,z))&&!res[K(x,z)];
     const towns=places.filter(p=>['capital','village','works'].includes(p.type));
-    const EXT=p=>p.type==='capital'?p.r+14:p.type==='works'?p.r+7:p.poorWhy?p.r+6:p.r+11+Math.min(3,p.wealth||0);
+    const EXT=p=>p.type==='capital'?p.r+(V>=3?24:14):p.type==='works'?p.r+7:p.poorWhy?p.r+6:p.r+11+Math.min(3,p.wealth||0);
     // ground of a settlement: cells nearer (in its own measure) to it than to any other settlement, clear of wild places
     const own=new Int16Array(W*OH).fill(-1);
     towns.forEach((p,i)=>{const E=EXT(p);out.ext.set(p,E);for(let z=p.z-E;z<=p.z+E;z++)for(let x=p.x-E;x<=p.x+E;x++){if(!inb(x,z))continue;const d=Math.hypot(x-p.x,z-p.z);if(d>E)continue;
@@ -2371,24 +2371,44 @@ const Settle=(()=>{
     // ---------------- the capital ----------------
     function capital(p,rnd){const E=out.ext.get(p);
       // 1. the castle on the highest ground near the middle; its gate looks south at the market
-      const CW=24,CD=18;let best=null;
-      for(const loose of [0,1]){if(best)break;const R0=loose?20:15,ZA=loose?18:12,ZB=loose?10:6;
-      for(let cz=p.z-ZA;cz<=p.z+ZB;cz++)for(let cx=p.x-R0;cx<=p.x+R0;cx++){const x0=cx-12,z0=cz-9;let ok=true,hs=0;
+      // Layout 3 (new worlds): a castle at the scale of a real one beside a 6 x 6 house: 40 x 32 cells inside thick walls.
+      // Where the land will not hold it, the next size down is tried; layout 2 keeps its old 24 x 18 court.
+      let CW=24,CD=18,best=null;
+      for(const [cw,cd] of V>=3?[[40,30],[38,30],[36,30],[34,30],[32,30],[24,18]]:[[24,18]]){if(best)break;CW=cw;CD=cd;const big=V>=3?Math.floor((cw-24)/2):0;
+      for(const loose of [0,1]){if(best)break;const R0=(loose?20:15)+big,ZA=(loose?18:12)+big,ZB=(loose?10:6)+big;
+      for(let cz=p.z-ZA;cz<=p.z+ZB;cz++)for(let cx=p.x-R0;cx<=p.x+R0;cx++){const x0=cx-Math.floor(CW/2),z0=cz-Math.floor(CD/2);let ok=true,hs=0;
         for(let z=z0;z<z0+CD+8&&ok;z++)for(let x=x0;x<x0+CW;x++){if(z<z0+CD){if(!okC(x,z)||!loose&&!mine(p,x,z)||loose&&own[K(x,z)]>=0&&!mine(p,x,z)){ok=false;break;}hs+=hgt(x,z);}else if(!loose&&Math.abs(x-cx)<5&&!(okC(x,z)||at(x,z)==='R')){ok=false;break;}}
-        if(!ok)continue;let room=0;for(let z=z0+CD;z<z0+CD+15;z++)for(let x=x0-5;x<x0+CW+5;x++)if(okC(x,z)&&mine(p,x,z))room++;const s=hs/(CW*CD)*12+room*.06-Math.hypot(cx-p.x,cz-(p.z-5))*.12;if(!best||s>best.s)best={x0,z0,s};}}
+        if(!ok)continue;let room=0;for(let z=z0+CD;z<z0+CD+15;z++)for(let x=x0-5;x<x0+CW+5;x++)if(okC(x,z)&&mine(p,x,z))room++;const s=hs/(CW*CD)*12+room*.06-Math.hypot(cx-p.x,cz-(p.z-5))*.12;if(!best||s>best.s)best={x0,z0,s};}}}
       let cast=null;
-      if(best){const {x0,z0}=best,x1=x0+CW-1,z1=z0+CD-1,gc=x0+12;cast={x:x0,z:z0,w:CW,d:CD,gate:[gc-1,gc+1],p};out.castle=cast;
-        for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const edge=x===x0||x===x1||z===z0||z===z1;set(x,z,edge&&!(z===z1&&x>=gc-1&&x<=gc+1)?'W':'C');res[K(x,z)]=1;}
+      if(best){const {x0,z0}=best,x1=x0+CW-1,z1=z0+CD-1,gc=x0+Math.floor(CW/2);cast={x:x0,z:z0,w:CW,d:CD,gate:[gc-1,gc+1],p,thick:CW>=32?2:1};out.castle=cast;
+        const th=cast.thick;
+        for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const edge=x<x0+th||x>x1-th||z<z0+th||z>z1-th;set(x,z,edge&&!(z>z1-th&&x>=gc-1&&x<=gc+1)?'W':'C');res[K(x,z)]=1;}
         // the buildings of the court: the keep with the throne hall, the king's rooms, the treasury, barracks, armory
         const B=(type,dx,dz,w,d,side,off,extra)=>{for(let z=z0+dz;z<z0+dz+d;z++)for(let x=x0+dx;x<x0+dx+w;x++){set(x,z,'G');res[K(x,z)]=0;}
           const s=put(p,Object.assign({type,x:x0+dx,z:z0+dz,w,d,side,off,wall:'stone',roof:'slate',alongX:true,castle:true},extra||{}));
           const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;return s;};
+        if(CW>=32){// the big castle: the keep of four storeys at the back of the inner ward, the king's rooms and the treasury
+          // at its sides; the chapel, the armory, the kitchens, the barracks and the stables round the bailey; a well in it.
+          // Every lane between buildings is at least three cells wide, so no one standing in it closes the way.
+          const kw=CW>=40?14:CW>=34?12:10,kd=12,kx=Math.floor((CW-kw)/2),e=CW-3; // e: the last inner column
+          B('castle',kx,3,kw,kd,'S',Math.floor(kw/2),{storeys:4,name:'Донжон: тронный зал'});
+          const sw=kx-7>=5?6:5;B('chambers',3,3,sw,6,'E',2,{storeys:2,guard:4,name:'Покои короля'});
+          B('treasury',e-5,3,6,5,'W',2,{guard:99,name:'Казна'});
+          B('armory',e-5,10,6,6,'W',3,{guard:3,name:'Оружейная'});
+          B('temple',3,kd+1,7,6,'E',3,{name:'Часовня замка'});
+          const by=CD-9;// the bailey's south row
+          B('kitchen',e-5,17,6,5,'W',2,{name:'Замковая кухня'});
+          B('barracks',3,by,9,6,'E',3,{guard:2,name:'Казарма'});
+          B('gbarn',e-9,CD-7,10,5,'W',2,{wall:'stone',roof:'slate',name:'Конюшня'});
+          const wx_=x0+kx-2,wz_=z0+by-2;if(at(wx_,wz_)==='C'){out.wells.push([wx_,wz_]);res[K(wx_,wz_)]=3;}
+          for(const dx of [e-12,e-11])if(at(x0+dx,z0+CD-5)==='C'){out.props.push({k:'trough',x:x0+dx,z:z0+CD-5});res[K(x0+dx,z0+CD-5)]=3;}}
+        else{
         B('castle',7,1,10,8,'S',5,{storeys:3,name:'Тронный зал'});
         B('chambers',1,1,5,5,'E',2,{storeys:2,guard:4,name:'Покои короля'});
         B('treasury',18,1,5,5,'W',2,{guard:99,name:'Казна'});
         B('barracks',1,11,7,5,'E',2,{guard:2,name:'Казарма'});
         B('armory',18,11,5,5,'W',2,{guard:3,name:'Оружейная'});
-        for(const [dx,dz] of [[10,14],[14,14]])out.props.push({k:'trough',x:x0+dx,z:z0+dz}),res[K(x0+dx,z0+dz)]=3;
+        for(const [dx,dz] of [[10,14],[14,14]])out.props.push({k:'trough',x:x0+dx,z:z0+dz}),res[K(x0+dx,z0+dz)]=3;}
         // the market square under the gate, a little crooked, a well in its middle
         const mz0=z1+1,mz1=z1+6;for(let z=mz0;z<=mz1;z++)for(let x=gc-4;x<=gc+4;x++){const corner=(x===gc-4||x===gc+4)&&(z===mz0||z===mz1);if(corner&&rnd()<.7)continue;if(okC(x,z)&&mine(p,x,z)){set(x,z,'C');res[K(x,z)]=1;}}
         p.heart={x:gc,z:mz0+3};well(gc,mz0+4);
@@ -2397,7 +2417,7 @@ const Settle=(()=>{
       const hx=p.heart.x,hz=p.heart.z;out.heart.set(p,p.heart);
       const inCastle=(x,z)=>cast&&x>=cast.x&&x<cast.x+cast.w&&z>=cast.z&&z<cast.z+cast.d;
       // 2. the wall: round the market and the castle, bent by the ground, a cell inside the capital's own land
-      const ph=rnd()*6,Rw=a=>27+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,wx=hx,wz=cast?cast.z+Math.floor(cast.d/2):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
+      const ph=rnd()*6,Rw=a=>(cast&&cast.w>=32?27+Math.max(cast.w,cast.d)/2-8:27)+Math.sin(a*3+ph)*1.6+Math.sin(a*5+ph*2)*.8,big3=cast&&cast.w>=32,wx=big3?Math.round((hx+p.x)/2):hx,wz=cast?cast.z+Math.floor(cast.d/2)+(big3?4:0):hz,wd=(x,z)=>Math.hypot(x-wx,z-wz)-Rw(Math.atan2(z-wz,x-wx));
       const mask=new Uint8Array(W*OH);for(let z=wz-E-4;z<=wz+E+4;z++)for(let x=wx-E-4;x<=wx+E+4;x++){if(!inb(x,z))continue;const c=at(x,z);if(c==='~'||c==='M'||c==='N')continue;
         if(inCastle(x,z)||wd(x,z)<=0&&mine(p,x,z)&&!(cast&&z<cast.z+2))mask[K(x,z)]=1;}
       const inWall=(x,z)=>inb(x,z)&&mask[K(x,z)]===1;
@@ -2435,11 +2455,11 @@ const Settle=(()=>{
           const side=sd>0?'W':'E',off=Math.floor(td/2);if(fits(p,x,z,tw,td,null,inWall))t={type:'temple',x,z,w:tw,d:td,side,off,wall:'stone',roof:'slate',alongX:false,storeys:2};}
         if(t){put(p,t);for(let k=1;k<=4;k++)for(let j=0;j<td;j+=2){const x=t.side==='W'?t.x+t.w+k:t.x-1-k,z=t.z+j;if(bld(x,z)&&inWall(x,z)&&mine(p,x,z)&&k%2===0){out.graves.push([x,z]);res[K(x,z)]=3;}else if(bld(x,z))res[K(x,z)]=2;}}}
       // 6. plots along the streets: rich near the square, crafts by the gates, small and close by the wall
-      const ring=d=>d<9?0:d<12?1:2;let n=0;
+      const ring=big3?(d=>d<18?0:d<26?1:2):(d=>d<9?0:d<12?1:2);let n=0;
       for(const [sx,sz,dd] of streets(p,hx,hz,rnd,E+14)){if(n>=28)break;if(inCastle(sx,sz)||!inWall(sx,sz))continue;const r=ring(Math.hypot(sx-hx,sz-hz));
         const sizes=[[[6,7],[7,6],[6,6],[5,6]],[[6,6],[5,6],[6,5],[5,5]],[[5,5],[5,6],[6,5]]][r];
         const keep=(x,z)=>inWall(x,z)&&!inCastle(x,z);let s=null;const forShop=n<3;for(let k=0;k<5&&!s;k++){const [w,d]=forShop?[[6,6],[7,6],[6,7]][k%3]:sizes[Math.floor(rnd()*sizes.length)];s=againstStreet(p,sx,sz,'house',w,d,rnd,keep,forShop);}if(!s)continue;
-        s.storeys=r===0||r===1&&rnd()<.3?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);n++;
+        s.storeys=(V>=3?r<2||rnd()<.45:r===0||r===1&&rnd()<.3)?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);n++;
         if(r>0&&rnd()<.6)yard(p,s,rnd,{fence:r===2,garden:4,woodpile:r===2});}
       // the blocks between the streets fill up too: a house wherever it fits, its door to the nearest way (a path is trodden)
       {const cells=[];for(let z=wz-E-4;z<=wz+E+4;z++)for(let x=wx-E-4;x<=wx+E+4;x++)if(inWall(x,z)&&!inCastle(x,z)&&bld(x,z))cells.push([x,z,Math.hypot(x-hx,z-hz)+rnd()*3]);
@@ -2448,9 +2468,9 @@ const Settle=(()=>{
           if(!fits(p,x,z,w,d,null,(a,b)=>inWall(a,b)&&!inCastle(a,b)))continue;
           const opts=doorOpts('house',w,d).filter(([side,off])=>{const [ddx,ddz]=doorCell({side,off,x,z,w,d});return inWall(ddx,ddz)&&(bld(ddx,ddz)||at(ddx,ddz)==='C'||at(ddx,ddz)==='D')&&res[K(ddx,ddz)]!==3;});
           if(!opts.length)continue;const [side,off]=opts[Math.floor(rnd()*opts.length)];const s={type:'house',x,z,w,d,side,off};
-          s.storeys=r===0||r===1&&rnd()<.3?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;n++;}}
+          s.storeys=(V>=3?r<2||rnd()<.45:r===0||r===1&&rnd()<.3)?2:1;variety(s,rnd,r===0,r===2);s.ring=r;put(p,s);const [ddx,ddz]=doorCell(s);res[K(ddx,ddz)]=1;n++;}}
       // crafts: the smith by a gate, the baker and the store between the gate and the square
-      const hs=out.houses.filter(s=>s.p===p&&s.type==='house'&&!s.castle&&doorOpts('house',s.w,s.d,true).some(o=>o[0]===s.side&&o[1]===s.off));
+      const hs=out.houses.filter(s=>s.p===p&&s.type==='house'&&!s.castle&&(V<3||s.w>=6)&&doorOpts('house',s.w,s.d,true).some(o=>o[0]===s.side&&o[1]===s.off));
       const nearGate=s=>Math.min(...out.gates.map(g=>Math.hypot(g.x-s.x-s.w/2,g.z-s.z-s.d/2)),99);
       hs.sort((a,b)=>nearGate(a)-nearGate(b));const pick=hs.shift();if(pick){pick.shop='smith';pick.name='Кузница';pick.storeys=1;}
       hs.sort((a,b)=>Math.hypot(a.x-hx,a.z-hz)-Math.hypot(b.x-hx,b.z-hz));for(const k of ['baker','store']){const s=hs.shift();if(s){s.shop=k;s.name=k==='baker'?'Пекарня':'Лавка';s.storeys=1;}}
@@ -2504,7 +2524,7 @@ const Settle=(()=>{
         if(sp){type=sp[0]==='smith'?'house':sp[0];s=againstStreet(p,sx,sz,type,sp[1],sp[2],rnd,keepIn,sp[0]==='smith');if(!s){special.push(sp);sp=null;type='house';}}
         if(!s){const sizes=[[6,6],[7,6],[5,6],[6,7],[7,7],[5,5],[9,5],[5,7]];for(let k=0;k<5&&!s;k++){const [w,d]=sizes[Math.floor(rnd()*sizes.length)];s=againstStreet(p,sx,sz,'house',w,d,rnd,keepIn);}}
         if(!s)continue;
-        s.storeys=type==='house'&&rich&&rnd()<.35?2:type==='inn'?2:1;variety(s,rnd,rich&&rnd()<.5,(p.wealth||0)<=1);
+        s.storeys=type==='house'&&(rich&&rnd()<.35||V>=3&&(p.wealth||0)>=2&&rnd()<.2)?2:type==='inn'?2:1;variety(s,rnd,rich&&rnd()<.5,(p.wealth||0)<=1);
         if(sp&&sp[0]==='smith'){s.shop='smith';s.name='Кузница';}if(type==='temple'){s.name='Часовня';s.wall='stone';}
         put(p,s);n++;if(type!=='house'||s.shop)continue;
         // an annex under its own roof against the house side (the shape of an Г), or a barn across the yard
@@ -2619,9 +2639,10 @@ const vnoise=(x,z,s)=>{const X=Math.floor(x/s),Z=Math.floor(z/s),fx=x/s-X,fz=z/s
   return l(l(hash2(X,Z),hash2(X+1,Z),fx),l(hash2(X,Z+1),hash2(X+1,Z+1),fx),fz)};
 const OLD_D=(x,z)=>((x-40)/37)**2+((z-30)/27)**2+(vnoise(x,z,7)-.5)*.5+(vnoise(x,z,3)-.5)*.15;
 // settlement layout: a world saved before layout 2 keeps the old grid capital and ring villages (its rooms,
-// chests and people are saved by number); every new world gets the grown towns of settle.js
-const LAYOUT=(()=>{try{const d=JSON.parse(localStorage.getItem('helga-island-beta-1')||'null');if(d)return d.lay===2?2:1;}catch(e){}return 2;})();
-const GEN=IslandGen.make('helga',300,220,{v:LAYOUT,stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
+// chests and people are saved by number); a layout 2 world keeps its towns; every new world gets layout 3:
+// the grown towns of settle.js with a castle at real scale and houses parted into rooms
+const LAYOUT=(()=>{try{const d=JSON.parse(localStorage.getItem('helga-island-beta-1')||'null');if(d)return d.lay>=2?Math.min(3,d.lay):1;}catch(e){}return 3;})();
+const GEN=IslandGen.make('helga',300,220,{v:Math.min(2,LAYOUT),stamp:{w:80,h:60,cx:40,cz:30,r:42,gate:[78,44],land:(x,z)=>OLD_D(x,z)<1,near:(x,z)=>(x>40||z>45)&&OLD_D(x,z)<2.4}});
 const W=GEN.W,OUT_H=GEN.H,ROOM_Z=OUT_H+6,GB=GEN.B;let H=ROOM_Z+12;
 const inStamp=(x,z)=>x<80&&z<60&&OLD_D(x,z)<1;
 const genCode=(x,z)=>{if(z>=OUT_H)return '~';const i=z*W+x,b=GEN.biome[i];
@@ -2654,8 +2675,11 @@ const HOUSE_INFO=[['tavern','Таверна «Пьяный угорь»'],['forg
 // rooms sit side by side below the island, each exactly the size of its house
 let roomX=2;const ROOMS=HOUSES.map(([hx,hz,hw,hd],i)=>{const iw=hw,id=hd,ox=roomX,oz=ROOM_Z;roomX+=iw+4;
   return {i,type:HOUSE_INFO[i][0],name:HOUSE_INFO[i][1],ox,oz,iw,id,door:[hx+Math.floor(hw/2),hz+hd],exit:[ox+Math.floor(iw/2),oz+id-1]};});
+// Layout 2: Заводь's houses are entered by walking in like every other building; their rooms are the houses themselves
+// (a world saved before layout 2 keeps the rooms below the island, where its saved hero may stand)
+if(LAYOUT>=2)ROOMS.forEach((R,i)=>{const [hx,hz,hw,hd]=HOUSES[i],ex=hx+Math.floor(hw/2),ez=hz+hd-1;Object.assign(R,{ox:hx,oz:hz,exit:[ex,ez],inside:[ex,ez-1],side:'S',inPlace:true,place:{type:'village',wealth:2,x:hx,z:hz},wealth:2});});
 for(const R of ROOMS){for(let z=R.oz;z<R.oz+R.id;z++)for(let x=R.ox;x<R.ox+R.iw;x++)set(x,z,(x===R.ox||x===R.ox+R.iw-1||z===R.oz||z===R.oz+R.id-1)?'X':'F');set(...R.exit,'E');}
-for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');
+if(LAYOUT<2)for(const [hx,hz,hw,hd] of HOUSES)for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');
 road([Z.dock[0]+3,Z.dock[1]],Z.village);road(Z.village,[Z.ruins[0]-2,Z.ruins[1]+3]);road(Z.village,[Z.camp[0]-3,Z.camp[1]]);road([Z.village[0]+8,Z.village[1]+4],Z.hunter);road([Z.camp[0]-3,Z.camp[1]],[78,44]); // on to the gate where the big island's road begins
 // a path from every door to the square
 for(const R of ROOMS){const[dx,dz]=R.door;if(at(dx,dz)!=='C')set(dx,dz,'D');road([dx,dz],Z.village);}
@@ -2669,7 +2693,7 @@ const genBusy=(x,z)=>GPL.some(p=>!['wolves','boars','bear'].includes(p.type)&&Ma
 {const okCell=(x,z)=>['G','A','B','D'].includes(at(x,z));
  const fits=(hx,hz,hw,hd)=>{for(let z=hz-1;z<=hz+hd;z++)for(let x=hx-1;x<=hx+hw;x++){const c=at(x,z),inside=x>=hx&&x<hx+hw&&z>=hz&&z<hz+hd;if(inside?!['G','A','B'].includes(c):['H','~','R','M','N','W'].includes(c))return false;}return true;};
  const house=(hx,hz,hw,hd,p)=>{for(let z=hz;z<hz+hd;z++)for(let x=hx;x<hx+hw;x++)set(x,z,'H');GEN_HOUSES.push([hx,hz,hw,hd,p]);};
- if(LAYOUT>=2){SETTLE=Settle.plan({W,OH:OUT_H,at,set,places:GPL,hgt:(x,z)=>GEN.height[z*W+x]});for(const sp of SETTLE.houses)GEN_HOUSES.push(Object.assign([sp.x,sp.z,sp.w,sp.d,sp.p],{spec:sp}));}
+ if(LAYOUT>=2){SETTLE=Settle.plan({v:LAYOUT,W,OH:OUT_H,at,set,places:GPL,hgt:(x,z)=>GEN.height[z*W+x]});for(const sp of SETTLE.houses)GEN_HOUSES.push(Object.assign([sp.x,sp.z,sp.w,sp.d,sp.p],{spec:sp}));}
  for(const p of GPL){const disc=(r,c)=>{for(let z=p.z-r;z<=p.z+r;z++)for(let x=p.x-r;x<=p.x+r;x++)if(Math.hypot(x-p.x,z-p.z)<=r&&okCell(x,z))set(x,z,c);};
    // the capital: cobbled streets every five cells, a market square in the middle, houses filling the blocks
    // the royal castle fills the north of the capital: a walled court 28 x 17 cells with a keep, the market below its gate
@@ -2750,7 +2774,7 @@ function defer(key,build){let c=CHUNKS.get(key);if(!c){const[a,b]=key.split(',')
   c.builders.push(build);if(c.on)c.live.push(...[].concat(build()));}
 function chunkOn(c){c.on=true;for(const b of c.builders)c.live.push(...[].concat(b()));}
 function chunkOff(c){c.on=false;for(const o of c.live){scene.remove(o);for(const L of o.userData.lists||[]){const k=L.indexOf(o);if(k>=0)L.splice(k,1);}
-    if(o.isInstancedMesh){o.geometry.dispose();o.dispose&&o.dispose();}}c.live=[];}
+    if(o.isInstancedMesh){o.geometry.dispose();o.dispose&&o.dispose();}if(o.userData.own)for(const gm of o.userData.own)gm.dispose();}c.live=[];}
 let streamAt=null,streamQueue=[];
 function streamTick(all){const fx=focus.x,fz=focus.z,k=Math.floor(fx/4)+','+Math.floor(fz/4);
   if(k!==streamAt){streamAt=k;streamQueue=[];
@@ -2847,7 +2871,7 @@ function swing(d,open,ms=420){const from=d.pivot.rotation.y,to=open?1.45:0;retur
 const HSTYLE={tavern:{wall:lam(T.p[0],{color:0xd8c0a0}),roof:lam(T.cobble,{color:0xb8503a}),h:1.9,base:true},forge:{wall:lam(T.wall,{color:0x9a948c}),roof:lam(T.stone,{color:0x5a6478}),h:1.5,alongX:true},
   home:{wall:lam(T.p[0],{color:0xc0b098}),roof:lam(T.leaves,{color:0xd8b860}),h:1.3},hall:{wall:lam(T.p[0],{color:0xe8dcc4}),roof:lam(T.stone,{color:0x3a4a6a}),h:1.8,base:true},
   barn:{wall:lam(T.p[1],{color:0x9a3a2a}),roof:lam(T.p[2],{color:0x6a4a30}),h:1.7,alongX:true},herb:{wall:lam(T.p[1],{color:0x8a7a5a}),roof:lam(T.moss||T.leaves,{color:0x6a8a4a}),h:1.2}};
-HOUSES.forEach(([hx,hz,hw,hd],hi)=>{const g=new THREE.Group(),y=.3,type=HOUSE_INFO[hi][0],S=HSTYLE[type],H_=S.h;g.userData.house=hi;houseMeshes.push(g);
+if(LAYOUT<2)HOUSES.forEach(([hx,hz,hw,hd],hi)=>{const g=new THREE.Group(),y=.3,type=HOUSE_INFO[hi][0],S=HSTYLE[type],H_=S.h;g.userData.house=hi;houseMeshes.push(g);
   const B=(m,x,yy,z,sx,sy,sz,rx=0)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,yy,z);o.rotation.x=rx;o.castShadow=o.receiveShadow=true;g.add(o);return o;};
   const cx=hx+hw/2,cz=hz+hd/2,front=hz+hd,dx=hx+Math.floor(hw/2)+.5;
   B(S.wall,cx,y+H_/2,cz,hw-.1,H_,hd-.1);
@@ -2886,14 +2910,23 @@ function liveHouse(g){houseMeshes.push(g);g.userData.lists=[houseMeshes];return 
 // The roof and the wall facing the camera are tagged, so they can be lifted away while the hero is inside.
 const glassMat=new THREE.MeshLambertMaterial({color:0xa8c8e0,transparent:true,opacity:.28,depthWrite:false}),hFrameMat=lam(T.bark,{color:0x6a4a30});
 const FLOWERS=[0xd84a5a,0xf0c040,0xe8e0f0,0x8a5ad0,0xf08a3a];
+// An old window, drawn on a 32 px grid: a wooden frame, a cross of mullion and transom, and in each quarter small
+// diamond panes of greenish glass held by lead. Its own little hash, so the island's seeded textures stay as they were.
+const WINDOW=(()=>{const c=document.createElement('canvas');c.width=c.height=32;const g=c.getContext('2d'),P=(x,y,col,w=1,h=1)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+  const hs=(x,y)=>{let h=(x*374761393+y*668265263)>>>0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;};
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++){const r=hs(x,y);P(x,y,y<12&&x+y<26?(r<.5?'#7a98a0':'#6a8a94'):(r<.5?'#4a6670':r<.8?'#55727a':'#3e5a64'));}
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if((x+y)%6===0||(x-y+60)%6===0)P(x,y,'#2a2e30');
+  const wood=['#5a3e26','#664629','#4e3520'];for(let k=0;k<32;k++){for(const t of [0,1,2,29,30,31])P(k,t,wood[(k+t)%3]),P(t,k,wood[(k*7+t)%3]);for(const t of [15,16])P(k,t,wood[(k+t)%3]),P(t,k,wood[(k+t+1)%3]);}
+  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestMipmapLinearFilter;return t;})();
+const winMat=new THREE.MeshLambertMaterial({map:WINDOW,emissive:0x2a1a08,emissiveIntensity:.35}),sillMat=lam(T.bark,{color:0x5a3e26});
 // Layout 2 houses differ by wealth and trade: stone, timber frame (white plaster, dark beams), planks or logs;
 // one storey or two (the upper floor shows outside: a taller house with a second row of windows, reached inside by a stair);
 // a door on the south, east or west wall; barns with wide doors and no windows; a temple with its bell tower,
 // a mill with its wheel on the water, the castle's stone buildings with battlements.
 const WALLS={stone:lam(T.wall,{color:0xc0b8aa}),frame:lam(T.p[0],{color:0xece4d0}),plank:lam(T.p[0],{color:0xc8b8a0}),log:lam(T.bark,{color:0xa08060})},beamDark=lam(T.bark,{color:0x4a3222});
-const TALL={castle:3.1,temple:2.4,barracks:1.7,armory:1.7,treasury:1.6,chambers:1.6,warehouse:1.8,mill:1.6,tannery:1.4,inn:1.5,gbarn:1.7};
+const TALL={tavern:1.9,forge:1.5,home:1.3,hall:1.8,barn:1.7,herb:1.2,castle:3.1,temple:2.4,barracks:1.7,armory:1.7,kitchen:1.6,treasury:1.6,chambers:1.6,warehouse:1.8,mill:1.6,tannery:1.4,inn:1.5,gbarn:1.7};
 function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group(),y=R.y,rich=p.type==='capital'||p.wealth>=3,poor=p.wealth<=1&&p.type!=='capital',hh=hash2(hx*3,hz*5);
-  g.userData.house=R.i;const front=[],roofs=[],type=R.type,barn=type==='gbarn',stoneB=S&&S.castle;
+  g.userData.house=R.i;const front=[],roofs=[],type=R.type,barn=type==='gbarn'||type==='barn',stoneB=S&&S.castle;
   const B=(m,x,yy,z,sx,sy,sz,list)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(x,yy,z);o.castShadow=o.receiveShadow=true;g.add(o);if(list)list.push(o);return o;};
   const st=S?Math.max(1,S.storeys||1):1,wh1=S&&TALL[type]||(rich?1.5:1.3),wh=wh1+(st-1)*1.25;
   const wall=S?(WALLS[S.wall]||wallMat):rich?wallRich:poor?wallPoor:wallMat,T_=.28,side=R.side||'S',ex=R.exit[0],ez=R.exit[1];
@@ -2904,8 +2937,10 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
     if(kind==='wall'){B(wall,x,y+wh1/2,z,sx,wh1,sz,list);return;}
     const lo=kind==='door'?0:.55,hi=kind==='door'?(barn?1.25:1.05):1.1;
     if(lo>0)B(wall,x,y+lo/2,z,sx,lo,sz,list);B(wall,x,y+(hi+wh1)/2,z,sx,wh1-hi,sz,list);
-    if(kind==='win'){const gx=sx>sz,o=B(glassMat,x,y+(lo+hi)/2,z,gx?sx*.9:sz*.3,hi-lo,gx?sz*.3:sz*.9,list);o.castShadow=false;
-      B(hFrameMat,x,y+lo+.02,z,gx?sx:sx+.04,.05,gx?sz+.04:sz,list);B(hFrameMat,x,y+(lo+hi)/2,z,gx?.05:sx+.02,hi-lo,gx?sz+.02:.05,list);}};
+    if(kind==='win')oldWin(x,y+lo,z,sx>sz,hi-lo,list);};
+  // an old window in a wall cell: wall jambs either side of a narrow frame, a sill under it outside and in
+  const oldWin=(x,y0,z,gx,hgt,list)=>{const ww=rich?.62:.5,j=(1-ww)/2;for(const sg of [-1,1])B(wall,gx?x+sg*(ww/2+j/2):x,y0+hgt/2,gx?z:z+sg*(ww/2+j/2),gx?j:T_,hgt,gx?T_:j,list);
+    B(winMat,x,y0+hgt/2,z,gx?ww:T_+.02,hgt,gx?T_+.02:ww,list).castShadow=false;B(sillMat,x,y0-.03,z,gx?ww+.12:T_+.16,.06,gx?T_+.16:ww+.12,list);};
   const sideKind=(j,isDoor)=>isDoor?'door':isWin(j,hd)&&j===Math.floor(hd/2)?'win':'wall';
   for(let i=0;i<hw;i++){const x=hx+i+.5;seg(x,hz+hd-T_/2,1,T_,side==='S'&&hx+i===ex?'door':isWin(i,hw)?'win':'wall',front);seg(x,hz+T_/2,1,T_,isWin(i,hw)?'win':'wall');}
   for(let j=1;j<hd-1;j++){const z=hz+j+.5;seg(hx+T_/2,z,T_,1,sideKind(j,side==='W'&&hz+j===ez));seg(hx+hw-T_/2,z,T_,1,sideKind(j,side==='E'&&hz+j===ez));}
@@ -2913,13 +2948,20 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   if(st>1){const up=wh-wh1,yc=y+wh1+up/2,ring=[];for(let i=0;i<hw;i++)ring.push([hx+i+.5,hz+hd-T_/2,1,T_,i,hw],[hx+i+.5,hz+T_/2,1,T_,i,hw]);for(let j=1;j<hd-1;j++)ring.push([hx+T_/2,hz+j+.5,T_,1,j,hd],[hx+hw-T_/2,hz+j+.5,T_,1,j,hd]);
     for(const [x,z,sx,sz,i,n] of ring){const win=!blind&&i>0&&i<n-1&&i%2===1;
       if(!win){B(wall,x,yc,z,sx,up,sz,roofs);continue;}
-      for(let k=1;k<st;k++){const y0=y+wh1+(k-1)*1.25;B(wall,x,y0+.2,z,sx,.4,sz,roofs);B(wall,x,y0+1.05,z,sx,.4,sz,roofs);const gx=sx>sz,o=B(glassMat,x,y0+.62,z,gx?sx*.8:sz*.3,.44,gx?sz*.3:sz*.8,roofs);o.castShadow=false;B(hFrameMat,x,y0+.4,z,gx?sx:sx+.04,.05,gx?sz+.04:sz,roofs);}}
+      for(let k=1;k<st;k++){const y0=y+wh1+(k-1)*1.25;B(wall,x,y0+.2,z,sx,.4,sz,roofs);B(wall,x,y0+1.05,z,sx,.4,sz,roofs);oldWin(x,y0+.4,z,sx>sz,.45,roofs);}}
     for(let k=1;k<st;k++){const yb=y+wh1+(k-1)*1.25;for(const [x,z,sx,sz] of [[hx+hw/2,hz+hd-.02,hw,.14],[hx+hw/2,hz+.02,hw,.14],[hx+.02,hz+hd/2,.14,hd],[hx+hw-.02,hz+hd/2,.14,hd]])B(S.wall==='stone'?lam(T.wall,{color:0x8a847a}):beamDark,x,yb,z,sx+.06,.12,sz+.06,roofs);}}
   // timber frame: dark posts and braces over the white plaster
   if(S&&S.wall==='frame'){for(let i=0;i<=hw;i+=2)for(const z of [hz+hd+.005,hz-.005])B(beamDark,hx+Math.min(i,hw-.06)+.03,y+wh/2,z,.08,wh,.03,z>hz?front:null);
     B(beamDark,hx+hw/2,y+wh1*.55,hz+hd+.01,hw,.07,.03,front);}
   for(const[x,z]of[[hx+.1,hz+.1],[hx+hw-.1,hz+.1],[hx+.1,hz+hd-.1],[hx+hw-.1,hz+hd-.1]])B(stoneB?lam(T.wall,{color:0x8a847a}):lam(T.bark),x,y+wh1/2,z,.18,wh1+.02,.18,z>hz+1?front:null);
   B(lam(T.bark),hx+hw/2,y+wh1-.06,hz+hd-.02,hw,.12,.12,front);
+  // the house stands on a plinth of rough stone (a log sill in a poor place), broken only by the doorway
+  if(!stoneB){const pm=poor?lam(T.bark,{color:0x5a4430}):lam(T.wall,{color:rich?0x8a847a:0x7a746c}),ph=rich?.26:.18,o=.05,run=(a0,a1,fixed,alongXs)=>{if(a1-a0<.05)return;
+      if(alongXs)B(pm,(a0+a1)/2,y+ph/2-.02,fixed,a1-a0,ph,T_+o*2);else B(pm,fixed,y+ph/2-.02,(a0+a1)/2,T_+o*2,ph,a1-a0);};
+    const dW=(barn?.95:.64)/2+.12;
+    if(side==='S'){run(hx-o,ex+.5-dW,hz+hd-T_/2,true);run(ex+.5+dW,hx+hw+o,hz+hd-T_/2,true);}else run(hx-o,hx+hw+o,hz+hd-T_/2,true);
+    run(hx-o,hx+hw+o,hz+T_/2,true);
+    for(const [wx,sd] of [[hx+T_/2,'W'],[hx+hw-T_/2,'E']]){if(side===sd){run(hz+T_,ez+.5-dW,wx,false);run(ez+.5+dW,hz+hd-T_,wx,false);}else run(hz+T_,hz+hd-T_,wx,false);}}
   let top=y+wh;const cx=hx+hw/2,cz=hz+hd/2;
   if(stoneB){ // castle buildings: a flat lead roof behind battlements; the keep has turrets at its corners
     B(lam(T.stone,{color:0x5a6478}),cx,y+wh+.06,cz,hw-.1,.12,hd-.1,roofs);
@@ -2932,12 +2974,24 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   // the roof: two slopes meeting at a ridge, wide enough to hang over the walls on every side
   const kind=S?S.roof:rich?(hh<.5?'tiles':'slate'):poor?(hh<.5?'thatch':'turf'):['shingle','tiles','thatch'][Math.floor(hh*3)],alongX=S?!!S.alongX:hash2(hz,hx)<.5,mat=ROOF[kind]||ROOF.shingle;
   const ov=.35,a=.44,span=alongX?hd:hw,len=(alongX?hw:hd)+ov*2,half=span/2+ov,rise=(span/2)*Math.tan(a);top=y+wh+rise;
-  for(const sg of[-1,1]){const sl=new THREE.Mesh(BOX,mat),L=half/Math.cos(a);sl.scale.set(alongX?len:L,.14,alongX?L:len);
-    const off=half/2,yy=top-(half/2)*Math.tan(a)+.07;sl.position.set(alongX?cx:cx+sg*off,yy,alongX?cz+sg*off:cz);sl.rotation.set(alongX?sg*a:0,0,alongX?0:-sg*a);sl.castShadow=true;g.add(sl);roofs.push(sl);}
-  B(lam(T.bark,{color:0x5a3a24}),cx,top+.1,cz,alongX?len:.22,.14,alongX?.22:len,roofs);
-  // stepped gables close the ends under the slopes
-  {const n=6;for(const sg of[-1,1])for(let k=0;k<n;k++){const wdt=span*(1-(k+.5)/n),hgt=rise/n,yy=y+wh+hgt*(k+.5);
-    if(alongX)B(wall,sg<0?hx+T_/2:hx+hw-T_/2,yy,cz,T_,hgt,wdt,roofs);else B(wall,cx,yy,sg<0?hz+T_/2:hz+hd-T_/2,wdt,hgt,T_,roofs);}}}
+  const RT=kind==='thatch'||kind==='turf'?.3:.2,trim=lam(T.bark,{color:0x4a3220});
+  for(const sg of[-1,1]){const sl=new THREE.Mesh(BOX,mat),L=half/Math.cos(a);sl.scale.set(alongX?len:L,RT,alongX?L:len);
+    const off=half/2,yy=top-(half/2)*Math.tan(a)+RT/2;sl.position.set(alongX?cx:cx+sg*off,yy,alongX?cz+sg*off:cz);sl.rotation.set(alongX?sg*a:0,0,alongX?0:-sg*a);sl.castShadow=true;g.add(sl);roofs.push(sl);
+    // the eaves board along the low edge, and the barge boards up both gable edges
+    const ey=top-half*Math.tan(a)+.02,ed=half-.02;B(trim,alongX?cx:cx+sg*ed,ey,alongX?cz+sg*ed:cz,alongX?len:.07,.16,alongX?.07:len,roofs);
+    for(const e of [-1,1]){const bb=new THREE.Mesh(BOX,trim);bb.scale.set(alongX?.08:L+.04,.22,alongX?L+.04:.08);bb.position.set(alongX?cx+e*(len/2+.02):cx+sg*off,yy+.02,alongX?cz+sg*off:cz+e*(len/2+.02));bb.rotation.copy(sl.rotation);bb.castShadow=true;g.add(bb);roofs.push(bb);}}
+  B(lam(T.bark,{color:0x5a3a24}),cx,top+.16,cz,alongX?len+.08:.3,.2,alongX?.3:len+.08,roofs);
+  // the roof is solid: the space under the slopes is filled out to the gable walls, so no side shows a hollow
+  {const n=5;for(let k=0;k<n;k++){const wdt=span*(1-(k+.5)/n)+.02,hgt=rise/n+.01,yy=y+wh+(rise/n)*(k+.5);
+    if(alongX)B(wall,cx,yy,cz,hw,hgt,wdt,roofs);else B(wall,cx,yy,cz,wdt,hgt,hd,roofs);}}
+  // a small old window up in the gable of a bigger house
+  if(!poor&&span>=6){const gy0=y+wh+rise*.22;if(alongX)for(const sg of [-1,1])B(winMat,sg<0?hx-.01:hx+hw+.01,gy0+.2,cz,.04,.4,.34,roofs);else for(const sg of [-1,1])B(winMat,cx,gy0+.2,sg<0?hz-.01:hz+hd+.01,.34,.4,.04,roofs);}
+  // dormers on the slope facing the street: a little gabled window with its flower box
+  if(!poor&&alongX&&hw>=6&&hash2(hx*7,hz*3)<(rich?.7:.35)){const xs=hw>=9?[cx-hw/4,cx+hw/4]:[cx];
+    for(const dx of xs){const zf=cz+span/4+.15,ys=top-(zf-cz)*Math.tan(a),dh=.62,db=zf-(cz+.25);
+      B(wall,dx,ys+dh/2-.05,zf-db/2,.86,dh+.1,db,roofs);oldWin(dx,ys+.08,zf-.02,true,.4,roofs);
+      for(const sg of [-1,1]){const dr2=new THREE.Mesh(BOX,mat);dr2.scale.set(.62,.12,db+.25);dr2.position.set(dx+sg*.25,ys+dh+.12,zf-db/2+.05);dr2.rotation.set(0,0,-sg*.62);dr2.castShadow=true;g.add(dr2);roofs.push(dr2);}
+      B(lam(T.p[1],{color:0x7a5a3a}),dx,ys+.02,zf+.1,.5,.1,.14,roofs);for(let k=0;k<3;k++)B(new THREE.MeshLambertMaterial({color:FLOWERS[(k+Math.floor(hh*9))%FLOWERS.length]}),dx-.15+k*.15,ys+.1,zf+.1,.08,.08,.08,roofs);}}}
   // the door, on its own wall
   const dw=barn?.95:.64,dhh=barn?1.2:.95,dr=makeDoor(dw,dhh),[dcx,dcz]=side==='S'?[ex+.5,hz+hd-.05]:side==='E'?[hx+hw-.05,ez+.5]:[hx+.05,ez+.5];
   dr.g.position.set(dcx,y,dcz);dr.g.rotation.y=side==='S'?0:side==='E'?Math.PI/2:-Math.PI/2;g.add(dr.g);g.userData.door=dr;
@@ -2945,11 +2999,19 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   {const [x,z]=out(0,.25);B(lam(T.stone),x,y+.02,z,side==='S'?.8:.4,.04,side==='S'?.4:.8);}
   // outside: window boxes with flowers, pots by the door, a lantern, a bench or a woodpile, bushes at the corners
   const fl=(x,yy,z,i)=>B(new THREE.MeshLambertMaterial({color:FLOWERS[(i+Math.floor(hh*9))%FLOWERS.length]}),x,yy,z,.09,.09,.09);
-  if(!stoneB&&!barn)for(let i=1;i<hw-1;i++)if(isWin(i,hw)){const x=hx+i+.5,z=hz+hd+.12;B(lam(T.p[1],{color:0x7a5a3a}),x,y+.5,z,.8,.14,.2);for(let k=0;k<3;k++){B(new THREE.MeshLambertMaterial({color:0x4a7a3a}),x-.25+k*.25,y+.6,z,.12,.08,.12);fl(x-.25+k*.25,y+.67,z,i+k);}}
+  if(!stoneB&&!barn)for(let i=1;i<hw-1;i++)if(isWin(i,hw)&&hash2(hx+i,hz*7)<(rich?.8:.5)){const x=hx+i+.5,z=hz+hd+.14;B(lam(T.p[1],{color:0x7a5a3a}),x,y+.47,z,.62,.14,.2);for(let k=0;k<3;k++){B(new THREE.MeshLambertMaterial({color:0x4a7a3a}),x-.2+k*.2,y+.57,z,.1,.08,.1);fl(x-.2+k*.2,y+.64,z,i+k);}}
+  // a small wooden balcony on the upper floor of some two-storey houses, on brackets, with a railing
+  if(st>1&&!stoneB&&!blind&&hh>.45){const i=[...Array(hw).keys()].filter(i=>i>0&&i<hw-1&&i%2===1).sort((a,b)=>Math.abs(a-hw/2)-Math.abs(b-hw/2))[0];
+    if(i!=null){const bx=hx+i+.5,bz=hz+hd,by=y+wh1+.02,wd=lam(T.p[1],{color:0x7a5636});B(wd,bx,by,bz+.3,1.5,.08,.6,roofs);
+      for(const sg of [-1,1]){const br=B(beamDark,bx+sg*.6,by-.22,bz+.18,.08,.42,.08,roofs);br.rotation.x=-.6;}
+      for(let k=0;k<6;k++)B(wd,bx-.65+k*.26,by+.24,bz+.56,.05,.42,.05,roofs);B(wd,bx,by+.46,bz+.56,1.5,.06,.08,roofs);for(const sg of [-1,1])B(wd,bx+sg*.72,by+.46,bz+.3,.06,.06,.56,roofs);
+      B(lam(T.p[1],{color:0x7a5a3a}),bx,by+.5,bz+.6,.6,.1,.12,roofs);for(let k=0;k<3;k++)fl(bx-.18+k*.18,by+.58,bz+.6,k+i).userData.r=1;}}
   if(!stoneB&&!barn)for(const sg of[-1,1]){const [x,z]=out(sg*.75,.3);B(lam(T.stone,{color:0xa8603a}),x,y+.12,z,.24,.24,.24);B(new THREE.MeshLambertMaterial({color:0x3e7a3a}),x,y+.32,z,.2,.18,.2);if(!poor)fl(x,y+.45,z,sg+2);}
   if(!poor&&!barn){const [lx,lz]=out((hh<.5?-1:1)*.45,.12);B(lam(T.bark),lx,y+1.15,lz,.06,.06,.06);B(new THREE.MeshBasicMaterial({color:0xffc86a}),lx,y+1.02,lz,.12,.16,.12);B(lam(T.stone,{color:0x2a2a2e}),lx,y+1.12,lz,.15,.04,.15);}
-  if(!stoneB)for(const[x,z]of[[hx-.3,hz+hd-.4],[hx+hw+.3,hz+.6]])if(hash2(x*3,z)<.7&&!(side==='W'&&x<hx&&Math.abs(z-dcz)<1.5)&&!(side==='E'&&x>hx+hw&&Math.abs(z-dcz)<1.5)){const s=.4+hash2(z,x)*.25;B(new THREE.MeshLambertMaterial({color:0x3e6a32}),x,y+s/2,z,s,s,s);if(rich)fl(x,y+s+.04,z,3);}
-  if(rich&&!stoneB&&side==='S'&&!S)for(let i=0;i<hw;i+=2)if(hx+i!==ex&&Math.abs(hx+i-ex)>1){const x=hx+i+.5,z=hz+hd+.55;B(lam(T.dirt,{color:0x5a4030}),x,y+.04,z,.9,.08,.4);fl(x-.2,y+.14,z,i);fl(x+.2,y+.14,z,i+1);}
+  if(!stoneB)for(const[x,z]of[[hx-.2,hz+hd-.4],[hx+hw+.2,hz+.6]])if(hash2(x*3,z)<.7&&!(side==='W'&&x<hx&&Math.abs(z-dcz)<1.5)&&!(side==='E'&&x>hx+hw&&Math.abs(z-dcz)<1.5)){const s=.3+hash2(z,x)*.1;B(new THREE.MeshLambertMaterial({color:0x3e6a32}),x,y+s/2,z,s,s,s);if(rich)fl(x,y+s+.04,z,3);}
+  if(!poor&&!stoneB&&!barn&&side==='S'&&hash2(hz,hx*5)<(rich?.9:.45))for(let i=0;i<hw;i++)if(Math.abs(hx+i-ex)>1){const x=hx+i+.5,z=hz+hd+.2;B(lam(T.dirt,{color:0x5a4030}),x,y+.04,z,1,.08,.26);fl(x-.25,y+.12,z,i);fl(x+.15,y+.12,z,i+1);
+    // a low border of stones round the bed, or a little picket fence in front of it
+    if(hh<.5)B(lam(T.wall,{color:0x9a948a}),x,y+.06,z+.15,1,.1,.06);else for(let k=0;k<3;k++)B(lam(T.p[1],{color:0xb8a080}),x-.33+k*.33,y+.16,z+.15,.05,.3,.05);}
   else if(!poor&&hh>.4&&!stoneB&&side!=='E'){for(let k=0;k<3;k++)B(lam(T.bark,{color:0x8a6a44}),hx+hw+.25,y+.12+k*.2,hz+hd-1.5,.3,.18,1.2);}
   // a chimney on the back slope, smoking
   if(!barn&&!blind&&!stoneB&&type!=='temple'){const alongX=S?!!S.alongX:hash2(hz,hx)<.5,chx=alongX?hx+hw*.72:hx+hw*.3,chz=alongX?hz+hd*.3:hz+hd/2,lo=y+wh-.1,hi=top+.45;B(lam(T.wall,{color:0x8a847a}),chx,(lo+hi)/2,chz,.42,hi-lo,.42,roofs);B(lam(T.wall,{color:0x6a645c}),chx,hi+.05,chz,.5,.1,.5,roofs);g.userData.chimney=new THREE.Vector3(chx,hi+.1,chz);}
@@ -2966,9 +3028,37 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
   // a shop hangs a painted board by its door: an anvil, a loaf or a sack
   if(R.shop){const [sx,sz]=out(1.9,.15);B(lam(T.bark),sx,y+.9,sz,.1,1.8,.1);B(lam(T.bark),sx,y+1.72,sz,.1,.08,.6);B(lam(T.p[1],{color:0x8a6a4a}),sx,y+1.42,sz,side==='S'?.5:.05,.4,side==='S'?.05:.5);
     B(new THREE.MeshLambertMaterial({color:{smith:0x4a4e56,baker:0xc89048,store:0x9a7a4a}[R.shop]}),sx+(side==='S'?0:.03),y+1.42,sz+(side==='S'?.03:0),side==='S'?.3:.02,.2,side==='S'?.02:.3);}
-  g.userData.front=front;g.userData.roofs=roofs;scene.add(g);
+  // Заводь's trades show outside, all against the wall so the street stays free: the tavern's sign on a bracket
+  // and lanterns, the smith's furnace glow, the elder's banners, hay by the barn, herbs drying under the eaves
+  if(S&&S.zavod){const Lm=c=>new THREE.MeshLambertMaterial({color:c}),wf=hz+hd;
+    if(type==='tavern'){const sx=dcx+1.4;B(lam(T.bark),sx,y+1.9,wf+.35,.08,.08,.7);B(lam(T.p[1],{color:0x6a4a2a}),sx,y+1.6,wf+.6,.62,.5,.06);B(Lm(0xd8a040),sx,y+1.6,wf+.635,.22,.26,.02);B(Lm(0xf0e8d0),sx,y+1.75,wf+.64,.24,.06,.02);
+      for(const sg of [-1,1])B(new THREE.MeshBasicMaterial({color:0xffc86a}),dcx+sg*.7,y+1.3,wf+.06,.12,.16,.1);for(const sg of [-1,1])B(lam(T.p[1],{color:0x8a6a4a}),dcx+sg*2.6,y+.25,wf+.25,.4,.5,.4);}
+    if(type==='forge')B(new THREE.MeshBasicMaterial({color:0xff7a2a}),hx+.8,y+.5,wf+.02,.6,.4,.04);
+    if(type==='hall')for(const sg of [-1,1]){B(lam(T.bark),dcx+sg*1.4,y+1.2,wf+.05,.06,1.2,.06);B(Lm(0x2a4a8a),dcx+sg*1.4,y+1.35,wf+.08,.4,.8,.02);B(Lm(0xd8b04a),dcx+sg*1.4,y+1.4,wf+.095,.14,.14,.01);}
+    if(type==='barn')for(let k=0;k<3;k++)B(lam(T.p[1],{color:0xc8b070}),hx+hw-.8,y+.2+k*.36,wf+.2,.7,.34,.36);
+    if(type==='herb')for(let k=0;k<4;k++)B(Lm([0x5a8a3a,0x8a6a9a,0xb8a040,0x4a7a4a][k]),hx+1+k*.5,y+wh1-.25,wf+.12,.12,.3,.08);}
+  mergeHouse(g,front,roofs);g.userData.front=front;g.userData.roofs=roofs;scene.add(g);
   if(!R.group)buildRoom(R);R.group.visible=true;return liveHouse(g);}
+// A house is drawn from about a hundred boxes; boxes of one look that hide together (the front wall, the roof, the
+// rest) are merged into one mesh, so a street of houses costs a few draw calls each. The door, the mill wheel and
+// anything that moves stay apart. The merged geometry is the house's own and is freed when its chunk goes.
+function mergeHouse(g,front,roofs){const tag=new Map();front.forEach(m=>tag.set(m,'f'));roofs.forEach(m=>tag.set(m,'r'));const groups=new Map();
+  for(const m of g.children){if(!m.isMesh||m.geometry!==BOX)continue;const t=m.material;
+    const k=(t.map?t.map.uuid:'-')+'|'+t.color.getHex()+'|'+(t.emissive?t.emissive.getHex()+':'+t.emissiveIntensity:'')+'|'+t.type+'|'+!!t.transparent+'|'+(tag.get(m)||'')+'|'+m.castShadow;
+    (groups.get(k)||groups.set(k,[]).get(k)).push(m);}
+  const own=[],P=BOX.attributes.position.array,N=BOX.attributes.normal.array,U=BOX.attributes.uv.array,IX=BOX.index.array,nv=P.length/3,v=new THREE.Vector3(),nm=new THREE.Matrix3();
+  for(const ms of groups.values()){if(ms.length<2)continue;
+    const pos=new Float32Array(ms.length*P.length),nor=new Float32Array(ms.length*N.length),uv=new Float32Array(ms.length*U.length),idx=new (ms.length*nv>65535?Uint32Array:Uint16Array)(ms.length*IX.length);
+    ms.forEach((m,j)=>{m.updateMatrix();nm.getNormalMatrix(m.matrix);for(let i=0;i<nv;i++){v.fromArray(P,i*3).applyMatrix4(m.matrix).toArray(pos,(j*nv+i)*3);v.fromArray(N,i*3).applyMatrix3(nm).normalize().toArray(nor,(j*nv+i)*3);}
+      uv.set(U,j*U.length);for(let i=0;i<IX.length;i++)idx[j*IX.length+i]=IX[i]+j*nv;});
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(nor,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.setIndex(new THREE.BufferAttribute(idx,1));geo.computeBoundingSphere();
+    const o=new THREE.Mesh(geo,ms[0].material);o.castShadow=ms[0].castShadow;o.receiveShadow=true;g.add(o);own.push(geo);
+    const t=tag.get(ms[0]),L=t==='f'?front:t==='r'?roofs:null;for(const m of ms){g.remove(m);if(L)L.splice(L.indexOf(m),1);}if(L)L.push(o);}
+  g.userData.own=own;}
 for(const h of GEN_HOUSES)defer(chunkKey(h[0],h[1]),()=>genHouse(h));
+// Заводь's six houses in layout 2: hollow like the rest, each in its own walls and roof, with the signs of its trade outside
+const ZAVOD={tavern:{wall:'frame',roof:'tiles'},forge:{wall:'stone',roof:'slate',alongX:true},home:{wall:'log',roof:'thatch'},hall:{wall:'frame',roof:'slate'},barn:{wall:'plank',roof:'shingle',alongX:true},herb:{wall:'log',roof:'turf'}};
+if(LAYOUT>=2)HOUSES.forEach(([hx,hz,hw,hd],i)=>{const R=ROOMS[i],h=Object.assign([hx,hz,hw,hd,R.place],{room:R,spec:Object.assign({side:'S',off:Math.floor(hw/2),storeys:1,zavod:true},ZAVOD[R.type])});defer(chunkKey(hx,hz),()=>genHouse(h));});
 // the royal castle: a curtain wall with battlements round a paved court, round corner towers, a gatehouse
 // with two towers, and the great keep with its own towers, roofs, windows and banners
 for(const [px,pz,pw,pd] of PALACE)defer(chunkKey(px+pw/2,pz+pd/2),()=>{const g=new THREE.Group(),y=groundAt(px+pw/2,pz+pd/2),stone=lam(T.wall,{color:0xc0baae}),dark=lam(T.wall,{color:0x8a847a}),roofM=lam(T.p[2],{color:0x34467a}),gold=new THREE.MeshLambertMaterial({color:0xd8b04a}),red=new THREE.MeshLambertMaterial({color:0x8e2a24}),glow=new THREE.MeshBasicMaterial({color:0xffc66a});
@@ -3001,14 +3091,20 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  instanced(BOX,darkM,tw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+2.75,z+.5),q0,v2.set(.8,.5,.8)));
  // the castle's curtain wall is higher, with round-topped towers at its corners and a gatehouse
  if(P.castle){const c=P.castle,cw=[];for(let z=c.z;z<c.z+c.d;z++)for(let x=c.x;x<c.x+c.w;x++)if(at(x,z)==='W')cw.push([x,z]);
-   instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.8,z+.5),q0,v2.set(1,3.6,1)));
-   instanced(BOX,darkM,cw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+3.85,z+.5),q0,v2.set(.85,.5,.85)));
+   // the big castle (layout 3): walls two cells thick and higher, a walk along their top behind the battlements
+   const thick=c.thick||1,CWH=thick>1?5:3.6,outer=([x,z])=>x===c.x||x===c.x+c.w-1||z===c.z||z===c.z+c.d-1;
+   instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH/2,z+.5),q0,v2.set(1,CWH,1)));
+   instanced(BOX,darkM,cw.filter(c2=>(thick<2||outer(c2))&&(c2[0]+c2[1])%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH+.25,z+.5),q0,v2.set(.85,.5,.85)));
    const tower=(x,z,r,h)=>defer(chunkKey(x,z),()=>{const g=new THREE.Group(),y=gy(Math.floor(x),Math.floor(z));const B=(m,yy,s,hh)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(s,hh,s);o.position.set(x,y+yy,z);o.castShadow=o.receiveShadow=true;g.add(o);};
      B(stoneM,h/2,r,h);B(darkM,h+.2,r+.3,.4);B(roofB,h+.8,r+.2,.8);B(roofB,h+1.5,r*.65,.7);B(roofB,h+2.1,r*.3,.6);scene.add(g);return g;});
-   for(const [x,z] of [[c.x+1,c.z+1],[c.x+c.w-1,c.z+1],[c.x+1,c.z+c.d-1],[c.x+c.w-1,c.z+c.d-1]])tower(x,z,2.4,5.2);
-   for(const gx of [c.gate[0]-.5,c.gate[1]+1.5])tower(gx,c.z+c.d-.5,1.8,4.8);
-   defer(chunkKey(c.gate[0],c.z+c.d),()=>{const g=new THREE.Group(),y=gy(c.gate[0],c.z+c.d-1),mx=c.gate[0]+1.5,z=c.z+c.d-.5;const B=(m,x,yy,zz,a,b,d)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(a,b,d);o.position.set(x,y+yy,zz);o.castShadow=true;g.add(o);};
-     B(stoneM,mx,3.3,z,3.2,1.2,1);B(darkM,mx,2.6,z+.52,2.8,.2,.05);for(const sg of[-1,1]){B(wood,mx+sg*2.4,3.2,z+.6,.08,2.2,.08);B(new THREE.MeshLambertMaterial({color:0x8e2a24}),mx+sg*2.4,3.3,z+.65,.7,1.5,.03);B(new THREE.MeshLambertMaterial({color:0xd8b04a}),mx+sg*2.4,3.5,z+.67,.26,.26,.01);}
+   if(thick<2){for(const [x,z] of [[c.x+1,c.z+1],[c.x+c.w-1,c.z+1],[c.x+1,c.z+c.d-1],[c.x+c.w-1,c.z+c.d-1]])tower(x,z,2.4,5.2);
+     for(const gx of [c.gate[0]-.5,c.gate[1]+1.5])tower(gx,c.z+c.d-.5,1.8,4.8);}
+   else{// great round-topped towers at the corners and halfway along every wall, two tall ones flanking the gate
+     for(const [x,z] of [[c.x+1.5,c.z+1.5],[c.x+c.w-1.5,c.z+1.5],[c.x+1.5,c.z+c.d-1.5],[c.x+c.w-1.5,c.z+c.d-1.5]])tower(x,z,3.6,7.6);
+     for(const [x,z] of [[c.x+1,c.z+c.d/2],[c.x+c.w-1,c.z+c.d/2],[c.x+c.w*.27,c.z+1],[c.x+c.w*.73,c.z+1]])tower(x,z,2.6,6.6);
+     for(const gx of [c.gate[0]-1,c.gate[1]+2])tower(gx,c.z+c.d-1,2.6,7.2);}
+   defer(chunkKey(c.gate[0],c.z+c.d),()=>{const g=new THREE.Group(),y=gy(c.gate[0],c.z+c.d-1),mx=c.gate[0]+1.5,z=c.z+c.d-thick/2,big=thick>1;const B=(m,x,yy,zz,a,b,d)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(a,b,d);o.position.set(x,y+yy,zz);o.castShadow=true;g.add(o);};
+     B(stoneM,mx,big?4.2:3.3,z,3.2,big?1.6:1.2,thick);if(big){B(darkM,mx,5.25,z,3.4,.5,thick+.1);for(let k=0;k<5;k++)B(ironMat,mx-1.2+k*.6,2.95,z+thick/2-.1,.06,1,.06);}B(darkM,mx,2.6,z+thick/2+.02,2.8,.2,.05);for(const sg of[-1,1]){B(wood,mx+sg*(big?2.5:2.4),3.2,z+(big?1.32:thick/2)+.1,.08,2.2,.08);B(new THREE.MeshLambertMaterial({color:0x8e2a24}),mx+sg*(big?2.5:2.4),3.3,z+(big?1.32:thick/2)+.15,.7,1.5,.03);B(new THREE.MeshLambertMaterial({color:0xd8b04a}),mx+sg*(big?2.5:2.4),3.5,z+(big?1.32:thick/2)+.17,.26,.26,.01);}
      scene.add(g);return g;});}
  // gates through the town wall: a tower on each side of the road; through a palisade, two tall posts
  for(const gt of P.gates){const cells=gt.cells,ends=[];for(const [x,z] of cells)for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]])if((at(x+dx,z+dz)==='W'||P.palisade.some(p=>p[0]===x+dx&&p[1]===z+dz))&&!cells.some(c=>c[0]===x+dx&&c[1]===z+dz))ends.push([x+dx,z+dz]);
@@ -3369,7 +3465,7 @@ function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   const L={n:name,t:text,loot:[[id,n]],meshes:[],item:true,grp};grp.traverse(m=>{if(m.isMesh){L.meshes.push(m);m.userData.look=L;}});looks.push(L);return L;}
 const LOOK={attic:[T.p[1],0x9a8466,T.p[2],0x6a5440],cellar:[T.stone,0x7a7470,T.wall,0x6a6460],house:[T.p[1],0xc0a888,T.p[0],0x9a8670],poorhouse:[T.dirt,0xa89070,T.p[1],0x7a6a58],castle:[T.stone,0xd8d0c4,T.wall,0xb8b0a0],tavern:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],forge:[T.stone,0x9a948c,T.wall,0x8a8078],home:[T.p[1],0xa8b0b8,T.p[0],0x8a94a0],hall:[T.cobble,0xc8b8a0,T.wall,0xb8a890],barn:[T.dirt,0xc8b090,T.p[1],0x7a6450],herb:[T.p[2],0xb8c8a0,T.p[0],0x8a9a70],
   upper:[T.p[1],0xb8a080,T.p[0],0x9a8670],gbarn:[T.dirt,0xc8b090,T.p[1],0x7a6450],temple:[T.stone,0xd8d0c4,T.wall,0xc0b8a8],inn:[T.p[3],0xd8c0a0,T.p[0],0x9a8670],mill:[T.p[1],0xd8d0b8,T.p[0],0x9a8670],
-  tannery:[T.dirt,0x9a8060,T.p[1],0x7a6450],warehouse:[T.p[1],0xb8a080,T.p[1],0x7a6450],barracks:[T.stone,0xa8a098,T.wall,0x9a948c],armory:[T.stone,0x9a948c,T.wall,0x8a8078],treasury:[T.cobble,0xb8a890,T.wall,0x9a948c],chambers:[T.p[3],0xc8a888,T.wall,0xc8b8a0]};
+  tannery:[T.dirt,0x9a8060,T.p[1],0x7a6450],warehouse:[T.p[1],0xb8a080,T.p[1],0x7a6450],barracks:[T.stone,0xa8a098,T.wall,0x9a948c],kitchen:[T.stone,0xa89c8c,T.wall,0x9a8c7c],armory:[T.stone,0x9a948c,T.wall,0x8a8078],treasury:[T.cobble,0xb8a890,T.wall,0x9a948c],chambers:[T.p[3],0xc8a888,T.wall,0xc8b8a0]};
 function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.group=g;const y=R.inPlace?R.y:.3;const lk=LOOK[R.type],floorMat=lam(lk[0],{color:lk[1]}),innerWall=lam(lk[2],{color:lk[3]});
   // a room in its own house: the house gives walls, door and windows, the room only a plank floor
   if(R.inPlace){const fl=part(g,floorMat,R.ox+R.iw/2,y+.02,R.oz+R.id/2,R.iw,.06,R.id);fl.userData.floor=true;pickable.push(fl);}
@@ -3462,6 +3558,71 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     if(R.shop==='store'){I('Ящики с товаром','Факелы, верёвки, гвозди, свечи.');S(1,1,.8,.6,.6,lam(T.crate));S(w-2,1,.8,.6,.6,lam(T.crate));S(w-2,d-2,.7,.5,.6,lam(T.crate));
       I('Бочка','Солёная рыба.');S(1,d-2,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));I(null);}
     I('Свеча','Огарок в глиняной плошке.');part(g,M(0xe8dcc0),R.ox+1.5,y+.75,R.oz+2.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+1.5,y+.83,R.oz+2.5,.04,.06,.04);I(null);}
+  // Layout 3: a dwelling is parted into rooms by plank walls, each with a doorway gap. The hall with the hearth and
+  // the table is where the outer door opens; behind the walls a bedroom, and in bigger houses a pantry and a second
+  // bedroom (a rich house up to four rooms, a hut one or two). Nothing is put where it would cut a room off: every
+  // wall and every piece of furniture is tried first, and kept only if every free cell can still be walked to.
+  else if((R.type==='house'||R.type==='poorhouse')&&R.inPlace&&typeof LAYOUT!=='undefined'&&LAYOUT>=3){const w=R.iw,d=R.id,poor=R.type==='poorhouse',rich=!poor&&(R.wealth>=3||R.spec&&R.spec.ring===0);
+    const K2=(x,z)=>x+','+z,ins=[R.inside[0]-R.ox,R.inside[1]-R.oz],keep=new Set(),acc=[],N4_=[[1,0],[-1,0],[0,1],[0,-1]];R.keepRel=keep;// acc: furniture that must stay reachable
+    const fr=(x,z)=>x>=1&&z>=1&&x<=w-2&&z<=d-2&&free(R.ox+x,R.oz+z);
+    const whole=()=>{let n=0;for(let z=1;z<=d-2;z++)for(let x=1;x<=w-2;x++)if(fr(x,z))n++;const S0=new Set([K2(...ins)]),q=[ins];
+      while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=K2(x+a,z+b);if(S0.has(k)||!fr(x+a,z+b))continue;S0.add(k);q.push([x+a,z+b]);}}return S0.size===n;};
+    const tryBlock=cells=>{const ks=cells.map(([x,z])=>(R.ox+x)+','+(R.oz+z));if(cells.some(([x,z])=>!fr(x,z)||keep.has(K2(x,z))||doorway(x,z)||x===ins[0]&&z===ins[1]))return false;
+      ks.forEach(k=>solid.add(k));if(whole()&&acc.every(cs=>cs.some(([a,b])=>N4_.some(([p,q])=>fr(a+p,b+q)))))return true;ks.forEach(k=>solid.delete(k));return false;};
+    const plank=lam(T.p[1],{color:rich?0xb8a488:0x8a7258}),beam=lam(T.bark,{color:0x5a3e28}),wh=1.25;
+    const wallMesh=(x,z,vert)=>{part(g,plank,R.ox+x+.5,y+wh/2,R.oz+z+.5,vert?.24:1,wh,vert?1:.24);part(g,beam,R.ox+x+.5,y+wh+.04,R.oz+z+.5,vert?.3:1.02,.08,vert?1.02:.3);};
+    const lintel=(x,z,vert)=>{part(g,beam,R.ox+x+.5,y+1.1,R.oz+z+.5,vert?.3:1.02,.12,vert?1.02:.3);part(g,plank,R.ox+x+.5,y+(1.16+wh)/2+.02,R.oz+z+.5,vert?.24:1,wh-1.16,vert?1:.24);};
+    // one wall across a room: vertical at column c or horizontal at row r, over the room's span, with a gap
+    const split=(rm,vert)=>{const lo=vert?rm.x0:rm.z0,hi=vert?rm.x1:rm.z1,cands=[];for(let p=lo+1;p<=hi-1;p++)cands.push(p);
+      // a narrow room of one cell (an alcove for a box bed, a closet) only when nothing wider fits
+      const sc=p=>Math.abs(p-(lo+hi)/2)+(Math.min(p-lo,hi-p)<2?3:0);cands.sort((a,b)=>sc(a)-sc(b));
+      for(const p of cands){const A0=vert?{x0:rm.x0,x1:p-1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:rm.z0,z1:p-1},B0=vert?{x0:p+1,x1:rm.x1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:p+1,z1:rm.z1},H0_=has(A0,ins)?A0:has(B0,ins)?B0:null;
+        if(H0_&&(H0_.x1-H0_.x0<1||H0_.z1-H0_.z0<1))continue;const line=[];for(let t=vert?rm.z0:rm.x0;t<=(vert?rm.z1:rm.x1);t++)line.push(vert?[p,t]:[t,p]);
+        const gaps=line.slice(1,-1).length?line.slice(1,-1):line;gaps.sort((a,b)=>(vert?Math.abs(a[1]-ins[1]):Math.abs(a[0]-ins[0]))-(vert?Math.abs(b[1]-ins[1]):Math.abs(b[0]-ins[0])));
+        for(const gp of gaps){const wall=line.filter(c=>c!==gp);if(!fr(...gp)||doorway(...gp))continue;if(!tryBlock(wall))continue;
+          wall.forEach(([x,z])=>wallMesh(x,z,vert));lintel(gp[0],gp[1],vert);keep.add(K2(...gp));for(const [a,b] of vert?[[1,0],[-1,0]]:[[0,1],[0,-1]])keep.add(K2(gp[0]+a,gp[1]+b));
+          const A=vert?{x0:rm.x0,x1:p-1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:rm.z0,z1:p-1},B2=vert?{x0:p+1,x1:rm.x1,z0:rm.z0,z1:rm.z1}:{x0:rm.x0,x1:rm.x1,z0:p+1,z1:rm.z1};return [A,B2];}}
+      return null;};
+    const has=(rm,[x,z])=>x>=rm.x0&&x<=rm.x1&&z>=rm.z0&&z<=rm.z1,area=rm=>(rm.x1-rm.x0+1)*(rm.z1-rm.z0+1);
+    let rooms=[{x0:1,x1:w-2,z0:1,z1:d-2}];const want=poor?(area(rooms[0])>=9?1:0):rich?3:area(rooms[0])>=20?2:1;
+    for(let n=0;n<want;n++){// split the biggest room that can be split; the hall keeps the outer door
+      const order=rooms.slice().sort((a,b)=>area(b)-area(a));let done=false;
+      for(const rm of order){const W_=rm.x1-rm.x0+1,D_=rm.z1-rm.z0+1;for(const vert of W_>=D_?[true,false]:[false,true]){if((vert?W_:D_)<3)continue;const r2=split(rm,vert);if(r2){rooms.splice(rooms.indexOf(rm),1,...r2);done=true;break;}}if(done)break;}
+      if(!done)break;}
+    R.parts=rooms.length;const hall=rooms.find(rm=>has(rm,ins)),others=rooms.filter(rm=>rm!==hall).sort((a,b)=>area(b)-area(a));
+    const cellsOf=rm=>{const L=[];for(let z=rm.z0;z<=rm.z1;z++)for(let x=rm.x0;x<=rm.x1;x++)L.push([x,z]);return L;};
+    // furniture goes on the best cell of a room where it cuts nothing off; `two` also takes the cell south of it
+    const place=(rm,score,fn,two,solidIt=true)=>{for(const [x,z] of cellsOf(rm).sort((a,b)=>score(a)-score(b))){const cs=two?[[x,z],[x,z+1]]:[[x,z]];if(two&&!has(rm,[x,z+1]))continue;
+        if(solidIt?!tryBlock(cs):cs.some(c=>!fr(...c)||keep.has(K2(...c))||doorway(...c)))continue;
+        // whatever stands there must still be reached: a free cell beside it
+        if(solidIt&&!cs.some(([a,b])=>[[1,0],[-1,0],[0,1],[0,-1]].some(([p,q])=>fr(a+p,b+q)))){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));continue;}if(solidIt){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));acc.push(cs);}fn(x,z);return [x,z];}return null;};
+    const wallSide=rm=>([x,z])=>Math.min(z-rm.z0,rm.z1-z,x-rm.x0,rm.x1-x)+(z===1?-.5:0),far=([x,z])=>-(Math.abs(x-ins[0])+Math.abs(z-ins[1]));
+    // a hearth anywhere along a wall, its fire lit
+    const fire=(x,z)=>{I(poor?'Очаг':'Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(x,z,.9,poor?.3:.7,.6,lam(T.wall,{color:poor?0x6a6058:0x8a8278}));if(!poor)part(g,lam(T.wall,{color:0x6a6058}),R.ox+x+.5,y+1.15,R.oz+z+.5,.6,.9,.36);torch(R.ox+x,R.oz+z,true);I(null);};
+    const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff']),1]);}
+    else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword']),1]);if(rich&&rnd()<.3)box.push([pick(['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar']),1]);}
+    // the hall: hearth on a wall far from the door, the table with stools, a barrel by the door, a shelf
+    place(hall,c=>wallSide(hall)(c)*3+far(c)*.2,fire);
+    const t=place(hall,([x,z])=>Math.abs(x-(hall.x0+hall.x1)/2)+Math.abs(z-(hall.z0+hall.z1)/2)+(fr(x,z+1)?0:2),(x,z)=>{table(x,z);candle(x,z);});
+    if(t){for(const [a,b] of [[0,1],[-1,0],[1,0]])if(has(hall,[t[0]+a,t[1]+b])&&fr(t[0]+a,t[1]+b)&&!doorway(t[0]+a,t[1]+b)&&!keep.has(K2(t[0]+a,t[1]+b))){stool(t[0]+a,t[1]+b);if(poor||!rich)break;}}
+    if(!poor)place(hall,c=>wallSide(hall)(c)*2-far(c)*.3,(x,z)=>barrel(x,z,[['bread',1]]));
+    if(!poor&&hall.z0===1)shelf(Math.max(hall.x0,1),Math.max(1,Math.min(3,hall.x1-hall.x0)),rich?'Книги в кожаных переплётах и подсвечник.':'Горшки, миски и моток бечёвки.');
+    if(rich)rug(hall.x0+1,hall.z0+1,Math.max(1,hall.x1-hall.x0-1),Math.max(1,hall.z1-hall.z0-1));
+    // the bedroom(s): a bed along a wall, the chest beside it; in a hut, straw on the floor
+    const bedroom=(rm,main)=>{if(poor){I('Подстилка','Охапка соломы и латаное одеяло.');place(rm,wallSide(rm),(x,z)=>part(g,M(0xb8a060),R.ox+x+.5,y+.06,R.oz+z+.5,.9,.1,.9),false,false);I(null);}
+      else place(rm,c=>wallSide(rm)(c)*2+(c[1]===rm.z0?-1:0),(x,z)=>bed(x,z),true);
+      if(main&&box.length)place(rm,wallSide(rm),(x,z)=>chest(x,z,box,poor?'Старый ящик':rich?'Окованный сундук':'Сундук'));
+      if(rich&&main){I('Картина','Корабль под парусами на закате. Подписано: «Б.».');part(g,M(0x6a4a2a),R.ox+(rm.x0+rm.x1)/2+.5,y+1.2,R.oz+rm.z0+.1,.9,.6,.04);I(null);}};
+    const pantry=rm=>{I('Мешки','Мука, крупа, сушёный горох.');place(rm,wallSide(rm),(x,z)=>S(x,z,.6,.5,.5,M(0xe0d8c0)));I(null);place(rm,wallSide(rm),(x,z)=>barrel(x,z,[['bread',1]]));
+      I('Полка с банками','Варенье, грибы, мутные настойки.');place(rm,wallSide(rm),(x,z)=>{S(x,z,.9,1.1,.3,lam(T.bark));for(let i=0;i<3;i++)part(g,M([0xc85a3a,0x8a6a2a,0x6a9a5a][i]),R.ox+x+.25+i*.25,y+.95,R.oz+z+.5,.14,.18,.14);});I(null);};
+    if(!others.length){// one room: the bed in its far corner
+      if(poor){I('Подстилка','Охапка соломы и латаное одеяло.');place(hall,c=>wallSide(hall)(c)+far(c)*.3,(x,z)=>part(g,M(0xb8a060),R.ox+x+.5,y+.06,R.oz+z+.5,.9,.1,.9),false,false);I(null);if(box.length)place(hall,c=>wallSide(hall)(c)+far(c)*.2,(x,z)=>chest(x,z,box,'Старый ящик'));}
+      else{place(hall,c=>wallSide(hall)(c)+far(c)*.4,(x,z)=>bed(x,z),true);if(box.length)place(hall,c=>wallSide(hall)(c)+far(c)*.2,(x,z)=>chest(x,z,box,rich?'Окованный сундук':'Сундук'));}}
+    others.forEach((rm,i)=>{if(i===0)bedroom(rm,true);else if(i===1&&!poor)pantry(rm);else bedroom(rm,false);});
+    if(!poor&&rnd()<.4&&t)itemProp(g,R.ox+t[0]+.5,y+.55,R.oz+t[1]+.5,'bread',1,'Хлеб','Краюха на столе, ещё мягкая.');
+    // the ladder to the attic and the hatch to the cellar: kept free now, so they always find their place
+    const res2=()=>{for(const rm of [hall,...others]){const c=place(rm,c2=>wallSide(rm)(c2)*2-far(c2)*.2,(x,z)=>{keep.add(K2(x,z));keep.add(K2(x,z+1));},true);if(c){acc.pop();return c;}}return null;};
+    if(R.attic){const c=res2();if(c)R.ladderAt=c;}if(R.cellar){const c=res2();if(c)R.hatchAt=c;}}
   else if(R.type==='house'||R.type==='poorhouse'){const w=R.iw,d=R.id,rich=R.wealth>=3||R.place&&R.place.type==='capital',poor=R.type==='poorhouse';
     const common=['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword'],fine=['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar'];
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(common),1]);}
@@ -3483,6 +3644,8 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     I('Колонна','Гладкий камень. Наверху вырезаны волны и рыбы — знак острова.');for(let z=4;z<d-2;z+=3)for(const x of[cx-4,cx+3]){S(x,z,.7,2.6,.7,lam(T.wall,{color:0xc0baae}));}I(null);
     I('Знамя королевства','Красное полотно с золотой рыбой.');for(const x of[3,cx-3,cx+3,w-4])if(x!==cx){part(g,M(0x8e2a24),R.ox+x+.5,y+1.2,R.oz+1.08,.8,1.3,.03);part(g,M(0xd8b04a),R.ox+x+.5,y+1.35,R.oz+1.1,.3,.3,.02);}I(null);
     for(const[x0,x1]of[[3,cx-6],[cx+5,w-4]])for(let x=x0;x<=x1;x++){table(x,7);stool(x,6);stool(x,8);}
+    // the keep of the big castle (layout 3): two long feasting tables either side of the carpet, benches beside them
+    if(w>=12&&d>=11)for(const tx of [cx-2,cx+2])for(const tz of [5,6,8]){table(tx,tz);stool(tx+(tx<cx?-1:1),tz);}
     chest(1,d-5,[['potion',2],['sword_long',1],['shield_kite',1]],'Сундук оружейной');chest(w-2,d-5,[['bread',3],['torch',1],['bow_long',1]],'Сундук кладовой');
     itemProp(g,R.ox+4.5,y+.55,R.oz+7.5,'bread',1,'Хлеб','Остался от вчерашнего пира.');
     hearth(2);hearth(w-3);
@@ -3495,7 +3658,12 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
     if(R.type==='gbarn'){I('Сено','Сухое, колючее, пахнет летом.');for(const [dx,dz] of [[1,1],[2,1],[1,2]])at_(dx,dz,(x,z)=>{S(x,z,.95,.7,.95,M(0xc8a858));});
       at_(w-2,1,(x,z)=>{I('Мешки','Зерно нового урожая.');for(let k=0;k<2;k++)part(g,M(0xb8a070),R.ox+x+.3+k*.35,y+.22,R.oz+z+.5,.35,.44,.35);blockCell(R.ox+x,R.oz+z);});
       I('Вилы','Не оружие, но в крайнем случае…');at_(w-2,2,(x,z)=>{const f=part(g,lam(T.bark),R.ox+x+.5,y+.7,R.oz+z+.3,.05,1.4,.05);f.rotation.z=.2;});I(null);
-      at_(1,d-2,(x,z)=>chest(x,z,[['bread',1+(rnd()<.5?1:0)]],'Ларь с зерном'));}
+      at_(1,d-2,(x,z)=>chest(x,z,[['bread',1+(rnd()<.5?1:0)]],'Ларь с зерном'));
+      // the castle's stables: horses in their stalls along the back wall, a plank between each
+      if(R.name==='Конюшня')for(let k=0;k<3;k++)at_(3+k*2,1,(x,z)=>{I('Конь','Королевский конь. Косится на вас и фыркает.');const hc=[0x6a4428,0x2a2220,0xb8a080][k],hm=M(hc),X=R.ox+x+.5,Z=R.oz+z+.55;
+        S(x,z,.36,.01,.9,hm);part(g,hm,X,y+.62,Z,.34,.34,.82);for(const [a,b] of [[-.11,-.3],[.11,-.3],[-.11,.3],[.11,.3]])part(g,M(0x2a1e16),X+a,y+.24,Z+b,.09,.48,.09);
+        part(g,hm,X,y+.9,Z+.42,.2,.36,.2);part(g,hm,X,y+1.02,Z+.6,.16,.18,.3);part(g,M(0x1a1410),X,y+.9,Z-.44,.06,.4,.06);I(null);
+        part(g,lam(T.p[1],{color:0x6a4a30}),R.ox+x+1.02,y+.45,R.oz+z+.6,.06,.9,1);});}
     if(R.type==='temple'){I('Алтарь','Белый камень, на нём свечи и чаша с водой.');S(cx,1,1.4,.8,.7,lam(T.wall,{color:0xe0d8c8}));for(const sg of[-1,1])candle(cx+sg,1);I(null);
       I('Скамья','Гладкая от тех, кто тут сидел.');for(let z=3;z<d-1;z+=2)for(let x=1;x<w-1;x++)if(Math.abs(x-cx)>0&&!doorway(x,z)&&free(R.ox+x,R.oz+z))S(x,z,.9,.35,.4,lam(T.p[2]));I(null);
       at_(w-2,1,(x,z)=>chest(x,z,[['potion',1],['herb',1]],'Ящик для пожертвований'));}
@@ -3507,6 +3675,10 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
       I('Шкуры','Растянуты на рамах сушиться.');at_(w-2,1,(x,z)=>{part(g,M(0x9a6a40),R.ox+x+.5,y+.8,R.oz+z+.2,.9,1,.04);blockCell(R.ox+x,R.oz+z);});I(null);at_(1,d-2,(x,z)=>chest(x,z,[['herb',1]],'Ящик кожевника'));}
     if(R.type==='warehouse'){I('Ящики','Товар с кораблей: ткань, гвозди, соль.');for(const [dx,dz] of [[1,1],[2,1],[w-2,1],[w-3,1],[1,d-2],[w-2,d-2]])at_(dx,dz,(x,z)=>S(x,z,.85,.7,.85,lam(T.crate)));I(null);
       at_(cx,1,(x,z)=>barrel(x,z,[['torch',1]]));at_(w-2,2,(x,z)=>chest(x,z,[['torch',1],['stone',2]],'Ящик с товаром'));}
+    if(R.type==='kitchen'){I('Очаг с вертелом','Над огнём крутится вертел, в котле булькает похлёбка для стражи.');S(w-2,1,.9,.8,.6,lam(T.wall));part(g,glow(0xff8a3a),R.ox+w-1.5,y+.35,R.oz+1.82,.5,.25,.02);part(g,M(0x2a2a2e),R.ox+w-1.5,y+.95,R.oz+1.6,.4,.3,.4);I(null);
+      I('Медные котлы','Висят на крюках, начищены до блеска.');for(let k=0;k<3;k++)part(g,M(0xb87a40),R.ox+1.4+k*.4,y+1.25,R.oz+1.08,.24,.2,.06);I(null);
+      at_(cx,d-2,(x,z)=>{table(x,z);at_(x,z-1,(a,b)=>stool(a,b));});at_(1,1,(x,z)=>barrel(x,z,[['bread',1]]));
+      I('Мешки','Мука, лук, репа.');at_(w-2,d-2,(x,z)=>S(x,z,.6,.5,.5,M(0xe0d8c0)));I(null);at_(2,1,(x,z)=>chest(x,z,[['bread',2],['herb',1]],'Ларь с припасами'));}
     if(R.type==='barracks'){for(let x=1;x<w-1;x+=2)if(!doorway(x,1)&&!doorway(x,2))bed(x,1);
       I('Стойка с копьями','Копья стражи, наточены.');at_(w-2,d-2,(x,z)=>{S(x,z,.9,1.2,.3,lam(T.bark));for(let k=0;k<3;k++)part(g,M(0xb8bcc4),R.ox+x+.2+k*.3,y+.9,R.oz+z+.5,.05,1.1,.05);});I(null);
       at_(1,d-2,(x,z)=>chest(x,z,[['bread',2],['spear',1]],'Сундук стражи'));}
@@ -3535,9 +3707,14 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   // in the house itself: the ladder to the attic against the back wall, the hatch to the cellar in the floor
   if(R.inPlace){const inn=new Set(),q=[R.inside||[R.exit[0],R.exit[1]-1]];inn.add(q[0][0]+','+q[0][1]); // cells one can walk to from the door
     while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=(x+a)+','+(z+b);if(inn.has(k)||x+a<=R.ox||z+b<=R.oz||x+a>=R.ox+R.iw-1||z+b>=R.oz+R.id-1||!free(x+a,z+b))continue;inn.add(k);q.push([x+a,z+b]);}}
-    const free_=(dx,dz)=>free(R.ox+dx,R.oz+dz)&&inn.has((R.ox+dx)+','+(R.oz+dz))&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
-    if(R.attic){for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
-    if(R.cellar){outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free_(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
+    const free_=(dx,dz)=>!(R.keepRel&&R.keepRel.has(dx+','+dz))&&free(R.ox+dx,R.oz+dz)&&inn.has((R.ox+dx)+','+(R.oz+dz))&&!lane(R.ox+dx,R.oz+dz)&&!(R.ox+dx===R.exit[0]&&R.oz+dz>=R.id-3);
+    // a ladder or hatch may not cut off a part of the room, nor the last free side of a chest or a ladder
+    const mine_=it=>it.x>=R.ox&&it.x<R.ox+R.iw&&it.z>=R.oz&&it.z<R.oz+R.id;
+    const cut=(dx,dz)=>{const k=(R.ox+dx)+','+(R.oz+dz);solid.add(k);const rs=roomReach(R),n=rs.size;solid.delete(k);
+      return n<inn.size-1||interact.some(it=>mine_(it)&&!(it.x===R.ox+dx&&it.z===R.oz+dz)&&![[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>rs.has((it.x+a)+','+(it.z+b))));};
+    const free2=(dx,dz)=>free_(dx,dz)&&!cut(dx,dz);
+    if(R.attic){if(R.ladderAt){R.keepRel.delete(R.ladderAt.join(','));subWay(g,R.attic,y,R.ox+R.ladderAt[0],R.oz+R.ladderAt[1],false);}else for(let dx=1;dx<R.iw-1;dx++)if(free2(dx,1)&&free_(dx,2)){subWay(g,R.attic,y,R.ox+dx,R.oz+1,false);break;}}
+    if(R.cellar){if(R.hatchAt){R.keepRel.delete(R.hatchAt.join(','));subWay(g,R.cellar,y,R.ox+R.hatchAt[0],R.oz+R.hatchAt[1],false);}else outer:for(let dz=2;dz<R.id-2;dz++)for(let dx=1;dx<R.iw-1;dx++)if(free2(dx,dz)&&free_(dx,dz+1)&&R.ox+dx!==R.exit[0]){subWay(g,R.cellar,y,R.ox+dx,R.oz+dz,false);break outer;}}}
   if(R.gen){looks.slice(lk0).forEach((L,j)=>L.key=R.i+'#'+j);roomState(R);}}
 const SPIDERS=[];function spiderTick(t){for(const s of SPIDERS){if(!s.sp.parent||!s.sp.parent.visible)continue;const k=(Math.sin(t*.5+s.ph)+1)/2;s.sp.position.y=s.y0-k*.5;s.th.position.y=.5+k*.25;s.th.scale.y=.4+k*.5;}}
 // a ladder up or a hatch down; in the attic or cellar the same way leads back into the house
@@ -3545,12 +3722,20 @@ function subWay(g,S,y,x,z,back){const up=S.type==='attic'||S.type==='upper',ms=[
   const wood=lam(T.bark,{color:0x7a5a38});
   if(up!==back){for(const sg of[-1,1])add(wood,x+.5+sg*.22,y+.85,z+.3,.07,1.7,.07);for(let k=0;k<6;k++)add(wood,x+.5,y+.2+k*.27,z+.3,.48,.05,.06);}
   else{add(lam(T.p[1],{color:0x5a3e26}),x+.5,y+.03,z+.5,.8,.05,.8);add(lam(T.stone,{color:0x3a3a40}),x+.5,y+.07,z+.7,.16,.03,.05);}
-  blockCell(x,z);
+  blockCell(x,z);if(!back)S.ladder=[x,z];
   interact.push({mesh:ms[0],extra:ms.slice(1),x,z,name:back?(up?'Лестница вниз':'Лестница наверх'):(up?(S.type==='upper'?'Лестница наверх':'Лестница на чердак'):'Люк в подвал'),use(){subGo(S,back,x,z);}});}
 async function subGo(S,back,x,z){if(busy||CB.on)return;busy=true;sfx('creak');
-  if(!back){const P=S.parent;houseShow(P,true);SEE.inKeep=0;room=null;await teleport(S.exit[0],S.exit[1]-1,Math.PI);setRoom(S);S.home=[x,z];}
-  else{const P=S.parent,[hx,hz]=S.home||[P.exit[0],P.exit[1]-1];setRoom(null);const [nx,nz]=nearFree(hx,hz+1,2);await teleport(nx,nz,0);}
-  busy=false;}
+  try{if(!back){const P=S.parent;houseShow(P,true);SEE.inKeep=0;room=null;const [ax,az]=roomCell(S,[S.exit[0],S.exit[1]-1]);await teleport(ax,az,Math.PI);setRoom(S);S.home=[x,z];}
+  else{const P=S.parent;setRoom(null);const [nx,nz]=backCell(P,S.home);await teleport(nx,nz,0);}}
+  finally{busy=false;}}
+// the cells of a room one can walk to from its threshold, never through its walls
+function roomReach(R){const st=R.inside||[R.exit[0],R.exit[1]-1],seen=new Set([st[0]+','+st[1]]),q=[st];
+  while(q.length){const [x,z]=q.pop();for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+a,nz=z+b,k=nx+','+nz;if(seen.has(k)||nx<=R.ox||nz<=R.oz||nx>=R.ox+R.iw-1||nz>=R.oz+R.id-1||!free(nx,nz))continue;seen.add(k);q.push([nx,nz]);}}return seen;}
+// a free cell of the room near a wanted one, from which the way out is open
+function roomCell(R,want){const rs=roomReach(R);let best=null,bd=1e9;for(const k of rs){const [x,z]=k.split(',').map(Number);if(!free(x,z)||occupied(x,z))continue;const d=Math.abs(x-want[0])+Math.abs(z-want[1]);if(d<bd){bd=d;best=[x,z];}}
+  return best||R.inside||[R.exit[0],R.exit[1]-1];}
+// back down a ladder (or up from a cellar): beside the ladder in the house, on a cell that leads to the door
+function backCell(P,home){return roomCell(P,home?[home[0],home[1]+1]:(P.inside||[P.exit[0],P.exit[1]-1]));}
 // a generated room's chests and items remember their state by key, whenever the room gets built
 const PEND={chests:{},looted:{}};
 function roomState(R){for(const it of interact)if(it.key&&it.key.startsWith(R.i+':')&&PEND.chests[it.key]){const c=PEND.chests[it.key];it.items=c.items;if(c.o)it.open();}
@@ -3562,17 +3747,24 @@ async function teleport(x,z,face){closeWheel();fadeEl.classList.add('on');await 
 // doors swing: the outer one opens with a creak, then the inner one shuts behind you
 // a house far away may not be built right now: its door is then a stand-in
 const outDoor=R=>houseMeshes.find(g=>g.userData.house===R.i)?.userData.door||{pivot:{rotation:{y:0}}};
-async function enterRoom(R){if(busy||CB.on)return;busy=true;rest();H0.face=Math.PI;sfx('door');heroPose('open',600);await swing(outDoor(R),true);await wait(150);
-  await teleport(R.exit[0],R.exit[1]-1,Math.PI);setRoom(R);R.inDoor.pivot.rotation.y=1.45;swing(R.inDoor,false,380).then(()=>sfx('doorclose'));swing(outDoor(R),false,10);busy=false;}
-async function leaveRoom(){if(!room||busy)return;const R=room;busy=true;H0.face=0;sfx('door');heroPose('open',600);await swing(R.inDoor,true);await wait(150);
-  await teleport(R.door[0],R.door[1],0);setRoom(null);outDoor(R).pivot.rotation.y=1.45;swing(outDoor(R),false,380).then(()=>sfx('doorclose'));swing(R.inDoor,false,10);busy=false;}
+async function enterRoom(R){if(busy||CB.on)return;if(R.inPlace){goDo(...(R.inside||[R.exit[0],R.exit[1]-1]),true,()=>{});return;}
+  busy=true;try{rest();H0.face=Math.PI;sfx('door');heroPose('open',600);await swing(outDoor(R),true);await wait(150);
+  const [ix,iz]=roomCell(R,[R.exit[0],R.exit[1]-1]);await teleport(ix,iz,Math.PI);setRoom(R);if(R.inDoor){R.inDoor.pivot.rotation.y=1.45;swing(R.inDoor,false,380).then(()=>sfx('doorclose'));}swing(outDoor(R),false,10);}
+  finally{busy=false;}}
+// out of a room: a house in the world is simply walked out of; a room of its own puts the hero before its door,
+// or on the nearest free cell if someone or something stands there
+async function leaveRoom(){if(!room||busy)return;const R=room;
+  if(R.inPlace){const [x,z]=free(...R.door)?R.door:nearFree(R.door[0],R.door[1],3);goDo(x,z,true,()=>{});return;}
+  busy=true;try{H0.face=0;sfx('door');heroPose('open',600);if(R.inDoor)await swing(R.inDoor,true);await wait(150);
+  const [x,z]=free(...R.door)&&!occupied(...R.door)?R.door:nearFree(R.door[0],R.door[1]+1,4);await teleport(x,z,0);setRoom(null);outDoor(R).pivot.rotation.y=1.45;swing(outDoor(R),false,380).then(()=>sfx('doorclose'));if(R.inDoor)swing(R.inDoor,false,10);}
+  finally{busy=false;}}
 // a house that stands in the world is entered by walking in: its roof and the wall facing the camera lift away,
 // the room is lit and the street outside goes dark and grey, so the room comes first
 const houseOf=R=>houseMeshes.find(g=>g.userData.house===R.i);
 function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&(x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<r.oz+r.id-1||x===r.exit[0]&&z===r.exit[1]))||null;}
 function houseShow(R,on){const g=houseOf(R);if(!g)return;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
 function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),cur=room&&room.inPlace?room:null;
-  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const shut=Rg.guard&&typeof crownLocked==='function'&&crownLocked(Rg);const near=!shut&&(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1));
+  for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const shut=Rg.guard&&typeof crownLocked==='function'&&crownLocked(Rg)&&R!==Rg;const near=!shut&&(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1));
     if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
   if(R===cur)return;if(cur)houseShow(cur,true);room=R;
   if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);
@@ -3619,7 +3811,7 @@ for(const a of actors){a.px=a.x+.5;a.pz=a.z+.5;}
 
 // ---------- walking ----------
 // outside a fight the hero slips past friendly folk, so a crowd can never shut him in; enemies always block
-const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z&&!(self===H0&&!CB.on&&!a.enemy));
+const occupied=(x,z,self)=>actors.some(a=>a!==self&&!a.dead&&!a.hidden&&a.x===x&&a.z===z&&!(self===H0&&!CB.on&&(!a.enemy||a.calm)));
 function path(sx,sz,tx,tz,self,adjacent=false,limit=900){const key=(x,z)=>x+','+z,prev=new Map([[key(sx,sz),null]]),q=[[sx,sz]];let end=null;
   while(q.length&&prev.size<limit){const[x,z]=q.shift();if(adjacent?Math.abs(x-tx)+Math.abs(z-tz)===1:(x===tx&&z===tz)){end=[x,z];break;}
     for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(!free(nx,nz)||occupied(nx,nz,self)||prev.has(key(nx,nz)))continue;prev.set(key(nx,nz),[x,z]);q.push([nx,nz])}}
@@ -3659,7 +3851,7 @@ canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())ret
   if(CB.on){if(heroTurn())heroMove(tx,tz);else hint.textContent='Сейчас ход противника.';return;}
   groundTap=performance.now();
   ripple(hits.point,!free(tx,tz));if(!free(tx,tz)){hint.textContent='Туда не пройти.';return;}
-  if(at(tx,tz)==='E'){goDo(tx,tz,true,leaveRoom);return;}
+  if(at(tx,tz)==='E'&&!inPlaceAt(tx,tz)){goDo(tx,tz,true,leaveRoom);return;}
   const p=path(H0.x,H0.z,tx,tz,H0,false,3000);if(p&&p.length){H0.route=p;H0.dest=[tx,tz];}else hint.textContent='Не найти дорогу туда.';});
 // hold to walk: keep a finger on the ground and the hero follows it; a tap still walks to the spot.
 // Holding only steers when the press began on open ground (not on a person, door or chest).
@@ -4670,7 +4862,7 @@ function note(t,x){noteEl.hidden=false;noteEl.innerHTML='<b></b><span></span>';n
 noteEl.addEventListener('pointerdown',e=>{e.stopPropagation();noteEl.hidden=true;});
 function houseWheel(R,mesh){const p=new THREE.Vector3(R.door[0]+.5,1,R.door[1]-.5);
   showWheel({pos:p},[{icon:'pick',label:'Войти',ok:!CB.on,run:()=>R.inPlace?(R.guard&&typeof crownLocked==='function'&&crownLocked(R)?crownRefuse(R):goDo(...(R.inside||[R.exit[0],R.exit[1]-1]),false,()=>{})):goDo(R.door[0],R.door[1],true,()=>enterRoom(R))},
-    {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',house:'Обычный дом. Внутри кто-то гремит посудой.',poorhouse:'Покосившаяся лачуга. Дверь не запирается.',castle:'Ворота открыты днём. Стража провожает взглядом.',herb:'Пахнет мятой и чем-то горьким.',gbarn:'Широкие ворота, внутри сено.',temple:'Колокол на башне молчит.',inn:'Из двери тянет пивом.',mill:'Колесо шлёпает по воде.',tannery:'Воняет так, что глаза слезятся.',warehouse:'Двери на засове. Товар с кораблей.',barracks:'Тут живёт стража.',armory:'Оружие стражи. Без спроса не войдёшь.',treasury:'Казна. Туда пускают только казначея.',chambers:'Покои короля. Стража стоит у двери.'})[R.type]||'Дом.',4000)}],R.name);}
+    {icon:'look',label:'Осмотреть',run:()=>toast(R.name+'. '+({tavern:'Из окон доносится смех и запах жареной рыбы.',forge:'Труба дымит даже ночью.',home:'У двери сохнут сети.',hall:'Над дверью — резная золотая рыба.',barn:'Ворота подпёрты вилами.',house:'Обычный дом. Внутри кто-то гремит посудой.',poorhouse:'Покосившаяся лачуга. Дверь не запирается.',castle:'Ворота открыты днём. Стража провожает взглядом.',herb:'Пахнет мятой и чем-то горьким.',gbarn:'Широкие ворота, внутри сено.',temple:'Колокол на башне молчит.',inn:'Из двери тянет пивом.',mill:'Колесо шлёпает по воде.',tannery:'Воняет так, что глаза слезятся.',warehouse:'Двери на засове. Товар с кораблей.',barracks:'Тут живёт стража.',kitchen:'Из трубы тянет супом и дымом.',armory:'Оружие стражи. Без спроса не войдёшь.',treasury:'Казна. Туда пускают только казначея.',chambers:'Покои короля. Стража стоит у двери.'})[R.type]||'Дом.',4000)}],R.name);}
 // chapel brazier: look at it, and relight it with a torch in hand
 {const ms=[];chapel.g.traverse(m=>m.isMesh&&ms.push(m));const L={n:'Жаровня часовни',t:'Холодная жаровня в кольце камней. Когда-то её огонь отгонял мёртвых.',meshes:ms,
   action:()=>chapel.lit?(ART.fate?null:{icon:'special',label:'Сердце огня',sub:heartAwake()?'решить его судьбу':'спит под углями',ok:!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,artifactChoice)}):{icon:'special',label:'Разжечь',sub:hasTorch()?'факелом':'нужен факел в руке',ok:hasTorch()&&!CB.on,run:()=>goDo(Z.ruins[0],Z.ruins[1],false,lightChapel)}};
@@ -5763,8 +5955,9 @@ function crownRefuse(R){const g=crownGuardOf(R);
 function crownAnger(why){if(REP.crown)return;REP.crown=1;REP.kingdom=Math.min(REP.kingdom,-9);
   toast('Королевство: теперь вы — враг ('+why+'). За вашу голову назначена награда.',4000);for(const g of CROWN_GUARDS)if(!g.dead){g.calm=false;g.wander=4;}}
 // a locked door: its threshold inside is shut while its guard stands and does not let the hero in
-function crownTick(){for(const g of CROWN_GUARDS){const R=g.post,k=R.exit[0]+','+R.exit[1];
-  if(crownLocked(R))solid.add(k);else solid.delete(k);if(REP.crown&&!g.dead&&g.calm){g.calm=false;g.wander=4;}}}
+// A hero already inside (or in the doorway) is never shut in: the threshold stays open for the way out.
+function crownTick(){for(const g of CROWN_GUARDS){const R=g.post,k=R.exit[0]+','+R.exit[1],within=H0.x===R.exit[0]&&H0.z===R.exit[1]||inPlaceAt(H0.x,H0.z)===R;
+  if(crownLocked(R)&&!within)solid.add(k);else solid.delete(k);if(REP.crown&&!g.dead&&g.calm){g.calm=false;g.wander=4;}}}
 setInterval(crownTick,400);setTimeout(crownTick,0);
 // raising a hand against a guard of the crown turns the crown against the hero
 {const was=onFightStart;onFightStart=function(t){was(t);if(t&&t.crownGuard)crownAnger('напали на стражу');};}
