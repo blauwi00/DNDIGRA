@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.115 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.116 · 26.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -3052,7 +3052,8 @@ function sway(mat,amp,topOnly){const base=THREE.Material.prototype.onBeforeCompi
   '#include <begin_vertex>\n#ifdef USE_INSTANCING\nvec4 wp=instanceMatrix*vec4(0.,0.,0.,1.);\n#else\nvec4 wp=vec4(0.);\n#endif\nfloat k='+(topOnly?'max(0.,position.y+.5)':'1.')+';\ntransformed.x+=sin(uWind*1.7+wp.x*.7+wp.z*.4)*'+amp+'*k;\ntransformed.z+=cos(uWind*1.3+wp.z*.6)*'+amp+'*.6*k;');};mat.customProgramCacheKey=()=>'sway'+amp+topOnly;return mat;}
 const leafA=sway(lam(T.leaves),.05,1),leafB=sway(lam(T.leaves,{color:0xb8c9a0}),.06,1),pine=sway(lam(T.leaves,{color:0x8aa080}),.07,1);
 // a voxel crown is wider than its cell: next to a wall a tree grows smaller so its leaves never pass through the house
-function wallDist(x,z){for(let r=1;r<3;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===r&&at(x+dx,z+dz)==='X')return r;return 9;}
+function wallDist(x,z){let b=9;for(const R of ROOMS){if(!R.inPlace)continue;const dx=Math.max(R.ox-x,0,x-(R.ox+R.iw-1)),dz=Math.max(R.oz-z,0,z-(R.oz+R.id-1));b=Math.min(b,Math.max(dx,dz));}
+  for(let r=1;r<3&&r<b;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===r&&at(x+dx,z+dz)==='X')return r;return b;}
 if(VOX.on){const treeMat=sway(new THREE.MeshLambertMaterial({vertexColors:true}),.012,1);treeMat.userData.vox=1;
   voxInstanced(treeCells,([x,z])=>{const pine=hash2(x*5,z*3)<.35||GEN.biome[z*W+x]===GB.HILLS,v=Math.floor(hash2(z*3,x*7)*3);return VOX.asset((pine?'pine':'tree')+v,()=>VOX.tree(v,pine),1/VOX.N);},
     ([x,z],i,m)=>{let s=(.9+hash2(x,z)*.6)*(hash2(x*5,z*3)<.35||GEN.biome[z*W+x]===GB.HILLS?.62:.8);const wd=wallDist(x,z);if(wd<3)s=Math.min(s,Math.max(.32,(wd-.55)/1.4));m.compose(v1.set(x+.5,groundAt(x,z),z+.5),qY(hash2(z,x)*6.28),v2.set(s,s,s));},treeMat);}
@@ -4005,10 +4006,13 @@ async function leaveRoom(){if(!room||busy)return;const R=room;
 // the room is lit and the street outside goes dark and grey, so the room comes first
 const houseOf=R=>houseMeshes.find(g=>g.userData.house===R.i);
 function inPlaceAt(x,z){return ROOMS.find(r=>r.inPlace&&(x>r.ox&&x<r.ox+r.iw-1&&z>r.oz&&z<r.oz+r.id-1||x===r.exit[0]&&z===r.exit[1]))||null;}
-function houseShow(R,on){const g=houseOf(R);if(!g)return;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
+function houseShow(R,on){const g=houseOf(R);if(!g)return;g.userData.cut=false;for(const m of [...(g.userData.roofs||[]),...(g.userData.front||[])])m.visible=on;}
 function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),cur=room&&room.inPlace?room:null;
   for(const g of houseMeshes){const d=g.userData.door,Rg=ROOMS[g.userData.house];if(!d||!Rg||!Rg.inPlace)continue;const shut=Rg.guard&&typeof crownLocked==='function'&&crownLocked(Rg)&&R!==Rg;const near=!shut&&(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<1.6||actors.some(a=>a!==H0&&!a.dead&&!a.hidden&&Math.hypot(a.x-Rg.exit[0],a.z-Rg.exit[1])<1.1));
     if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
+  // a house standing between the camera and the hero lifts its roof, so the street behind it stays in sight
+  for(const g of houseMeshes){const Rg=ROOMS[g.userData.house],rf=g.userData.roofs;if(!Rg||!Rg.inPlace||!rf||Rg===R)continue;
+    const cut=Rg.oz>H0.z&&Rg.oz-H0.z<8&&H0.x>Rg.ox-2&&H0.x<Rg.ox+Rg.iw+1;if(cut!==!!g.userData.cut){g.userData.cut=cut;for(const m of rf)m.visible=!cut;}}
   if(R===cur)return;if(cur)houseShow(cur,true);room=R;
   if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);
     roomLight.visible=true;roomLight.position.set(R.ox+R.iw/2,R.y+2.2,R.oz+R.id/2);roomLight.distance=Math.max(9,R.iw*1.2);zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}
