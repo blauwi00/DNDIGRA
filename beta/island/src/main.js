@@ -416,7 +416,7 @@ function genHouse(h){const [hx,hz,hw,hd,p]=h,R=h.room,S=h.spec,g=new THREE.Group
     const V=VOX.house({w:hw,d:hd,wh1,st,roof:ROOF[kind]?kind:'shingle',wall:S&&WALLS[S.wall]?S.wall:rich?'frame':poor?'log':'plank',side,door:side==='S'?ex-hx:ez-hz,barn,blind,poor,alongX,chimney:!barn&&!blind&&type!=='temple'}),ms=[];voxOwn=[];
     for(const [k,list,mat] of [['front',front,VOX.MAT],['rest',null,VOX.MAT],['roof',roofs,VOX.MAT],['gfront',front,VOX.GLASS],['grest',null,VOX.GLASS],['groof',roofs,VOX.GLASS]]){const gr=V.G[k];if(gr.hi[0]<0)continue;
       const n=VOX.mesh(gr,1/VOX.N,{noBottom:true}),f=VOX.mesh(VOX.down(gr,2),2/VOX.N,{noBottom:true}),m=new THREE.Mesh(n,mat);m.position.set(hx-V.pad,y,hz-V.pad);m.castShadow=mat===VOX.MAT;m.receiveShadow=true;g.add(m);if(list)list.push(m);voxOwn.push(n,f);ms.push([m,n,f]);}
-    top=y+V.top;if(V.chim)g.userData.chimney=new THREE.Vector3(hx-V.pad+V.chim[0],y+V.chim[1],hz-V.pad+V.chim[2]);g.userData.vlod={x:hx+hw/2,z:hz+hd/2,b:[hx,hz,hx+hw,hz+hd],ms,lv:0,k:6};}
+    top=y+V.top;if(V.chim)g.userData.chimney=new THREE.Vector3(hx-V.pad+V.chim[0],y+V.chim[1],hz-V.pad+V.chim[2]);g.userData.vlod={x:hx+hw/2,z:hz+hd/2,b:[hx,hz,hx+hw,hz+hd],ms,lv:0,k:1};}
   // the door, on its own wall
   const dw=barn?.95:.64,dhh=barn?1.2:.95,dr=makeDoor(dw,dhh),[dcx,dcz]=side==='S'?[ex+.5,hz+hd-.05]:side==='E'?[hx+hw-.05,ez+.5]:[hx+.05,ez+.5];
   dr.g.position.set(dcx,y,dcz);dr.g.rotation.y=side==='S'?0:side==='E'?Math.PI/2:-Math.PI/2;g.add(dr.g);g.userData.door=dr;
@@ -475,7 +475,7 @@ function voxInstanced(list,pickA,place,mat=VOX.MAT){const out=[];if(!list.length
     const sph=new THREE.Sphere(new THREE.Vector3((x0+x1)/2,2,(z0+z1)/2),Math.hypot(x1-x0,z1-z0)/2+4);
     for(const [a,cs] of by){const n=VOX.wrap(a.near,sph),md=VOX.wrap(a.mid,sph),f=VOX.wrap(a.far,sph),im=new THREE.InstancedMesh(n,mat,cs.length);
       cs.forEach((c,i)=>{place(c,i,m4);im.setMatrixAt(i,m4);const v=.86+hash2(c[0]*7,c[1]*3)*.24;im.setColorAt(i,tmpCol.setRGB(v,v,v*.97));});im.castShadow=im.receiveShadow=true;grp.add(im);ms.push([im,n,md,f]);}
-    grp.userData.vlod={x:(x0+x1)/2,z:(z0+z1)/2,b:[x0,z0,x1,z1],ms,lv:0,k:2.5};grp.userData.lists=[out,VOX.LIVE];scene.add(grp);out.push(grp);VOX.LIVE.push(grp);return grp;});return out;}
+    grp.userData.vlod={x:(x0+x1)/2,z:(z0+z1)/2,b:[x0,z0,x1,z1],ms,lv:0,k:1};grp.userData.lists=[out,VOX.LIVE];scene.add(grp);out.push(grp);VOX.LIVE.push(grp);return grp;});return out;}
 // A house is drawn from about a hundred boxes; boxes of one look that hide together (the front wall, the roof, the
 // rest) are merged into one mesh, so a street of houses costs a few draw calls each. The door, the mill wheel and
 // anything that moves stay apart. The merged geometry is the house's own and is freed when its chunk goes.

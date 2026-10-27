@@ -197,7 +197,8 @@ const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
   for(const q of [near,mid,far]){q.translate(-g.X*size/2,0,-g.Z*size/2);q.computeBoundingSphere();}
   a={near,mid,far,ms:performance.now()-t0,grid:g};cache.set(key,a);return a;}
-const LIVE=[];let LOD_NEAR=2,LOD_MID=8;
+const LIVE=[];// the screen reaches about 12 cells from the hero; everything up to 5 cells past its edge is at full detail
+let LOD_NEAR=17,LOD_MID=40;
 try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q.split(',').map(Number);if(n>0&&m>0){LOD_NEAR=n;LOD_MID=m;}}}catch(e){}
 // swap each live voxel mesh between its near and far geometry by its distance from the camera's focus
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
