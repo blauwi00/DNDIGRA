@@ -710,11 +710,12 @@ const shown=m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return t
  window.multiTouch=()=>pts.size>1;}
 canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())return;if(!wheelEl.hidden){closeWheel();return;}if(H0.dead||busy||paused)return;const r=canvas.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   ray.setFromCamera(mv,camera);H0.arrive=null;
+  // a walk-in house is not tapped as a whole: a tap goes through it to the ground, its door opens as the hero walks up
   // characters: potion/bread in hand is used on them; enemies are approached and attacked; villagers talk
   for(const a of actors){if(a.dead||!a.o.visible)continue;if(ray.intersectObject(a.o,true).length){tapActor(a);return;}}
   const rk=room?null:ray.intersectObjects(rockMeshes)[0],gh=ray.intersectObjects(pickable)[0];
   if(rk&&(!gh||rk.distance<=gh.distance+.3)){const [x,z]=rk.object.userData.cells[rk.instanceId];rockWheel(x,z);return;}
-  const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
+  const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.filter(g=>!(ROOMS[g.userData.house]||{}).inPlace).flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
   const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on&&!it.fight){hint.textContent='Сначала закончите бой.';return;}if(it&&CB.on){if(!heroTurn())return toast('Сейчас ход противника.');if(CB.acted)return toast('Действие уже потрачено.');it.use();return;}if(it){if(it.far)return it.use();goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
   if(hits.object.userData.look){lookWheel(hits.object.userData.look,hits.object);return;}
   {let o=hits.object;while(o&&o.userData.house==null)o=o.parent;if(o){houseWheel(ROOMS[o.userData.house],hits.object);return;}}

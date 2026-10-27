@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.120 · 27.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.121 · 27.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -4086,11 +4086,12 @@ const shown=m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return t
  window.multiTouch=()=>pts.size>1;}
 canvas.addEventListener('pointerdown',e=>{if(window.multiTouch&&multiTouch())return;if(!wheelEl.hidden){closeWheel();return;}if(H0.dead||busy||paused)return;const r=canvas.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   ray.setFromCamera(mv,camera);H0.arrive=null;
+  // a walk-in house is not tapped as a whole: a tap goes through it to the ground, its door opens as the hero walks up
   // characters: potion/bread in hand is used on them; enemies are approached and attacked; villagers talk
   for(const a of actors){if(a.dead||!a.o.visible)continue;if(ray.intersectObject(a.o,true).length){tapActor(a);return;}}
   const rk=room?null:ray.intersectObjects(rockMeshes)[0],gh=ray.intersectObjects(pickable)[0];
   if(rk&&(!gh||rk.distance<=gh.distance+.3)){const [x,z]=rk.object.userData.cells[rk.instanceId];rockWheel(x,z);return;}
-  const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
+  const hits=ray.intersectObjects([...interact.flatMap(i=>[i.mesh,...(i.extra||[])]),...looks.flatMap(l=>l.meshes).filter(shown),...(room?[]:houseMeshes.filter(g=>!(ROOMS[g.userData.house]||{}).inPlace).flatMap(g=>{const a=[];g.traverse(m=>m.isMesh&&a.push(m));return a;})).filter(m=>{let o=m;while(o){if(!o.visible)return false;o=o.parent;}return true;}),...pickable])[0];if(!hits)return;
   const it=interact.find(i=>i.mesh===hits.object||(i.extra&&i.extra.includes(hits.object)));if(it&&CB.on&&!it.fight){hint.textContent='Сначала закончите бой.';return;}if(it&&CB.on){if(!heroTurn())return toast('Сейчас ход противника.');if(CB.acted)return toast('Действие уже потрачено.');it.use();return;}if(it){if(it.far)return it.use();goDo(it.x,it.z,!!it.stand,()=>it.use());return;}
   if(hits.object.userData.look){lookWheel(hits.object.userData.look,hits.object);return;}
   {let o=hits.object;while(o&&o.userData.house==null)o=o.parent;if(o){houseWheel(ROOMS[o.userData.house],hits.object);return;}}
