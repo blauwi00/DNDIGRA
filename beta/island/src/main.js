@@ -21,7 +21,7 @@ function seeTick(){if(room||typeof H0==='undefined'||(window.SET&&SET.seeThrough
   seeT.set(H0.px,gy+.8,H0.pz).sub(camera.position).normalize().multiplyScalar(-.7).add(new THREE.Vector3(H0.px,gy+.8,H0.pz)).project(camera);SEE.d.value=seeT.z*.5+.5;SEE.y.value=gy+.35;SEE.on.value=1;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(38,1,.1,58); // fog hides everything beyond ~30
+const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
 const focus=new THREE.Vector3(8,0,30);
 let camZoom=1,zoomTarget=1,camFocus=null; // the camera leans in while the hero looks at something
 // the camera works as in Don't Starve: pinch or scroll to zoom, and the closer it comes the lower it leans,
@@ -175,7 +175,7 @@ function chunk(list){const m=new Map();for(const c of list){const k=Math.floor(c
 // Every 16x16 chunk keeps builders for its terrain and props. Chunks within LOAD_R of the camera are built
 // (a few per frame, nearest first); chunks beyond UNLOAD_R are taken down and their own geometry freed.
 // Shared materials and base geometries belong to the world and are never disposed here.
-const CHUNKS=new Map(),LOAD_R=52,UNLOAD_R=70,BUILDS_PER_FRAME=3;
+const CHUNKS=new Map(),LOAD_R=40,UNLOAD_R=58,BUILDS_PER_FRAME=3;
 const chunkKey=(x,z)=>Math.floor(x/CH)+','+Math.floor(z/CH);
 function defer(key,build){let c=CHUNKS.get(key);if(!c){const[a,b]=key.split(',').map(Number);c={cx:(a+.5)*CH,cz:(b+.5)*CH,builders:[],live:[],on:false};CHUNKS.set(key,c);}
   c.builders.push(build);if(c.on)c.live.push(...[].concat(build()));}

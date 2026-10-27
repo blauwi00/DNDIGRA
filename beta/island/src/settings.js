@@ -2,7 +2,7 @@
 // Every option really changes the game and is kept in the browser (helga-settings).
 const SET_KEY='helga-settings',SET_DEF={quality:'mid',shadows:true,weather:true,fps:60,text:'normal',fold:true,cam:'normal'};
 const SET=Object.assign({},SET_DEF,(()=>{try{return JSON.parse(localStorage.getItem(SET_KEY))||{}}catch(e){return {}}})());
-const TEXT_MS={slow:40,normal:22,fast:9,instant:0},CAM_K={near:1.23,normal:1.5,far:1.83};
+const TEXT_MS={slow:40,normal:22,fast:9,instant:0},CAM_K={near:.82,normal:1,far:1.22};
 function saveSettings(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
 function applySettings(){
   renderer.setPixelRatio(SET.quality==='low'?1:SET.quality==='mid'?Math.min(devicePixelRatio,1.5):Math.min(devicePixelRatio,2));
