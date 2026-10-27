@@ -1,0 +1,39 @@
+/* In-game UI skin built from the GPT pixel UI sheet (dist/assets/ui):
+   stone-and-gold frames, wooden buttons, heart health bar, slot frames.
+   Loaded last; layout stays in compact-hud.css, this file only dresses it. */
+:root{--ui-ink:#f4e6c8;--ui-muted:#c9b48c;--ui-gold:#d9a94a;--ui-panel:#2a201a}
+
+/* Health: heart frame with the red fill sitting inside its track. */
+body.game-ui.compact-hud #hud-health{width:176px!important;height:54px!important;background:url(assets/ui/hp-frame.png) center/100% 100% no-repeat!important;image-rendering:pixelated}
+body.game-ui.compact-hud #hud-health .health-copy{position:absolute;left:29%;right:5%;top:31%;bottom:31%;width:auto}
+body.game-ui.compact-hud #hud-health .hp-track{position:relative;height:100%!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden}
+body.game-ui.compact-hud #hud-health .hp-track i{position:absolute;inset:0 auto 0 0;display:block;background:url(assets/ui/hp-fill.png) left center/auto 100% repeat-x!important;image-rendering:pixelated;transition:width .3s}
+body.game-ui.compact-hud #hud-health .hp-track small{position:relative;z-index:1;display:block;text-align:center;line-height:18px;color:#fff;text-shadow:0 1px 0 #000,0 0 3px #000}
+
+/* Square stone buttons in the corners (menu, actions, end turn). */
+body.game-ui.compact-hud #menu,body.game-ui.compact-hud #combat-tools-toggle,body.game-ui.compact-hud #end,body.game-ui.compact-hud #hud-back{border:0!important;border-radius:0!important;background:url(assets/ui/slot.png) center/100% 100% no-repeat!important;color:var(--ui-ink)!important;box-shadow:none!important;image-rendering:pixelated;text-shadow:0 1px 0 #000}
+body.game-ui.compact-hud #combat-tools-toggle,body.game-ui.compact-hud #end,body.game-ui.compact-hud #hud-back{border:14px solid transparent!important;border-image:url(assets/ui/button.png) 40 / 14px stretch!important;background:#3a2a1c padding-box!important;padding:0 6px!important;font-weight:600}
+body.game-ui.compact-hud #combat-tools-toggle:active,body.game-ui.compact-hud #end:active,body.game-ui.compact-hud #hud-back:active{background:#24190f padding-box!important}
+
+/* Panels and drawers: stone frame with gold corners around a dark parchment. */
+body.game-ui.compact-hud #actions-panel,body.game-ui.compact-hud #hud-navigation,body.game-ui #dialogue,body.game-ui .object-prompt{border:22px solid transparent!important;border-image:url(assets/ui/panel.png) 46/22px stretch!important;background:#2a201a padding-box!important;box-shadow:0 8px 24px #000a!important;border-radius:0!important;image-rendering:pixelated;color:var(--ui-ink)}
+body.game-ui.compact-hud #actions-panel .modal-head h2,body.game-ui.compact-hud #hud-navigation .modal-head h2{font-family:var(--font-ui,system-ui)!important;letter-spacing:.04em;color:var(--ui-gold)!important;text-shadow:0 2px 0 #000}
+
+/* Wooden buttons everywhere inside game panels. */
+body.game-ui #actions-panel button:not(.close):not([id$=close]),body.game-ui #dialogue-options button,body.game-ui .object-prompt button,body.game-ui .inventory-action,body.game-ui #hud-navigation .tabs button{border:14px solid transparent!important;border-image:url(assets/ui/button.png) 40 / 14px stretch!important;border-radius:0!important;background:#3a2a1c padding-box!important;color:#fbecc9!important;font-weight:600!important;box-shadow:none!important;text-shadow:0 1px 0 #000;image-rendering:pixelated;min-height:44px;padding:0 6px!important}
+body.game-ui #actions-panel button:active,body.game-ui #dialogue-options button:active,body.game-ui .object-prompt button:active,body.game-ui .inventory-action:active{background:#24190f padding-box!important}
+body.game-ui #actions-panel button:disabled,body.game-ui .object-prompt button:disabled,body.game-ui .inventory-action:disabled{border-image-source:url(assets/ui/button-disabled.png)!important;background:#2c2924 padding-box!important;color:#8f877b!important}
+body.game-ui button:focus-visible{outline:2px solid var(--ui-gold)!important;outline-offset:2px}
+
+/* Backpack cells use the stone slot frame. */
+body.game-ui .bag-item,body.game-ui .bag-empty{border:0!important;border-radius:0!important;background:url(assets/ui/slot.png) center/100% 100% no-repeat!important;box-shadow:none!important;image-rendering:pixelated}
+body.game-ui .bag-item[aria-pressed="true"],body.game-ui .bag-item.selected{filter:drop-shadow(0 0 6px #e2b862)}
+@media (prefers-reduced-motion:reduce){body.game-ui.compact-hud #hud-health .hp-track i{transition:none}}
+body.game-ui.compact-hud #combat-tools-toggle,body.game-ui.compact-hud #end,body.game-ui.compact-hud #hud-back{color:#fbecc9!important;opacity:1!important}body.game-ui.compact-hud #combat-tools-toggle *,body.game-ui.compact-hud #end *,body.game-ui.compact-hud #hud-back *{color:inherit!important;opacity:1!important}
+/* Pixel health bar (dist/pixel-hp.js) replaces the image frame. */
+body.game-ui.compact-hud #hud-health{width:216px!important;height:42px!important;background:none!important}
+body.game-ui.compact-hud #hud-health .pixel-hp{position:absolute;left:0;top:0;width:216px;height:42px;image-rendering:pixelated}
+body.game-ui.compact-hud #hud-health .health-copy{position:absolute;left:22%;right:3%;top:38%;bottom:auto;z-index:1}
+body.game-ui.compact-hud #hud-health .hp-track{height:auto!important;background:none!important;box-shadow:none!important}
+body.game-ui.compact-hud #hud-health .hp-track i{display:none!important}
+body.game-ui.compact-hud #hud-health .hp-track small{font:900 11px/1 system-ui!important;color:#fff!important;text-shadow:1px 1px 0 #000,-1px 0 0 #000!important}

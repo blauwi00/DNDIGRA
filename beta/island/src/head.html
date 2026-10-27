@@ -1,0 +1,70 @@
+<title>Эталонный кусок острова</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: full-bleed game scene, controls docked in a slim bar beneath; dark-first single look (game screen). */
+:root{
+  --ink:#0d1114; --panel:#161c20; --line:#2b353b; --fg:#e7dcc6; --muted:#9a9282;
+  --ember:#e0a04a; --blood:#c4483e; --moss:#7e9a5a;
+  --display:"Cormorant Garamond",Georgia,serif; --body:"PT Sans",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--ink);color:var(--fg);font-family:var(--body);display:flex;flex-direction:column}
+.stage{position:relative;flex:1;min-height:300px;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.title{position:absolute;top:12px;left:max(16px,env(safe-area-inset-left,0px));pointer-events:none}
+.title h1{font-family:var(--display);font-size:clamp(22px,4vw,34px);margin:0;letter-spacing:.01em;text-shadow:0 2px 8px #000}
+.title p{margin:2px 0 0;font-size:13px;color:var(--muted);text-shadow:0 1px 4px #000}
+.hp{position:absolute;top:14px;right:max(16px,env(safe-area-inset-right,0px));width:150px;pointer-events:none}
+.hp .lbl{font-size:12px;color:var(--muted);margin-bottom:4px;text-align:right}
+.hp .bar{height:10px;background:#000;border:2px solid #4a5560;image-rendering:pixelated}
+.hp .fill{height:100%;background:var(--blood);transition:width .3s}
+.float{position:absolute;pointer-events:none;font-family:var(--display);font-weight:700;font-size:28px;text-shadow:0 2px 0 #000,0 0 12px #000;transform:translate(-50%,-50%);transition:transform 900ms ease-out,opacity 900ms ease-in}
+.dice{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(13,17,20,.85);border:1px solid var(--line);padding:8px 14px;font-size:14px;border-radius:4px;max-width:calc(100% - 32px);text-align:center}
+.dice[hidden]{display:none}
+.dice b{color:var(--ember);font-family:var(--display);font-size:20px}
+.bar-ui{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--panel);border-top:1px solid var(--line)}
+button{font:inherit;font-size:14px;color:var(--fg);background:#232b30;border:1px solid var(--line);padding:9px 14px;border-radius:3px;cursor:pointer}
+button:hover{border-color:var(--ember)}
+button:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+button[aria-pressed="true"]{background:#3a2c1a;border-color:var(--ember);color:#f3d9a8}
+.hint{font-size:12.5px;color:var(--muted);flex:1 1 220px;min-width:0}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(5,8,10,.55) 100%)}
+
+.palm{position:absolute;bottom:-18px;width:132px;height:132px;image-rendering:pixelated;pointer-events:auto;cursor:pointer;filter:drop-shadow(0 4px 0 #0008);transition:transform .15s}
+.palm.l{left:max(4px,env(safe-area-inset-left,0px));transform:rotate(-8deg)}
+.palm.r{right:max(4px,env(safe-area-inset-right,0px));transform:rotate(8deg)}
+.palm:active{transform:scale(.94)}
+@media (max-width:600px){.palm{width:80px;height:90px}}
+
+.palm{z-index:6}
+.palm.l.open{transform:rotate(-2deg) translateY(-18px)}
+.palm.r.open{transform:rotate(2deg) translateY(-18px)}
+.inv{position:absolute;bottom:96px;z-index:5;width:212px;padding:10px 10px 12px;background:#1d1611;font-family:"PT Sans",system-ui,sans-serif;color:#f0e2c2;
+  box-shadow:0 0 0 3px #6a4a2c,0 0 0 6px #120c08,0 0 0 7px #b8923e,0 10px 0 6px #0008;image-rendering:pixelated;
+  transform:translateY(40px) scaleY(.2);transform-origin:bottom;opacity:0;pointer-events:none;transition:transform .22s cubic-bezier(.2,1.4,.4,1),opacity .15s}
+.inv.l{left:max(28px,env(safe-area-inset-left,0px))}.inv.r{right:max(28px,env(safe-area-inset-right,0px))}
+.inv.open{transform:none;opacity:1;pointer-events:auto}
+.inv::after{content:"";position:absolute;bottom:-15px;width:16px;height:9px;background:#b8923e;clip-path:polygon(0 0,100% 0,50% 100%)}
+.inv.l::after{left:42px}.inv.r::after{right:42px}
+.inv h4{margin:0 0 8px;font-size:14px;color:#f2c14e;text-shadow:2px 2px 0 #000;display:flex;justify-content:space-between}
+.inv h4 small{color:#a8987a;font-size:11px}
+.inv .grid{display:grid;grid-template-columns:repeat(4,44px);gap:6px}
+.inv button{width:44px;height:44px;border:0;padding:0;background:#0e0a07;box-shadow:inset 0 0 0 2px #4a3522,inset 0 0 0 4px #0e0a07;cursor:pointer;position:relative;
+  transform:scale(.6);opacity:0;transition:transform .18s,opacity .18s}
+.inv.open button{transform:none;opacity:1}
+.inv button canvas{width:28px;height:28px;image-rendering:pixelated;display:block;margin:auto}
+.inv button.on{box-shadow:inset 0 0 0 2px #f2c14e,inset 0 0 0 4px #0e0a07,0 0 10px #f2c14e66}
+.inv button:disabled{opacity:.3!important;cursor:not-allowed}
+.inv button small{position:absolute;right:3px;bottom:1px;font-size:10px;color:#f2c14e}
+.inv .name{margin-top:8px;font-size:12px;color:#d8c8a6;min-height:1.2em}
+.held{position:absolute;bottom:70px;z-index:7;width:34px;height:34px;image-rendering:pixelated;filter:drop-shadow(0 2px 0 #000);pointer-events:none;transition:transform .2s}
+.held{z-index:7;width:46px;height:46px;padding:7px;bottom:40px!important;top:auto!important;border-radius:50%;background:#1d1611;
+  box-shadow:0 0 0 3px #6a4a2c,0 0 0 5px #120c08,0 0 0 6px #b8923e,0 4px 0 5px #0008;transform:none!important;transition:transform .18s,opacity .18s!important}
+.held.l{left:max(98px,env(safe-area-inset-left,0px))!important}.held.r{right:max(98px,env(safe-area-inset-right,0px))!important;left:auto!important}
+.held.empty{opacity:0;transform:scale(.6)!important}
+.held.pop{animation:pop .25s}
+@keyframes pop{0%{transform:scale(.5)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (max-width:600px){.held{width:36px;height:36px;padding:5px;bottom:76px!important}.held.l{left:64px!important}.held.r{right:64px!important}.inv{bottom:70px;width:184px}.inv .grid{grid-template-columns:repeat(4,38px)}.inv button{width:38px;height:38px}.held{bottom:66px}.held.l{left:48px}.held.r{right:48px}}
+@media (prefers-reduced-motion:reduce){.inv,.inv button,.palm,.held{transition:none}}
+</style>

@@ -3,18 +3,9 @@ const regions={book:[783,653,133,104],ranger:[30,70,227,226],wizard:[277,70,226,
 function image(key,cls=''){const r=regions[key]||regions.ranger,s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox',r.join(' '));s.setAttribute('class','painted-asset '+cls);s.setAttribute('aria-hidden','true');const i=document.createElementNS('http://www.w3.org/2000/svg','image');i.setAttribute('href',atlas);i.setAttribute('width','1024');i.setAttribute('height','1536');s.append(i);return s;}
 // All portrait parts are built on the same canvas from the model's characterProfile.
 function hero(actor){
- const p=CharacterStyle.characterProfile(actor),ns='http://www.w3.org/2000/svg',s=document.createElementNS(ns,'svg');
- s.setAttribute('viewBox','0 0 320 360');s.setAttribute('preserveAspectRatio','xMidYMid meet');
- s.setAttribute('class','painted-asset head-portrait custom-portrait');
- s.setAttribute('aria-label','Портрет '+(actor.name||'героя'));
- s.dataset.gender=p.gender;s.dataset.cloth=p.cloth;s.dataset.hairStyle=p.hairStyle;
- s.dataset.faceBase=p.gender;s.dataset.face=p.face;s.dataset.style=p.style;s.dataset.portraitSource='layered';
- const im=document.createElementNS(ns,'image');im.setAttribute('width',320);im.setAttribute('height',360);s.append(im);
- const paint=()=>{const c=PortraitRenderer.render(p);if(c){im.setAttribute('href',c.toDataURL());s.dataset.portraitReady='true';}};
- paint();if(!s.dataset.portraitReady)PortraitRenderer.ready.then(paint).catch(()=>s.dataset.portraitError='true');
- return s;
+ const c=Characters.portrait(actor.kind||0,actor,{width:168,height:192,pixel:3});if(!c)return image('ranger');
+ const ns='http://www.w3.org/2000/svg',s=document.createElementNS(ns,'svg');s.setAttribute('viewBox','0 0 168 192');s.setAttribute('class','painted-asset head-portrait pixel-portrait');s.setAttribute('aria-label','Портрет '+(actor.name||'героя'));s.dataset.portraitSource='character-boxes';const i=document.createElementNS(ns,'image');i.setAttribute('width',168);i.setAttribute('height',192);i.setAttribute('href',c.toDataURL());s.append(i);return s;
 }
-
-function npc(name){const actor=CharacterStyle.npcActor(name);return actor?hero(actor):null;}
+function npc(name){const id=Characters.NPC_BY_NAME[String(name||'').split(' · ')[0].trim()];return id?hero({kind:5,npc:id,name}):null;}
 const old=window.UIIcons.svg;window.UIIcons.svg=name=>regions[name]?image(name,'ui-icon').outerHTML:old(name);
 window.Artwork={image,hero,npc,atlas};})();

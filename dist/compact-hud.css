@@ -1,0 +1,647 @@
+/* Compact HUD: reuse the current art and controls, reveal tools on demand. */
+body.game-ui.compact-hud {
+  --hud-top: max(8px, env(safe-area-inset-top));
+  --hud-right: max(10px, env(safe-area-inset-right));
+  --hud-bottom: max(10px, env(safe-area-inset-bottom));
+  --hud-left: max(10px, env(safe-area-inset-left));
+}
+
+body.game-ui.compact-hud .tabletop {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  min-height: 0;
+  gap: 0;
+  margin: 0;
+  padding: calc(var(--hud-top) + 52px) var(--hud-right) var(--hud-bottom) var(--hud-left);
+}
+body.game-ui.compact-hud .tabletop > .view {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+body.game-ui.compact-hud.map-active .tabletop {
+  display: block;
+  padding: 0;
+  background: transparent;
+}
+body.game-ui.compact-hud .tabletop > header,
+body.game-ui.compact-hud #play-dock,
+body.game-ui.compact-hud #map-view > .status,
+body.game-ui.compact-hud #light-state,
+body.game-ui.compact-hud #learning-tip,
+body.game-ui.compact-hud .camera-tip,
+body.game-ui.compact-hud #map-hands,
+body.game-ui.compact-hud #initiative,
+body.game-ui.compact-hud #target-panel,
+body.game-ui.compact-hud #adventure-combat,
+body.game-ui.compact-hud .roll-ledger,
+body.game-ui.compact-hud .rules-credit {
+  display: none !important;
+}
+body.game-ui.compact-hud.map-active #map-view,
+body.game-ui.compact-hud.map-active .map-shell,
+body.game-ui.compact-hud.map-active #viewport {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  grid-column: auto;
+  grid-row: auto;
+}
+body.game-ui.compact-hud.map-active #map-view {
+  animation: none;
+  overflow: hidden;
+}
+body.game-ui.compact-hud.map-active .map-shell {
+  display: block;
+}
+
+/* The hit areas remain comfortable even though the visible HUD is small. */
+body.game-ui.compact-hud #menu,
+body.game-ui.compact-hud #hud-back {
+  position: fixed;
+  top: var(--hud-top);
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #ad8853;
+  border-radius: 8px;
+  background: #35281ee8;
+  color: #f9e5c1;
+  box-shadow: 0 2px 8px #0005;
+}
+body.game-ui.compact-hud #menu {
+  right: var(--hud-right);
+  left: auto;
+}
+body.game-ui.compact-hud #hud-back {
+  left: 50%;
+  right: auto;
+  width: auto;
+  max-width: calc(100vw - 128px);
+  transform: translateX(-50%);
+  gap: 6px;
+  padding: 8px 12px;
+  font: 14px/1.2 var(--font-ui);
+}
+body.game-ui.compact-hud.map-active #hud-back {
+  display: none;
+}
+body.game-ui.compact-hud #hud-health {
+  left: var(--hud-left);
+  top: var(--hud-top);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  width: 104px;
+  height: 44px;
+  min-height: 44px;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+body.game-ui.compact-hud #hud-health .portrait,
+body.game-ui.compact-hud #hud-health .health-copy > b {
+  display: none;
+}
+body.game-ui.compact-hud #hud-health .health-copy {
+  display: block;
+  width: 100%;
+}
+body.game-ui.compact-hud #hud-health .hp-track {
+  display: block;
+  height: 18px;
+  border: 1px solid #d8ad73;
+  border-radius: 5px;
+  background: #301b17ed;
+  box-shadow: 0 1px 5px #0009;
+}
+body.game-ui.compact-hud #hud-health .hp-track small {
+  font: 600 12px/1 var(--font-ui);
+}
+body.game-ui.compact-hud #hud-toast,
+body.game-ui.compact-hud #hud-alert {
+  position: fixed;
+  top: var(--hud-top);
+  left: calc(var(--hud-left) + 112px);
+  right: calc(var(--hud-right) + 52px);
+  z-index: 57;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 7px 8px;
+  border: 1px solid #9c7a4e88;
+  border-radius: 6px;
+  background: #30241be6;
+  color: #f7e8ce;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font: 12px/1.3 var(--font-ui);
+}
+body.game-ui.compact-hud #hud-toast {
+  pointer-events: none;
+  max-height: 46px;
+  overflow: hidden;
+}
+body.game-ui.compact-hud #hud-alert {
+  min-height: 44px;
+  border-color: #dc9d6b;
+  background: #562d22f5;
+  color: #ffe8d1;
+}
+
+body.game-ui.compact-hud #combat-tools-toggle,
+body.game-ui.compact-hud #end {
+  position: absolute;
+  bottom: var(--hud-bottom);
+  z-index: 36;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: auto;
+  min-width: 108px;
+  height: 46px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #b28b56;
+  border-radius: 8px;
+  background: #3f2e22ed;
+  color: #fff0d4;
+  box-shadow: 0 2px 9px #0006;
+  font: 14px/1.2 var(--font-ui);
+}
+body.game-ui.compact-hud #combat-tools-toggle {left: var(--hud-left)}
+body.game-ui.compact-hud #end {right: var(--hud-right)}
+body.game-ui.compact-hud #end b {font-weight: 500}
+body.game-ui.compact-hud #combat-tools-toggle .icon-holder,
+body.game-ui.compact-hud #end .icon-holder,
+body.game-ui.compact-hud #combat-tools-toggle .ui-icon,
+body.game-ui.compact-hud #end .ui-icon {
+  width: 23px;
+  height: 25px;
+}
+body.game-ui.compact-hud #hud-turn-state {
+  position: absolute;
+  bottom: calc(var(--hud-bottom) + 54px);
+  right: var(--hud-right);
+  z-index: 35;
+  max-width: min(350px, calc(100% - 20px));
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: #241c16d9;
+  color: #f6e4c6;
+  pointer-events: none;
+}
+body.game-ui.compact-hud #turn-resources {
+  display: block;
+  font: 12px/1.35 var(--font-ui);
+  overflow-wrap: anywhere;
+}
+body.game-ui.compact-hud:not(.in-combat) #end,
+body.game-ui.compact-hud:not(.in-combat) #hud-turn-state,
+body.game-ui.compact-hud.hud-obscured #menu,
+body.game-ui.compact-hud.hud-obscured #hud-health,
+body.game-ui.compact-hud.hud-obscured #combat-tools-toggle,
+body.game-ui.compact-hud.hud-obscured #end,
+body.game-ui.compact-hud.hud-obscured #hud-turn-state {
+  display: none;
+}
+
+/* Navigation and camera controls live together in an optional side drawer. */
+body.game-ui.compact-hud #hud-navigation {
+  position: fixed;
+  inset: var(--hud-top) var(--hud-right) var(--hud-bottom) auto;
+  width: min(360px, calc(100vw - var(--hud-left) - var(--hud-right)));
+  max-width: none;
+  height: auto;
+  max-height: calc(100dvh - var(--hud-top) - var(--hud-bottom));
+  margin: 0;
+  padding: 12px;
+  overflow: hidden;
+  white-space: normal;
+}
+body.game-ui.compact-hud #hud-navigation[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+body.game-ui.compact-hud #hud-navigation::backdrop,
+body.game-ui.compact-hud #actions-panel::backdrop {
+  background: #110d0990;
+  backdrop-filter: none;
+}
+body.game-ui.compact-hud #hud-navigation > .modal-head,
+body.game-ui.compact-hud #actions-panel > .modal-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  flex: none;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 0 8px;
+  background: #372b22;
+}
+body.game-ui.compact-hud #hud-navigation .modal-head h2,
+body.game-ui.compact-hud #actions-panel .modal-head h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+body.game-ui.compact-hud #hud-navigation .modal-head button,
+body.game-ui.compact-hud #actions-panel .modal-head button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 6px;
+  flex: none;
+}
+body.game-ui.compact-hud #hud-navigation-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 2px 3px 4px;
+}
+body.game-ui.compact-hud #hud-navigation .tabs {
+  position: static;
+  inset: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+body.game-ui.compact-hud #hud-navigation .tabs button:not(#tab-test) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 44px;
+  min-height: 48px;
+  padding: 8px 12px;
+  text-align: left;
+}
+body.game-ui.compact-hud #hud-navigation .map-toolbar {
+  position: static;
+  inset: auto;
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 10px 0 0;
+  margin: 8px 0;
+  border-top: 1px solid #9d7c4a66;
+  background: none;
+}
+body.game-ui.compact-hud #hud-navigation .map-toolbar > div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+body.game-ui.compact-hud #hud-navigation .map-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 44px;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 8px !important;
+}
+body.game-ui.compact-hud #hud-navigation .map-toolbar .icon-holder,
+body.game-ui.compact-hud #hud-navigation .map-toolbar .ui-icon {
+  width: 24px !important;
+  height: 24px !important;
+}
+body.game-ui.compact-hud #hud-navigation .menu-option {
+  min-height: 44px !important;
+  overflow-wrap: anywhere;
+}
+body.game-ui.compact-hud #hud-navigation #generated-route {
+  position: static;
+  max-width: none;
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+body.game-ui.compact-hud #hud-navigation #generated-route-open {
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+}
+body.game-ui.compact-hud #hud-navigation #world-save {
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-height: 44px;
+  margin: 8px 0;
+  padding: 10px;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 14px !important;
+  line-height: 1.4;
+}
+body.game-ui.compact-hud #hud-navigation #world-save.save-error {
+  color: #ffe3c9 !important;
+  border-color: #dc9d6b !important;
+  background: #623728 !important;
+}
+
+/* Existing action handlers remain in their original controls inside this sheet. */
+body.game-ui.compact-hud #actions-panel {
+  position: fixed;
+  inset: auto var(--hud-right) var(--hud-bottom) auto;
+  width: min(420px, calc(100vw - var(--hud-left) - var(--hud-right)));
+  max-width: none;
+  max-height: min(78dvh, calc(100dvh - var(--hud-top) - var(--hud-bottom)));
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  white-space: normal;
+}
+body.game-ui.compact-hud #actions-panel .combat-tools {
+  max-height: none;
+  overflow: visible;
+  margin: 0;
+  padding: 8px 0 0;
+  border: 0;
+  background: none;
+}
+body.game-ui.compact-hud #actions-panel .combat-tools label {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+body.game-ui.compact-hud #actions-panel .combat-tools select {
+  min-height: 44px;
+  max-width: 100%;
+}
+body.game-ui.compact-hud #actions-panel .quick-actions,
+body.game-ui.compact-hud #actions-panel .rest-actions,
+body.game-ui.compact-hud .hud-action-extras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+body.game-ui.compact-hud #actions-panel .quick-actions button,
+body.game-ui.compact-hud #actions-panel .rest-actions button,
+body.game-ui.compact-hud .hud-action-extras button {
+  min-height: 44px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+body.game-ui.compact-hud .hud-action-extras #potion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+body.game-ui.compact-hud .hud-action-extras #potion .icon-holder {
+  width: 24px;
+  height: 27px;
+}
+
+/* Temporary information overlays never shrink the play surface. */
+body.game-ui.compact-hud #roll-result {
+  position: absolute;
+  inset: auto var(--hud-right) calc(var(--hud-bottom) + 60px) auto;
+  z-index: 80;
+  width: min(420px, calc(100% - var(--hud-left) - var(--hud-right)));
+  max-height: calc(100dvh - var(--hud-top) - var(--hud-bottom) - 64px);
+  min-height: 76px;
+  overflow: auto;
+  margin: 0;
+  padding: 9px;
+  border: 1px solid #b9975e;
+  border-radius: 8px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-column: auto;
+  grid-row: auto;
+  gap: 8px;
+}
+body.game-ui.compact-hud #check-next {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+body.game-ui.compact-hud #reward-notice {
+  position: absolute;
+  inset: auto var(--hud-right) calc(var(--hud-bottom) + 150px) auto;
+  z-index: 79;
+  max-width: min(360px, calc(100% - var(--hud-left) - var(--hud-right)));
+  max-height: 32dvh;
+  overflow: auto;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid #b9975e;
+  border-radius: 8px;
+  grid-column: auto;
+  grid-row: auto;
+}
+body.game-ui.compact-hud #dialogue {
+  position: absolute;
+  inset: auto var(--hud-right) var(--hud-bottom) var(--hud-left);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  height: auto;
+  max-height: min(64dvh, calc(100dvh - var(--hud-top) - var(--hud-bottom)));
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid #be9659;
+  border-radius: 9px;
+  box-shadow: 0 4px 18px #0007;
+  overflow: hidden;
+  grid-column: auto;
+  grid-row: auto;
+}
+body.game-ui.compact-hud #dialogue .speaker-card,
+body.game-ui.compact-hud #dialogue.object-dialogue .speaker-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+body.game-ui.compact-hud #dialogue .speaker-identity,
+body.game-ui.compact-hud #dialogue.object-dialogue .speaker-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-right: 44px;
+  flex: none;
+}
+body.game-ui.compact-hud #dialogue .speaker-art {
+  width: 40px;
+  height: 44px;
+  flex: none;
+}
+body.game-ui.compact-hud #dialogue #speaker-caption {text-align: left}
+body.game-ui.compact-hud #dialogue .speaker-copy {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+body.game-ui.compact-hud #dialogue-text {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  max-height: 30dvh;
+  margin: 0;
+  padding: 9px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: 16px;
+  line-height: 1.45;
+}
+body.game-ui.compact-hud #dialogue-options {
+  max-height: 24dvh;
+  min-height: 0;
+  overflow: auto;
+  flex: 0 1 auto;
+  gap: 6px;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+body.game-ui.compact-hud #dialogue-options button {
+  min-height: 44px;
+  flex: none;
+  padding: 10px;
+  white-space: normal;
+}
+body.game-ui.compact-hud #dialogue-close {
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+body.game-ui.compact-hud #trial-panel {
+  position: absolute;
+  inset: auto var(--hud-right) calc(var(--hud-bottom) + 64px) var(--hud-left);
+  z-index: 55;
+  max-width: 380px;
+  max-height: 45dvh;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+body.game-ui.compact-hud #trial-panel button {min-height: 44px}
+body.game-ui.compact-hud #tutorial-card {
+  position: fixed;
+  top: calc(var(--hud-top) + 52px);
+  left: 50%;
+  z-index: 56;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - var(--hud-left) - var(--hud-right)));
+  max-height: 28dvh;
+  margin: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+body.game-ui.compact-hud .object-prompt {
+  max-width: min(230px, calc(100vw - 24px)) !important;
+}
+/* Inside sheets, instructions take their own row instead of covering items. */
+body.game-ui.compact-hud:not(.map-active) #tutorial-card {
+  position: static;
+  transform: none;
+  flex: none;
+  width: 100%;
+  max-height: min(120px, 28dvh);
+  margin: 0 0 8px;
+}
+
+@media (orientation: landscape) {
+  body.game-ui.compact-hud #hud-toast,
+  body.game-ui.compact-hud #hud-alert {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(360px, calc(100vw - 290px));
+  }
+  body.game-ui.compact-hud #dialogue {
+    inset: var(--hud-top) var(--hud-right) var(--hud-bottom) auto;
+    width: min(440px, calc(44vw - var(--hud-right)));
+    height: auto;
+    max-height: calc(100dvh - var(--hud-top) - var(--hud-bottom));
+  }
+  body.game-ui.compact-hud #dialogue-text {max-height: none}
+  body.game-ui.compact-hud #dialogue-options {
+    max-height: 43%;
+    flex: 0 1 auto;
+  }
+  body.game-ui.compact-hud #tutorial-card {
+    top: var(--hud-top);
+    width: min(360px, calc(100vw - 290px));
+    max-height: 31dvh;
+  }
+  body.game-ui.compact-hud #actions-panel {
+    max-height: calc(100dvh - var(--hud-top) - var(--hud-bottom));
+  }
+}
+
+@media (max-width: 359px) {
+  body.game-ui.compact-hud #hud-health {width: 88px}
+  body.game-ui.compact-hud #combat-tools-toggle,
+  body.game-ui.compact-hud #end {padding: 8px;min-width: 100px}
+  body.game-ui.compact-hud #actions-panel .quick-actions,
+  body.game-ui.compact-hud #actions-panel .rest-actions {grid-template-columns: 1fr}
+}
+body.game-ui .object-prompt .enemy-intent{flex:1 0 100%;max-width:100%;margin:2px 0 5px;padding:7px 0;border-top:1px solid #e7bb6c44;border-bottom:1px solid #e7bb6c44;white-space:normal;overflow-wrap:anywhere;font:500 13px/1.4 system-ui;color:#f4ce8d;text-align:left}
+body.game-ui .object-prompt .enemy-intent small{display:block;margin-top:4px;font:11px/1.35 system-ui;color:#c4b9a5}
+#camera-fit,#camera-center{display:none!important}

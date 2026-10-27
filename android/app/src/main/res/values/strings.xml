@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DNDIGRA</string>
+    <string name="title_activity_main">DNDIGRA</string>
+    <string name="package_name">com.dndigra.game</string>
+    <string name="custom_url_scheme">com.dndigra.game</string>
+</resources>

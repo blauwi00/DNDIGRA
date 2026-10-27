@@ -1,0 +1,12 @@
+# Netlify publishes the island beta as its own site: a static folder, no build step.
+[build]
+  publish = "site/island"
+  command = ""
+
+# keep the game out of search engines; it is shared only by link
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
