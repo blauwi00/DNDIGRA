@@ -320,7 +320,7 @@ function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),
     if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
   // a house standing between the camera and the hero lifts its roof, so the street behind it stays in sight
   for(const g of houseMeshes){const Rg=ROOMS[g.userData.house],rf=g.userData.roofs;if(!Rg||!Rg.inPlace||!rf||Rg===R)continue;
-    const cut=Rg.oz>H0.z&&Rg.oz-H0.z<8&&H0.x>Rg.ox-2&&H0.x<Rg.ox+Rg.iw+1;if(cut!==!!g.userData.cut){g.userData.cut=cut;for(const m of rf)m.visible=!cut;}}
+    const cut=Rg.oz>H0.z&&Rg.oz-H0.z<=2&&H0.x>=Rg.ox&&H0.x<Rg.ox+Rg.iw;if(cut!==!!g.userData.cut){g.userData.cut=cut;for(const m of rf)m.visible=!cut;}}
   if(R===cur)return;if(cur)houseShow(cur,true);room=R;
   if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);
     roomLight.visible=true;roomLight.position.set(R.ox+R.iw/2,R.y+2.2,R.oz+R.id/2);roomLight.distance=Math.max(9,R.iw*1.2);zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}

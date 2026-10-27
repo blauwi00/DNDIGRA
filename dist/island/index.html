@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.118 · 27.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.119 · 27.10.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2794,8 +2794,8 @@ const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
   for(const q of [near,mid,far]){q.translate(-g.X*size/2,0,-g.Z*size/2);q.computeBoundingSphere();}
   a={near,mid,far,ms:performance.now()-t0,grid:g};cache.set(key,a);return a;}
-const LIVE=[];// the screen reaches about 12 cells from the hero; everything up to 5 cells past its edge is at full detail
-let LOD_NEAR=17,LOD_MID=40;
+const LIVE=[];// the screen reaches about 18 cells from the hero; everything up to 5 cells past its edge is at full detail
+let LOD_NEAR=23,LOD_MID=50;
 try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q.split(',').map(Number);if(n>0&&m>0){LOD_NEAR=n;LOD_MID=m;}}}catch(e){}
 // swap each live voxel mesh between its near and far geometry by its distance from the camera's focus
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
@@ -2822,11 +2822,11 @@ function pixelMat(m){if(!m||!m.map||m.userData.wuv||m.userData.noWuv||m.map===WI
 function worldUV(g){g.traverse(o=>{if(o.isMesh)pixelMat(o.material);});}
 const seeV=new THREE.Vector3(),seeT=new THREE.Vector3(),seeS=new THREE.Vector2();
 function seeTick(){if(room||typeof H0==='undefined'||(window.SET&&SET.seeThrough===false)){SEE.on.value=0;return;}renderer.getDrawingBufferSize(seeS);const w=seeS.x,h=seeS.y;
-  const gy=groundAt(H0.px,H0.pz);seeV.set(H0.px,gy+.8,H0.pz).project(camera);SEE.c.value.set((seeV.x+1)/2*w,(seeV.y+1)/2*h);SEE.r.value=Math.min(w,h)*.22;
+  const gy=groundAt(H0.px,H0.pz);seeV.set(H0.px,gy+.8,H0.pz).project(camera);SEE.c.value.set((seeV.x+1)/2*w,(seeV.y+1)/2*h);SEE.r.value=Math.min(w,h)*.33;
   seeT.set(H0.px,gy+.8,H0.pz).sub(camera.position).normalize().multiplyScalar(-.7).add(new THREE.Vector3(H0.px,gy+.8,H0.pz)).project(camera);SEE.d.value=seeT.z*.5+.5;SEE.y.value=gy+.35;SEE.on.value=1;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
+const camera=new THREE.PerspectiveCamera(38,1,.1,58); // fog hides everything beyond ~30
 const focus=new THREE.Vector3(8,0,30);
 let camZoom=1,zoomTarget=1,camFocus=null; // the camera leans in while the hero looks at something
 // the camera works as in Don't Starve: pinch or scroll to zoom, and the closer it comes the lower it leans,
@@ -2980,7 +2980,7 @@ function chunk(list){const m=new Map();for(const c of list){const k=Math.floor(c
 // Every 16x16 chunk keeps builders for its terrain and props. Chunks within LOAD_R of the camera are built
 // (a few per frame, nearest first); chunks beyond UNLOAD_R are taken down and their own geometry freed.
 // Shared materials and base geometries belong to the world and are never disposed here.
-const CHUNKS=new Map(),LOAD_R=40,UNLOAD_R=58,BUILDS_PER_FRAME=3;
+const CHUNKS=new Map(),LOAD_R=52,UNLOAD_R=70,BUILDS_PER_FRAME=3;
 const chunkKey=(x,z)=>Math.floor(x/CH)+','+Math.floor(z/CH);
 function defer(key,build){let c=CHUNKS.get(key);if(!c){const[a,b]=key.split(',').map(Number);c={cx:(a+.5)*CH,cz:(b+.5)*CH,builders:[],live:[],on:false};CHUNKS.set(key,c);}
   c.builders.push(build);if(c.on)c.live.push(...[].concat(build()));}
@@ -4014,7 +4014,7 @@ function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),
     if(near!==!!g.userData.doorOpen){g.userData.doorOpen=near;swing(d,near,380);if(Math.hypot(H0.x-Rg.exit[0],H0.z-Rg.exit[1])<6)sfx(near?'door':'doorclose');}}
   // a house standing between the camera and the hero lifts its roof, so the street behind it stays in sight
   for(const g of houseMeshes){const Rg=ROOMS[g.userData.house],rf=g.userData.roofs;if(!Rg||!Rg.inPlace||!rf||Rg===R)continue;
-    const cut=Rg.oz>H0.z&&Rg.oz-H0.z<8&&H0.x>Rg.ox-2&&H0.x<Rg.ox+Rg.iw+1;if(cut!==!!g.userData.cut){g.userData.cut=cut;for(const m of rf)m.visible=!cut;}}
+    const cut=Rg.oz>H0.z&&Rg.oz-H0.z<=2&&H0.x>=Rg.ox&&H0.x<Rg.ox+Rg.iw;if(cut!==!!g.userData.cut){g.userData.cut=cut;for(const m of rf)m.visible=!cut;}}
   if(R===cur)return;if(cur)houseShow(cur,true);room=R;
   if(R){houseShow(R,false);if(!R.group)buildRoom(R);R.group.visible=true;SEE.inKeep=1;SEE.y.value=R.y+.45;SEE.inRect.value.set(R.ox+.02,R.oz+.02,R.ox+R.iw-.02,R.oz+R.id-.02);
     roomLight.visible=true;roomLight.position.set(R.ox+R.iw/2,R.y+2.2,R.oz+R.id/2);roomLight.distance=Math.max(9,R.iw*1.2);zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}
@@ -4818,7 +4818,7 @@ function worldTick(dt){const talking=!document.getElementById('talk').hidden;if(
   if(room&&!room.inPlace)return;const p=worldTime;let i=0;while(SKY[i+1][0]<p)i++;const a=SKY[i],b=SKY[i+1],k=(p-a[0])/(b[0]-a[0]||1);
   const mix=(x,y)=>cA.setHex(x).lerp(cB.setHex(y),k);
   hemi.color.copy(mix(a[1],b[1]));hemi.groundColor.copy(mix(a[2],b[2]));hemi.intensity=a[3]+(b[3]-a[3])*k;
-  moon.color.copy(mix(a[4],b[4]));moon.intensity=a[5]+(b[5]-a[5])*k;scene.fog.color.copy(mix(a[6],b[6]));scene.fog.density=a[7]+(b[7]-a[7])*k;scene.background.copy(scene.fog.color);
+  moon.color.copy(mix(a[4],b[4]));moon.intensity=a[5]+(b[5]-a[5])*k;scene.fog.color.copy(mix(a[6],b[6]));scene.fog.density=(a[7]+(b[7]-a[7])*k)/(window.CAM_SCALE||1);scene.background.copy(scene.fog.color);
   const ang=p*Math.PI*2;moon.position.set(focus.x+Math.sin(ang)*8,14,focus.z-4+Math.cos(ang)*3);}
 
 // ---------- sound: synthesised from physical models, no audio files ----------
@@ -6343,7 +6343,7 @@ addEventListener('pointerdown',()=>{try{screen.orientation&&screen.orientation.l
 // Every option really changes the game and is kept in the browser (helga-settings).
 const SET_KEY='helga-settings',SET_DEF={quality:'mid',shadows:true,weather:true,fps:60,text:'normal',fold:true,cam:'normal'};
 const SET=Object.assign({},SET_DEF,(()=>{try{return JSON.parse(localStorage.getItem(SET_KEY))||{}}catch(e){return {}}})());
-const TEXT_MS={slow:40,normal:22,fast:9,instant:0},CAM_K={near:.82,normal:1,far:1.22};
+const TEXT_MS={slow:40,normal:22,fast:9,instant:0},CAM_K={near:1.23,normal:1.5,far:1.83};
 function saveSettings(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
 function applySettings(){
   renderer.setPixelRatio(SET.quality==='low'?1:SET.quality==='mid'?Math.min(devicePixelRatio,1.5):Math.min(devicePixelRatio,2));

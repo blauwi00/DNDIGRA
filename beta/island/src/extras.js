@@ -16,7 +16,7 @@ function worldTick(dt){const talking=!document.getElementById('talk').hidden;if(
   if(room&&!room.inPlace)return;const p=worldTime;let i=0;while(SKY[i+1][0]<p)i++;const a=SKY[i],b=SKY[i+1],k=(p-a[0])/(b[0]-a[0]||1);
   const mix=(x,y)=>cA.setHex(x).lerp(cB.setHex(y),k);
   hemi.color.copy(mix(a[1],b[1]));hemi.groundColor.copy(mix(a[2],b[2]));hemi.intensity=a[3]+(b[3]-a[3])*k;
-  moon.color.copy(mix(a[4],b[4]));moon.intensity=a[5]+(b[5]-a[5])*k;scene.fog.color.copy(mix(a[6],b[6]));scene.fog.density=a[7]+(b[7]-a[7])*k;scene.background.copy(scene.fog.color);
+  moon.color.copy(mix(a[4],b[4]));moon.intensity=a[5]+(b[5]-a[5])*k;scene.fog.color.copy(mix(a[6],b[6]));scene.fog.density=(a[7]+(b[7]-a[7])*k)/(window.CAM_SCALE||1);scene.background.copy(scene.fog.color);
   const ang=p*Math.PI*2;moon.position.set(focus.x+Math.sin(ang)*8,14,focus.z-4+Math.cos(ang)*3);}
 
 // ---------- sound: synthesised from physical models, no audio files ----------
