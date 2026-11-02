@@ -206,6 +206,19 @@ function lump(g,cx,cy,cz,rx,ry,rz,seed,col){for(let z=0;z<g.Z;z++)for(let y=0;y<
 function rock(v){const g=new Grid(10,7,9);lump(g,4.5,1,4,4.6+v*.3,5.2,4.2,v*31,(x,y,z,d)=>y>=4&&hs(x,z,v)<.55?pickS('moss',x>>1,y,z>>1):(x+y+z)%5===0?SH.mortar[0]:pickS('stone',x>>2,y>>1,z>>2));return g;}
 function bush(v){const g=new Grid(12,9,12);lump(g,5.5,3,5.5,5.6,5.4,5.4,v*17,(x,y,z,d)=>d>.85&&hs(x>>1,y,z>>1)<.35?SH.leafD[0]:y>5&&hs(z,x,y)<.4?pickS('leafL',x>>1,y,z>>1):pickS('leaf',x>>1,y>>1,z>>1));
   if(v===1)for(let k=0;k<5;k++){const x=1+Math.floor(hs(k,v,3)*10),z=1+Math.floor(hs(v,k,4)*10);for(let y=8;y>=0;y--)if(g.get(x,y,z)){g.set(x,y,z,SH.flowerR[0]);break;}}return g;}
+// ---------- a cart of stone, an open shed, a lean-to tent, a headstone (16 voxels per cell) ----------
+shades('canvas',['#7a6a50','#6e5e46','#84745a']);
+function cart(){const g=new Grid(18,13,12);g.box(1,5,1,17,7,11,(x,y,z)=>x===1||x===16||z===1||z===10?wdD:wd(8,x,z));g.box(1,7,1,17,10,2,wdD);g.box(1,7,10,17,10,11,wdD);
+  for(let x=4;x<15;x++)for(let z=2;z<10;z++){const h=7+Math.floor(hs(x>>1,z>>1,9)*3);for(let y=7;y<h;y++)g.set(x,y,z,pickS('stone',x>>1,y,z>>1));}
+  for(const z of [0,11])for(let a=0;a<6;a++)for(let b=0;b<6;b++){const d=Math.hypot(a-2.5,b-2.5);if(d<3&&(d>1.9||a===2||b===2))g.set(6+a,b,z,d>1.9?SH.iron[0]:wdD);}
+  g.box(0,4,4,1,5,8,wdD);return g;}
+function shed(){const g=new Grid(18,22,18);for(const [x,z] of [[1,1],[15,1],[1,15],[15,15]])g.box(x,0,z,x+2,18,z+2,wdD);
+  for(let z=0;z<18;z++){const y=18+Math.round(Math.abs(z-8.5)*-.35)+3;for(let x=0;x<18;x++)g.set(x,Math.min(21,y),z,pickS('shingle',x>>2,y,z>>1));}
+  lump(g,9,0,9,5,4,4,5,(x,y,z)=>pickS('stone',x>>2,y>>1,z>>2));return g;}
+function tent(){const g=new Grid(20,12,14);for(let z=0;z<14;z++){const h=Math.round(11-Math.abs(z-6.5)*1.5);for(let x=1;x<19;x++)g.set(x,Math.max(0,h),z,(x+z)%7===0?SH.canvas[2]:pickS('canvas',x>>2,0,z>>1));}
+  g.box(1,0,6,2,12,8,wdD);g.box(18,0,6,19,12,8,wdD);return g;}
+function grave(){const g=new Grid(8,10,3);g.box(0,0,0,8,8,3,(x,y,z)=>y===7&&(x===0||x===7)?0:pickS('stone',x>>1,y>>1,z));g.box(1,8,0,7,9,3,(x,y,z)=>pickS('stone',x,y,z));g.box(2,9,0,6,10,3,(x,y,z)=>pickS('stone',x,y,z));
+  g.box(3,3,0,5,7,1,SH.mortar[0]);g.box(2,5,0,6,6,1,SH.mortar[0]);for(let x=0;x<8;x++)if(hs(x,2,1)<.4)g.set(x,0,0,pickS('moss',x,0,0));return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -218,4 +231,4 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();

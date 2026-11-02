@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.126 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.127 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2802,6 +2802,19 @@ function lump(g,cx,cy,cz,rx,ry,rz,seed,col){for(let z=0;z<g.Z;z++)for(let y=0;y<
 function rock(v){const g=new Grid(10,7,9);lump(g,4.5,1,4,4.6+v*.3,5.2,4.2,v*31,(x,y,z,d)=>y>=4&&hs(x,z,v)<.55?pickS('moss',x>>1,y,z>>1):(x+y+z)%5===0?SH.mortar[0]:pickS('stone',x>>2,y>>1,z>>2));return g;}
 function bush(v){const g=new Grid(12,9,12);lump(g,5.5,3,5.5,5.6,5.4,5.4,v*17,(x,y,z,d)=>d>.85&&hs(x>>1,y,z>>1)<.35?SH.leafD[0]:y>5&&hs(z,x,y)<.4?pickS('leafL',x>>1,y,z>>1):pickS('leaf',x>>1,y>>1,z>>1));
   if(v===1)for(let k=0;k<5;k++){const x=1+Math.floor(hs(k,v,3)*10),z=1+Math.floor(hs(v,k,4)*10);for(let y=8;y>=0;y--)if(g.get(x,y,z)){g.set(x,y,z,SH.flowerR[0]);break;}}return g;}
+// ---------- a cart of stone, an open shed, a lean-to tent, a headstone (16 voxels per cell) ----------
+shades('canvas',['#7a6a50','#6e5e46','#84745a']);
+function cart(){const g=new Grid(18,13,12);g.box(1,5,1,17,7,11,(x,y,z)=>x===1||x===16||z===1||z===10?wdD:wd(8,x,z));g.box(1,7,1,17,10,2,wdD);g.box(1,7,10,17,10,11,wdD);
+  for(let x=4;x<15;x++)for(let z=2;z<10;z++){const h=7+Math.floor(hs(x>>1,z>>1,9)*3);for(let y=7;y<h;y++)g.set(x,y,z,pickS('stone',x>>1,y,z>>1));}
+  for(const z of [0,11])for(let a=0;a<6;a++)for(let b=0;b<6;b++){const d=Math.hypot(a-2.5,b-2.5);if(d<3&&(d>1.9||a===2||b===2))g.set(6+a,b,z,d>1.9?SH.iron[0]:wdD);}
+  g.box(0,4,4,1,5,8,wdD);return g;}
+function shed(){const g=new Grid(18,22,18);for(const [x,z] of [[1,1],[15,1],[1,15],[15,15]])g.box(x,0,z,x+2,18,z+2,wdD);
+  for(let z=0;z<18;z++){const y=18+Math.round(Math.abs(z-8.5)*-.35)+3;for(let x=0;x<18;x++)g.set(x,Math.min(21,y),z,pickS('shingle',x>>2,y,z>>1));}
+  lump(g,9,0,9,5,4,4,5,(x,y,z)=>pickS('stone',x>>2,y>>1,z>>2));return g;}
+function tent(){const g=new Grid(20,12,14);for(let z=0;z<14;z++){const h=Math.round(11-Math.abs(z-6.5)*1.5);for(let x=1;x<19;x++)g.set(x,Math.max(0,h),z,(x+z)%7===0?SH.canvas[2]:pickS('canvas',x>>2,0,z>>1));}
+  g.box(1,0,6,2,12,8,wdD);g.box(18,0,6,19,12,8,wdD);return g;}
+function grave(){const g=new Grid(8,10,3);g.box(0,0,0,8,8,3,(x,y,z)=>y===7&&(x===0||x===7)?0:pickS('stone',x>>1,y>>1,z));g.box(1,8,0,7,9,3,(x,y,z)=>pickS('stone',x,y,z));g.box(2,9,0,6,10,3,(x,y,z)=>pickS('stone',x,y,z));
+  g.box(3,3,0,5,7,1,SH.mortar[0]);g.box(2,5,0,6,6,1,SH.mortar[0]);for(let x=0;x<8;x++)if(hs(x,2,1)<.4)g.set(x,0,0,pickS('moss',x,0,0));return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -2814,7 +2827,7 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
 window.__chars=1;
 // ---------- renderer / scene ----------
 const canvas=document.getElementById('c'),stage=document.getElementById('stage');
@@ -3405,6 +3418,7 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  instanced(BOX,lam(T.moss||T.dirt,{color:0x3a2a1e}),PR('peat'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.2,z+.5),qY(hash2(x,z)),v2.set(.8,.4,.6)));
  for(const pr of P.props.filter(p=>['crane','cart','shed'].includes(p.k)))defer(chunkKey(pr.x,pr.z),()=>{const g=new THREE.Group(),y=gy(pr.x,pr.z),x=pr.x+.5,z=pr.z+.5;const B=(m,a,b,c,sx,sy,sz,rz=0)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(a,y+b,c);o.rotation.z=rz;o.castShadow=true;g.add(o);};
    if(pr.k==='crane'){B(wood,x,1.4,z,.2,2.8,.2);B(wood,x+.6,2.6,z,1.6,.14,.14,-.3);B(ironMat,x+1.3,1.9,z,.02,1.2,.02);B(stoneM,x+1.3,1.2,z,.4,.3,.3);}
+   if(VOX.on&&(pr.k==='cart'||pr.k==='shed')){const v=voxProp(pr.k,x,y,z,pr.k==='cart'?hash2(pr.x,pr.z)*.6-.3:0);g.add(v);scene.add(g);return g;}
    if(pr.k==='cart'){B(woodL,x,.45,z,1,.12,.6);for(const sg of[-1,1])B(lam(T.bark,{color:0x4a3020}),x+sg*.35,.25,z+.34,.5,.5,.06);B(stoneM,x,.65,z,.6,.3,.4);}
    if(pr.k==='shed'){for(const [a,c] of [[-.4,-.4],[.4,-.4],[-.4,.4],[.4,.4]])B(wood,x+a,.6,z+c,.08,1.2,.08);B(ROOF.shingle,x,1.25,z,1.2,.1,1.2);B(stoneM,x,.25,z,.6,.5,.5);}
    scene.add(g);return g;});
@@ -3416,11 +3430,12 @@ instanced(BOX,lam(T.wall),(()=>{const o=[];for(const p of GPL)if(p.type==='ruins
 // bandit camps: two lean-to tents and a fire pit
 for(const p of GPL.filter(p=>p.type==='bandits')){const tentM=lam(T.p[1],{color:0x6a5a44});
   for(const [dx,dz] of [[-2,-1],[2,-1]]){const x=p.x+dx,z=p.z+dz;if(!['D','G'].includes(at(x,z)))continue;blockCell(x,z);
-    defer(chunkKey(x,z),()=>[-1,1].map(sg=>{const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);return m;}));}}
+    defer(chunkKey(x,z),()=>VOX.on?[(()=>{const v=voxProp('tent',x+.5,groundAt(x,z),z+.5);scene.add(v);return v;})()]:[-1,1].map(sg=>{const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);return m;}));}}
 // ruin walls (varying heights) and gravestones
 instanced(BOX,lam(T.wall),RW.filter(([x,z])=>at(x,z)==='W'),([x,z],i,m)=>{const h=.4+hash2(x,z)*1.2;m.compose(v1.set(x+.5,.3+h/2,z+.5),q0,v2.set(1,h,1))});
 const graves=[];for(let z=Z.grave[1]-3;z<=Z.grave[1]+3;z+=2)for(let x=Z.grave[0]-4;x<=Z.grave[0]+4;x+=2)if(at(x,z)==='G'&&hash2(x,z)<.8){graves.push([x,z]);blockCell(x,z);}
-instanced(BOX,lam(T.wall,{color:0xa0a4a8}),graves,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.3,z+.5),qY((hash2(x,z)-.5)*.3),v2.set(.5,.6,.14)));
+if(VOX.on)voxInstanced(graves,()=>VOX.asset('grave',()=>VOX.grave(),1/16),([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z),z+.5),qY((hash2(x,z)-.5)*.3),v2.set(1,1,1)));
+else instanced(BOX,lam(T.wall,{color:0xa0a4a8}),graves,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.3,z+.5),qY((hash2(x,z)-.5)*.3),v2.set(.5,.6,.14)));
 // village well, crates, barrels, market stall
 function solidBox(x,z,w,h,d,mat,y0){const m=new THREE.Mesh(BOX,mat);m.scale.set(w,h,d);m.position.set(x+.5,(y0??groundAt(x,z))+h/2,z+.5);m.castShadow=m.receiveShadow=true;scene.add(m);blockCell(x,z);return m;}
 const OUT=[];

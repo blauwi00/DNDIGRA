@@ -587,6 +587,7 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  instanced(BOX,lam(T.moss||T.dirt,{color:0x3a2a1e}),PR('peat'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.2,z+.5),qY(hash2(x,z)),v2.set(.8,.4,.6)));
  for(const pr of P.props.filter(p=>['crane','cart','shed'].includes(p.k)))defer(chunkKey(pr.x,pr.z),()=>{const g=new THREE.Group(),y=gy(pr.x,pr.z),x=pr.x+.5,z=pr.z+.5;const B=(m,a,b,c,sx,sy,sz,rz=0)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(a,y+b,c);o.rotation.z=rz;o.castShadow=true;g.add(o);};
    if(pr.k==='crane'){B(wood,x,1.4,z,.2,2.8,.2);B(wood,x+.6,2.6,z,1.6,.14,.14,-.3);B(ironMat,x+1.3,1.9,z,.02,1.2,.02);B(stoneM,x+1.3,1.2,z,.4,.3,.3);}
+   if(VOX.on&&(pr.k==='cart'||pr.k==='shed')){const v=voxProp(pr.k,x,y,z,pr.k==='cart'?hash2(pr.x,pr.z)*.6-.3:0);g.add(v);scene.add(g);return g;}
    if(pr.k==='cart'){B(woodL,x,.45,z,1,.12,.6);for(const sg of[-1,1])B(lam(T.bark,{color:0x4a3020}),x+sg*.35,.25,z+.34,.5,.5,.06);B(stoneM,x,.65,z,.6,.3,.4);}
    if(pr.k==='shed'){for(const [a,c] of [[-.4,-.4],[.4,-.4],[-.4,.4],[.4,.4]])B(wood,x+a,.6,z+c,.08,1.2,.08);B(ROOF.shingle,x,1.25,z,1.2,.1,1.2);B(stoneM,x,.25,z,.6,.5,.5);}
    scene.add(g);return g;});
@@ -598,11 +599,12 @@ instanced(BOX,lam(T.wall),(()=>{const o=[];for(const p of GPL)if(p.type==='ruins
 // bandit camps: two lean-to tents and a fire pit
 for(const p of GPL.filter(p=>p.type==='bandits')){const tentM=lam(T.p[1],{color:0x6a5a44});
   for(const [dx,dz] of [[-2,-1],[2,-1]]){const x=p.x+dx,z=p.z+dz;if(!['D','G'].includes(at(x,z)))continue;blockCell(x,z);
-    defer(chunkKey(x,z),()=>[-1,1].map(sg=>{const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);return m;}));}}
+    defer(chunkKey(x,z),()=>VOX.on?[(()=>{const v=voxProp('tent',x+.5,groundAt(x,z),z+.5);scene.add(v);return v;})()]:[-1,1].map(sg=>{const m=new THREE.Mesh(BOX,tentM);m.scale.set(1.3,.08,.8);m.position.set(x+.5,groundAt(x,z)+.42,z+.5+sg*.26);m.rotation.x=sg*.9;m.castShadow=true;scene.add(m);return m;}));}}
 // ruin walls (varying heights) and gravestones
 instanced(BOX,lam(T.wall),RW.filter(([x,z])=>at(x,z)==='W'),([x,z],i,m)=>{const h=.4+hash2(x,z)*1.2;m.compose(v1.set(x+.5,.3+h/2,z+.5),q0,v2.set(1,h,1))});
 const graves=[];for(let z=Z.grave[1]-3;z<=Z.grave[1]+3;z+=2)for(let x=Z.grave[0]-4;x<=Z.grave[0]+4;x+=2)if(at(x,z)==='G'&&hash2(x,z)<.8){graves.push([x,z]);blockCell(x,z);}
-instanced(BOX,lam(T.wall,{color:0xa0a4a8}),graves,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.3,z+.5),qY((hash2(x,z)-.5)*.3),v2.set(.5,.6,.14)));
+if(VOX.on)voxInstanced(graves,()=>VOX.asset('grave',()=>VOX.grave(),1/16),([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z),z+.5),qY((hash2(x,z)-.5)*.3),v2.set(1,1,1)));
+else instanced(BOX,lam(T.wall,{color:0xa0a4a8}),graves,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.3,z+.5),qY((hash2(x,z)-.5)*.3),v2.set(.5,.6,.14)));
 // village well, crates, barrels, market stall
 function solidBox(x,z,w,h,d,mat,y0){const m=new THREE.Mesh(BOX,mat);m.scale.set(w,h,d);m.position.set(x+.5,(y0??groundAt(x,z))+h/2,z+.5);m.castShadow=m.receiveShadow=true;scene.add(m);blockCell(x,z);return m;}
 const OUT=[];
