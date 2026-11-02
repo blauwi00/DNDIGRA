@@ -17,8 +17,8 @@ function pixelMat(m){if(!m||!m.map||m.userData.wuv||m.userData.noWuv||m.map===WI
 function worldUV(g){g.traverse(o=>{if(o.isMesh)pixelMat(o.material);});}
 const seeV=new THREE.Vector3(),seeT=new THREE.Vector3(),seeS=new THREE.Vector2();
 function seeTick(){if(room||typeof H0==='undefined'||(window.SET&&SET.seeThrough===false)){SEE.on.value=0;return;}renderer.getDrawingBufferSize(seeS);const w=seeS.x,h=seeS.y;
-  const gy=groundAt(H0.px,H0.pz);seeV.set(H0.px,gy+.8,H0.pz).project(camera);SEE.c.value.set((seeV.x+1)/2*w,(seeV.y+1)/2*h);SEE.r.value=Math.min(w,h)*.33;
-  seeT.set(H0.px,gy+.8,H0.pz).sub(camera.position).normalize().multiplyScalar(-.7).add(new THREE.Vector3(H0.px,gy+.8,H0.pz)).project(camera);SEE.d.value=seeT.z*.5+.5;SEE.y.value=gy+.35;SEE.on.value=1;}
+  const gy=groundAt(H0.px,H0.pz);seeV.set(H0.px,gy+.8,H0.pz).project(camera);SEE.c.value.set((seeV.x+1)/2*w,(seeV.y+1)/2*h);SEE.r.value=Math.min(w,h)*.44;
+  seeT.set(H0.px,gy+.8,H0.pz).sub(camera.position).normalize().multiplyScalar(-.2).add(new THREE.Vector3(H0.px,gy+.8,H0.pz)).project(camera);SEE.d.value=seeT.z*.5+.5;SEE.y.value=gy+.35;SEE.on.value=1;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(38,1,.1,34); // fog hides everything beyond ~30
