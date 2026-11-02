@@ -200,6 +200,12 @@ function hearth(){const g=new Grid(16,28,10);g.box(0,0,0,16,12,10,(x,y,z)=>y%4==
 function shelf(){const g=new Grid(16,9,5);g.box(0,0,0,16,1,5,pickS('beam',0,0,0));for(let x=1;x<15;){const w=1+(hs(x,1,9)<.3?1:0),h=4+Math.floor(hs(x,2,9)*4),c=pickS('book',x,0,0);if(hs(x,3,9)<.12){x++;continue;}g.box(x,1,1,x+w,1+h,4,c);x+=w;}return g;}
 function chestBody(){const g=new Grid(12,7,8);g.box(0,0,0,12,7,8,(x,y,z)=>(x===0||x===11)&&(z===0||z===7)?SH.iron[0]:y===3?SH.iron[1]:pickS('crate',x>>1,y>>1,z));g.set(6,5,7,SH.iron[1]);g.set(5,5,7,SH.iron[1]);return g;}
 function chestLid(){const g=new Grid(12,2,8);g.box(0,0,0,12,2,8,(x,y,z)=>x===0||x===11||x===6?SH.iron[0]:pickS('crate',x>>1,y,z>>1));return g;}
+// ---------- a mossy rock and a round bush (16 voxels per cell), three of each ----------
+shades('moss',['#3e5a2a','#4a6a32']);
+function lump(g,cx,cy,cz,rx,ry,rz,seed,col){for(let z=0;z<g.Z;z++)for(let y=0;y<g.Y;y++)for(let x=0;x<g.X;x++){const d=Math.hypot((x-cx)/rx,(y-cy)/ry,(z-cz)/rz)+(hs(x,y,z+seed)-.5)*.35;if(d<1)g.set(x,y,z,col(x,y,z,d));}}
+function rock(v){const g=new Grid(10,7,9);lump(g,4.5,1,4,4.6+v*.3,5.2,4.2,v*31,(x,y,z,d)=>y>=4&&hs(x,z,v)<.55?pickS('moss',x>>1,y,z>>1):(x+y+z)%5===0?SH.mortar[0]:pickS('stone',x>>2,y>>1,z>>2));return g;}
+function bush(v){const g=new Grid(12,9,12);lump(g,5.5,3,5.5,5.6,5.4,5.4,v*17,(x,y,z,d)=>d>.85&&hs(x>>1,y,z>>1)<.35?SH.leafD[0]:y>5&&hs(z,x,y)<.4?pickS('leafL',x>>1,y,z>>1):pickS('leaf',x>>1,y>>1,z>>1));
+  if(v===1)for(let k=0;k<5;k++){const x=1+Math.floor(hs(k,v,3)*10),z=1+Math.floor(hs(v,k,4)*10);for(let y=8;y>=0;y--)if(g.get(x,y,z)){g.set(x,y,z,SH.flowerR[0]);break;}}return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -212,4 +218,4 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();

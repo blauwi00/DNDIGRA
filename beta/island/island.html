@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.125 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.126 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2796,6 +2796,12 @@ function hearth(){const g=new Grid(16,28,10);g.box(0,0,0,16,12,10,(x,y,z)=>y%4==
 function shelf(){const g=new Grid(16,9,5);g.box(0,0,0,16,1,5,pickS('beam',0,0,0));for(let x=1;x<15;){const w=1+(hs(x,1,9)<.3?1:0),h=4+Math.floor(hs(x,2,9)*4),c=pickS('book',x,0,0);if(hs(x,3,9)<.12){x++;continue;}g.box(x,1,1,x+w,1+h,4,c);x+=w;}return g;}
 function chestBody(){const g=new Grid(12,7,8);g.box(0,0,0,12,7,8,(x,y,z)=>(x===0||x===11)&&(z===0||z===7)?SH.iron[0]:y===3?SH.iron[1]:pickS('crate',x>>1,y>>1,z));g.set(6,5,7,SH.iron[1]);g.set(5,5,7,SH.iron[1]);return g;}
 function chestLid(){const g=new Grid(12,2,8);g.box(0,0,0,12,2,8,(x,y,z)=>x===0||x===11||x===6?SH.iron[0]:pickS('crate',x>>1,y,z>>1));return g;}
+// ---------- a mossy rock and a round bush (16 voxels per cell), three of each ----------
+shades('moss',['#3e5a2a','#4a6a32']);
+function lump(g,cx,cy,cz,rx,ry,rz,seed,col){for(let z=0;z<g.Z;z++)for(let y=0;y<g.Y;y++)for(let x=0;x<g.X;x++){const d=Math.hypot((x-cx)/rx,(y-cy)/ry,(z-cz)/rz)+(hs(x,y,z+seed)-.5)*.35;if(d<1)g.set(x,y,z,col(x,y,z,d));}}
+function rock(v){const g=new Grid(10,7,9);lump(g,4.5,1,4,4.6+v*.3,5.2,4.2,v*31,(x,y,z,d)=>y>=4&&hs(x,z,v)<.55?pickS('moss',x>>1,y,z>>1):(x+y+z)%5===0?SH.mortar[0]:pickS('stone',x>>2,y>>1,z>>2));return g;}
+function bush(v){const g=new Grid(12,9,12);lump(g,5.5,3,5.5,5.6,5.4,5.4,v*17,(x,y,z,d)=>d>.85&&hs(x>>1,y,z>>1)<.35?SH.leafD[0]:y>5&&hs(z,x,y)<.4?pickS('leafL',x>>1,y,z>>1):pickS('leaf',x>>1,y>>1,z>>1));
+  if(v===1)for(let k=0;k<5;k++){const x=1+Math.floor(hs(k,v,3)*10),z=1+Math.floor(hs(v,k,4)*10);for(let y=8;y>=0;y--)if(g.get(x,y,z)){g.set(x,y,z,SH.flowerR[0]);break;}}return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -2808,7 +2814,7 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
 window.__chars=1;
 // ---------- renderer / scene ----------
 const canvas=document.getElementById('c'),stage=document.getElementById('stage');
@@ -3069,8 +3075,11 @@ if(VOX.on){const treeMat=sway(new THREE.MeshLambertMaterial({vertexColors:true})
 else{instanced(BOX,lam(T.bark),treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5,groundAt(x,z)+.45*s,z+.5),q0,v2.set(.22*s,.9*s,.22*s))});
 for(const [k,mat,y,sz] of [[0,leafA,1.05,.95],[1,leafB,1.45,.7],[2,pine,1.78,.42]])
   instanced(BOX,mat,treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5+(k-1)*.05,groundAt(x,z)+y*s,z+.5),qY(hash2(z,x)*3),v2.set(sz*s,sz*.8*s,sz*s))});}
-const rockMeshes=instanced(BOX,lam(T.stone),rockCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.12,z+.5),qY(hash2(x,z)*3),v2.set(.5,.24,.4)));
-instanced(BOX,lam(T.leaves,{color:0xa8c090}),bushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.22,z+.5),qY(hash2(x,z)*3),v2.set(.62,.44,.56)));
+// with the voxel look the plain rock stays as an invisible tap target under the voxel one
+const rockMeshes=instanced(BOX,VOX.on?new THREE.MeshBasicMaterial({visible:false}):lam(T.stone),rockCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.12,z+.5),qY(hash2(x,z)*3),v2.set(.5,.24,.4)));
+if(VOX.on){voxInstanced(rockCells,([x,z])=>{const v=Math.floor(hash2(z*5,x*3)*3);return VOX.asset('rock'+v,()=>VOX.rock(v),1/16);},([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)-.03,z+.5),qY(hash2(x,z)*6.28),v2.set(1,1,1)));
+  voxInstanced(bushCells,([x,z])=>{const v=Math.floor(hash2(x*3,z*5)*3);return VOX.asset('bush'+v,()=>VOX.bush(v),1/16);},([x,z],i,m)=>{const s=.85+hash2(z,x)*.3;m.compose(v1.set(x+.5,groundAt(x,z)-.02,z+.5),qY(hash2(x,z)*6.28),v2.set(s,s,s));});}
+else instanced(BOX,lam(T.leaves,{color:0xa8c090}),bushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.22,z+.5),qY(hash2(x,z)*3),v2.set(.62,.44,.56)));
 const bladeMat=sway(new THREE.MeshLambertMaterial({map:T.blade,transparent:true,alphaTest:.5,side:THREE.DoubleSide}),.07,1);
 // meadow flowers: little petal clusters on stems, three colours
 {const fl=[];for(let z=1;z<OUT_H-1;z++)for(let x=1;x<W-1;x++)if(at(x,z)==='G'&&!solid.has(x+','+z)&&hash2(x*11,z*17)<.09&&!nearZone(x,z,'grave',7)&&!nearZone(x,z,'ruins',8))fl.push([x,z]);
@@ -3423,6 +3432,7 @@ const OUT=[];
  for(const s of [-1,1])B(lam(T.bark),s*.46,.6,0,.08,1.2,.08);B(lam(T.bark),0,1.1,0,1.02,.07,.07);
  for(const s of [-1,1]){const r=B(lam(T.p[1],{color:0x8a5a3a}),0,1.3,s*.17,1.2,.05,.44);r.rotation.x=s*.62;}
  B(new THREE.MeshLambertMaterial({color:0xc8b088}),0,.88,0,.015,.4,.015);const bk=B(lam(T.p[1],{color:0x6a4a30}),0,.62,0,.16,.14,.16);B(ironMat,0,.66,0,.17,.03,.17);
+ if(VOX.on){for(const o of M)o.visible=false;const v=voxProp('well',0,0,0);g.add(v);M.push(v);}
  g.position.set(wx+.5,y0,wz+.5);scene.add(g);OUT.push([M,'Колодец','Глубокий. Внизу блестит вода и, кажется, чья-то монетка.']);}
 [[22,28],[22,29],[30,32],[17,31],[35,30]].forEach(([x,z],i)=>OUT.push([[VOX.on?(()=>{const m=voxProp('crate',x+.5,groundAt(x,z),z+.5,hash2(x,z)*.6);scene.add(m);blockCell(x,z);return m;})():solidBox(x,z,.45,.45,.45,lam(T.crate))],'Ящик',i===2?'Среди соломы — пара гладких камней.':'Пустой ящик из-под рыбы.',i===2?[['stone',2]]:null]));
 // boat at the dock

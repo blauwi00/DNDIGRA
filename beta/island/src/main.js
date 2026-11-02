@@ -257,8 +257,11 @@ if(VOX.on){const treeMat=sway(new THREE.MeshLambertMaterial({vertexColors:true})
 else{instanced(BOX,lam(T.bark),treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5,groundAt(x,z)+.45*s,z+.5),q0,v2.set(.22*s,.9*s,.22*s))});
 for(const [k,mat,y,sz] of [[0,leafA,1.05,.95],[1,leafB,1.45,.7],[2,pine,1.78,.42]])
   instanced(BOX,mat,treeCells,([x,z],i,m)=>{const s=.9+hash2(x,z)*.6;m.compose(v1.set(x+.5+(k-1)*.05,groundAt(x,z)+y*s,z+.5),qY(hash2(z,x)*3),v2.set(sz*s,sz*.8*s,sz*s))});}
-const rockMeshes=instanced(BOX,lam(T.stone),rockCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.12,z+.5),qY(hash2(x,z)*3),v2.set(.5,.24,.4)));
-instanced(BOX,lam(T.leaves,{color:0xa8c090}),bushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.22,z+.5),qY(hash2(x,z)*3),v2.set(.62,.44,.56)));
+// with the voxel look the plain rock stays as an invisible tap target under the voxel one
+const rockMeshes=instanced(BOX,VOX.on?new THREE.MeshBasicMaterial({visible:false}):lam(T.stone),rockCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.12,z+.5),qY(hash2(x,z)*3),v2.set(.5,.24,.4)));
+if(VOX.on){voxInstanced(rockCells,([x,z])=>{const v=Math.floor(hash2(z*5,x*3)*3);return VOX.asset('rock'+v,()=>VOX.rock(v),1/16);},([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)-.03,z+.5),qY(hash2(x,z)*6.28),v2.set(1,1,1)));
+  voxInstanced(bushCells,([x,z])=>{const v=Math.floor(hash2(x*3,z*5)*3);return VOX.asset('bush'+v,()=>VOX.bush(v),1/16);},([x,z],i,m)=>{const s=.85+hash2(z,x)*.3;m.compose(v1.set(x+.5,groundAt(x,z)-.02,z+.5),qY(hash2(x,z)*6.28),v2.set(s,s,s));});}
+else instanced(BOX,lam(T.leaves,{color:0xa8c090}),bushCells,([x,z],i,m)=>m.compose(v1.set(x+.5,groundAt(x,z)+.22,z+.5),qY(hash2(x,z)*3),v2.set(.62,.44,.56)));
 const bladeMat=sway(new THREE.MeshLambertMaterial({map:T.blade,transparent:true,alphaTest:.5,side:THREE.DoubleSide}),.07,1);
 // meadow flowers: little petal clusters on stems, three colours
 {const fl=[];for(let z=1;z<OUT_H-1;z++)for(let x=1;x<W-1;x++)if(at(x,z)==='G'&&!solid.has(x+','+z)&&hash2(x*11,z*17)<.09&&!nearZone(x,z,'grave',7)&&!nearZone(x,z,'ruins',8))fl.push([x,z]);
@@ -611,6 +614,7 @@ const OUT=[];
  for(const s of [-1,1])B(lam(T.bark),s*.46,.6,0,.08,1.2,.08);B(lam(T.bark),0,1.1,0,1.02,.07,.07);
  for(const s of [-1,1]){const r=B(lam(T.p[1],{color:0x8a5a3a}),0,1.3,s*.17,1.2,.05,.44);r.rotation.x=s*.62;}
  B(new THREE.MeshLambertMaterial({color:0xc8b088}),0,.88,0,.015,.4,.015);const bk=B(lam(T.p[1],{color:0x6a4a30}),0,.62,0,.16,.14,.16);B(ironMat,0,.66,0,.17,.03,.17);
+ if(VOX.on){for(const o of M)o.visible=false;const v=voxProp('well',0,0,0);g.add(v);M.push(v);}
  g.position.set(wx+.5,y0,wz+.5);scene.add(g);OUT.push([M,'Колодец','Глубокий. Внизу блестит вода и, кажется, чья-то монетка.']);}
 [[22,28],[22,29],[30,32],[17,31],[35,30]].forEach(([x,z],i)=>OUT.push([[VOX.on?(()=>{const m=voxProp('crate',x+.5,groundAt(x,z),z+.5,hash2(x,z)*.6);scene.add(m);blockCell(x,z);return m;})():solidBox(x,z,.45,.45,.45,lam(T.crate))],'Ящик',i===2?'Среди соломы — пара гладких камней.':'Пустой ящик из-под рыбы.',i===2?[['stone',2]]:null]));
 // boat at the dock
