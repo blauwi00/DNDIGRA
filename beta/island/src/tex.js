@@ -22,7 +22,6 @@ function planks(variant){return tex(32,(g,s)=>{
     px(g,0,p*8+7,'#2a1f18',s,1);const j=(p*11+variant*7)%28+2;px(g,j,p*8,'#2a1f18',1,7)}
   for(let p=0;p<4;p++)for(const x of [2,29])if(rnd()<.8){px(g,x,p*8+3,'#8a8a8e');px(g,x,p*8+4,'#2a2622');}
   for(let i=0;i<6;i++){const y=Math.floor(rnd()*s),x=Math.floor(rnd()*20);px(g,x,y,'#3f3026',6+Math.floor(rnd()*6),1);}
-  if(variant===2){for(let y=10;y<22;y++){const w=Math.max(0,8-Math.abs(y-16)*1.4+rnd()*2);px(g,20,y,'#1a1310',Math.floor(w),1)}}
   if(variant===3){for(let y=2;y<12;y++)px(g,4+(y>>1),y,'#3b2c22',2,1)}
   for(let i=0;i<14;i++)px(g,Math.floor(rnd()*s),Math.floor(rnd()*s),pick(['#4d6b34','#5d7d3c','#3f5a2c']))},.25)} // planks keep their grain lines
 function stoneFloor(){return tex(32,(g,s)=>{px(g,0,0,'#2c2f31',s,s);
