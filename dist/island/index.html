@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.131 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.132 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2819,6 +2819,16 @@ function grave(){const g=new Grid(8,10,3);g.box(0,0,0,8,8,3,(x,y,z)=>y===7&&(x==
 function woodpile(){const g=new Grid(14,9,7);for(let r=0;r<3;r++)for(let k=0;k<4-r;k++){const cx=2+k*3.4+r*1.7,cy=1.5+r*2.8;for(let z=0;z<7;z++)for(let y=0;y<9;y++)for(let x=0;x<14;x++){const d=Math.hypot(x-cx,y-cy);if(d<1.7)g.set(x,y,z,z===6||z===0?(d<.8?SH.logEnd[1]:SH.logEnd[0]):pickS('bark',x,y>>1,z>>1));}}return g;}
 function cross(){const g=new Grid(10,23,3);g.box(4,0,0,6,22,2,(x,y,z)=>pickS('beam',x,y>>2,z));g.box(0,15,0,10,17,2,(x,y,z)=>pickS('beam',x>>2,y,z));g.box(3,0,0,7,2,3,pickS('stone',0,0,0));return g;}
 function trough(){const g=new Grid(15,6,8);g.box(0,0,0,15,6,8,(x,y,z)=>pickS('stone',x>>2,y>>1,z>>2));g.box(1,2,1,14,6,7,0);g.box(1,2,1,14,4,7,(x,y,z)=>pickS('water',x>>2,0,z>>2));return g;}
+// ---------- town and castle walls, round towers with conical roofs (8 voxels per cell, like houses) ----------
+const ashlar=(x,y,z,k)=>{const r=Math.floor(y/3),o=(r%2)*3;return y%3===2||((x+z)+o)%6===0?SH.mortar[0]:pickS('stone',Math.floor((x+z+o)/6),r,k);};
+function wallSeg(hc,merlon){const H=Math.round(hc*8),g=new Grid(8,H+5,8);g.box(0,0,0,8,H,8,(x,y,z)=>ashlar(x,y,z,21));g.box(0,H-1,0,8,H,8,(x,y,z)=>pickS('stone',x>>1,0,z>>1));
+  if(merlon)g.box(1,H,1,7,H+4,7,(x,y,z)=>ashlar(x,y,z,22));for(let k=0;k<6;k++){const x=Math.floor(hs(k,H,1)*8),y=Math.floor(hs(H,k,2)*H*.4);if(g.get(x,y,0))g.set(x,y,0,pickS('moss',x,y,0));}return g;}
+function towerV(rc,hc){const R=rc*4,D=Math.ceil(R*2)+4,c=D/2,H=Math.round(hc*8),RH=Math.round(R*1.6)+8,g=new Grid(D,H+6+RH,D);
+  for(let z=0;z<D;z++)for(let x=0;x<D;x++){const d=Math.hypot(x+.5-c,z+.5-c);if(d<R){for(let y=0;y<H;y++)g.set(x,y,z,ashlar(Math.round(Math.atan2(z-c,x-c)*R),y,0,23));}
+    if(d<R+1.6&&d>=R-1.2)for(let y=H;y<H+4;y++)if(y<H+2||Math.floor(Math.atan2(z-c,x-c)*R/2.5)%2===0)g.set(x,y,z,ashlar(x+z,y,0,24));
+    for(let y=0;y<RH;y++){const rr=(R+.8)*(1-y/RH);if(d<rr)g.set(x,H+2+y,z,y%3===0?SH.slateD[0]:pickS('slate',Math.floor(Math.atan2(z-c,x-c)*4),y>>1,0));}}
+  for(let y=H*.35|0;y<H*.75;y+=Math.max(6,H/3|0))for(const [a,b] of [[c,1],[c,D-2],[1,c],[D-2,c]])if(g.get(a|0,y,b|0))g.set(a|0,y,b|0,SH.chimD[0]),g.set(a|0,y+1,b|0,SH.chimD[0]);
+  return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -2831,7 +2841,7 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,woodpile,cross,trough,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,woodpile,cross,trough,wallSeg,towerV,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
 window.__chars=1;
 // ---------- renderer / scene ----------
 const canvas=document.getElementById('c'),stage=document.getElementById('stage');
@@ -3362,15 +3372,17 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  // the town wall: stone two and a half cells high, battlements on every other cell
  const castleCell=(x,z)=>P.castle&&x>=P.castle.x&&x<P.castle.x+P.castle.w&&z>=P.castle.z&&z<P.castle.z+P.castle.d;
  const tw=P.walls.filter(c=>!castleCell(c[0],c[1]));
- instanced(BOX,stoneM,tw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.25,z+.5),q0,v2.set(1,2.5,1)));
- instanced(BOX,darkM,tw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+2.75,z+.5),q0,v2.set(.8,.5,.8)));
+ if(VOX.on)voxInstanced(tw,([x,z])=>{const k=(x+z)%2===0?1:0;return VOX.asset('twall'+k,()=>VOX.wallSeg(2.5,k),1/8,1);},([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),q0,v2.set(1,1,1)));
+ else{instanced(BOX,stoneM,tw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.25,z+.5),q0,v2.set(1,2.5,1)));
+ instanced(BOX,darkM,tw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+2.75,z+.5),q0,v2.set(.8,.5,.8)));}
  // the castle's curtain wall is higher, with round-topped towers at its corners and a gatehouse
  if(P.castle){const c=P.castle,cw=[];for(let z=c.z;z<c.z+c.d;z++)for(let x=c.x;x<c.x+c.w;x++)if(at(x,z)==='W')cw.push([x,z]);
    // the big castle (layout 3): walls two cells thick and higher, a walk along their top behind the battlements
    const thick=c.thick||1,CWH=thick>1?5:3.6,outer=([x,z])=>x===c.x||x===c.x+c.w-1||z===c.z||z===c.z+c.d-1;
-   instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH/2,z+.5),q0,v2.set(1,CWH,1)));
-   instanced(BOX,darkM,cw.filter(c2=>(thick<2||outer(c2))&&(c2[0]+c2[1])%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH+.25,z+.5),q0,v2.set(.85,.5,.85)));
-   const tower=(x,z,r,h)=>defer(chunkKey(x,z),()=>{const g=new THREE.Group(),y=gy(Math.floor(x),Math.floor(z));const B=(m,yy,s,hh)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(s,hh,s);o.position.set(x,y+yy,z);o.castShadow=o.receiveShadow=true;g.add(o);};
+   if(VOX.on)voxInstanced(cw,([x,z])=>{const k=(thick<2||outer([x,z]))&&(x+z)%2===0?1:0;return VOX.asset('cwall'+CWH+k,()=>VOX.wallSeg(CWH,k),1/8,1);},([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),q0,v2.set(1,1,1)));
+   else instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH/2,z+.5),q0,v2.set(1,CWH,1)));
+   if(!VOX.on)instanced(BOX,darkM,cw.filter(c2=>(thick<2||outer(c2))&&(c2[0]+c2[1])%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH+.25,z+.5),q0,v2.set(.85,.5,.85)));
+   const tower=(x,z,r,h)=>defer(chunkKey(x,z),()=>{const g=new THREE.Group(),y=gy(Math.floor(x),Math.floor(z));if(VOX.on){const a=VOX.asset('tower'+r+'_'+h,()=>VOX.towerV(r,h),1/8,1),m=new THREE.Mesh(a.near,VOX.MAT);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);scene.add(g);return g;}const B=(m,yy,s,hh)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(s,hh,s);o.position.set(x,y+yy,z);o.castShadow=o.receiveShadow=true;g.add(o);};
      B(stoneM,h/2,r,h);B(darkM,h+.2,r+.3,.4);B(roofB,h+.8,r+.2,.8);B(roofB,h+1.5,r*.65,.7);B(roofB,h+2.1,r*.3,.6);worldUV(g);scene.add(g);return g;});
    if(thick<2){for(const [x,z] of [[c.x+1,c.z+1],[c.x+c.w-1,c.z+1],[c.x+1,c.z+c.d-1],[c.x+c.w-1,c.z+c.d-1]])tower(x,z,2.4,5.2);
      for(const gx of [c.gate[0]-.5,c.gate[1]+1.5])tower(gx,c.z+c.d-.5,1.8,4.8);}

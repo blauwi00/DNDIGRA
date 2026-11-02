@@ -223,6 +223,16 @@ function grave(){const g=new Grid(8,10,3);g.box(0,0,0,8,8,3,(x,y,z)=>y===7&&(x==
 function woodpile(){const g=new Grid(14,9,7);for(let r=0;r<3;r++)for(let k=0;k<4-r;k++){const cx=2+k*3.4+r*1.7,cy=1.5+r*2.8;for(let z=0;z<7;z++)for(let y=0;y<9;y++)for(let x=0;x<14;x++){const d=Math.hypot(x-cx,y-cy);if(d<1.7)g.set(x,y,z,z===6||z===0?(d<.8?SH.logEnd[1]:SH.logEnd[0]):pickS('bark',x,y>>1,z>>1));}}return g;}
 function cross(){const g=new Grid(10,23,3);g.box(4,0,0,6,22,2,(x,y,z)=>pickS('beam',x,y>>2,z));g.box(0,15,0,10,17,2,(x,y,z)=>pickS('beam',x>>2,y,z));g.box(3,0,0,7,2,3,pickS('stone',0,0,0));return g;}
 function trough(){const g=new Grid(15,6,8);g.box(0,0,0,15,6,8,(x,y,z)=>pickS('stone',x>>2,y>>1,z>>2));g.box(1,2,1,14,6,7,0);g.box(1,2,1,14,4,7,(x,y,z)=>pickS('water',x>>2,0,z>>2));return g;}
+// ---------- town and castle walls, round towers with conical roofs (8 voxels per cell, like houses) ----------
+const ashlar=(x,y,z,k)=>{const r=Math.floor(y/3),o=(r%2)*3;return y%3===2||((x+z)+o)%6===0?SH.mortar[0]:pickS('stone',Math.floor((x+z+o)/6),r,k);};
+function wallSeg(hc,merlon){const H=Math.round(hc*8),g=new Grid(8,H+5,8);g.box(0,0,0,8,H,8,(x,y,z)=>ashlar(x,y,z,21));g.box(0,H-1,0,8,H,8,(x,y,z)=>pickS('stone',x>>1,0,z>>1));
+  if(merlon)g.box(1,H,1,7,H+4,7,(x,y,z)=>ashlar(x,y,z,22));for(let k=0;k<6;k++){const x=Math.floor(hs(k,H,1)*8),y=Math.floor(hs(H,k,2)*H*.4);if(g.get(x,y,0))g.set(x,y,0,pickS('moss',x,y,0));}return g;}
+function towerV(rc,hc){const R=rc*4,D=Math.ceil(R*2)+4,c=D/2,H=Math.round(hc*8),RH=Math.round(R*1.6)+8,g=new Grid(D,H+6+RH,D);
+  for(let z=0;z<D;z++)for(let x=0;x<D;x++){const d=Math.hypot(x+.5-c,z+.5-c);if(d<R){for(let y=0;y<H;y++)g.set(x,y,z,ashlar(Math.round(Math.atan2(z-c,x-c)*R),y,0,23));}
+    if(d<R+1.6&&d>=R-1.2)for(let y=H;y<H+4;y++)if(y<H+2||Math.floor(Math.atan2(z-c,x-c)*R/2.5)%2===0)g.set(x,y,z,ashlar(x+z,y,0,24));
+    for(let y=0;y<RH;y++){const rr=(R+.8)*(1-y/RH);if(d<rr)g.set(x,H+2+y,z,y%3===0?SH.slateD[0]:pickS('slate',Math.floor(Math.atan2(z-c,x-c)*4),y>>1,0));}}
+  for(let y=H*.35|0;y<H*.75;y+=Math.max(6,H/3|0))for(const [a,b] of [[c,1],[c,D-2],[1,c],[D-2,c]])if(g.get(a|0,y,b|0))g.set(a|0,y,b|0,SH.chimD[0]),g.set(a|0,y+1,b|0,SH.chimD[0]);
+  return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -235,4 +245,4 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,woodpile,cross,trough,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,woodpile,cross,trough,wallSeg,towerV,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();

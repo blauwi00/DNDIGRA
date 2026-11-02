@@ -527,15 +527,17 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  // the town wall: stone two and a half cells high, battlements on every other cell
  const castleCell=(x,z)=>P.castle&&x>=P.castle.x&&x<P.castle.x+P.castle.w&&z>=P.castle.z&&z<P.castle.z+P.castle.d;
  const tw=P.walls.filter(c=>!castleCell(c[0],c[1]));
- instanced(BOX,stoneM,tw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.25,z+.5),q0,v2.set(1,2.5,1)));
- instanced(BOX,darkM,tw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+2.75,z+.5),q0,v2.set(.8,.5,.8)));
+ if(VOX.on)voxInstanced(tw,([x,z])=>{const k=(x+z)%2===0?1:0;return VOX.asset('twall'+k,()=>VOX.wallSeg(2.5,k),1/8,1);},([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),q0,v2.set(1,1,1)));
+ else{instanced(BOX,stoneM,tw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.25,z+.5),q0,v2.set(1,2.5,1)));
+ instanced(BOX,darkM,tw.filter(([x,z])=>(x+z)%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+2.75,z+.5),q0,v2.set(.8,.5,.8)));}
  // the castle's curtain wall is higher, with round-topped towers at its corners and a gatehouse
  if(P.castle){const c=P.castle,cw=[];for(let z=c.z;z<c.z+c.d;z++)for(let x=c.x;x<c.x+c.w;x++)if(at(x,z)==='W')cw.push([x,z]);
    // the big castle (layout 3): walls two cells thick and higher, a walk along their top behind the battlements
    const thick=c.thick||1,CWH=thick>1?5:3.6,outer=([x,z])=>x===c.x||x===c.x+c.w-1||z===c.z||z===c.z+c.d-1;
-   instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH/2,z+.5),q0,v2.set(1,CWH,1)));
-   instanced(BOX,darkM,cw.filter(c2=>(thick<2||outer(c2))&&(c2[0]+c2[1])%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH+.25,z+.5),q0,v2.set(.85,.5,.85)));
-   const tower=(x,z,r,h)=>defer(chunkKey(x,z),()=>{const g=new THREE.Group(),y=gy(Math.floor(x),Math.floor(z));const B=(m,yy,s,hh)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(s,hh,s);o.position.set(x,y+yy,z);o.castShadow=o.receiveShadow=true;g.add(o);};
+   if(VOX.on)voxInstanced(cw,([x,z])=>{const k=(thick<2||outer([x,z]))&&(x+z)%2===0?1:0;return VOX.asset('cwall'+CWH+k,()=>VOX.wallSeg(CWH,k),1/8,1);},([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),q0,v2.set(1,1,1)));
+   else instanced(BOX,stoneM,cw,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH/2,z+.5),q0,v2.set(1,CWH,1)));
+   if(!VOX.on)instanced(BOX,darkM,cw.filter(c2=>(thick<2||outer(c2))&&(c2[0]+c2[1])%2===0),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+CWH+.25,z+.5),q0,v2.set(.85,.5,.85)));
+   const tower=(x,z,r,h)=>defer(chunkKey(x,z),()=>{const g=new THREE.Group(),y=gy(Math.floor(x),Math.floor(z));if(VOX.on){const a=VOX.asset('tower'+r+'_'+h,()=>VOX.towerV(r,h),1/8,1),m=new THREE.Mesh(a.near,VOX.MAT);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);scene.add(g);return g;}const B=(m,yy,s,hh)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(s,hh,s);o.position.set(x,y+yy,z);o.castShadow=o.receiveShadow=true;g.add(o);};
      B(stoneM,h/2,r,h);B(darkM,h+.2,r+.3,.4);B(roofB,h+.8,r+.2,.8);B(roofB,h+1.5,r*.65,.7);B(roofB,h+2.1,r*.3,.6);worldUV(g);scene.add(g);return g;});
    if(thick<2){for(const [x,z] of [[c.x+1,c.z+1],[c.x+c.w-1,c.z+1],[c.x+1,c.z+c.d-1],[c.x+c.w-1,c.z+c.d-1]])tower(x,z,2.4,5.2);
      for(const gx of [c.gate[0]-.5,c.gate[1]+1.5])tower(gx,c.z+c.d-.5,1.8,4.8);}
