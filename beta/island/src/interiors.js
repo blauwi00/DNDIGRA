@@ -327,3 +327,5 @@ function houseTick(){if(room&&!room.inPlace)return;const R=inPlaceAt(H0.x,H0.z),
 function setRoom(R){if(R&&R.inPlace||room&&room.inPlace&&!R){return;}if(R&&!R.group)buildRoom(R);if(room)room.group.visible=false;room=R;if(R)R.group.visible=true;sea.visible=!R;if(R){scene.fog.color.setHex(0x07090b);scene.background.setHex(0x07090b);scene.fog.density=.05;}
   hemi.intensity=R?(R.iw>15?1:.6):.75;moon.intensity=R?.12:.6;roomLight.visible=!!R;if(R){roomLight.position.set(R.ox+R.iw/2,R.iw>15?4.5:2.6,R.oz+R.id/2);roomLight.distance=Math.max(12,R.iw*1.1);}flies.forEach(f=>f.visible=!R);
   if(R){zoneEl.textContent=R.name;zoneEl.classList.remove('show');void zoneEl.offsetWidth;zoneEl.classList.add('show');zoneNow=R.name;}}
+// every room's floor, walls and furniture show crisp pixels at the world's density, never one stretched picture
+{const build=buildRoom;buildRoom=function(R){build(R);if(R.group)worldUV(R.group);};setTimeout(()=>{for(const R of ROOMS)if(R.group)worldUV(R.group);},0);}
