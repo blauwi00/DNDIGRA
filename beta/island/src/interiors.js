@@ -8,6 +8,8 @@ let INFO=null;const I=(n,t,loot)=>{INFO=n?{n,t,loot}:null;};
 function part(g,mat,x,y,z,w,h,d){const m=new THREE.Mesh(BOX,mat);m.scale.set(w,h,d);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);
   if(INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}return m;}
 const looks=[]; // {n,t,loot,meshes}
+// a voxel model stands in for a hidden block: it takes the taps of the thing it shows
+const lookOn=m=>{if(INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}};
 // a real item lying in the world, built from the same boxes as the one held in a hand
 function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   grp.add(heldGroup(id));
@@ -33,13 +35,13 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   if(R.type!=='cellar'){I('Окно','За мутным стеклом шумит море. Вдалеке мигает огонёк — может, корабль, а может, нет.');part(g,new THREE.MeshBasicMaterial({color:0x5a7aa8}),R.ox+R.iw/2+1.6,y+1.05,R.oz+1.01,.5,.4,.02);I(null);}
   }
   const S=(dx,dz,w,h,d,mat,solid=true)=>{const m=part(g,mat,R.ox+dx+.5,y+h/2,R.oz+dz+.5,w,h,d);if(solid)blockCell(R.ox+dx,R.oz+dz);return m;};
-  const chest=(dx,dz,items,label)=>{I(null);const c=S(dx,dz,.7,.4,.45,lam(T.crate,{color:0xa07850}));const hinge=new THREE.Group();hinge.position.set(c.position.x,y+.4,c.position.z-.25);g.add(hinge);const lid=part(hinge,lam(T.p[1]),0,.05,.25,.74,.1,.5);part(hinge,ironMat,0,.06,.47,.76,.04,.06);
+  const chest=(dx,dz,items,label)=>{I(null);const c=S(dx,dz,.7,.4,.45,lam(T.crate,{color:0xa07850}));const hinge=new THREE.Group();hinge.position.set(c.position.x,y+.4,c.position.z-.25);g.add(hinge);const lid=part(hinge,lam(T.p[1]),0,.05,.25,.74,.1,.5),band=part(hinge,ironMat,0,.06,.47,.76,.04,.06);if(VOX.on){c.visible=false;lid.visible=band.visible=false;g.add(voxProp('chestBody',c.position.x,y,c.position.z));hinge.add(voxProp('chestLid',0,0,.25));}
     part(g,new THREE.MeshLambertMaterial({color:0xd0a94a}),c.position.x,y+.32,c.position.z+.23,.1,.1,.02);
     interact.push({mesh:c,extra:[lid],x:R.ox+dx,z:R.oz+dz,name:label||'Сундук',chest:true,key:R.gen?R.i+':'+dx+':'+dz:null,items:items.map(([id,n])=>({id,n})),
       open(){this.opened=true;const f=hinge.rotation.x;tween(420,k=>hinge.rotation.x=f+(-1.25-f)*k);},close(){const f=hinge.rotation.x;tween(320,k=>hinge.rotation.x=f*(1-k)).then(()=>sfx('lidclose'));},
       use(){this.open();sfx('chest');heroPose('open',900);window.handsGesture&&window.handsGesture('chest');setTimeout(()=>window.handsOpenChest&&window.handsOpenChest(this),350);}});};
   // with the voxel look the furniture is built of small voxels; the plain block stays, hidden, to block the cell and take taps
-  const vf=(name,m,dx,dz,sx=1,ry=0)=>{if(!VOX.on)return;m.visible=false;const v=voxProp(name,R.ox+dx+.5,y,R.oz+dz+.5,ry);v.scale.set(sx,1,1);g.add(v);};
+  const vf=(name,m,dx,dz,sx=1,ry=0)=>{if(!VOX.on)return;m.visible=false;const v=voxProp(name,R.ox+dx+.5,y,R.oz+dz+.5,ry);v.scale.set(sx,1,1);g.add(v);lookOn(v);};
   const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');const tm=S(dx,dz,.9*w,.06,.8,lam(T.p[2]));tm.position.y=y+.48;if(VOX.on){vf('table',tm,dx+(w-1)/2,dz,w);I(null);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);return;}for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
   const candle=(dx,dz)=>{I('Свеча','Воск стекает на стол, пламя дрожит от сквозняка.');part(g,new THREE.MeshLambertMaterial({color:0xe8dcc0}),R.ox+dx+.5,y+.57,R.oz+dz+.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+dx+.5,y+.65,R.oz+dz+.5,.04,.06,.04);I(null);};
   // the way to the door stays clear: nothing stands on the two cells in front of it
@@ -49,10 +51,10 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const barrel=(dx,dz,loot)=>{I('Бочка','Пахнет элем и сыростью.',loot);S(dx,dz,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.45,R.oz+dz+.5,.54,.05,.54);I(null);};
   const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');const bm=S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);const bm2=part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);if(VOX.on){bm2.visible=false;vf('bed',bm,dx,dz+.5);}
     if(!VOX.on){part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);}I(null);};
-  const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
+  const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');if(VOX.on){for(let i=0;i<w;i++){const v=voxProp('shelf',R.ox+dx+i+.5,y+1.07,R.oz+1.15);lookOn(v);g.add(v);}I(null);return;}part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
   const rug=(dx,dz,w,d)=>{I(null);part(g,rugMat,R.ox+dx+w/2,y+.01,R.oz+dz+d/2,w,.02,d).userData.floor=true;}; // floor decor: taps go through to walking
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
-  const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(dx,1,.9,.7,.5,lam(T.wall));part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);torch(R.ox+dx,R.oz+1,true);I(null);};
+  const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');{const hb=S(dx,1,.9,.7,.5,lam(T.wall)),hc=part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);if(VOX.on){hc.visible=false;vf('hearth',hb,dx,1);}}torch(R.ox+dx,R.oz+1,true);I(null);};
   // each house has its own trade written into the room
   // the tavern: a bar along the back left with kegs and a bottle shelf behind it, Bram's corner, a fireplace,
   // three tables with stools for patrons and stools at the bar; the lane to the door stays clear
@@ -150,7 +152,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
         if(solidIt&&!cs.some(([a,b])=>[[1,0],[-1,0],[0,1],[0,-1]].some(([p,q])=>fr(a+p,b+q)))){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));continue;}if(solidIt){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));acc.push(cs);}fn(x,z);return [x,z];}return null;};
     const wallSide=rm=>([x,z])=>Math.min(z-rm.z0,rm.z1-z,x-rm.x0,rm.x1-x)+(z===1?-.5:0),far=([x,z])=>-(Math.abs(x-ins[0])+Math.abs(z-ins[1]));
     // a hearth anywhere along a wall, its fire lit
-    const fire=(x,z)=>{I(poor?'Очаг':'Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(x,z,.9,poor?.3:.7,.6,lam(T.wall,{color:poor?0x6a6058:0x8a8278}));if(!poor)part(g,lam(T.wall,{color:0x6a6058}),R.ox+x+.5,y+1.15,R.oz+z+.5,.6,.9,.36);torch(R.ox+x,R.oz+z,true);I(null);};
+    const fire=(x,z)=>{I(poor?'Очаг':'Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');{const hb=S(x,z,.9,poor?.3:.7,.6,lam(T.wall,{color:poor?0x6a6058:0x8a8278}));if(VOX.on)vf('hearth',hb,x,z);else if(!poor)part(g,lam(T.wall,{color:0x6a6058}),R.ox+x+.5,y+1.15,R.oz+z+.5,.6,.9,.36);}torch(R.ox+x,R.oz+z,true);I(null);};
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff']),1]);}
     else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword']),1]);if(rich&&rnd()<.3)box.push([pick(['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar']),1]);}
     // the hall: hearth on a wall far from the door, the table with stools, a barrel by the door, a shelf

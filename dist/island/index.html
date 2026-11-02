@@ -544,7 +544,7 @@ body.fight .title{display:none}
       <button id="mNew" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><b>Новая игра</b><small>создать героя</small></button>
       <button id="mSettings" class="mmb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><b>Настройки</b><small>звук, графика, игра</small></button>
     </div>
-    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.124 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
+    <footer class="mm-foot"><span class="mm-ver">За гранью · Бета 0.125 · 02.11.2026</span><button id="mExit" class="mm-exit" hidden>Выйти из острова</button><span class="mm-copy">© 2026 blauwi00. Все права защищены</span></footer>
   </div></div>
 <div class="screen settings" id="settings" hidden>
   <div class="st">
@@ -2789,6 +2789,14 @@ function well(){const g=new Grid(16,26,16);for(let z=0;z<16;z++)for(let x=0;x<16
     if(d<7.6&&d>=5.4)for(let y=0;y<8;y++)g.set(x,y,z,y%3===2?SH.mortar[0]:pickS('stone',(x+(y%6<3?0:2))>>2,y,z>>2));else if(d<5.4)g.set(x,5,z,pickS('water',x>>2,0,z>>2));}
   for(const x of [1,14])g.box(x,8,7,x+1,22,9,wdD);g.box(1,18,7,15,19,9,pickS('stave',0,0,0));g.box(7,12,7,9,15,9,SH.hoop[0]);for(let y=15;y<18;y++)g.set(8,y,8,SH.hoop[1]);
   for(let z=0;z<16;z++){const y=25-Math.round(Math.abs(z-7.5)*.55);for(let x=0;x<16;x++)g.set(x,y,z,pickS('shingle',x>>2,y,z>>1));}return g;}
+// ---------- a hearth with its chimney, a shelf of books, a chest's body and lid (16 voxels per cell) ----------
+shades('ember',['#e8742a','#f0a040','#c84a1a']);shades('soot',['#1a1614','#221c18']);shades('book',['#6a2a22','#2e4a6a','#8a6a2a','#3a5a32','#5a2a4a']);shades('iron',['#3a3a40','#4a4a52']);
+function hearth(){const g=new Grid(16,28,10);g.box(0,0,0,16,12,10,(x,y,z)=>y%4===3||(x+(y>>2)*3)%6===0?SH.mortar[0]:pickS('stone',(x+(y>>2)*3)/6|0,y>>2,z>>2));
+  g.box(3,1,5,13,9,10,0);g.box(3,1,4,13,9,5,(x,y,z)=>pickS('soot',x,y,z));for(let x=4;x<12;x++)for(let z=5;z<9;z++)if(hs(x,z,7)<.7)g.set(x,1+(hs(z,x,3)<.4?1:0),z,pickS('ember',x,z,1));
+  g.box(0,12,0,16,14,10,pickS('beam',0,0,0));g.box(3,14,0,13,28,7,(x,y,z)=>y%4===3||(x+(y>>2)*3)%6===0?SH.mortar[0]:pickS('stone',(x+(y>>2)*3)/6|0,y>>2,z>>2));return g;}
+function shelf(){const g=new Grid(16,9,5);g.box(0,0,0,16,1,5,pickS('beam',0,0,0));for(let x=1;x<15;){const w=1+(hs(x,1,9)<.3?1:0),h=4+Math.floor(hs(x,2,9)*4),c=pickS('book',x,0,0);if(hs(x,3,9)<.12){x++;continue;}g.box(x,1,1,x+w,1+h,4,c);x+=w;}return g;}
+function chestBody(){const g=new Grid(12,7,8);g.box(0,0,0,12,7,8,(x,y,z)=>(x===0||x===11)&&(z===0||z===7)?SH.iron[0]:y===3?SH.iron[1]:pickS('crate',x>>1,y>>1,z));g.set(6,5,7,SH.iron[1]);g.set(5,5,7,SH.iron[1]);return g;}
+function chestLid(){const g=new Grid(12,2,8);g.box(0,0,0,12,2,8,(x,y,z)=>x===0||x===11||x===6?SH.iron[0]:pickS('crate',x>>1,y,z>>1));return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -2801,7 +2809,7 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
 window.__chars=1;
 // ---------- renderer / scene ----------
 const canvas=document.getElementById('c'),stage=document.getElementById('stage');
@@ -3702,6 +3710,8 @@ let INFO=null;const I=(n,t,loot)=>{INFO=n?{n,t,loot}:null;};
 function part(g,mat,x,y,z,w,h,d){const m=new THREE.Mesh(BOX,mat);m.scale.set(w,h,d);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);
   if(INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}return m;}
 const looks=[]; // {n,t,loot,meshes}
+// a voxel model stands in for a hidden block: it takes the taps of the thing it shows
+const lookOn=m=>{if(INFO){if(!INFO.meshes){INFO.meshes=[];looks.push(INFO);}INFO.meshes.push(m);m.userData.look=INFO;}};
 // a real item lying in the world, built from the same boxes as the one held in a hand
 function itemProp(parent,x,y,z,id,n,name,text,lie){const grp=new THREE.Group();
   grp.add(heldGroup(id));
@@ -3727,13 +3737,13 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   if(R.type!=='cellar'){I('Окно','За мутным стеклом шумит море. Вдалеке мигает огонёк — может, корабль, а может, нет.');part(g,new THREE.MeshBasicMaterial({color:0x5a7aa8}),R.ox+R.iw/2+1.6,y+1.05,R.oz+1.01,.5,.4,.02);I(null);}
   }
   const S=(dx,dz,w,h,d,mat,solid=true)=>{const m=part(g,mat,R.ox+dx+.5,y+h/2,R.oz+dz+.5,w,h,d);if(solid)blockCell(R.ox+dx,R.oz+dz);return m;};
-  const chest=(dx,dz,items,label)=>{I(null);const c=S(dx,dz,.7,.4,.45,lam(T.crate,{color:0xa07850}));const hinge=new THREE.Group();hinge.position.set(c.position.x,y+.4,c.position.z-.25);g.add(hinge);const lid=part(hinge,lam(T.p[1]),0,.05,.25,.74,.1,.5);part(hinge,ironMat,0,.06,.47,.76,.04,.06);
+  const chest=(dx,dz,items,label)=>{I(null);const c=S(dx,dz,.7,.4,.45,lam(T.crate,{color:0xa07850}));const hinge=new THREE.Group();hinge.position.set(c.position.x,y+.4,c.position.z-.25);g.add(hinge);const lid=part(hinge,lam(T.p[1]),0,.05,.25,.74,.1,.5),band=part(hinge,ironMat,0,.06,.47,.76,.04,.06);if(VOX.on){c.visible=false;lid.visible=band.visible=false;g.add(voxProp('chestBody',c.position.x,y,c.position.z));hinge.add(voxProp('chestLid',0,0,.25));}
     part(g,new THREE.MeshLambertMaterial({color:0xd0a94a}),c.position.x,y+.32,c.position.z+.23,.1,.1,.02);
     interact.push({mesh:c,extra:[lid],x:R.ox+dx,z:R.oz+dz,name:label||'Сундук',chest:true,key:R.gen?R.i+':'+dx+':'+dz:null,items:items.map(([id,n])=>({id,n})),
       open(){this.opened=true;const f=hinge.rotation.x;tween(420,k=>hinge.rotation.x=f+(-1.25-f)*k);},close(){const f=hinge.rotation.x;tween(320,k=>hinge.rotation.x=f*(1-k)).then(()=>sfx('lidclose'));},
       use(){this.open();sfx('chest');heroPose('open',900);window.handsGesture&&window.handsGesture('chest');setTimeout(()=>window.handsOpenChest&&window.handsOpenChest(this),350);}});};
   // with the voxel look the furniture is built of small voxels; the plain block stays, hidden, to block the cell and take taps
-  const vf=(name,m,dx,dz,sx=1,ry=0)=>{if(!VOX.on)return;m.visible=false;const v=voxProp(name,R.ox+dx+.5,y,R.oz+dz+.5,ry);v.scale.set(sx,1,1);g.add(v);};
+  const vf=(name,m,dx,dz,sx=1,ry=0)=>{if(!VOX.on)return;m.visible=false;const v=voxProp(name,R.ox+dx+.5,y,R.oz+dz+.5,ry);v.scale.set(sx,1,1);g.add(v);lookOn(v);};
   const table=(dx,dz,w=1)=>{I('Стол','Потёртый дубовый стол. В щелях застряли крошки.');const tm=S(dx,dz,.9*w,.06,.8,lam(T.p[2]));tm.position.y=y+.48;if(VOX.on){vf('table',tm,dx+(w-1)/2,dz,w);I(null);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);return;}for(const sx of [-1,1])part(g,beamMat,R.ox+dx+.5+sx*.35*w,y+.24,R.oz+dz+.5,.08,.46,.6);if(w>1)blockCell(R.ox+dx+1,R.oz+dz);I(null);};
   const candle=(dx,dz)=>{I('Свеча','Воск стекает на стол, пламя дрожит от сквозняка.');part(g,new THREE.MeshLambertMaterial({color:0xe8dcc0}),R.ox+dx+.5,y+.57,R.oz+dz+.5,.06,.1,.06);part(g,new THREE.MeshBasicMaterial({color:0xffc86a}),R.ox+dx+.5,y+.65,R.oz+dz+.5,.04,.06,.04);I(null);};
   // the way to the door stays clear: nothing stands on the two cells in front of it
@@ -3743,10 +3753,10 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
   const barrel=(dx,dz,loot)=>{I('Бочка','Пахнет элем и сыростью.',loot);S(dx,dz,.5,.62,.5,lam(T.p[1],{color:0x8a6a4a}));part(g,lam(T.wall,{color:0x666a70}),R.ox+dx+.5,y+.45,R.oz+dz+.5,.54,.05,.54);I(null);};
   const bed=(dx,dz)=>{I('Кровать','Жёсткий тюфяк, набитый сеном. Под подушкой ничего.');const bm=S(dx,dz,.8,.3,.95,lam(T.p[2]));blockCell(R.ox+dx,R.oz+dz+1);const bm2=part(g,lam(T.p[2]),R.ox+dx+.5,y+.15,R.oz+dz+1.3,.8,.3,.7);if(VOX.on){bm2.visible=false;vf('bed',bm,dx,dz+.5);}
     if(!VOX.on){part(g,clothMat,R.ox+dx+.5,y+.34,R.oz+dz+1.05,.74,.08,1.2);part(g,new THREE.MeshLambertMaterial({color:0xe8e0c8}),R.ox+dx+.5,y+.38,R.oz+dz+.3,.6,.1,.3);}I(null);};
-  const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
+  const shelf=(dx,w,txt)=>{I('Полка с книгами',txt||'Корешки выцвели. Одна книга — «Сказание о Хельге, что ушла за грань моря и не вернулась».');if(VOX.on){for(let i=0;i<w;i++){const v=voxProp('shelf',R.ox+dx+i+.5,y+1.07,R.oz+1.15);lookOn(v);g.add(v);}I(null);return;}part(g,lam(T.p[2]),R.ox+dx+w/2,y+1.1,R.oz+1.15,w,.06,.3);for(let i=0;i<w*3;i++)part(g,new THREE.MeshLambertMaterial({color:[0x7a4a2a,0x4a6a8a,0x8a3a2a,0xc0a060][i%4]}),R.ox+dx+.2+i*.3,y+1.23,R.oz+1.15,.12,.2,.12);I(null);};
   const rug=(dx,dz,w,d)=>{I(null);part(g,rugMat,R.ox+dx+w/2,y+.01,R.oz+dz+d/2,w,.02,d).userData.floor=true;}; // floor decor: taps go through to walking
   const M=c=>new THREE.MeshLambertMaterial({color:c}),glow=c=>new THREE.MeshBasicMaterial({color:c});
-  const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(dx,1,.9,.7,.5,lam(T.wall));part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);torch(R.ox+dx,R.oz+1,true);I(null);};
+  const hearth=(dx)=>{I('Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');{const hb=S(dx,1,.9,.7,.5,lam(T.wall)),hc=part(g,lam(T.wall,{color:0x6a6058}),R.ox+dx+.5,y+1.2,R.oz+1.2,.6,1,.3);if(VOX.on){hc.visible=false;vf('hearth',hb,dx,1);}}torch(R.ox+dx,R.oz+1,true);I(null);};
   // each house has its own trade written into the room
   // the tavern: a bar along the back left with kegs and a bottle shelf behind it, Bram's corner, a fireplace,
   // three tables with stools for patrons and stools at the bar; the lane to the door stays clear
@@ -3844,7 +3854,7 @@ function buildRoom(R){const g=new THREE.Group();g.visible=false;scene.add(g);R.g
         if(solidIt&&!cs.some(([a,b])=>[[1,0],[-1,0],[0,1],[0,-1]].some(([p,q])=>fr(a+p,b+q)))){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));continue;}if(solidIt){cs.forEach(([a,b])=>solid.delete((R.ox+a)+','+(R.oz+b)));acc.push(cs);}fn(x,z);return [x,z];}return null;};
     const wallSide=rm=>([x,z])=>Math.min(z-rm.z0,rm.z1-z,x-rm.x0,rm.x1-x)+(z===1?-.5:0),far=([x,z])=>-(Math.abs(x-ins[0])+Math.abs(z-ins[1]));
     // a hearth anywhere along a wall, its fire lit
-    const fire=(x,z)=>{I(poor?'Очаг':'Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');S(x,z,.9,poor?.3:.7,.6,lam(T.wall,{color:poor?0x6a6058:0x8a8278}));if(!poor)part(g,lam(T.wall,{color:0x6a6058}),R.ox+x+.5,y+1.15,R.oz+z+.5,.6,.9,.36);torch(R.ox+x,R.oz+z,true);I(null);};
+    const fire=(x,z)=>{I(poor?'Очаг':'Очаг','Тёплый огонь. В доме можно перевести дух: умения восстанавливаются, когда вы входите.');{const hb=S(x,z,.9,poor?.3:.7,.6,lam(T.wall,{color:poor?0x6a6058:0x8a8278}));if(VOX.on)vf('hearth',hb,x,z);else if(!poor)part(g,lam(T.wall,{color:0x6a6058}),R.ox+x+.5,y+1.15,R.oz+z+.5,.6,.9,.36);}torch(R.ox+x,R.oz+z,true);I(null);};
     const box=[];if(poor){if(rnd()<.6)box.push([pick(['bread','herb','stone','torch']),1]);if(rnd()<.25)box.push(['bread',1]);if(rnd()<.08)box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff']),1]);}
     else{box.push([pick(['bread','torch','herb']),1+Math.floor(rnd()*2)]);if(rnd()<.35)box.push(['potion',1]);if(rnd()<(rich?.35:.2))box.push([pick(['dagger','axe_hand','mace','spear','quarterstaff','shield_round','bow_short','sword']),1]);if(rich&&rnd()<.3)box.push([pick(['sword_long','sword_rapier','dagger_curved','bow_long','trident','shield_kite','sword_scimitar']),1]);}
     // the hall: hearth on a wall far from the door, the table with stools, a barrel by the door, a shelf

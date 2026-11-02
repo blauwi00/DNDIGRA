@@ -192,6 +192,14 @@ function well(){const g=new Grid(16,26,16);for(let z=0;z<16;z++)for(let x=0;x<16
     if(d<7.6&&d>=5.4)for(let y=0;y<8;y++)g.set(x,y,z,y%3===2?SH.mortar[0]:pickS('stone',(x+(y%6<3?0:2))>>2,y,z>>2));else if(d<5.4)g.set(x,5,z,pickS('water',x>>2,0,z>>2));}
   for(const x of [1,14])g.box(x,8,7,x+1,22,9,wdD);g.box(1,18,7,15,19,9,pickS('stave',0,0,0));g.box(7,12,7,9,15,9,SH.hoop[0]);for(let y=15;y<18;y++)g.set(8,y,8,SH.hoop[1]);
   for(let z=0;z<16;z++){const y=25-Math.round(Math.abs(z-7.5)*.55);for(let x=0;x<16;x++)g.set(x,y,z,pickS('shingle',x>>2,y,z>>1));}return g;}
+// ---------- a hearth with its chimney, a shelf of books, a chest's body and lid (16 voxels per cell) ----------
+shades('ember',['#e8742a','#f0a040','#c84a1a']);shades('soot',['#1a1614','#221c18']);shades('book',['#6a2a22','#2e4a6a','#8a6a2a','#3a5a32','#5a2a4a']);shades('iron',['#3a3a40','#4a4a52']);
+function hearth(){const g=new Grid(16,28,10);g.box(0,0,0,16,12,10,(x,y,z)=>y%4===3||(x+(y>>2)*3)%6===0?SH.mortar[0]:pickS('stone',(x+(y>>2)*3)/6|0,y>>2,z>>2));
+  g.box(3,1,5,13,9,10,0);g.box(3,1,4,13,9,5,(x,y,z)=>pickS('soot',x,y,z));for(let x=4;x<12;x++)for(let z=5;z<9;z++)if(hs(x,z,7)<.7)g.set(x,1+(hs(z,x,3)<.4?1:0),z,pickS('ember',x,z,1));
+  g.box(0,12,0,16,14,10,pickS('beam',0,0,0));g.box(3,14,0,13,28,7,(x,y,z)=>y%4===3||(x+(y>>2)*3)%6===0?SH.mortar[0]:pickS('stone',(x+(y>>2)*3)/6|0,y>>2,z>>2));return g;}
+function shelf(){const g=new Grid(16,9,5);g.box(0,0,0,16,1,5,pickS('beam',0,0,0));for(let x=1;x<15;){const w=1+(hs(x,1,9)<.3?1:0),h=4+Math.floor(hs(x,2,9)*4),c=pickS('book',x,0,0);if(hs(x,3,9)<.12){x++;continue;}g.box(x,1,1,x+w,1+h,4,c);x+=w;}return g;}
+function chestBody(){const g=new Grid(12,7,8);g.box(0,0,0,12,7,8,(x,y,z)=>(x===0||x===11)&&(z===0||z===7)?SH.iron[0]:y===3?SH.iron[1]:pickS('crate',x>>1,y>>1,z));g.set(6,5,7,SH.iron[1]);g.set(5,5,7,SH.iron[1]);return g;}
+function chestLid(){const g=new Grid(12,2,8);g.box(0,0,0,12,2,8,(x,y,z)=>x===0||x===11||x===6?SH.iron[0]:pickS('crate',x>>1,y,z>>1));return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -204,4 +212,4 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
