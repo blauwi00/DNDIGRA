@@ -560,7 +560,7 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  else instanced(BOX,wood,fen,([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.35,z+.5),q0,v2.set(.12,.7,.12)));
  if(!VOX.on)for(const yy of [.3,.58])instanced(BOX,woodL,fen,([x,z,d],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+yy,z+.5),q0,v2.set(d==='x'?1:.06,.07,d==='x'?.06:1)),false);
  // wells: a stone ring, two posts, a little roof and a bucket; troughs in the castle court
- const wl=[...(VOX.on?[]:P.wells),...P.props.filter(p=>p.k==='trough').map(p=>[p.x,p.z,'t'])];
+ const wl=VOX.on?[]:[...P.wells,...P.props.filter(p=>p.k==='trough').map(p=>[p.x,p.z,'t'])];
  instanced(BOX,stoneM,wl,([x,z,t],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+(t?.2:.3),z+.5),q0,v2.set(t?.9:.86,t?.4:.6,t?.5:.86)));
  instanced(BOX,lam(T.water),wl,([x,z,t],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+(t?.41:.61),z+.5),q0,v2.set(t?.75:.6,.02,t?.35:.6)),false);
  const wells=P.wells;
@@ -580,9 +580,10 @@ if(SETTLE){const P=SETTLE,stoneM=lam(T.wall,{color:0xb8b0a4}),darkM=lam(T.wall,{
  crop.forEach((c,k)=>instanced(BOX,sway(new THREE.MeshLambertMaterial({color:c}),.03,1),P.fields.filter(f=>f[2]===k),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.14,z+.5),q0,v2.set(.92,.28,.7)),false));
  // small things of a yard and a quarry
  const PR=(k)=>P.props.filter(p=>p.k===k).map(p=>[p.x,p.z]);
- for(let j=0;j<3;j++)instanced(BOX,lam(T.bark,{color:0x8a6a44}),PR('woodpile'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.15+j*.2,z+.5),q0,v2.set(.8,.18,.35)));
- instanced(BOX,wood,PR('cross'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.7,z+.5),q0,v2.set(.12,1.4,.12)));
- instanced(BOX,wood,PR('cross'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.05,z+.5),q0,v2.set(.6,.1,.1)),false);
+ if(VOX.on){for(const k of ['woodpile','cross','trough'])voxInstanced(PR(k),()=>VOX.asset(k,()=>VOX[k](),1/16),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z),z+.5),qY(hash2(x,z)<.5?0:Math.PI),v2.set(1,1,1)));}
+ if(!VOX.on)for(let j=0;j<3;j++)instanced(BOX,lam(T.bark,{color:0x8a6a44}),PR('woodpile'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.15+j*.2,z+.5),q0,v2.set(.8,.18,.35)));
+ if(!VOX.on)instanced(BOX,wood,PR('cross'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.7,z+.5),q0,v2.set(.12,1.4,.12)));
+ if(!VOX.on)instanced(BOX,wood,PR('cross'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+1.05,z+.5),q0,v2.set(.6,.1,.1)),false);
  instanced(BOX,stoneM,PR('blocks'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.3,z+.5),qY(hash2(x,z)),v2.set(.9,.6,.7)));
  instanced(BOX,lam(T.moss||T.dirt,{color:0x3a2a1e}),PR('peat'),([x,z],i,m)=>m.compose(v1.set(x+.5,gy(x,z)+.2,z+.5),qY(hash2(x,z)),v2.set(.8,.4,.6)));
  for(const pr of P.props.filter(p=>['crane','cart','shed'].includes(p.k)))defer(chunkKey(pr.x,pr.z),()=>{const g=new THREE.Group(),y=gy(pr.x,pr.z),x=pr.x+.5,z=pr.z+.5;const B=(m,a,b,c,sx,sy,sz,rz=0)=>{const o=new THREE.Mesh(BOX,m);o.scale.set(sx,sy,sz);o.position.set(a,y+b,c);o.rotation.z=rz;o.castShadow=true;g.add(o);};

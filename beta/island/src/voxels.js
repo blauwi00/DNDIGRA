@@ -219,6 +219,10 @@ function tent(){const g=new Grid(20,12,14);for(let z=0;z<14;z++){const h=Math.ro
   g.box(1,0,6,2,12,8,wdD);g.box(18,0,6,19,12,8,wdD);return g;}
 function grave(){const g=new Grid(8,10,3);g.box(0,0,0,8,8,3,(x,y,z)=>y===7&&(x===0||x===7)?0:pickS('stone',x>>1,y>>1,z));g.box(1,8,0,7,9,3,(x,y,z)=>pickS('stone',x,y,z));g.box(2,9,0,6,10,3,(x,y,z)=>pickS('stone',x,y,z));
   g.box(3,3,0,5,7,1,SH.mortar[0]);g.box(2,5,0,6,6,1,SH.mortar[0]);for(let x=0;x<8;x++)if(hs(x,2,1)<.4)g.set(x,0,0,pickS('moss',x,0,0));return g;}
+// ---------- a woodpile of round logs, a wooden cross, a stone trough (16 voxels per cell) ----------
+function woodpile(){const g=new Grid(14,9,7);for(let r=0;r<3;r++)for(let k=0;k<4-r;k++){const cx=2+k*3.4+r*1.7,cy=1.5+r*2.8;for(let z=0;z<7;z++)for(let y=0;y<9;y++)for(let x=0;x<14;x++){const d=Math.hypot(x-cx,y-cy);if(d<1.7)g.set(x,y,z,z===6||z===0?(d<.8?SH.logEnd[1]:SH.logEnd[0]):pickS('bark',x,y>>1,z>>1));}}return g;}
+function cross(){const g=new Grid(10,23,3);g.box(4,0,0,6,22,2,(x,y,z)=>pickS('beam',x,y>>2,z));g.box(0,15,0,10,17,2,(x,y,z)=>pickS('beam',x>>2,y,z));g.box(3,0,0,7,2,3,pickS('stone',0,0,0));return g;}
+function trough(){const g=new Grid(15,6,8);g.box(0,0,0,15,6,8,(x,y,z)=>pickS('stone',x>>2,y>>1,z>>2));g.box(1,2,1,14,6,7,0);g.box(1,2,1,14,4,7,(x,y,z)=>pickS('water',x>>2,0,z>>2));return g;}
 // ---------- the game side: geometries per asset, cached; LOD swaps between near and far ----------
 const cache=new Map();
 function asset(key,build,size,f=2){let a=cache.get(key);if(a)return a;const t0=performance.now(),g=build(),near=mesh(g,size,{noBottom:true}),mid=mesh(down(g,f),size*f,{noBottom:true}),far=mesh(down(g,f*2),size*f*2,{noBottom:true});
@@ -231,4 +235,4 @@ try{const q=new URLSearchParams(location.search).get('vlod');if(q){const [n,m]=q
 function tick(fx,fz){for(const o of LIVE){const it=o.userData.vlod,d=(it.b?Math.hypot(Math.max(it.b[0]-fx,0,fx-it.b[2]),Math.max(it.b[1]-fz,0,fz-it.b[3])):Math.hypot(it.x-fx,it.z-fz))/(it.k||1),lv=d>LOD_MID?2:d>LOD_NEAR?1:0;if(lv===it.lv)continue;it.lv=lv;for(const e of it.ms)e[0].geometry=e[1+Math.min(lv,e.length-2)];}}
 // a mesh that shares a geometry's buffers but culls by its own sphere (a whole chunk of instances)
 function wrap(src,sphere){const g=new THREE.BufferGeometry();for(const k in src.attributes)g.setAttribute(k,src.attributes[k]);g.setIndex(src.index);g.boundingSphere=sphere;return g;}
-return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
+return {on,Grid,mesh,down,house,tree,fence,barrel,crate,table,stool,counter,bed,stall,well,hearth,shelf,chestBody,chestLid,rock,bush,cart,shed,tent,grave,woodpile,cross,trough,asset,tick,LIVE,wrap,MAT,GLASS,PAL,SH,ST,N,LOD(n,m){LOD_NEAR=n;LOD_MID=m;for(const o of LIVE)o.userData.vlod.lv=-1;}};})();
