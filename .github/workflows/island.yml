@@ -1,0 +1,50 @@
+name: Island beta checks
+
+# Runs on every push to the island working branch and on pull requests:
+# the shipped pages must match the sources, and the game must pass the
+# real-browser checks (menu, settings, every look, the two-hands rule,
+# starting kits, villager talks and the tutorial).
+on:
+  push:
+    branches:
+      - claude/affectionate-ritchie-sbvta3
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: island-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  island:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install the locked dependencies
+        run: npm ci
+      - name: Build the game bundles
+        run: npm run build
+      - name: Island packaging and fresh builds
+        run: |
+          node tests/island-beta.mjs
+          node tests/island-build-fresh.mjs
+          node tests/island-gen.mjs
+      - name: Install Chromium for the browser checks
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Island in real Chromium
+        run: node tests/island-beta-browser.cjs

@@ -22,10 +22,12 @@ var InventoryRules = (() => {
   __export(inventory_rules_exports, {
     CAPACITY: () => CAPACITY,
     armorName: () => armorName,
+    browseItems: () => browseItems,
     canAdd: () => canAdd,
     focusName: () => focusName,
     gearEntries: () => gearEntries,
     handType: () => handType,
+    itemGroup: () => itemGroup,
     slotsUsed: () => slotsUsed,
     stackable: () => stackable
   });
@@ -72,6 +74,19 @@ var InventoryRules = (() => {
     else if (type === "torch") copy.torches = (copy.torches || 0) + 1;
     else if (type === "potion") next.potions = (next.potions || 0) + 1;
     return slotsUsed(copy, next) <= CAPACITY;
+  }
+  function itemGroup(item) {
+    if (item.id === "potion" || item.id === "torch" || stackable(item.rawName || item.name)) return "supplies";
+    if (handType(item.rawName || item.name) || armorName(item.rawName || item.name)) return "equipment";
+    return "other";
+  }
+  function browseItems(items, { query = "", group = "all", sort = "original" } = {}) {
+    const normalize = (s) => s.toLocaleLowerCase("ru").replace(/ё/g, "\u0435");
+    const words = normalize(query.trim()).split(/\s+/).filter(Boolean);
+    const result = items.filter((it) => (group === "all" || itemGroup(it) === group) && words.every((w) => normalize(it.name + " " + (it.rawName || "")).includes(w)));
+    if (sort === "name") result.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    if (sort === "quantity") result.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, "ru"));
+    return result;
   }
   return __toCommonJS(inventory_rules_exports);
 })();

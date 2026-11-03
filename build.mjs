@@ -1,5 +1,15 @@
 import {build} from 'esbuild';import {mkdir,cp,readdir,rm} from 'node:fs/promises';
+await build({entryPoints:['src/combat/index.js'],bundle:true,format:'iife',globalName:'Combat',outfile:'dist/combat.js'});
+await build({entryPoints:['src/worldgen/index.js'],bundle:true,format:'iife',globalName:'WorldGen',outfile:'dist/worldgen.js'});
+await build({entryPoints:['src/region-walk.js'],bundle:true,format:'iife',globalName:'RegionWalk',outfile:'dist/region-walk.js'});
+await build({entryPoints:['src/tutorial-rules.js'],bundle:true,format:'iife',globalName:'TutorialRules',outfile:'dist/tutorial-rules.js'});
+await build({entryPoints:['src/caravan-timeline.js'],bundle:true,format:'iife',globalName:'CaravanTimeline',outfile:'dist/caravan-timeline.js'});
+await build({entryPoints:['src/prologue-rules.js'],bundle:true,format:'iife',globalName:'PrologueRules',outfile:'dist/prologue-rules.js'});
+await build({entryPoints:['src/local-api.js'],bundle:true,format:'iife',globalName:'LocalAPI',outfile:'dist/local-api.js'});
+await build({entryPoints:['src/props-index.js'],bundle:true,format:'iife',globalName:'Props',outfile:'dist/props.js'});
+await build({entryPoints:['src/location-generator.js'],bundle:true,format:'iife',globalName:'LocationGenerator',outfile:'dist/location-generator.js'});
 await build({entryPoints:['src/voxel.js'],bundle:true,minify:true,format:'iife',outfile:'dist/voxel.js'});
+await build({entryPoints:['src/characters.js'],bundle:true,format:'iife',globalName:'Characters',outfile:'dist/characters.js'});
 await build({entryPoints:['src/character-style.js'],bundle:true,format:'iife',globalName:'CharacterStyle',outfile:'dist/character-style.js'});
 await build({entryPoints:['src/portrait-renderer.js'],bundle:true,format:'iife',globalName:'PortraitRenderer',outfile:'dist/portrait-renderer.js'});
 await build({entryPoints:['src/inventory-rules.js'],bundle:true,format:'iife',globalName:'InventoryRules',outfile:'dist/inventory-rules.js'});

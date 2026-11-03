@@ -1,0 +1,8 @@
+{
+  "appId": "com.dndigra.game",
+  "appName": "DNDIGRA",
+  "webDir": "dist/client",
+  "ios": {
+    "preferredContentMode": "mobile"
+  }
+}

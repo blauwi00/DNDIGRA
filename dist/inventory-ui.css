@@ -1,0 +1,46 @@
+/* Inventory workspace: stable controls, independently scrollable contents and details. */
+body.game-ui #bag-view {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(220px,1fr) minmax(175px,.85fr);gap:8px;min-height:0;overflow:hidden;padding:8px}
+body.game-ui #bag-view[hidden] {display:none}
+body.game-ui #bag-view > div:first-child {display:flex;flex-direction:column;min-height:0;overflow:auto;gap:7px}
+body.game-ui #bag-view .pane-heading {flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0;min-height:32px}
+body.game-ui #bag-view .pane-heading h2 {margin:0;font-size:18px}
+#bag-capacity {font:12px system-ui;color:#d7c5a4}
+#bag-capacity.full {color:#ffb6a0}
+#bag-gold {margin-left:auto;font:13px system-ui;color:#efd18c}
+#bag-toolbar {display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.8fr);gap:6px;flex:none}
+#bag-toolbar input,#bag-toolbar select {box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:8px;border:1px solid #997849;border-radius:6px;background:#241f18;color:#f0dfbe;font:14px system-ui}
+#bag-toolbar input::placeholder {color:#bcac91}
+#bag-filters {grid-column:1/-1;display:flex;gap:5px;overflow-x:auto}
+#bag-filters button {flex:1;min-height:44px;padding:6px 8px;white-space:nowrap;font:12px system-ui;border:1px solid #79603f;border-radius:6px;background:#2d251c;color:#d7c5a4}
+#bag-filters button[aria-pressed=true] {background:#65482b;color:#fff0c9;border-color:#e4b66d}
+#bag-status {grid-column:1/-1;margin:0;color:#c4b69b;font:12px/1.4 system-ui}
+body.game-ui #bag-items {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:82px;gap:6px;align-self:stretch;flex:none}
+body.game-ui #bag-items .bag-item,body.game-ui #bag-items .bag-empty {width:auto;height:82px;min-height:44px;min-width:0}
+body.game-ui #bag-view .bag-item {display:flex;flex-direction:column;gap:4px;padding:5px;background:#33291f;border:1px solid #846747}
+body.game-ui #bag-view .bag-item.selected {background:#63462b;border:2px solid #efca84;box-shadow:inset 0 0 0 1px #9a713c}
+body.game-ui #bag-view .bag-item .item-art {width:30px;height:32px;flex:none}
+body.game-ui #bag-items .bag-item b {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:11px/1.2 system-ui;color:#ead9b9;text-align:center;max-width:100%;overflow-wrap:anywhere}
+body.game-ui #bag-view .bag-item small {top:4px;bottom:auto;right:4px;background:#211b15c9;padding:2px;border-radius:3px;font:11px system-ui}
+body.game-ui #bag-items .bag-empty {background:#211e1880;border:1px dashed #66543a;box-shadow:none;opacity:.65}
+body.game-ui #bag-equipped {display:flex;flex:none;height:auto;min-height:0;gap:6px;margin:0;overflow-x:auto}
+body.game-ui #bag-equipped .bag-item {width:48px;height:48px;min-height:44px;flex:none}
+body.game-ui #bag-equipped .bag-item b {display:none}
+body.game-ui #item-detail {display:grid;grid-template-columns:42px minmax(0,1fr);grid-column:auto;grid-row:auto;min-height:0;overflow:auto;overscroll-behavior:contain;padding:10px;gap:7px;border-color:#9c7a4a}
+body.game-ui #item-detail h2 {font-size:17px;overflow-wrap:anywhere}
+body.game-ui #item-detail .equipment-info,body.game-ui #item-detail .bag-no-results {grid-column:1/-1}
+body.game-ui #item-actions {grid-column:1/-1;display:flex;flex-wrap:wrap;position:static;gap:6px}
+body.game-ui #item-actions button {flex:1 1 140px;min-height:44px;font:13px system-ui;padding:8px}
+body.game-ui #item-actions .inventory-action {background:#dfc797;color:#513523;border:1px solid #a08054;box-shadow:none}
+body.game-ui #item-actions .item-lock-note {flex-basis:100%;margin:2px 0;font:12px/1.4 system-ui}
+#bag-view :is(button,input,select):focus-visible {outline:2px solid #ffe2a2;outline-offset:2px}
+@media (orientation:landscape) and (min-width:600px) {
+ body.game-ui #bag-view {grid-template-columns:minmax(270px,1fr) minmax(240px,1fr);grid-template-rows:minmax(0,1fr);gap:10px}
+ body.game-ui #bag-items {grid-template-columns:repeat(5,minmax(0,1fr))}
+ body.game-ui #bag-view .pane-heading,body.game-ui #bag-items,body.game-ui #bag-equipped {grid-row:auto;grid-column:auto}
+ body.game-ui #item-detail {grid-column:2;grid-row:1}
+}
+@media (max-width:350px) {body.game-ui #bag-items {grid-template-columns:repeat(3,minmax(0,1fr))}#bag-filters button{padding:6px;font-size:11px}}
+
+body.game-ui #bag-view > div:first-child {overflow:hidden}
+body.game-ui #bag-items {flex:1;min-height:0;overflow:auto;align-content:start;overscroll-behavior:contain;padding:2px}
+body.game-ui #bag-equipped:empty {display:none}

@@ -1,0 +1,25 @@
+# Existing DNDIGRA: mobile landscape and island evolution
+
+Owner explicitly resumed work: modify the LATEST EXISTING game, not a new Godot game. Canonical base is GitHub feat/region-streaming509fdf763b00ec711882bbb3734d377409aa3aa4, publishedv64. main is olderv58. Work is isolated on local feat/islands-mobile; no Site/store publication or main merge.
+
+## Preserved baseline
+Keep current src/characters.js, look-options.js, texel.js, stone-atlas.js, enemy-models.js, props and all approved assets. Keep existing orthographic top-down map view and camera behavior, full appearance editor, inventory/equipment, spell/skill/attack/dice/rest rules, portraits, icons, menu and saves. Landscape reflows existing controls; it is not a redesign. Old cartoon-atlas is a fallback/archive and cannot become the human visual baseline. No simplified character/rules replacements from the rejected Godot prototype.
+
+## Mobile delivery
+Use existing Capacitor8.5.3 and LocalAPI/IndexedDB. Bundle dist/client locally; no server.url and no hosted-site dependency. Extend the same project to Android (SDK36/Java21), lock iPhone/iPad/Android to landscape and adapt existing CSS to short landscape viewports. Preserve IDs and script chain. Verify the Android debug APK by an actual build. iOS source packaging is possible here; signed installation requires Apple signing and a Mac build. Owner has noMac/paidDeveloper and only occasional Windows access at work. An optional unsigned Mac Actions build and SideStore route are prepared locally; initial Windows setup, recurring phone refresh, compilation/signing and physical installation remain separate verification steps. Never claim a physical-device run or signed IPA based on Linux/browser tests. No PWA substitution or publishing.
+
+## Islands: next integrated subsystem
+One connected irregular seeded island; dry land bounds600..1000cells in each direction, surrounding ocean outside that box,10×10chunks. Random forest/meadow/desert/mountain/snow/swamp distributions with smooth transitions rendered through current pixel materials. Add water/coast to the existing terrain builder and overview; retain old textures/models. Version4 generation is additive; v1/v2/v3 algorithms and saves remain frozen.
+
+The island is one outdoor scene with reachable start/port/settlement and quest/sidequest landmarks. Interiors can continue as separate current scenes. Main quest ends logically before unlocking the next island; eventual stories target60–120minutes, no short kernel falsely labeled complete content. Travel to visited islands remains possible before finishing the current island. Every trip costs positive configurable gold; balance is provisional. Brief animated ship scene and real preparation/readiness checks, no sea encounters.
+
+All items, equipped gear, inventory, gold, potions, torches, level/xp, appearance and persistent effects travel with the same hero. Earlier equipment-only transfer and leaveGold prompt are superseded. One authoritative hero remains active; revisiting an island must merge current hero resources into the island's stored environmental state, never restore old gold/gear or duplicate rewards. Every depleted resource, defeated enemy, door/container and quest outcome persists. No unconditional respawn. Trade and sidequests provide earnings; legitimate repeatable dock work can avoid economic softlock. Canonical rewards/payments validated in both LocalAPI and server paths.
+
+## Onboarding
+Improve current tutorial inside the existing game, preserving actual DND controls. Context hints remember useful actions performed early; no arbitrary unequip chore or manually forced ordinary damage. Genuine victory and nonlethal defeat/unconsciousness/rescue remain required by the owner's earlier request. First-island temporary traces disappear after completion. Menu replay uses existing isolated practice lifecycle, no campaign reward/progress transfer. Later runs can skip. Actual existing appearance-bound actor/camera animations replace hidden text-only staging while retaining the same characters and art.
+
+## Current implementation batch
+First verify unchanged28-suite baseline. Add Android/landscape packaging and full-property transfer in the CURRENT project, with regression evidence and visual comparison to v64. In parallel prepare additive v4 island data contracts and integrate in the next batch; do not switch UI to an unfinished generator. Future subsystems must extend the current APIs/controllers instead of replacing the whole game. Report batch boundaries candidly.
+
+## Verification and ownership
+Root owns Git, builds/copies, browser/GPU sessions, integrations and artifact packaging. Workers own explicit disjoint paths; no worker publishes/commits. Fresh full logic/API tests once before completion, relevant portrait legacy/landscape/native browser checks sequentially, actual APK signature/manifest inspection, and byte comparison of preserved models/assets. Native WebView hardware remains unverified until device testing. Keep dependencies/toolchains/keystores/QA out of Git and phone source ZIP.

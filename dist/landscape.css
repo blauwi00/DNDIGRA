@@ -1,0 +1,187 @@
+/* Landscape reflow of the current game. Art, fonts, theme and handlers stay in
+   their original files; these overrides only give the existing panes space. */
+@media (orientation: landscape) {
+  body.game-ui {
+    --landscape-pane: clamp(176px, 24vw, 220px);
+  }
+  body.game-ui .tabletop {
+    max-width: 1400px;
+    padding: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right))
+      max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+    gap: 4px;
+  }
+  body.game-ui header {min-height:44px;padding:0 4px;gap:5px}
+  body.game-ui #menu, body.game-ui #journal, body.game-ui #episode-status {
+    width:44px;height:44px;min-height:44px;
+  }
+  body.game-ui .title > div {min-width:0}
+  body.game-ui .scene-name {max-width:min(42vw,520px)}
+  body.game-ui .tabs {min-height:48px;padding:0 3px;gap:5px}
+  body.game-ui .tabs button {min-height:44px;flex-direction:row;gap:6px}
+
+  /* The same wooden dock sits beside the map on a short, wide display. */
+  body.game-ui .map-shell {
+    display:grid;grid-template-columns:minmax(0,1fr) var(--landscape-pane);
+    grid-template-rows:minmax(0,1fr) auto auto;gap:0;
+  }
+  body.game-ui #viewport {grid-column:1;grid-row:1;min-height:0;height:100%;border-radius:6px 0 0 6px}
+  body.game-ui .map-toolbar {right:calc(var(--landscape-pane) + 6px);top:6px}
+  body.game-ui .map-toolbar button {
+    width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;
+  }
+  body.game-ui #target-panel {top:78px}
+  body.game-ui #play-dock {
+    grid-column:2;grid-row:1 / 4;position:relative;inset:auto;
+    display:flex;flex-direction:column;gap:4px;padding:6px;
+    border-top:0;border-left:2px solid #b28d58;
+    overflow:auto;min-height:0;overscroll-behavior:contain;
+  }
+  body.game-ui #play-dock .map-hands {
+    display:flex;flex-wrap:nowrap;gap:3px;margin:0;min-height:44px;flex:none;
+  }
+  body.game-ui #play-dock .map-hands button {flex:1;min-width:0;min-height:44px;padding:3px;white-space:normal}
+  body.game-ui #play-dock .turn-strip {margin:0;padding:0;min-height:44px;flex:none;gap:3px}
+  body.game-ui #turn-resources {font-size:12px;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+  body.game-ui #combat-tools-toggle {min-height:44px;padding:5px}
+  body.game-ui #play-dock .actions {grid-template-columns:1fr;gap:4px;margin:0;flex:none}
+  body.game-ui #play-dock .actions button {min-height:44px;flex-direction:row;padding:4px;gap:5px}
+  body.game-ui .dialogue-open #play-dock {display:none}
+  body.game-ui #roll-result {
+    grid-column:1;grid-row:2;padding:6px;min-height:72px;
+    grid-template-columns:48px minmax(0,1fr) 44px;
+  }
+  body.game-ui #check-next {width:44px;height:44px;min-height:44px}
+  body.game-ui #reward-notice {grid-column:1;grid-row:3}
+
+  /* Conversation keeps the existing portrait and parchment in the side pane. */
+  body.game-ui #dialogue {
+    grid-column:2;grid-row:1 / 4;height:100%;max-height:none;
+    padding:6px;gap:6px;border-top:0;border-left:2px solid #be9659;
+  }
+  body.game-ui #dialogue .speaker-card {
+    display:flex;flex-direction:column;gap:6px;padding:0;flex:1;min-height:0;
+  }
+  body.game-ui #dialogue .speaker-identity {flex-direction:row;gap:5px;padding-right:44px;flex:none;min-height:48px}
+  body.game-ui #dialogue .speaker-art {width:44px;height:48px;flex:none}
+  body.game-ui #dialogue #speaker-caption {text-align:left;min-width:0}
+  body.game-ui #dialogue .speaker-copy {flex:1;width:100%;min-height:0}
+  body.game-ui #dialogue-text {height:100%;max-height:none;min-height:0;padding:7px}
+  body.game-ui #dialogue-options {max-height:42%;min-height:44px;flex:none}
+  body.game-ui #dialogue-options button {min-height:44px;flex:none}
+  body.game-ui #dialogue-close {width:44px;height:44px;min-height:44px;top:4px;right:4px}
+
+  /* Twenty cells remain visible; worn equipment uses the heading on the right. */
+  body.game-ui #bag-view {
+    --bag-cell:clamp(44px,12dvh,52px);
+    display:grid;grid-template-columns:minmax(338px,1fr) minmax(0,1fr);
+    grid-template-rows:44px minmax(0,1fr);gap:5px 8px;padding:6px;
+  }
+  body.game-ui #bag-view > div:first-child {display:contents}
+  body.game-ui #bag-view .pane-heading {grid-column:1;grid-row:1;min-height:44px}
+  body.game-ui #bag-items {
+    grid-column:1;grid-row:2;grid-template-columns:repeat(7,minmax(44px,1fr));
+    grid-template-rows:repeat(3,var(--bag-cell));gap:5px;align-self:start;
+  }
+  body.game-ui #bag-items > * {height:var(--bag-cell);min-height:44px;min-width:44px}
+  body.game-ui #bag-equipped {grid-column:2;grid-row:1;height:44px;min-width:0;margin:0}
+  body.game-ui #bag-equipped .bag-item {width:44px;height:44px;min-height:44px}
+  body.game-ui #item-detail {grid-column:2;grid-row:2;min-height:0;overflow:auto;padding:7px}
+  body.game-ui #item-actions {position:static;gap:5px}
+  body.game-ui #item-actions button {min-height:44px;padding:6px}
+
+  body.game-ui #hero-view {display:grid;grid-template-columns:minmax(180px,32%) minmax(0,1fr);align-items:start;padding:6px;gap:8px}
+  body.game-ui .hero-stage {height:min(280px,65dvh);min-height:200px;position:sticky;top:0}
+  body.game-ui .hero-art {height:min(280px,65dvh);width:min(230px,100%)}
+  body.game-ui .hero-sheet {min-width:0;padding:10px}
+  body.game-ui #game-settings-open {grid-column:1 / -1;min-height:44px}
+
+  /* Existing dialogs scroll below a reachable title/close row. */
+  body.game-ui dialog:not(#heroes-panel) {max-height:calc(100dvh - 12px);padding:10px}
+  body.game-ui dialog .modal-head {position:sticky;top:-10px;z-index:3;background:inherit;min-height:44px}
+  body.game-ui dialog .modal-head button {width:44px;min-width:44px;height:44px;min-height:44px;padding:4px}
+  body.game-ui #actions-panel .combat-tools {max-height:calc(100dvh - 88px)}
+  body.game-ui #adventure-cinematic, body.game-ui #adventure-combat {
+    left:auto;right:6px;bottom:6px;width:min(350px,44%);max-height:calc(100% - 12px);
+  }
+  body.game-ui.tutorial-active .tutorial-card {padding:5px 8px}
+  body.game-ui.tutorial-active .tutorial-card p {margin:3px 0}
+
+  /* Original menu art and title, with its five actions beside the tavern. */
+  body.cinematic-active #cinematic-menu {
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,390px);
+    grid-template-rows:minmax(0,1fr) auto;gap:8px 22px;
+    padding:max(12px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right))
+      max(12px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+    align-items:center;
+  }
+  body.cinematic-active .cinema-mast {grid-column:1;grid-row:1;margin:0}
+  body.cinematic-active .cinema-mast h1 {font-size:clamp(36px,6vw,68px)}
+  body.cinematic-active .cinema-actions {grid-column:2;grid-row:1;margin:0;padding:0;gap:6px;max-width:none}
+  body.cinematic-active button.cinema-button {min-height:44px;font-size:18px;padding-top:7px;padding-bottom:7px}
+  body.cinematic-active #cinema-status {grid-column:2;grid-row:2;margin:0}
+  body[data-cinema-route=settings] #cinematic-menu {
+    grid-template-columns:minmax(180px,.75fr) minmax(0,1.5fr);
+    grid-template-rows:44px minmax(0,1fr) auto;align-items:start;
+  }
+  body.cinematic-active .cinema-head {grid-column:1;grid-row:1;margin:0;padding:6px 0;min-height:44px}
+  body.cinematic-active .cinema-head h2 {font-size:24px;padding-left:40px}
+  body.cinematic-active .cinema-head button.cinema-button {left:0;width:44px;min-height:44px}
+  body.cinematic-active .settings-tabs {grid-column:1;grid-row:2;margin:4px 0;grid-template-columns:1fr}
+  body.cinematic-active .cinema-settings {grid-column:2;grid-row:1 / 3;max-height:100%;overflow:auto;padding:12px;overscroll-behavior:contain}
+  body.cinematic-active .setting-row {min-height:48px}
+  body.cinematic-active button.cinema-switch {width:64px;height:44px;min-height:44px;display:flex;align-items:center}
+  body.cinematic-active .cinema-slider {margin:14px 0;gap:8px;padding-bottom:12px}
+  body.cinematic-active .cinema-slider input {min-height:22px}
+
+  /* Full editor: current preview beside all original categories and options. */
+  body.game-ui #heroes-panel:not([open]) {display:none}
+  body.game-ui #heroes-panel[open] {
+    width:100%;max-width:1100px;height:100dvh;max-height:100dvh;
+    margin:0 auto;padding:0;display:flex;flex-direction:column;overflow:hidden;
+  }
+  body.game-ui #heroes-panel > .modal-head {
+    position:relative;top:auto;min-height:44px;flex:none;padding:0 48px;
+    margin:0 max(12px,env(safe-area-inset-left));
+  }
+  body.cinematic-active #heroes-panel #heroes-close {left:0;top:0;width:44px;height:44px;min-height:44px}
+  body.game-ui #heroes-body {flex:1;min-height:0;overflow:auto;padding:6px max(12px,env(safe-area-inset-right)) 4px max(12px,env(safe-area-inset-left))}
+  body.game-ui #heroes-panel #heroes-footer {position:static;flex:none;padding:5px max(12px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));margin:0;gap:8px}
+  body.game-ui #heroes-footer button {min-height:44px!important}
+  body.game-ui #heroes-panel .creation-steps {margin:0 0 4px;gap:4px;flex:none;grid-template-columns:repeat(4,minmax(0,1fr))}
+  body.cinematic-active #heroes-panel .creation-steps {grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.game-ui #heroes-panel .creation-steps button {min-height:44px!important;flex-direction:row;gap:6px;padding:0}
+  body.game-ui #heroes-panel .creation-steps:before {display:none}
+  body.game-ui #heroes-panel input, body.game-ui #heroes-panel select {min-height:44px}
+  body.cinematic-active #heroes-panel .hero-creation-top {min-height:230px!important;grid-template-columns:1fr 1fr}
+  body.cinematic-active #heroes-panel .hero-creation-top .creation-preview {height:230px!important}
+  body.game-ui #heroes-panel.look-editing #heroes-body {display:flex;flex-direction:column;overflow:hidden}
+  body.game-ui #heroes-panel .look-editor {
+    display:grid;grid-template-columns:minmax(270px,43%) minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto;gap:0 8px;flex:1;min-height:0;margin:0;
+  }
+  body.game-ui #heroes-panel .look-sticky {display:contents}
+  body.game-ui #heroes-panel .look-stage {
+    grid-column:1;grid-row:1 / 4;height:100%;min-height:0;margin:0;padding:0;align-items:stretch;
+  }
+  body.cinematic-active #heroes-panel .hero-basics {padding:6px;min-height:0;overflow:auto;overscroll-behavior:contain}
+  body.cinematic-active #heroes-panel .hero-basics h3 {margin:6px 0 4px}
+  body.cinematic-active #heroes-panel .hero-basics .cinema-classes {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.cinematic-active #heroes-panel .hero-basics .cinema-classes button {min-height:44px!important}
+  body.cinematic-active #heroes-panel .hero-name-row > button {width:44px;min-width:44px}
+  body.game-ui #heroes-panel .look-tabs {grid-column:2;grid-row:1;margin:0;padding:4px;min-height:52px;flex:none}
+  body.game-ui #heroes-panel .look-editor .look-tab {min-height:44px;padding:5px 8px}
+  body.game-ui #heroes-panel .look-tabs > .look-tools {min-width:132px;gap:0}
+  body.game-ui #heroes-panel .look-tabs > .look-tools button {width:44px;min-width:44px;min-height:44px}
+  body.game-ui #heroes-panel .look-panel {grid-column:2;grid-row:2;min-height:0;overflow:auto;padding:8px;gap:12px;align-content:start;grid-auto-rows:max-content;overscroll-behavior:contain}
+  body.game-ui #heroes-panel .look-note {grid-column:2;grid-row:3;margin:4px 0 0;font-size:11px;line-height:1.3}
+  body.game-ui #heroes-panel .look-editor .look-swatch {width:44px;height:44px;min-width:44px;min-height:44px;flex-basis:44px}
+  body.game-ui #heroes-panel .look-editor .look-follow, body.game-ui #heroes-panel .look-editor .look-quick-btn {min-height:44px}
+  body.game-ui #heroes-panel .look-model > .look-slot {height:100%}
+  body.game-ui #heroes-panel .look-canvas {max-height:none}
+}
+
+@media (orientation: landscape) and (max-width:679px) {
+  body.game-ui #bag-view {grid-template-columns:minmax(280px,1fr) minmax(0,1fr);overflow:auto}
+  body.game-ui #bag-items {grid-template-columns:repeat(5,minmax(44px,1fr));grid-template-rows:repeat(4,44px)}
+  body.game-ui #heroes-panel .look-editor {grid-template-columns:minmax(220px,42%) minmax(0,1fr)}
+}
