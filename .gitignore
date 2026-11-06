@@ -2,3 +2,14 @@
 node_modules/
 dist/client/
 dist/server/
+
+# === Claude Code Game Studios (локальное, не коммитить) ===
+.claude/settings.local.json
+CLAUDE.local.md
+project.local.yaml
+production/session-logs/
+production/session-state/
+.scratch/
+.claude/agent-memory/
+.claude/worktrees/
+docs/consistency-failures.md
